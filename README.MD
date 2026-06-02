@@ -30,18 +30,18 @@ A project defines its intended architecture as a structured tree of rule modules
 espalier
 ├─ components
 │  ├─ buttons
-│  │  └─ [button].tsx.mjs
+│  │  └─ *.tsx.mjs
 │  ├─ dropdowns
-│  │  └─ [dropdown].tsx.mjs
+│  │  └─ *.tsx.mjs
 │  └─ layouts
-│     └─ [layout].tsx.mjs
+│     └─ *.tsx.mjs
 ├─ models
-│  └─ [domain].ts.mjs
+│  └─ *.ts.mjs
 ├─ endpoints
-│  └─ [endpoint].ts.mjs
+│  └─ *.ts.mjs
 ├─ clients
-│  └─ [apiProvider]
-│     ├─ [apiProvider].ts.mjs
+│  └─ *
+│     ├─ client.ts.mjs
 │     ├─ requestModels.ts.mjs
 │     └─ responseModels.ts.mjs
 └─ main.ts.mjs
@@ -57,11 +57,11 @@ From this single source, `espalier` compiles three outputs:
 
 **Skills**, surfaced to the agent when creating new code:
 
-> When asked to create a button component, the agent invokes the _button component_ skill. The skill carries the placement (`components/buttons/[button].tsx`), the naming relationship (filename matches the component), and the conventions to follow.
+> When asked to create a button component, the agent invokes the _button component_ skill. The skill carries the placement (`components/buttons/*.tsx`) and the conventions to follow.
 
-**Rules**, attached to files when editing existing code:
+**Rules**, loaded into agent context during work:
 
-> When the agent opens an existing button component to modify it, the corresponding rule is automatically attached to its context. The rule restates the conventions the file must continue to satisfy.
+> When the agent reads an existing button component, the corresponding structural rule attaches. Constraint rules are present eagerly; their Scope section states when they apply. The rule text restates the conventions the file must satisfy.
 
 **Linters**, run deterministically against the working tree:
 
@@ -129,10 +129,10 @@ The exported artifacts are generated outputs. The espalier itself is the source 
 **Structural rules** describe _what code exists, and where_. They are positioned in the rule tree under root by their target file path:
 
 ```text
-components/buttons/[button].tsx.mjs
+components/buttons/*.tsx.mjs
 ```
 
-This rule governs files at `components/buttons/[button].tsx`. Capture segments (`[button]`) bind to variable path components and can be referenced elsewhere in the tree to enforce naming relationships.
+This rule governs files at `components/buttons/*.tsx`. Wildcards match ordinary path or filename variation; naming requirements belong in the rule text and `lint` function.
 
 Structural rules participate in **creation** (as skills) and **editing** (as path-attached rules). They define the project's architectural shape.
 
@@ -143,23 +143,23 @@ Structural rules participate in **creation** (as skills) and **editing** (as pat
 backend/**/*.ts/no-fetch.mjs
 ```
 
-The first applies to every TypeScript file in the project; the second only within `backend/`. Constraint rules participate in **editing** (as glob-attached rules) and **validation** (as linters). They do not appear as skills, because they describe properties rather than artifacts.
+The first applies to every TypeScript file in the project; the second only within `backend/`. Constraint rules participate in **editing** (as eagerly loaded agent rules; lint uses the real selector) and **validation** (as linters). They do not appear as skills, because they describe properties rather than artifacts. See [docs/RULES&SKILLS.MD](docs/RULES&SKILLS.MD).
 
-## Captures
+## Wildcards
 
-Segments wrapped in square brackets define symbolic names that can be reused deeper in the tree (similar to dynamic segments in Next.js and other frameworks):
+Use `*` where a structural rule should apply to a family of files or directories:
 
 ```text
 clients
-└─ [apiProvider]
-   ├─ [apiProvider].ts.mjs
+└─ *
+   ├─ client.ts.mjs
    ├─ requestModels.ts.mjs
    └─ responseModels.ts.mjs
 ```
 
-Here `[apiProvider]` matches a directory name, and `[apiProvider].ts` requires a file whose name matches that same value. This lets `espalier` enforce naming relationships across the repository structure, not just file placement.
+Here `*` matches each client directory. The structural rule describes placement; if a project needs a naming relationship, such as a filename matching its parent directory, express that in the rule text and enforce it in `lint`.
 
-Capture names should communicate intent. Prefer `[apiProvider]` over `[name]`; the names appear verbatim in generated documentation and provide context to both humans and agents.
+Prefer clear surrounding structure and `contentDescription` over clever patterns. The generated layout should be obvious to both humans and agents.
 
 ## Writing rules
 
@@ -182,25 +182,21 @@ The `contentDescription` is used in the generated project layout document, where
 
 The `rule` describes what the file must look like. It is _mode-invariant_: the same conventions apply whether the file is being created or edited. The exporter renders it appropriately for each output surface.
 
-The `lint` function receives a context. Structural rules get path and capture metadata; constraint rules get a selector. See `docs/TYPES.MD` for the full shapes.
+The `lint` function receives a context with the matched `path` and `pattern`. See `docs/TYPES.MD` for the full shape.
 
 ```js
-// structural rule (e.g. components/buttons/[button].tsx.mjs)
+// structural rule (e.g. components/buttons/*.tsx.mjs)
 async function lint({
   path,
   pattern,
-  captures,
-  allCaptures,
-  segments,
   read,
   emit,
 }) {
   const code = await read();
-  const { button } = allCaptures;
 }
 
 // constraint rule (e.g. **/*.ts/no-as-any.mjs under root)
-async function lint({ path, selector, read, emit }) {
+async function lint({ path, pattern, read, emit }) {
   const code = await read();
 }
 ```
@@ -214,18 +210,18 @@ Rules execute independently, in unspecified order, with no shared state. A rule 
 ```text
 ├─ components
 │  ├─ buttons
-│  │  └─ [button].tsx         // a button component
+│  │  └─ *.tsx                // a button component
 │  ├─ dropdowns
-│  │  └─ [dropdown].tsx       // a dropdown component
+│  │  └─ *.tsx                // a dropdown component
 │  └─ layouts
-│     └─ [layout].tsx         // a layout component
+│     └─ *.tsx                // a layout component
 ├─ models
-│  └─ [domain].ts             // a domain model
+│  └─ *.ts                   // a domain model
 ├─ endpoints
-│  └─ [endpoint].ts           // an endpoint implementation
+│  └─ *.ts                   // an endpoint implementation
 ├─ clients
-│  └─ [apiProvider]
-│     ├─ [apiProvider].ts     // an HTTP client implementation
+│  └─ *
+│     ├─ client.ts            // an HTTP client implementation
 │     ├─ requestModels.ts     // request models for an HTTP client
 │     └─ responseModels.ts    // response models for an HTTP client
 └─ main.ts                    // the application entry point
