@@ -1,0 +1,21 @@
+{
+  "exit": 0,
+  "issues": [
+    {
+      "path": "backend/orders/handler.ts",
+      "code": "ran_no_as_any",
+      "severity": "info"
+    },
+    {
+      "path": "backend/orders/handler.ts",
+      "code": "ran_no_fetch",
+      "severity": "info",
+      "metadata": { "path": ["orders"] }
+    },
+    {
+      "path": "web/app.tsx",
+      "code": "ran_no_as_any",
+      "severity": "info"
+    }
+  ]
+}

@@ -6,11 +6,10 @@
 
 It takes a single source-of-truth description of how a project should be shaped — where code goes, what it looks like, how it's written — and emits everything an agent needs to build and maintain that project correctly:
 
-- **skills** for creating new code in the right place, in the right shape
-- **rules** for editing existing code without drifting from the intended form
+- **documentation** placed where agent tools already look, describing what belongs where and how it should be written
 - **linters** for catching drift deterministically when it happens
 
-All three are generated from the same source. They cannot get out of sync, because they are not independently authored.
+Both are generated from the same source. They cannot get out of sync, because they are not independently authored.
 
 ## The problem
 
@@ -30,20 +29,18 @@ A project defines its intended architecture as a structured tree of rule modules
 espalier
 ├─ components
 │  ├─ buttons
-│  │  └─ *.tsx.mjs
+│  │  └─ [button].tsx.mjs
 │  ├─ dropdowns
-│  │  └─ *.tsx.mjs
+│  │  └─ [dropdown].tsx.mjs
 │  └─ layouts
-│     └─ *.tsx.mjs
+│     └─ [layout].tsx.mjs
 ├─ models
-│  └─ *.ts.mjs
+│  └─ [domain].ts.mjs
 ├─ endpoints
-│  └─ *.ts.mjs
+│  └─ [endpoint].ts.mjs
 ├─ clients
-│  └─ *
-│     ├─ client.ts.mjs
-│     ├─ requestModels.ts.mjs
-│     └─ responseModels.ts.mjs
+│  └─ [apiProviderDirectory]
+│     └─ [apiProviderImplementation].ts.mjs
 └─ main.ts.mjs
 ```
 
@@ -53,32 +50,27 @@ Each `.mjs` file declares:
 - a **rule** — the natural-language conventions that file must follow
 - a **lint function** — the deterministic check that verifies adherence
 
-From this single source, `espalier` compiles three outputs:
+From this single source, `espalier` produces two things:
 
-**Skills**, surfaced to the agent when creating new code:
+**Documentation**, written into the repository by `espalier build`:
 
-> When asked to create a button component, the agent invokes the _button component_ skill. The skill carries the placement (`components/buttons/*.tsx`) and the conventions to follow.
+> Each directory gets an `AGENTS.MD` describing what may exist there, which files are required, and the conventions each must follow. Agents pick these up from the directory they are working in — the one behaviour every tool shares. The repository root carries the full project map.
 
-**Rules**, loaded into agent context during work:
+**Linters**, run deterministically against the working tree by `espalier lint`:
 
-> When the agent reads an existing button component, the corresponding structural rule attaches. Constraint rules are present eagerly; their Scope section states when they apply. The rule text restates the conventions the file must satisfy.
+> After the agent writes or edits a file, `espalier lint` verifies the result. Violations are emitted as machine-readable issues, each carrying the rule text it violated. The agent revises until validation succeeds.
 
-**Linters**, run deterministically against the working tree:
-
-> After the agent writes or edits a file, `espalier run` verifies the result. Violations are emitted as machine-readable issues. The agent revises until validation succeeds.
-
-The three outputs serve different moments of the development loop, but they all describe the same conventions — because they all derive from the same rule module.
+Guidance steers and the linter corrects. Both describe the same conventions, because both derive from the same rule module.
 
 ## The convergence loop
 
 `espalier` does not try to make agents correct on the first attempt. It makes correctness _reachable through iteration_.
 
-1. The agent reads the project layout document — always present, small, architectural.
-2. To create new code, the agent invokes the relevant skill. Placement and shape come from the skill.
-3. To edit existing code, the agent receives the rule for that file automatically.
-4. After writing, `espalier run` validates the result.
-5. Drift is reported as precise, machine-readable issues.
-6. The agent revises until the project's constraints are satisfied.
+1. The agent reads the project map at the repository root — always present, small, architectural.
+2. Working in a directory, it picks up that directory's `AGENTS.MD`: what belongs there, what is required, and the conventions for each.
+3. After writing, `espalier lint` validates the result.
+4. Drift is reported as precise, machine-readable issues, each carrying the rule it violated.
+5. The agent revises until the project's constraints are satisfied.
 
 Guidance steers; the linter corrects. Either half failing degrades the loop's efficiency, not its correctness. As long as the linter is deterministic, the loop converges.
 
@@ -94,7 +86,7 @@ espalier
 ```js
 // espalier/README.MD.mjs
 
-export const contentDescription = "the repository root README file";
+export const description = "the repository root README file";
 
 export const rule = String.raw`
 The root README must not be empty and should describe the project's purpose.
@@ -114,13 +106,13 @@ Validate the repository:
 espalier lint
 ```
 
-Compile guidance for your agent:
+Generate the documentation your agent reads:
 
 ```bash
-espalier export
+espalier build
 ```
 
-The exported artifacts are generated outputs. The espalier itself is the source of truth.
+The generated documentation is a build artifact. The espalier itself is the source of truth.
 
 ## Rule types
 
@@ -129,44 +121,66 @@ The exported artifacts are generated outputs. The espalier itself is the source 
 **Structural rules** describe _what code exists, and where_. They are positioned in the rule tree under root by their target file path:
 
 ```text
-components/buttons/*.tsx.mjs
+components/buttons/[button].tsx.mjs
 ```
 
-This rule governs files at `components/buttons/*.tsx`. Wildcards match ordinary path or filename variation; naming requirements belong in the rule text and `lint` function.
+This rule governs files matching `components/buttons/*.tsx`. The placeholder name is exposed to `lint` as `captures.button`.
 
-Structural rules participate in **creation** (as skills) and **editing** (as path-attached rules). They define the project's architectural shape.
+Structural rules define the project's architectural shape. They appear in the project map, they carry the conventions written into each directory's documentation, and they are what makes an undeclared file a violation.
 
-**Constraint rules** describe _how code is written_, regardless of position. They are attached to selectors. Rule module paths are relative to the configured root (see `espalier.config.yaml`):
+**Constraint rules** describe _how code is written_, regardless of position. They live on paths containing a recursive placeholder, and their filename is a rule name plus the extension they apply to:
 
 ```text
-**/*.ts/no-as-any.mjs
-backend/**/*.ts/no-fetch.mjs
+[...path]/no-as-any.ts.mjs
+backend/[...path]/no-fetch.ts.mjs
 ```
 
-The first applies to every TypeScript file in the project; the second only within `backend/`. Constraint rules participate in **editing** (as eagerly loaded agent rules; lint uses the real selector) and **validation** (as linters). They do not appear as skills, because they describe properties rather than artifacts. See [docs/RULES&SKILLS.MD](docs/RULES&SKILLS.MD).
+The first applies to every TypeScript file in the project; the second only within `backend/`. Constraint rules do not declare that anything exists — they describe how files that do exist must be written, and appear in the documentation for the subtree they cover.
 
-## Wildcards
+Every file in the repository is owned by exactly one structural rule, and by every constraint whose pattern matches it. Which rule wins, and which files are required to exist, is specified in [docs/MATCHING.MD](docs/MATCHING.MD).
 
-Use `*` where a structural rule should apply to a family of files or directories:
+## Path placeholders
+
+Square brackets define named path placeholders:
 
 ```text
 clients
-└─ *
-   ├─ client.ts.mjs
-   ├─ requestModels.ts.mjs
-   └─ responseModels.ts.mjs
+└─ [apiProviderDirectory]
+   └─ [apiProviderImplementation].ts.mjs
 ```
 
-Here `*` matches each client directory. The structural rule describes placement; if a project needs a naming relationship, such as a filename matching its parent directory, express that in the rule text and enforce it in `lint`.
+`[name]` matches within one path segment and captures the matched text as a string. `[...name]` matches across zero or more complete path segments, captures them as an array of strings, and marks the rule as a constraint.
 
-Prefer clear surrounding structure and `contentDescription` over clever patterns. The generated layout should be obvious to both humans and agents.
+Placeholder names describe values; they do not constrain relationships between them. In the example above, both `stripe/stripe.ts` and `stripe/client.ts` match the structural pattern. A naming relationship belongs in the rule text and is enforced explicitly by `lint`:
+
+```js
+export async function lint({
+  captures: {
+    apiProviderDirectory,
+    apiProviderImplementation,
+  },
+  emit,
+}) {
+  if (apiProviderDirectory !== apiProviderImplementation) {
+    emit({
+      code: "api_provider_name_mismatch",
+      message:
+        "The API provider implementation filename must match its directory.",
+    });
+  }
+}
+```
+
+The matcher normalizes `[name]` to `*` and `[...name]` to `**`. The normalized glob is exposed as `context.pattern`; the matched values are exposed as `context.captures`.
+
+Full grammar, matching precedence, and requiredness: [docs/MATCHING.MD](docs/MATCHING.MD).
 
 ## Writing rules
 
 Every rule module exports the same shape:
 
 ```js
-export const contentDescription =
+export const description =
   "a concise description of what this file represents";
 
 export const rule = String.raw`
@@ -178,68 +192,78 @@ export async function lint(context) {
 }
 ```
 
-The `contentDescription` is used in the generated project layout document, where it appears as an inline annotation. It should read naturally in that context: `"a button component"`, `"a domain model"`, `"the application entry point"`.
+The `description` is one line, and it is what appears in the project map beside the path. Because the map is the part of the documentation that is always in context, write it in the vocabulary of the task rather than of the architecture — an agent asked to add a `User` type will not necessarily connect that to the phrase "a domain model."
 
-The `rule` describes what the file must look like. It is _mode-invariant_: the same conventions apply whether the file is being created or edited. The exporter renders it appropriately for each output surface.
+The `rule` describes what the file must look like. It is _mode-invariant_: the same conventions apply whether the file is being created or edited, and the same text is written into the documentation and returned attached to a violation.
 
-The `lint` function receives a context with the matched `path` and `pattern`. See `docs/TYPES.MD` for the full shape.
+The `lint` function receives a context with the matched `path`, normalized `pattern`, and named `captures`. See `docs/TYPES.MD` for the full shape.
 
 ```js
-// structural rule (e.g. components/buttons/*.tsx.mjs)
+// structural rule (e.g. components/buttons/[button].tsx.mjs)
 async function lint({
   path,
   pattern,
+  captures,
   read,
   emit,
 }) {
   const code = await read();
 }
 
-// constraint rule (e.g. **/*.ts/no-as-any.mjs under root)
-async function lint({ path, pattern, read, emit }) {
+// constraint rule (e.g. [...path]/no-as-any.ts.mjs)
+async function lint({ path, pattern, captures, read, emit }) {
   const code = await read();
 }
 ```
 
 Rules execute independently, in unspecified order, with no shared state. A rule may read other files via the runner's APIs, but must not assume any other rule has or has not run.
 
-## The project layout document
+## The project map
 
-`espalier` generates a repository-wide architectural overview deterministically from the structural portion of the espalier:
+`espalier build` generates a repository-wide architectural overview deterministically from the structural portion of the espalier, and writes it at the repository root:
 
 ```text
 ├─ components
 │  ├─ buttons
-│  │  └─ *.tsx                // a button component
+│  │  └─ [button].tsx         // a button component
 │  ├─ dropdowns
-│  │  └─ *.tsx                // a dropdown component
+│  │  └─ [dropdown].tsx       // a dropdown component
 │  └─ layouts
-│     └─ *.tsx                // a layout component
+│     └─ [layout].tsx         // a layout component
 ├─ models
-│  └─ *.ts                   // a domain model
+│  └─ [domain].ts             // a domain model
 ├─ endpoints
-│  └─ *.ts                   // an endpoint implementation
+│  └─ [endpoint].ts           // an endpoint implementation
 ├─ clients
-│  └─ *
-│     ├─ client.ts            // an HTTP client implementation
-│     ├─ requestModels.ts     // request models for an HTTP client
-│     └─ responseModels.ts    // response models for an HTTP client
+│  └─ [apiProviderDirectory]
+│     └─ [apiProviderImplementation].ts // an HTTP client implementation
 └─ main.ts                    // the application entry point
 ```
 
-This document is always present in the agent's context. It is the architectural map: small, stable, and sufficient to orient any decision about where new code should go.
+This is the architectural map: small, stable, and sufficient to orient any decision about where new code should go. It stays small because it carries only descriptions — one line per node. The conventions themselves live in the documentation written into each directory, so an agent working in `src/clients/` picks up the rules for `src/clients/` and pays nothing for the rest of the repository.
 
-## Export targets
-
-`espalier export` compiles the espalier into agent-readable artifacts. Each target receives the form most suited to its capabilities. Targets are configurable in `espalier.config.yaml`.
+See [docs/cli/build/README.MD](docs/cli/build/README.MD) for how files are placed and what each contains.
 
 ## CI/CD integration
 
-This catches the case where the source has changed but the committed exports have not, preventing agents from being guided by stale rules.
+This catches the case where the espalier changed but the committed documentation did not, preventing agents from being guided by stale guidance.
 
 ```bash
-espalier export check
+espalier build --check
 ```
+
+## Who changes the espalier
+
+An agent that hits `unexpected_path` has two ways to make the error go away. It can move the file, or it can edit the espalier until the path becomes legal.
+
+It will try the second. It is the same instinct that deletes a failing test, and it is worse here, because nothing notices: the repository still lints clean while the espalier quietly comes to mean less every week.
+
+So the espalier is not the agent's to change. The two roles are separate:
+
+- **The architect** — a human, or an agent explicitly acting in that role — decides what the project's shape is and edits `espalier/`.
+- **The developer** — usually an agent — builds within that shape. When a task does not fit the declared structure, the correct move is to stop and report the gap, not to widen the pattern.
+
+`espalier build` writes this instruction into every file it generates, so the agent reads it in the same breath as the rules it is being asked to follow. `espalier lint` warns when `espalier/` changed in the same working tree as the files it newly legalises — the change is allowed, but it is never silent.
 
 ## Design philosophy
 
@@ -250,6 +274,14 @@ espalier export check
 - Issue codes are free-form strings. `espalier` does not validate uniqueness or namespace them automatically. Projects adopt their own conventions.
 
 Every additional knob is a place where deterministic behavior leaks. The value `espalier` offers — architectural convergence you can rely on — is preserved by keeping escape hatches few and coarse.
+
+## Planned
+
+Two commands are specified but not yet implemented.
+
+**`espalier test`** runs rule modules against fixtures. Rules are code, and a `lint` function that quietly stops catching what it was written to catch is worse than no rule at all — the espalier needs its own test harness: fixture files, expected issues, and a report when a rule's behaviour changes. See [docs/cli/test/README.MD](docs/cli/test/README.MD).
+
+**`espalier lint --watch`** keeps the runner alive between checks. This matters most where rules depend on `addons`: a language server or an out-of-process AST parser can take seconds to start, and paying that on every agent stop is the kind of friction that gets a tool switched off. A persistent runner is also what makes incremental linting practical on a large repository.
 
 ## What `espalier` is not
 

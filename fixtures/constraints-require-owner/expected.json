@@ -1,0 +1,17 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "path": "scripts/deploy.ts",
+      "code": "unexpected_path",
+      "severity": "error",
+      "rule": null
+    },
+    {
+      "path": "src/main.ts",
+      "code": "ran_no_as_any",
+      "severity": "info",
+      "rule": "[...path]/no-as-any.ts.mjs"
+    }
+  ]
+}

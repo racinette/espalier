@@ -1,0 +1,143 @@
+# Configuration
+
+`espalier` is configured by a single `espalier.config.yaml` at the repository root.
+
+```yaml
+version: 1
+
+root: espalier
+
+defaultIgnore: true
+
+ignore:
+  - src/api/*.generated.ts
+  - vendor/**
+  - db/migrations/**
+
+addons: ./espalier.addons.mjs
+
+build:
+  filename: AGENTS.MD
+  inline: false
+```
+
+Every key except `version` is optional. Unknown keys are errors — a typo in a config file is not something to discover three weeks later when the rule it disabled turns out never to have run.
+
+## Discovery
+
+`espalier` walks upward from the working directory until it finds `espalier.config.yaml`. **The directory containing that file is the repository root**, and every path in the config, every path in an issue, and every path in the espalier tree is relative to it.
+
+`--config <path>` overrides discovery. The root becomes that file's directory, regardless of where the command was invoked.
+
+If no config is found, `espalier` exits `2`. There is no implicit default configuration, because guessing a repository root is a good way to lint someone's home directory.
+
+## `version`
+
+Required. Currently `1`. An unrecognized version is an error rather than a warning — a config written for a future release will mean something different than what this release would do with it.
+
+## `root`
+
+The directory containing the espalier tree. Defaults to `espalier`.
+
+The espalier root is invisible to matching. Rule modules are not themselves governed by the rules they define.
+
+## `ignore`
+
+Paths `espalier` does not govern. Gitignore syntax — leading `!` negates, later patterns win, a trailing `/` matches directories only.
+
+This is the only escape from strict structural enforcement. Everything else in the repository must be owned by a structural rule or it is reported as `unexpected_path`.
+
+Ignored files are invisible, not exempt. No structural rule owns them, no constraint runs against them, and they cannot satisfy a required leaf. If a path is both required by a static leaf in the espalier and matched by `ignore`, the configuration contradicts itself and `espalier` exits `2` rather than quietly passing.
+
+Keep this list short. Boilerplate is handled by `defaultIgnore`, so what remains should be things specific to this project — and a long list of those is a signal that the espalier describes less of the repository than it claims to. Better for that to be visibly annoying in the config than filed away in a document of its own.
+
+## `defaultIgnore`
+
+Applies a built-in list of paths no project wants to govern: manifests and lockfiles, tool configuration, CI definitions, licence and editor files. Defaults to `true`.
+
+Nobody should hand-write `package.json`, `tsconfig.json`, `.github/**` and a lockfile into every project they start, and a generated config listing forty such entries reads as "this tool is complicated" before anyone has used it. Keeping the list in `espalier` also means it can be corrected centrally rather than frozen into every config that ran `init` two years ago.
+
+The list is universal rather than detected per language. Ignoring `Cargo.lock` in a JavaScript project costs nothing, while detection is a guess that fails on polyglot repositories.
+
+Layering is: the default list first, then `ignore`. Because `ignore` uses gitignore syntax, a project that wants to govern something the default list covers re-includes it rather than turning the whole list off:
+
+```yaml
+defaultIgnore: true
+ignore:
+  - "!package.json"
+```
+
+A lint rule enforcing the shape of `package.json` is a reasonable thing to want, and wanting it should not cost you the other thirty-nine entries. `defaultIgnore: false` remains available for projects that want to specify everything themselves.
+
+**A path the espalier declares overrides the default list.** Declaring `package.json.mjs` is an unambiguous statement that you want to govern `package.json`, so the built-in list steps aside. This differs from `ignore`, where a declaration and an ignore together are a contradiction and an error — your `ignore` is an explicit statement about this repository, while the default list is a heuristic the tool ships. Explicit beats declared; declared beats heuristic.
+
+**The list is append-only within a major version.** Adding an entry can only make a run quieter: files you declared stay governed, and files you did not were being reported as `unexpected_path` anyway. Removing one can only make a run noisier, producing violations from an upgrade nobody asked for — so removals are breaking changes and require a major version. A project depending on `^2` never sees its governed set grow underneath it.
+
+`espalier explain <path>` reports when a path is ignored and by which list. A file quietly not being checked is otherwise the kind of thing discovered months later.
+
+### What is ignored without being configured
+
+Three things are invisible unconditionally, because `espalier` reporting on its own machinery is a bug rather than a finding:
+
+- the VCS directory
+- `espalier.config.yaml` itself
+- the `root` directory
+- every file `espalier build` generated
+
+These cannot be un-ignored. Generated documentation is identified by its provenance header, not by path, because `build` distributes files through the tree rather than confining them to one directory.
+
+### What counts as a file
+
+The set of candidate files is what git already knows about:
+
+```bash
+git ls-files --cached --others --exclude-standard
+```
+
+Tracked files, plus untracked files that are not gitignored. This means `node_modules`, `dist`, and every other build artifact are excluded without anyone configuring it, and — importantly — the file an agent created ten seconds ago and has not committed is still linted.
+
+`.gitignore` is not a policy input. It answers "what is a file in this repository," not "what does `espalier` govern." The second question is `ignore`, and the two lists are unrelated: a committed generated file is invisible to git's ignore rules and very much something you want `espalier` to skip.
+
+In a directory that is not a git repository, `espalier` walks the filesystem with a small built-in exclusion list.
+
+## `addons`
+
+A path to a module providing shared resources to every `lint` function, exposed as `context.addons`.
+
+```js
+// espalier.addons.mjs
+export async function setup() {
+  const parser = await startGoParser();
+  return {
+    parseGo: (source) => parser.parse(source),
+    [Symbol.asyncDispose]: () => parser.stop(),
+  };
+}
+```
+
+`setup` runs once before any rule, the returned object is passed to every `lint` invocation, and disposal runs after the run completes — including when it fails. A `setup` that throws is an operational failure: `espalier` exits `2` and lints nothing.
+
+Addons exist for **expensive out-of-process resources**: a language server, an AST parser in another language, anything whose startup cost cannot be paid per file. Anything available as a package should simply be imported by the rule module that needs it — rule modules are ordinary ES modules, and routing an npm dependency through a config indirection buys nothing.
+
+The object must be safe for concurrent use by many rules in unspecified order. Internal state is fine — a parser is stateful — but nothing a rule does through an addon may change what another rule sees.
+
+## `build`
+
+| Key | Default | |
+|---|---|---|
+| `filename` | `AGENTS.MD` | name of the generated documentation file |
+| `inline` | `false` | write one document at the root instead of distributing files |
+
+`filename` exists because tools disagree about what to call the file they read — `AGENTS.MD` is converging, but a project whose tooling wants `CLAUDE.md` changes one string rather than gaining a second output format.
+
+`inline` is for tools that read only the repository root. See [cli/build/README.MD](cli/build/README.MD).
+
+### Ownership
+
+Generated files carry a provenance header, and that marker is what `espalier` uses to decide what it may delete, what to ignore while matching, and what it must not touch.
+
+Files bearing the marker are regenerated and, when the espalier no longer produces them, removed — a stale document that keeps steering agents after its rule was deleted is worse than no document. A documentation file **without** the marker halts the build rather than being overwritten; move its content into the corresponding `ESPALIER.MD` and run again. First contact with a tool is not the right moment to lose your agent instructions.
+
+## Errors
+
+Everything in this document that fails — a missing config, an unknown key, an unrecognized version, an addon that will not start, an `ignore` pattern that contradicts a required leaf — is an operational failure. `espalier` exits `2` and reports nothing else. A broken configuration must not be able to look like a clean repository.
