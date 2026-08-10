@@ -31,9 +31,9 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 **`exit`** — the process exit code. `0` clean, `1` violations, `2` operational failure.
 
-**`issues`** — every issue the run must produce, in output order: sorted by path, rule, line, column, code.
+**`issues`** — every issue the run must produce, and no others. Order is not compared: the runner does not promise one, so a fixture asserting one would be pinning an accident. Count is compared — two identical issues are not one issue, now that nothing is deduplicated.
 
-**Only the fields present are compared.** An expected issue naming `path`, `code` and `severity` asserts nothing about `line` or `ruleText`. This keeps fixtures readable and stops them failing over cosmetic changes to fields they were not written to test.
+**Only the fields present are compared.** An expected issue naming `path`, `code` and `severity` asserts nothing about `line` or `ruleText`. This keeps fixtures readable and stops them failing over cosmetic changes to fields they were not written to test. The rule applies at every depth, so an expected `metadata` naming two keys asserts nothing about a third.
 
 **`explain`** — expected `espalier explain --format jsonl` output for specific paths. Ownership is invisible in lint output when a repository is clean, so fixtures that pin *which rule owns what* assert it here rather than contriving a violation to make it observable.
 
@@ -56,11 +56,12 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | Fixture | Pins |
 |---|---|
 | `ownership-static-beats-dynamic` | precedence between a static and a dynamic leaf; captures on the winner |
+| `ownership-dynamic-directory-and-leaf` | overlapping dynamic siblings that compete for different roles |
 | `requiredness-dynamic-directory` | static descendants become required per instantiated dynamic directory |
 | `unexpected-path-recognized-node` | the deepest recognized node, in all three degradation cases |
 | `constraints-require-owner` | constraints do not run on files no structural rule owns |
 | `constraint-scope` | subtree and extension scoping; recursive captures as arrays |
-| `emit-path-override-and-dedup` | an issue attached elsewhere; identical issues collapsing |
+| `emit-path-override` | an issue attached to a file other than the one being linted |
 | `invalid-overlapping-siblings` | two dynamic siblings that can match the same filename |
 | `invalid-capture-names` | one dynamic directory described under two names |
 | `invalid-ignored-required-file` | a required static leaf that `ignore` also matches |

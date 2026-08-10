@@ -1,1 +1,3 @@
 LEGACY_README.MD
+node_modules/
+dist/

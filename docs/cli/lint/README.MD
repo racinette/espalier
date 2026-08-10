@@ -16,6 +16,7 @@ espalier lint [paths...]
   paths                 restrict the run to these files and directories
 
   --format human|jsonl  output format (default: human)
+  --out <dest>          stdout, stderr, or a file path (default: stdout)
   --rule <module>       run one rule module only
   --staged              lint git-staged files only
   --config <path>       use this config file instead of discovering one
@@ -28,7 +29,7 @@ espalier lint [paths...]
 2. **Collect files.** Everything git knows about, minus `ignore` and the unconditionally invisible paths. See [CONFIG.MD](../../CONFIG.MD).
 3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required leaves with no file report `missing_required_file`. See [MATCHING.MD](../../MATCHING.MD).
 4. **Run rules.** For every owned file: its structural rule's `lint`, plus the `lint` of every constraint whose pattern matches it.
-5. **Report.** Sorted, deduplicated, in a stable order.
+5. **Report.** Every issue every rule emitted.
 
 Rules execute independently and in unspecified order. A rule may read any file in the repository, but must not assume another rule has or has not run.
 
@@ -77,7 +78,11 @@ emit({
 });
 ```
 
-A rule that discovers a problem while examining one file can report it against the file that must change. Identical issues emitted by several invocations collapse — see deduplication below.
+A rule that discovers a problem while examining one file can report it against the file that must change.
+
+The target must be a repository-relative path inside the repository. It does not have to be governed, declared, or even to exist: a rule may well find that the file which must change is one the espalier has not got around to describing yet, and refusing to report that would punish exactly the person doing the work incrementally. An absolute path, or one escaping the root, is malformed rather than merely undeclared and fails the run.
+
+A rule that reaches the same conclusion from forty files emits it forty times. Emitting once is the rule's job — see ordering below.
 
 ### Built-in issues
 
@@ -98,6 +103,8 @@ Two codes come from matching rather than from a rule module. Their `rule` is `nu
 ```
 
 ## Output
+
+`--format` chooses the encoding and `--out` chooses the destination. The two are independent, and everything the run has to say — issues, the partial-run warning, an operational failure — goes through the chosen format to the chosen destination. There is no second channel and no message that arrives by another route, so nothing depends on the reader having guessed which stream it landed on. A consumer that wants two of them runs the command twice.
 
 ### `human`
 
@@ -128,20 +135,24 @@ Built-in issues have no rule behind them, so they show the deepest recognized no
 
 ### `jsonl`
 
-One JSON object per line on stdout, one per issue, nothing else. No header, no summary object, no wrapping array — every line has the same shape, so a consumer can process the stream without buffering it.
+One JSON object per line, nothing else. No header, no summary object, no wrapping array, so a consumer can process the stream without buffering it.
+
+Every line carries a `kind` — `issue`, `warning`, or `failure`. A reader dispatches on one field rather than inferring from which keys happen to be present, and a line whose `kind` it does not recognize is one it can skip rather than one it misreads.
 
 ```json
-{"path":"clients/acme/random.ts","code":"unexpected_path","message":"…","severity":"error","rule":null,"pattern":null,"captures":{},"line":null,"column":null,"metadata":{"recognized":"clients/[provider]","captures":{"provider":"acme"},"declared":["client.ts","requestModels.ts"]},"ruleText":null}
-{"path":"clients/stripe/client.ts","code":"missing_factory","message":"…","severity":"error","rule":"clients/[provider]/client.ts.mjs","pattern":"clients/*/client.ts","captures":{"provider":"stripe"},"line":12,"column":3,"metadata":{},"ruleText":"…"}
+{"kind":"issue","path":"clients/acme/random.ts","code":"unexpected_path","message":"…","severity":"error","rule":null,"pattern":null,"captures":{},"line":null,"column":null,"metadata":{"recognized":"clients/[provider]","captures":{"provider":"acme"},"declared":["client.ts","requestModels.ts"]},"ruleText":null}
+{"kind":"issue","path":"clients/stripe/client.ts","code":"missing_factory","message":"…","severity":"error","rule":"clients/[provider]/client.ts.mjs","pattern":"clients/*/client.ts","captures":{"provider":"stripe"},"line":12,"column":3,"metadata":{},"ruleText":"…"}
+{"kind":"warning","message":"scoped run — 3 of 214 files checked"}
+{"kind":"failure","code":"ambiguous_siblings","message":"…"}
 ```
 
-**stdout is the machine stream; stderr is for humans.** Progress, counts, and the partial-run warning go to stderr in both formats, so `espalier lint --format jsonl > issues.jsonl` produces a clean file and still tells the operator what happened.
+### Ordering
 
-### Ordering and deduplication
+The runner promises nothing about the order issues arrive in, and never collapses two of them into one. Rules run independently; what they emit is what comes out.
 
-Output is deterministic regardless of execution order or parallelism. Issues sort by `path`, then `rule`, then `line`, then `column`, then `code`.
+Both are deliberate. Ordering a stream means buffering it, which is the one thing a stream is for not doing, and collapsing issues means discarding one of two findings that agreed on `path`, `code` and `message` while disagreeing on `captures` or `line` — a silent choice between them, made on execution order.
 
-Issues identical in `path`, `code`, and `message` collapse to one. A rule that runs against forty files and reports the same registry problem each time produces one issue, not forty.
+Presentation is the formatter's business, and formatters may buffer. `human` groups by path, because that is how a person reads a report. `jsonl` does not reorder anything.
 
 ## Exit codes
 
@@ -155,7 +166,7 @@ Warnings and info do not fail the run. There is no flag to make them fail: sever
 
 ### Failures are not issues
 
-An operational failure means `espalier` could not do its job. It exits `2`, reports the failure, and lints nothing:
+An operational failure means `espalier` could not do its job. It exits `2`, reports the failure through the chosen format and destination, and lints nothing:
 
 - config missing, malformed, or contradictory
 - the espalier is ambiguous, or a rule path is invalid
@@ -164,6 +175,8 @@ An operational failure means `espalier` could not do its job. It exits `2`, repo
 - a `lint` function throws
 
 A rule that throws is a bug in the rule, not a finding about the repository. Degrading it to a warning would let a broken espalier report a clean repository, which is the one outcome this tool exists to prevent.
+
+The failures above the run are caught before any file is read, and nothing precedes them. A rule that throws is caught during it, so issues already emitted have already been written. The exit code is the authority on whether the run means anything: a `2` says the output is partial, however much of it arrived.
 
 ## Watch mode
 

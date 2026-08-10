@@ -64,7 +64,7 @@ A path may contain at most one recursive placeholder.
 
 Square brackets mark variable parts of a path.
 
-`[name]` matches within a single path segment and captures the matched text as a string. It may carry literal text on either side: `[button].tsx`, `test-[name].ts`, `[provider]`.
+`[name]` matches within a single path segment and captures the matched text as a string. It may carry literal text on either side: `[button].tsx`, `test-[name].ts`, `[provider]`. It matches one character or more — `[button].tsx` does not match a file named `.tsx`.
 
 `[...name]` matches zero or more complete path segments and captures them as an array of strings. It must occupy an entire segment — `foo[...bar]` is invalid — and it is legal only in constraint paths.
 
@@ -119,6 +119,8 @@ A constraint leaf may list extensions:
 ```
 
 This is shorthand for two patterns sharing one module, not glob brace expansion. It exists because a constraint that applies to `.ts` almost always applies to `.tsx`, and the alternative is two files with duplicated bodies that drift apart.
+
+Only constraint leaves may list extensions. A structural leaf names one file, and `main.{ts,tsx}.mjs` would be declaring that two files are each required — which is either two rules or a `[name]` placeholder, and is clearer written as whichever was meant. It is rejected.
 
 ## Ownership
 
@@ -177,6 +179,15 @@ Dynamic siblings that cannot collide are fine:
 [helper].ts           accepted — no filename ends in both
 ```
 
+The conflict is between siblings competing for the same thing: two leaves that could own one file, or two directories that could claim one subtree. A dynamic directory beside a dynamic leaf is not a conflict even when their names overlap, because a directory never owns a file:
+
+```text
+clients/[provider]/client.ts
+clients/[list].ts     accepted — one claims directories, the other files
+```
+
+It is a strange enough shape to be worth a second look when you write it, and it makes a directory harder to describe — everything nested under the catch-all directory and everything caught beside it have to be explained in the same breath. But it is decidable, and decidable is the bar.
+
 **Inconsistent capture names.** A dynamic directory is one node in the trie, so it has one name:
 
 ```text
@@ -214,6 +225,8 @@ clients
 
 An empty `clients/` is valid. Once `clients/stripe/client.ts` exists, `clients/stripe/requestModels.ts` is required and its absence is reported. A sibling `clients/stripe/notes.md` is `unexpected_path` unless another structural rule owns it or it is ignored.
 
+Any visible file under the instance instantiates it, whether or not a structural rule owns that file. `clients/stripe/notes.md` alone is enough: something is there, so the directory exists, and a `clients/stripe/` that exists without a client is exactly the drift this reports. Ignored files do not count, being invisible.
+
 **Constraints require nothing.** They describe how matching files are written. They never make a file mandatory.
 
 There is no syntax for "at least one." If a file is mandatory, declare it statically.
@@ -245,6 +258,8 @@ clients
 
 `backend/orders/handler.ts` in an espalier that declares no `backend/` reaches the root and recognizes nothing. Then there is nothing to report beyond the violation itself.
 
+What is declared at a node is every child it has, files and directories together, sorted, with directories carrying a trailing `/`. The two kinds are not separated: an agent asking what may exist here wants the answer, and whether a given answer happens to be a directory is already visible in the name.
+
 **The deepest recognized node is never a ranked guess.** It would be easy to search the whole tree for declarations sharing the file's extension and nominate the closest one, and that would be actively harmful: a modal is not a button, and an agent told to place it in `components/buttons/` may comply. The repository then lints clean while the architecture is wrong, which is the one outcome this tool exists to prevent. Report what is declared where the path stopped being recognized, or report nothing.
 
 ## Built-in issues
@@ -255,7 +270,7 @@ Two issue codes come from matching rather than from a rule module. Their `rule` 
 
 `missing_required_file` — a required static leaf has no corresponding file.
 
-Everything that makes the espalier itself invalid — overlapping siblings, inconsistent capture names, a recursive placeholder in a structural path, a duplicate placeholder name, a contradiction between `ignore` and a required leaf — is an operational failure, not an issue. It exits `2` and no files are linted.
+Everything that makes the espalier itself invalid — overlapping siblings, inconsistent capture names, more than one recursive placeholder in a path, a duplicate placeholder name, a contradiction between `ignore` and a required leaf — is an operational failure, not an issue. It exits `2` and no files are linted.
 
 ## Worked example
 

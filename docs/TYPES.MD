@@ -126,9 +126,13 @@ Captures name values. They never constrain the relationship between them: both `
  * that must be fixed in another — a client that is missing from the
  * registry belongs on the registry, not on the client.
  *
- * Must be a visible repository path. Issues identical in `path`, `code`
- * and `message` collapse into one, so a rule that reaches the same
- * conclusion from forty files reports it once.
+ * Must be a repository-relative path inside the repository. It need not
+ * be governed, declared, or existing — the file that has to change is
+ * often one the espalier has not described yet. An absolute path, or one
+ * escaping the root, fails the run.
+ *
+ * Nothing is deduplicated. A rule that reaches the same conclusion from
+ * forty files reports it forty times; emitting once is the rule's job.
  *
  * @property {number} [line]
  * 1-based line number associated with the issue.

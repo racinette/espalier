@@ -17,6 +17,7 @@ espalier explain <path>
 
   <path>                a file path or a directory prefix
   --format human|jsonl  output format (default: human)
+  --out <dest>          stdout, stderr, or a file path (default: stdout)
   --config <path>       use this config file instead of discovering one
 ```
 
@@ -85,6 +86,16 @@ $ espalier explain package.json
 
   package.json is not governed by espalier.
   Ignored by the default ignore list (defaultIgnore: true).
+```
+
+## Output
+
+As with `lint`, `--format` chooses the encoding and `--out` the destination.
+
+`jsonl` emits one object, tagged with a `kind` as in [lint](../lint/README.MD#jsonl). For a declared file path it carries the owning rule, the normalized pattern that matched, and the captures:
+
+```json
+{"kind":"explanation","rule":"clients/[provider]/requestModels.ts.mjs","pattern":"clients/*/requestModels.ts","captures":{"provider":"stripe"}}
 ```
 
 ## Exit codes

@@ -98,7 +98,9 @@ Tracked files, plus untracked files that are not gitignored. This means `node_mo
 
 `.gitignore` is not a policy input. It answers "what is a file in this repository," not "what does `espalier` govern." The second question is `ignore`, and the two lists are unrelated: a committed generated file is invisible to git's ignore rules and very much something you want `espalier` to skip.
 
-In a directory that is not a git repository, `espalier` walks the filesystem with a small built-in exclusion list.
+The root is git-backed when it contains a `.git` entry of its own. Otherwise `espalier` walks the filesystem with a small built-in exclusion list.
+
+The test is deliberately local rather than asking git. A directory nested inside some larger repository is not thereby a repository — asking git would answer about the enclosing one, and every path would resolve against a root the config never named.
 
 ## `addons`
 
