@@ -6,6 +6,8 @@
 
 import { closeSync, openSync, writeSync } from "node:fs";
 import path from "node:path";
+import type { Explanation } from "./explainText.js";
+import { renderExplanation } from "./explainText.js";
 import type { CaptureValue } from "./match.js";
 
 export type Severity = "error" | "warning" | "info";
@@ -68,6 +70,7 @@ export interface Reporter {
   warning(message: string): void;
   failure(code: string, message: string, detail?: Record<string, unknown>): void;
   object(payload: Record<string, unknown>): void;
+  explanation(answer: Explanation): void;
   record(entry: BuildEntry): void;
   finish(): void;
 }
@@ -127,6 +130,10 @@ class JsonlReporter implements Reporter {
     this.destination.write(`${JSON.stringify(payload)}\n`);
   }
 
+  explanation(answer: Explanation): void {
+    this.destination.write(`${JSON.stringify(answer)}\n`);
+  }
+
   record(entry: BuildEntry): void {
     this.destination.write(`${JSON.stringify(entry)}\n`);
   }
@@ -162,6 +169,10 @@ class HumanReporter implements Reporter {
 
   object(payload: Record<string, unknown>): void {
     this.destination.write(`${JSON.stringify(payload, null, 2)}\n`);
+  }
+
+  explanation(answer: Explanation): void {
+    this.destination.write(renderExplanation(answer));
   }
 
   record(entry: BuildEntry): void {

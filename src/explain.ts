@@ -7,6 +7,7 @@
 import path from "node:path";
 import type { Espalier, TrieNode } from "./compile.js";
 import { fail } from "./errors.js";
+import type { ConstraintAnswer, RuleAnswer } from "./explainText.js";
 import { constraintCaptures, isOwnership, type CaptureValue } from "./match.js";
 import type { Reporter } from "./output.js";
 import { matchSegment } from "./pattern.js";
@@ -105,7 +106,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     const doc = found === null ? undefined : espalier.nodes.get(found.authored);
     const required = found === null ? new Set<string>() : new Set(requiredUnder(found.node));
 
-    const rules =
+    const rules: RuleAnswer[] =
       found === null
         ? []
         : [...subtree(found.node)]
@@ -120,7 +121,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
               required: required.has(visit.at),
             }));
 
-    reporter.object({
+    reporter.explanation({
       kind: "explanation",
       prefix,
       description: doc?.description ?? null,
@@ -138,7 +139,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
 
   const excluded = repository.ungoverned(target);
   if (excluded !== null) {
-    reporter.object({
+    reporter.explanation({
       kind: "explanation",
       path: target,
       ignoredBy: excluded,
@@ -156,7 +157,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     // A constraint only runs on a file that has a structural owner, so listing
     // the ones whose patterns happen to match would describe rules that will
     // never run on it.
-    reporter.object({
+    reporter.explanation({
       kind: "explanation",
       path: target,
       rule: null,
@@ -169,7 +170,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     return 1;
   }
 
-  const constraints = [];
+  const constraints: ConstraintAnswer[] = [];
   for (const { members, prefix: _prefix, ...summary } of groups) {
     for (const member of members) {
       const captures = constraintCaptures(member, target);
@@ -179,7 +180,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     }
   }
 
-  reporter.object({
+  reporter.explanation({
     kind: "explanation",
     path: target,
     rule: owner.rule.modulePath,
