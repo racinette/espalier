@@ -157,9 +157,10 @@ Every file ends with the amendment instruction, verbatim:
 
 This file is generated from `espalier/`, and the structure it describes is not
 yours to change. If the work does not fit — a file has nowhere legal to go, or a
-rule is wrong for the task — stop and report the gap. Do not widen a pattern,
-add a rule, or edit `espalier/` to make an error go away. Deciding the shape of
-this project is the architect's job.
+rule is wrong for the task — YOU MUST stop and report the gap. YOU MUST NOT
+widen a pattern, add a rule, or edit `espalier/` to make an error go away.
+Deciding the shape of this project is the architect's job, and a task that
+appears to require changing that shape is a task to hand back, not to unblock.
 ```
 
 The root file additionally carries, immediately before it:
@@ -239,9 +240,10 @@ Export one interface per endpoint the client calls.
 
 This file is generated from `espalier/`, and the structure it describes is not
 yours to change. If the work does not fit — a file has nowhere legal to go, or a
-rule is wrong for the task — stop and report the gap. Do not widen a pattern,
-add a rule, or edit `espalier/` to make an error go away. Deciding the shape of
-this project is the architect's job.
+rule is wrong for the task — YOU MUST stop and report the gap. YOU MUST NOT
+widen a pattern, add a rule, or edit `espalier/` to make an error go away.
+Deciding the shape of this project is the architect's job, and a task that
+appears to require changing that shape is a task to hand back, not to unblock.
 ```
 
 `handlers/` sorts ahead of its file siblings because directories come first, and the cardinality sentence lists the same three leaves in the same order — a reader comparing the sentence against the map should not have to re-sort it in their head. `no-as-any` is a constraint on `[...path]`, whose longest static prefix is the root, so it renders in the root file and not here.

@@ -263,7 +263,11 @@ So the espalier is not the agent's to change. The two roles are separate:
 - **The architect** — a human, or an agent explicitly acting in that role — decides what the project's shape is and edits `espalier/`.
 - **The developer** — usually an agent — builds within that shape. When a task does not fit the declared structure, the correct move is to stop and report the gap, not to widen the pattern.
 
-`espalier build` writes this instruction into every file it generates, so the agent reads it in the same breath as the rules it is being asked to follow. `espalier lint` warns when `espalier/` changed in the same working tree as the files it newly legalises — the change is allowed, but it is never silent.
+`espalier build` writes this instruction into every file it generates, in the imperative, so the agent reads it in the same breath as the rules it is being asked to follow.
+
+That is as far as the tool goes, and deliberately so. `espalier` cannot stop an agent editing `espalier/`, and a warning it emitted afterwards would be worse than nothing. The architect widening a pattern and an agent widening a pattern are the same edit; a check that fired on both would fire constantly on the intended workflow and be muted within a week. Telling them apart means reconstructing the previous espalier and diffing what each one legalises — a real mechanism, but one whose only output is a note in a log that nobody is obliged to read.
+
+**Enforcement belongs where the power to refuse is.** An agent harness that denies writes under `espalier/`. A `CODEOWNERS` entry requiring a human on that path. A CI job that fails when a pull request touches both `espalier/` and the files it governs. Those can say no. A linter reporting on its own configuration can only nag, and this project would rather ship a sharp instruction than a dull alarm.
 
 ## Design philosophy
 

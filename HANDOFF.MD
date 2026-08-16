@@ -75,6 +75,12 @@ Taken while writing the `build` fixtures, and now in the documents:
   required for every instantiated provider. The `build` doc's worked example
   said otherwise and was wrong; `MATCHING.MD` won.
 
+Taken after `explain`:
+
+- **No git-history integration.** `lint` asks git what the files are and nothing
+  more. Anything needing to know what the repository looked like before is out
+  of scope, which is what settled the amendment warning below.
+
 Taken while writing the `explain` fixtures:
 
 - **`explain` and `build` share one cardinality function.** The explain doc
@@ -151,9 +157,16 @@ trie node would give a prose-only directory a node, which changes what `lint`
 reports as declared at its parent — a build feature would have moved a lint
 answer.
 
-Not implemented at all: `lint`'s espalier-amendment detection — the warning when
-`espalier/` changed in the same working tree as the files it newly legalises.
-`README.MD` promises it under "Who changes the espalier".
+**The espalier-amendment warning is not being built.** `README.MD` promised it;
+that promise has been replaced with the reasoning for dropping it. The architect
+widening a pattern and an agent widening a pattern are the same edit, so a
+warning that fired on `espalier/` changing would fire on the intended workflow
+and be muted. Telling them apart needs the previous espalier reconstructed from
+git and an ownership diff — real, but its only output is a note nobody is
+obliged to read, and it would drag git-history integration into a tool that
+otherwise only asks git what the files are. Enforcement belongs to whatever can
+refuse: the harness, `CODEOWNERS`, a CI path check. The amendment instruction
+`build` writes is now imperative, and that is the tool's whole contribution.
 
 ## Constraints
 
