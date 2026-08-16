@@ -73,6 +73,16 @@ A lint rule enforcing the shape of `package.json` is a reasonable thing to want,
 
 **The list is append-only within a major version.** Adding an entry can only make a run quieter: files you declared stay governed, and files you did not were being reported as `unexpected_path` anyway. Removing one can only make a run noisier, producing violations from an upgrade nobody asked for — so removals are breaking changes and require a major version. A project depending on `^2` never sees its governed set grow underneath it.
 
+That asymmetry decides what belongs. An entry omitted today costs a project one line of `ignore` and can be added in any minor release; an entry included wrongly is stuck until the next major. So the bar is **is this file ever a project's own structural decision**, not is it common. A file matched here and wanted back costs one line too — `ignore: ["!Dockerfile"]` — but the shipped list should not be making that bet on anyone's behalf.
+
+### What is deliberately absent
+
+`README.MD`, `CHANGELOG.MD`, `Makefile`, `Dockerfile`, `CMakeLists.txt`. Each is common enough to look like an oversight, and each is a file some projects genuinely place on purpose — a README per package directory is exactly the kind of convention an espalier exists to hold. Being reported as `unexpected_path` until you say what they are is the correct outcome for a tool whose whole claim is that nothing goes unaccounted for.
+
+Lockfiles, manifests, tool configuration, CI definitions, licences, and editor and VCS metadata are in. None of them is a placement decision; all of them are dictated by something other than the project's architecture.
+
+`espalier explain <path>` reports which list excluded a path, which is how you find out without reading this document.
+
 `espalier explain <path>` reports when a path is ignored and by which list. A file quietly not being checked is otherwise the kind of thing discovered months later.
 
 ### What is ignored without being configured
@@ -99,6 +109,8 @@ Tracked files, plus untracked files that are not gitignored. This means `node_mo
 `.gitignore` is not a policy input. It answers "what is a file in this repository," not "what does `espalier` govern." The second question is `ignore`, and the two lists are unrelated: a committed generated file is invisible to git's ignore rules and very much something you want `espalier` to skip.
 
 The root is git-backed when it contains a `.git` entry of its own. Otherwise `espalier` walks the filesystem with a small built-in exclusion list.
+
+Small, and it stays small. Unlike `defaultIgnore`, nothing can re-include what this list skips — a path excluded here is not a file as far as `espalier` is concerned, and no configuration brings it back. So it holds only directories that are machinery rather than content: the VCS directory, `node_modules`, `__pycache__`, `.venv`. A build output directory is not on it, because `build/` and `target/` are real source directories in enough projects that skipping them would silently un-govern a subtree.
 
 The test is deliberately local rather than asking git. A directory nested inside some larger repository is not thereby a repository — asking git would answer about the enclosing one, and every path would resolve against a root the config never named.
 

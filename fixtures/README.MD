@@ -112,6 +112,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `build-inline` | one document at the root, and the distributed run's files removed |
 | `explain-prefix` | both answer shapes, and the rule that decides which one you get |
 | `explain-ungoverned` | which list excluded a path, and that ignored is not declared |
+| `default-ignore-list` | what the built-in list covers, and what it deliberately does not |
 
 ## Adding one
 

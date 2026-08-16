@@ -27,7 +27,7 @@ src/output.ts       human and jsonl formatters, --out destinations
 src/cli.ts          argument parsing and exit codes
 ```
 
-`npm test` builds and runs everything: eighteen fixtures plus seven unit tests
+`npm test` builds and runs everything: nineteen fixtures plus seven unit tests
 for the sibling-overlap decision procedure, which is subtle and only partly
 fixtured. All green.
 
@@ -76,6 +76,17 @@ Taken while writing the `build` fixtures, and now in the documents:
   said otherwise and was wrong; `MATCHING.MD` won.
 
 Taken after `explain`:
+
+- **`DEFAULT_IGNORE` is settled.** The append-only promise makes an omission a
+  one-line fix in any minor and an inclusion stuck until the next major, so the
+  bar is "is this file ever a project's own structural decision" rather than "is
+  it common". `README.MD`, `CHANGELOG.MD`, `Makefile`, `Dockerfile` and
+  `CMakeLists.txt` are absent for that reason, and `default-ignore-list` pins
+  their absence as firmly as it pins the list's contents.
+- **`WALK_EXCLUSIONS` stays minimal.** Nothing can re-include what it skips, so
+  it holds only machinery. Build output directories are absent: `build/` and
+  `target/` are real source directories often enough that skipping them would
+  silently un-govern a subtree.
 
 - **No git-history integration.** `lint` asks git what the files are and nothing
   more. Anything needing to know what the repository looked like before is out
@@ -135,11 +146,6 @@ rather than pending.
 
 Carrying `TODO`s in the code:
 
-- `DEFAULT_IGNORE` in `src/defaults.ts` is a minimal honest placeholder, not the
-  real list. `CONFIG.MD` promises it is append-only within a major version, so
-  every entry added is a commitment.
-- `WALK_EXCLUSIONS` in `src/defaults.ts`, used when the root is not a git
-  repository, is unsettled for the same reason.
 - `src/ignore.ts` evaluates every ancestor level and lets the last match win.
   Git additionally refuses to re-include a path whose parent directory is
   excluded. Ours is more permissive and covers the documented cases.

@@ -1,0 +1,68 @@
+{
+  "exit": 1,
+  "issues": [
+    { "path": "Dockerfile", "code": "unexpected_path", "severity": "error", "rule": null },
+    { "path": "Makefile", "code": "unexpected_path", "severity": "error", "rule": null }
+  ],
+  "explain": {
+    "package.json": {
+      "exit": 1,
+      "object": { "path": "package.json", "ignoredBy": "defaultIgnore" }
+    },
+    "packages/web/package.json": {
+      "exit": 1,
+      "object": { "path": "packages/web/package.json", "ignoredBy": "defaultIgnore" }
+    },
+    "pnpm-lock.yaml": {
+      "exit": 1,
+      "object": { "path": "pnpm-lock.yaml", "ignoredBy": "defaultIgnore" }
+    },
+    "tsconfig.json": {
+      "exit": 1,
+      "object": { "path": "tsconfig.json", "ignoredBy": "defaultIgnore" }
+    },
+    ".github/workflows/ci.yml": {
+      "exit": 1,
+      "object": { "path": ".github/workflows/ci.yml", "ignoredBy": "defaultIgnore" }
+    },
+    ".vscode/settings.json": {
+      "exit": 1,
+      "object": { "path": ".vscode/settings.json", "ignoredBy": "defaultIgnore" }
+    },
+    "LICENSE": {
+      "exit": 1,
+      "object": { "path": "LICENSE", "ignoredBy": "defaultIgnore" }
+    },
+    "README.MD": {
+      "exit": 0,
+      "object": {
+        "path": "README.MD",
+        "rule": "[doc].MD.mjs",
+        "pattern": "*.MD",
+        "captures": { "doc": "README" }
+      }
+    },
+    "CHANGELOG.MD": {
+      "exit": 0,
+      "object": { "path": "CHANGELOG.MD", "rule": "[doc].MD.mjs" }
+    },
+    "Makefile": {
+      "exit": 1,
+      "object": {
+        "path": "Makefile",
+        "rule": null,
+        "recognized": null,
+        "declared": []
+      }
+    },
+    "Dockerfile": {
+      "exit": 1,
+      "object": {
+        "path": "Dockerfile",
+        "rule": null,
+        "recognized": null,
+        "declared": []
+      }
+    }
+  }
+}
