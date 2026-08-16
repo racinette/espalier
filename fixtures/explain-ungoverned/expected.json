@@ -1,0 +1,50 @@
+{
+  "exit": 0,
+  "issues": [],
+  "explain": {
+    "main.ts": {
+      "exit": 0,
+      "object": { "kind": "explanation", "path": "main.ts", "rule": "main.ts.mjs" }
+    },
+    "package.json": {
+      "exit": 1,
+      "object": {
+        "kind": "explanation",
+        "path": "package.json",
+        "ignoredBy": "defaultIgnore",
+        "rule": null,
+        "pattern": null,
+        "captures": {},
+        "constraints": []
+      }
+    },
+    "vendor/lib.ts": {
+      "exit": 1,
+      "object": {
+        "kind": "explanation",
+        "path": "vendor/lib.ts",
+        "ignoredBy": "ignore",
+        "rule": null,
+        "constraints": []
+      }
+    },
+    "espalier.config.yaml": {
+      "exit": 1,
+      "object": {
+        "kind": "explanation",
+        "path": "espalier.config.yaml",
+        "ignoredBy": "espalier",
+        "rule": null
+      }
+    },
+    "espalier/main.ts.mjs": {
+      "exit": 1,
+      "object": {
+        "kind": "explanation",
+        "path": "espalier/main.ts.mjs",
+        "ignoredBy": "espalier",
+        "rule": null
+      }
+    }
+  }
+}

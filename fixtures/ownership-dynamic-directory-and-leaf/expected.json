@@ -3,14 +3,24 @@
   "issues": [],
   "explain": {
     "clients/registry.ts": {
-      "rule": "clients/[summary].ts.mjs",
-      "pattern": "clients/*.ts",
-      "captures": { "summary": "registry" }
+      "exit": 0,
+      "object": {
+        "rule": "clients/[summary].ts.mjs",
+        "pattern": "clients/*.ts",
+        "captures": {
+          "summary": "registry"
+        }
+      }
     },
     "clients/stripe/client.ts": {
-      "rule": "clients/[provider]/client.ts.mjs",
-      "pattern": "clients/*/client.ts",
-      "captures": { "provider": "stripe" }
+      "exit": 0,
+      "object": {
+        "rule": "clients/[provider]/client.ts.mjs",
+        "pattern": "clients/*/client.ts",
+        "captures": {
+          "provider": "stripe"
+        }
+      }
     }
   }
 }

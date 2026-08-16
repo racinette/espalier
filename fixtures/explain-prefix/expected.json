@@ -1,0 +1,110 @@
+{
+  "exit": 0,
+  "issues": [],
+  "explain": {
+    "components/": {
+      "exit": 0,
+      "object": {
+        "kind": "explanation",
+        "prefix": "components/",
+        "description": "shared UI components",
+        "body": "Everything rendered by more than one screen lives here. A component used by\nexactly one screen belongs beside that screen instead.",
+        "rules": [
+          {
+            "path": "components/buttons/[button].tsx",
+            "pattern": "components/buttons/*.tsx",
+            "rule": "components/buttons/[button].tsx.mjs",
+            "description": "a button component",
+            "ruleText": "Default-export a single component named after the file.",
+            "example": "components/buttons/SubmitButton.tsx",
+            "required": false
+          },
+          {
+            "path": "components/layouts/[layout].tsx",
+            "pattern": "components/layouts/*.tsx",
+            "rule": "components/layouts/[layout].tsx.mjs",
+            "description": "a layout component",
+            "example": null,
+            "required": false
+          }
+        ],
+        "cardinality": "Zero or more files matching `buttons/[button].tsx` may exist. Zero or more files matching `layouts/[layout].tsx` may exist. Nothing else may exist under components/.",
+        "constraints": [
+          {
+            "name": "no-as-any",
+            "rule": "[...path]/no-as-any.{ts,tsx}.mjs",
+            "patterns": ["**/*.ts", "**/*.tsx"],
+            "description": "applies to TypeScript files throughout the project"
+          }
+        ]
+      }
+    },
+    "components": {
+      "exit": 0,
+      "object": {
+        "kind": "explanation",
+        "prefix": "components/",
+        "description": "shared UI components"
+      }
+    },
+    ".": {
+      "exit": 0,
+      "object": {
+        "kind": "explanation",
+        "prefix": "",
+        "description": "a small example application",
+        "cardinality": "main.ts is required. Zero or more files matching `components/buttons/[button].tsx` may exist. Zero or more files matching `components/layouts/[layout].tsx` may exist. Nothing else may exist under the repository root."
+      }
+    },
+    "main.ts": {
+      "exit": 0,
+      "object": {
+        "kind": "explanation",
+        "path": "main.ts",
+        "rule": "main.ts.mjs",
+        "pattern": "main.ts",
+        "captures": {},
+        "description": "the application entry point",
+        "ruleText": "Wire up the application and start it.",
+        "example": null,
+        "constraints": [
+          {
+            "name": "no-as-any",
+            "rule": "[...path]/no-as-any.{ts,tsx}.mjs",
+            "patterns": ["**/*.ts", "**/*.tsx"],
+            "captures": { "path": [] }
+          }
+        ]
+      }
+    },
+    "components/buttons/SubmitButton.tsx": {
+      "exit": 0,
+      "object": {
+        "kind": "explanation",
+        "path": "components/buttons/SubmitButton.tsx",
+        "rule": "components/buttons/[button].tsx.mjs",
+        "pattern": "components/buttons/*.tsx",
+        "captures": { "button": "SubmitButton" },
+        "constraints": [
+          {
+            "name": "no-as-any",
+            "captures": { "path": ["components", "buttons"] }
+          }
+        ]
+      }
+    },
+    "components/Modal.tsx": {
+      "exit": 1,
+      "object": {
+        "kind": "explanation",
+        "path": "components/Modal.tsx",
+        "rule": null,
+        "pattern": null,
+        "captures": {},
+        "recognized": "components",
+        "declared": ["buttons/", "layouts/"],
+        "constraints": []
+      }
+    }
+  }
+}

@@ -3,14 +3,25 @@
   "issues": [],
   "explain": {
     "clients/stripe/requestModels.ts": {
-      "rule": "clients/[provider]/requestModels.ts.mjs",
-      "pattern": "clients/*/requestModels.ts",
-      "captures": { "provider": "stripe" }
+      "exit": 0,
+      "object": {
+        "rule": "clients/[provider]/requestModels.ts.mjs",
+        "pattern": "clients/*/requestModels.ts",
+        "captures": {
+          "provider": "stripe"
+        }
+      }
     },
     "clients/stripe/stripe.ts": {
-      "rule": "clients/[provider]/[implementation].ts.mjs",
-      "pattern": "clients/*/*.ts",
-      "captures": { "provider": "stripe", "implementation": "stripe" }
+      "exit": 0,
+      "object": {
+        "rule": "clients/[provider]/[implementation].ts.mjs",
+        "pattern": "clients/*/*.ts",
+        "captures": {
+          "provider": "stripe",
+          "implementation": "stripe"
+        }
+      }
     }
   }
 }

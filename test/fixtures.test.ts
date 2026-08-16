@@ -26,7 +26,7 @@ interface Expected {
   exit?: number;
   error?: string;
   issues?: unknown[];
-  explain?: Record<string, unknown>;
+  explain?: Record<string, { exit: number; object: unknown }>;
   build?: {
     exit: number;
     args?: string[];
@@ -240,7 +240,12 @@ function checkLint(dir: string, expected: Expected): void {
       1,
       `explain ${target} should emit one object, got ${objects.length}\nstderr:\n${explain.stderr}`,
     );
-    const found = mismatch(objects[0], want, `explain[${target}]`);
+    assert.equal(
+      explain.status,
+      want.exit,
+      `explain ${target} exit code\nstdout:\n${explain.stdout}\nstderr:\n${explain.stderr}`,
+    );
+    const found = mismatch(objects[0], want.object, `explain[${target}]`);
     assert.equal(found, null, found ?? undefined);
   }
 }

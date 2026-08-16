@@ -38,6 +38,17 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 **`explain`** — expected `espalier explain --format jsonl` output for specific paths. Ownership is invisible in lint output when a repository is clean, so fixtures that pin *which rule owns what* assert it here rather than contriving a violation to make it observable.
 
+```json
+"explain": {
+  "clients/stripe/client.ts": {
+    "exit": 0,
+    "object": { "rule": "clients/[provider]/client.ts.mjs" }
+  }
+}
+```
+
+`exit` is the process exit code — `0` declared, `1` not — and `object` is the single line the run emitted, compared by the same partial rule as everything else. The exit code is asserted separately because it is process state rather than payload, and because "is this path declared" is the whole question `explain` answers.
+
 **`error`** — for `exit: 2`, the operational failure that must be reported. The espalier never compiles, so `issues` is empty.
 
 **`build`** — present only on build fixtures. `exit` is the build run's exit code, `args` any extra flags, and `report` the lines it must print, compared as an unordered multiset with the same partial-field rule as `issues`.
@@ -96,6 +107,8 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `build-orphan-deletion` | orphans deleted, unchanged files left alone |
 | `build-check-drift` | `--check` reports `missing`, `changed` and `stale`, and writes nothing |
 | `build-inline` | one document at the root, and the distributed run's files removed |
+| `explain-prefix` | both answer shapes, and the rule that decides which one you get |
+| `explain-ungoverned` | which list excluded a path, and that ignored is not declared |
 
 ## Adding one
 

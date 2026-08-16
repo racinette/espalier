@@ -1,0 +1,9 @@
+version: 1
+root: espalier
+
+defaultIgnore: true
+
+ignore:
+  - FIXTURE.MD
+  - expected.json
+  - vendor/**
