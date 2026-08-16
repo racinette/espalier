@@ -20,6 +20,12 @@ export interface Repository {
   /** User `ignore` only; the default list is a heuristic a declaration overrides. */
   ignoreRules: IgnoreRule[];
   resolve(filePath: string): Ownership | Recognition;
+  /**
+   * Which list excludes this path, or null when espalier governs it. `espalier`
+   * covers the three things invisible unconditionally, which are grouped
+   * together because a user cannot un-ignore any of them.
+   */
+  ungoverned(filePath: string): "ignore" | "defaultIgnore" | "espalier" | null;
 }
 
 function validateExamples(root: string, espalier: Espalier): void {
@@ -87,27 +93,30 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     return found;
   };
 
-  const visible: string[] = [];
-
-  for (const candidate of collectCandidates(config.root)) {
+  const ungoverned = (candidate: string): "ignore" | "defaultIgnore" | "espalier" | null => {
     // Invisible unconditionally: espalier reporting on its own machinery is a
     // bug rather than a finding.
-    if (candidate === configRelative) continue;
-    if (candidate === config.espalierRoot || candidate.startsWith(espalierPrefix)) continue;
-    if (candidate.split("/")[0] === ".git") continue;
+    if (candidate === configRelative) return "espalier";
+    if (candidate === config.espalierRoot || candidate.startsWith(espalierPrefix)) return "espalier";
+    if (candidate.split("/")[0] === ".git") return "espalier";
     if (path.basename(candidate) === config.build.filename && isGenerated(config.root, candidate)) {
-      continue;
+      return "espalier";
     }
 
-    if (ignores(ignoreRules, candidate)) continue;
+    if (ignores(ignoreRules, candidate)) return "ignore";
 
     // Explicit beats declared; declared beats heuristic. A path the espalier
     // declares overrides the default list, which `ignore` never does.
     if (defaultRules.length > 0 && ignores(defaultRules, candidate) && !isOwnership(lookup(candidate))) {
-      continue;
+      return "defaultIgnore";
     }
 
-    visible.push(candidate);
+    return null;
+  };
+
+  const visible: string[] = [];
+  for (const candidate of collectCandidates(config.root)) {
+    if (ungoverned(candidate) === null) visible.push(candidate);
   }
 
   // Ignoring is not declaring. A path both required and ignored is a
@@ -129,5 +138,6 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     visibleSet: new Set(visible),
     ignoreRules,
     resolve: lookup,
+    ungoverned,
   };
 }

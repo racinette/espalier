@@ -125,7 +125,7 @@ function* subtree(node: TrieNode, depth = 0, at = ""): Generator<Visit> {
  * are the files that must exist — either always, when the walk starts at a
  * placement point, or per instance, when it starts at a dynamic directory.
  */
-function requiredUnder(node: TrieNode, at = ""): string[] {
+export function requiredUnder(node: TrieNode, at = ""): string[] {
   const found: string[] = [];
 
   for (const child of ordered(node)) {
@@ -259,38 +259,47 @@ function renderMap(espalier: Espalier, point: Placement): string | null {
     .join("\n");
 }
 
-function renderCardinality(point: Placement): string | null {
-  if (point.node === null) return null;
-
+/**
+ * The closed-set statement, as one unwrapped string. `build` wraps it; explain
+ * reports it as it is. Sharing this is what keeps `espalier explain` and the
+ * documentation in the repository from drifting apart — there is nothing
+ * between them to drift.
+ */
+export function cardinality(node: TrieNode, at: string): string {
   const sentences: string[] = [];
-  const required = requiredUnder(point.node);
+  const required = requiredUnder(node);
   if (required.length > 0) {
     sentences.push(`${list(required)} ${required.length === 1 ? "is" : "are"} required.`);
   }
 
-  for (const { node, at } of subtree(point.node)) {
-    if (!node.segment.dynamic) continue;
+  for (const visit of subtree(node)) {
+    if (!visit.node.segment.dynamic) continue;
 
-    if (isDirectory(node)) {
-      sentences.push(`Zero or more \`${at}/\` directories may exist.`);
-      const inside = requiredUnder(node);
+    if (isDirectory(visit.node)) {
+      sentences.push(`Zero or more \`${visit.at}/\` directories may exist.`);
+      const inside = requiredUnder(visit.node);
       if (inside.length > 0) {
         sentences.push(
           `For each one that does, ${list(inside)} ${inside.length === 1 ? "is" : "are"} required.`,
         );
       }
     } else {
-      sentences.push(`Zero or more files matching \`${at}\` may exist.`);
+      sentences.push(`Zero or more files matching \`${visit.at}\` may exist.`);
     }
   }
 
   sentences.push(
-    point.at === ""
+    at === ""
       ? "Nothing else may exist under the repository root."
-      : `Nothing else may exist under ${point.at}/.`,
+      : `Nothing else may exist under ${at}/.`,
   );
 
-  return wrap(sentences.join(" "));
+  return sentences.join(" ");
+}
+
+function renderCardinality(point: Placement): string | null {
+  if (point.node === null) return null;
+  return wrap(cardinality(point.node, point.at));
 }
 
 /** `**​/*.ts` and `**​/*.tsx` → "applies to TypeScript files throughout the project". */
@@ -301,6 +310,53 @@ function describeConstraint(constraint: Constraint, extensions: string[]): strin
   const where = staticPrefix(constraint.directory);
   return `applies to ${list(named)} files ${where === "" ? "throughout the project" : `under ${where}/`}`;
 }
+
+/**
+ * One entry per constraint module. `compile` produces a `Constraint` per
+ * extension, because matching wants them separate; every reader wants them
+ * back together.
+ */
+export interface ConstraintGroup {
+  name: string;
+  /** Espalier-relative module path. */
+  rule: string;
+  patterns: string[];
+  description: string;
+  ruleText: string;
+  example: string | null;
+  /** The longest static prefix of the directory the constraint applies under. */
+  prefix: string;
+  members: Constraint[];
+}
+
+export function constraintGroups(espalier: Espalier): ConstraintGroup[] {
+  const grouped = new Map<string, Constraint[]>();
+
+  for (const constraint of espalier.constraints) {
+    const bucket = grouped.get(constraint.modulePath);
+    if (bucket === undefined) grouped.set(constraint.modulePath, [constraint]);
+    else bucket.push(constraint);
+  }
+
+  return [...grouped.values()].map((members) => {
+    const first = members[0]!;
+    return {
+      name: first.name,
+      rule: first.modulePath,
+      patterns: members.map((entry) => entry.pattern),
+      description: describeConstraint(
+        first,
+        members.map((entry) => entry.extension),
+      ),
+      ruleText: first.module.rule.trim(),
+      example: first.module.example,
+      prefix: staticPrefix(first.directory),
+      members,
+    };
+  });
+}
+
+export { isDirectory, subtree };
 
 function renderSections(espalier: Espalier, point: Placement, level: number): string[] {
   const hashes = "#".repeat(level);
@@ -328,19 +384,14 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
 
   if (point.constraints.length > 0) {
     blocks.push(`${hashes} Constraints`);
+    const groups = constraintGroups(espalier);
 
     for (const constraint of point.constraints) {
-      const extensions = espalier.constraints
-        .filter((other) => other.modulePath === constraint.modulePath)
-        .map((other) => other.extension);
-      const patterns = espalier.constraints
-        .filter((other) => other.modulePath === constraint.modulePath)
-        .map((other) => `\`${other.pattern}\``);
-
+      const group = groups.find((entry) => entry.rule === constraint.modulePath)!;
       blocks.push(
-        `${"#".repeat(level + 1)} ${constraint.name} — ${describeConstraint(constraint, extensions)}`,
-        `Applies to: ${patterns.join(", ")}`,
-        constraint.module.rule.trim(),
+        `${"#".repeat(level + 1)} ${group.name} — ${group.description}`,
+        `Applies to: ${group.patterns.map((pattern) => `\`${pattern}\``).join(", ")}`,
+        group.ruleText,
       );
     }
   }
