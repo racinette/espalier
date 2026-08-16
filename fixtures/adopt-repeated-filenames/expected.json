@@ -1,0 +1,11 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": ["components"],
+    "report": [
+      { "kind": "written", "path": "espalier/components/[tsx].tsx.mjs" },
+      { "kind": "written", "path": "espalier/components/theme.ts.mjs" },
+      { "kind": "narrowed", "path": "espalier.config.yaml" }
+    ]
+  }
+}

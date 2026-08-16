@@ -31,6 +31,7 @@ interface Expected {
   stderr?: string[];
   build?: WriteRun;
   init?: WriteRun;
+  adopt?: WriteRun;
 }
 
 /** A command that writes: `build` and `init` are asserted the same way. */
@@ -46,6 +47,7 @@ const SCAFFOLDING = new Set([
   "expected.json",
   "expected-build",
   "expected-init",
+  "expected-adopt",
   "human",
 ]);
 
@@ -332,5 +334,6 @@ for (const name of fixtures) {
     if (expected.ownership !== undefined) checkOwnership(dir, expected.ownership);
     if (expected.build !== undefined) checkWrites(dir, "build", expected.build);
     if (expected.init !== undefined) checkWrites(dir, "init", expected.init);
+    if (expected.adopt !== undefined) checkWrites(dir, "adopt", expected.adopt);
   });
 }

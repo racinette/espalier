@@ -1,0 +1,16 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": ["src/clients"],
+    "report": [
+      { "kind": "written", "path": "espalier/src/clients/[client]/client.ts.mjs" },
+      { "kind": "written", "path": "espalier/src/clients/[client]/requestModels.ts.mjs" },
+      {
+        "kind": "uncovered",
+        "path": "src/clients/stripe/webhook.ts",
+        "reason": "present in some sibling directories but not all"
+      },
+      { "kind": "narrowed", "path": "espalier.config.yaml" }
+    ]
+  }
+}

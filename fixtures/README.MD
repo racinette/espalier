@@ -15,6 +15,7 @@ They were written from the specification, before the implementation. That order 
   expected.json         the expected outcome
   expected-build/       build fixtures only: the tree build must produce
   expected-init/        init fixtures only: the tree init must produce
+  expected-adopt/       adopt fixtures only: the tree adopt must produce
   human/                golden --format human output, byte for byte
 ```
 
@@ -72,6 +73,8 @@ A clean run says nothing about who owns what. A matcher that handed every file t
 **`stderr`** — fragments the `lint` run must write to stderr. For effects with no reporting channel: addon disposal happens after the last issue is emitted and after the exit code is decided, so a marker on stderr is the only way to see it happened.
 
 **`error`** — for `exit: 2`, the operational failure that must be reported. The espalier never compiles, so `issues` is empty.
+
+**`adopt`** — present only on adopt fixtures, and shaped exactly like `init` and `build`: `exit`, `args` (the target directory goes here), and `report`. Compared against an `expected-adopt/` tree.
 
 **`init`** — present only on init fixtures. `exit` is the run's exit code, `args` any extra flags, and `report` the lines it must print. Like `build`, it runs against a throwaway copy and its result is compared against an `expected-init/` tree — byte for byte, and both ways.
 
@@ -153,6 +156,10 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `addons-disposed-on-failure` | disposal runs even when a rule throws |
 | `invalid-example` | an example that does not match its own rule's pattern |
 | `constraint-only-placement` | a placement point with no trie node, and a generated description |
+| `adopt-sibling-directories` | matching siblings become a dynamic directory, and the ignore entry narrows |
+| `adopt-partial-overlap` | the intersection is declared and the odd file out is reported |
+| `adopt-repeated-filenames` | files sharing an extension collapse, but not inside a family |
+| `adopt-skips-existing` | a second run does not overwrite a written rule body |
 
 ## Adding one
 

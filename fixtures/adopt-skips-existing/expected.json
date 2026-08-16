@@ -1,0 +1,9 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": ["components"],
+    "report": [
+      { "kind": "skipped", "path": "espalier/components/[tsx].tsx.mjs" }
+    ]
+  }
+}
