@@ -1,0 +1,10 @@
+{
+  "exit": 2,
+  "error": "rule_threw",
+  "issues": [],
+  "stderr": ["addons disposed"],
+  "ownership": {
+    "espalier.addons.mjs": null,
+    "src/a.ts": "src/[module].ts.mjs"
+  }
+}

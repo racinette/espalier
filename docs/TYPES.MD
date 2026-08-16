@@ -43,7 +43,16 @@ clients/[provider]/client.ts   an integration with an external API
 
 An agent that needs to add a `User` type will not necessarily connect that to the phrase "a domain model."
 
-Constraint modules may omit it. When absent, `espalier` generates one from the pattern — `**/*.ts` becomes "applies to TypeScript files throughout the project" — using built-in aliases for common extensions. Supply your own when the generated phrasing is wrong for the project.
+Constraint modules may omit it. When absent, `espalier` generates one from the pattern, using built-in aliases for common extensions:
+
+```text
+**/*.ts               applies to TypeScript files throughout the project
+backend/**/*.ts       applies to TypeScript files under backend/
+**/*.{ts,tsx}         applies to TypeScript files throughout the project
+**/*.zig              applies to .zig files throughout the project
+```
+
+Extensions sharing an alias collapse to one word, and an extension with no alias is named by its suffix. Supply your own `description` when the generated phrasing is wrong for the project.
 
 ### `rule`
 

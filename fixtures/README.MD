@@ -69,6 +69,8 @@ A clean run says nothing about who owns what. A matcher that handed every file t
 
 **A fixture that runs `lint` should carry an `ownership` map.** It costs a line per file and it is the only assertion that fails when a file quietly changes hands.
 
+**`stderr`** — fragments the `lint` run must write to stderr. For effects with no reporting channel: addon disposal happens after the last issue is emitted and after the exit code is decided, so a marker on stderr is the only way to see it happened.
+
 **`error`** — for `exit: 2`, the operational failure that must be reported. The espalier never compiles, so `issues` is empty.
 
 **`init`** — present only on init fixtures. `exit` is the run's exit code, `args` any extra flags, and `report` the lines it must print. Like `build`, it runs against a throwaway copy and its result is compared against an `expected-init/` tree — byte for byte, and both ways.
@@ -147,6 +149,10 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `init-bare` | the config and the espalier root, and no ignore list |
 | `init-ignore-all` | the opt-in ignore list, and what `defaultIgnore` keeps out of it |
 | `init-existing-config` | refusing to overwrite, without touching the tree |
+| `addons-shared-resource` | one setup, one shared object, one disposal |
+| `addons-disposed-on-failure` | disposal runs even when a rule throws |
+| `invalid-example` | an example that does not match its own rule's pattern |
+| `constraint-only-placement` | a placement point with no trie node, and a generated description |
 
 ## Adding one
 

@@ -1,0 +1,31 @@
+{
+  "exit": 0,
+  "issues": [
+    {
+      "path": "src/a.ts",
+      "code": "addon_state",
+      "severity": "info",
+      "rule": "src/[module].ts.mjs",
+      "metadata": {
+        "started": 1
+      }
+    },
+    {
+      "path": "src/b.ts",
+      "code": "addon_state",
+      "severity": "info",
+      "rule": "src/[module].ts.mjs",
+      "metadata": {
+        "started": 1
+      }
+    }
+  ],
+  "ownership": {
+    "espalier.addons.mjs": null,
+    "src/a.ts": "src/[module].ts.mjs",
+    "src/b.ts": "src/[module].ts.mjs"
+  },
+  "stderr": [
+    "addons disposed after 2 file(s)"
+  ]
+}

@@ -28,6 +28,7 @@ interface Expected {
   issues?: unknown[];
   explain?: Record<string, { exit: number; object: unknown; human?: string }>;
   ownership?: Record<string, string | null>;
+  stderr?: string[];
   build?: WriteRun;
   init?: WriteRun;
 }
@@ -277,6 +278,16 @@ function checkLint(dir: string, expected: Expected): void {
     expected.issues ?? [],
   );
   assert.ok(problems.length === 0, problems.join("\n"));
+
+  // Some effects have no reporting channel — addon disposal happens after the
+  // last issue is emitted and after the exit code is decided. A marker on
+  // stderr is the only way to see that it happened at all.
+  for (const fragment of expected.stderr ?? []) {
+    assert.ok(
+      lint.stderr.includes(fragment),
+      `stderr should contain ${JSON.stringify(fragment)}, got:\n${lint.stderr}`,
+    );
+  }
 
   for (const [target, want] of Object.entries(expected.explain ?? {})) {
     const explain = run(dir, ["explain", target, "--format", "jsonl"]);

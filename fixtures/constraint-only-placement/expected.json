@@ -1,0 +1,9 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
+      { "kind": "written", "path": "backend/AGENTS.MD" }
+    ]
+  }
+}

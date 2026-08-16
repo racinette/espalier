@@ -29,7 +29,7 @@ src/output.ts       human and jsonl formatters, --out destinations
 src/cli.ts          argument parsing and exit codes
 ```
 
-`npm test` builds and runs everything: twenty-two fixtures plus seven unit tests
+`npm test` builds and runs everything: twenty-six fixtures plus seven unit tests
 for the sibling-overlap decision procedure, which is subtle and only partly
 fixtured. All green.
 
