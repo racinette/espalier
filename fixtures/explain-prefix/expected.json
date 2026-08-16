@@ -8,7 +8,7 @@
         "kind": "explanation",
         "prefix": "components/",
         "description": "shared UI components",
-        "body": "Everything rendered by more than one screen lives here. A component used by\nexactly one screen belongs beside that screen instead.",
+        "body": "Everything rendered by more than one screen lives here.\n\nA component used by exactly one screen belongs beside that screen instead.",
         "rules": [
           {
             "path": "components/buttons/[button].tsx",
@@ -33,11 +33,15 @@
           {
             "name": "no-as-any",
             "rule": "[...path]/no-as-any.{ts,tsx}.mjs",
-            "patterns": ["**/*.ts", "**/*.tsx"],
+            "patterns": [
+              "**/*.ts",
+              "**/*.tsx"
+            ],
             "description": "applies to TypeScript files throughout the project"
           }
         ]
-      }
+      },
+      "human": "human/prefix.txt"
     },
     "components": {
       "exit": 0,
@@ -71,11 +75,17 @@
           {
             "name": "no-as-any",
             "rule": "[...path]/no-as-any.{ts,tsx}.mjs",
-            "patterns": ["**/*.ts", "**/*.tsx"],
-            "captures": { "path": [] }
+            "patterns": [
+              "**/*.ts",
+              "**/*.tsx"
+            ],
+            "captures": {
+              "path": []
+            }
           }
         ]
-      }
+      },
+      "human": "human/owned.txt"
     },
     "components/buttons/SubmitButton.tsx": {
       "exit": 0,
@@ -84,11 +94,18 @@
         "path": "components/buttons/SubmitButton.tsx",
         "rule": "components/buttons/[button].tsx.mjs",
         "pattern": "components/buttons/*.tsx",
-        "captures": { "button": "SubmitButton" },
+        "captures": {
+          "button": "SubmitButton"
+        },
         "constraints": [
           {
             "name": "no-as-any",
-            "captures": { "path": ["components", "buttons"] }
+            "captures": {
+              "path": [
+                "components",
+                "buttons"
+              ]
+            }
           }
         ]
       }
@@ -102,9 +119,13 @@
         "pattern": null,
         "captures": {},
         "recognized": "components",
-        "declared": ["buttons/", "layouts/"],
+        "declared": [
+          "buttons/",
+          "layouts/"
+        ],
         "constraints": []
-      }
+      },
+      "human": "human/undeclared.txt"
     }
   }
 }

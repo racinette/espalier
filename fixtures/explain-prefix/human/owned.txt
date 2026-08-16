@@ -1,0 +1,11 @@
+main.ts                                  the application entry point
+
+  Owned by  main.ts
+
+  Rule
+    Wire up the application and start it.
+
+── Constraints applying to main.ts ───────────────────────────────────
+
+  no-as-any                              **/*.ts, **/*.tsx
+    Never write as any. Narrow the type instead.

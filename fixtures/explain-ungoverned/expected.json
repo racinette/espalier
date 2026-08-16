@@ -4,7 +4,11 @@
   "explain": {
     "main.ts": {
       "exit": 0,
-      "object": { "kind": "explanation", "path": "main.ts", "rule": "main.ts.mjs" }
+      "object": {
+        "kind": "explanation",
+        "path": "main.ts",
+        "rule": "main.ts.mjs"
+      }
     },
     "package.json": {
       "exit": 1,
@@ -16,7 +20,8 @@
         "pattern": null,
         "captures": {},
         "constraints": []
-      }
+      },
+      "human": "human/default-ignore.txt"
     },
     "vendor/lib.ts": {
       "exit": 1,
@@ -26,7 +31,8 @@
         "ignoredBy": "ignore",
         "rule": null,
         "constraints": []
-      }
+      },
+      "human": "human/ignore.txt"
     },
     "espalier.config.yaml": {
       "exit": 1,

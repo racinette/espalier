@@ -1,0 +1,6 @@
+components/Modal.tsx is not declared.
+
+  The espalier recognizes components/
+  Declared there:
+    buttons/
+    layouts/

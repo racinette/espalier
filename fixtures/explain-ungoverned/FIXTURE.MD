@@ -27,3 +27,8 @@ This is that promise, executable.
 
 Pins: CONFIG.MD "`defaultIgnore`", "What is ignored without being configured";
 cli/explain/README.MD "Output", "Exit codes".
+
+`human/default-ignore.txt` and `human/ignore.txt` pin the two sentences a
+reader actually sees. They are one line apart in wording and the difference is
+the whole answer, so a format that drifted between them would be worse than no
+answer at all.

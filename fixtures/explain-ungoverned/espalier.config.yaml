@@ -7,3 +7,4 @@ ignore:
   - FIXTURE.MD
   - expected.json
   - vendor/**
+  - human/**

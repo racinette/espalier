@@ -1,0 +1,35 @@
+components/                              shared UI components
+
+Everything rendered by more than one screen lives here.
+
+A component used by exactly one screen belongs beside that screen instead.
+
+  Declared here:
+    components/buttons/[button].tsx      a button component
+    components/layouts/[layout].tsx      a layout component
+
+  Zero or more files matching `buttons/[button].tsx` may exist. Zero or more
+  files matching `layouts/[layout].tsx` may exist. Nothing else may exist under
+  components/.
+
+── components/buttons/[button].tsx ───────────────────────────────────
+
+  a button component
+
+  Rule
+    Default-export a single component named after the file.
+
+  Example
+    components/buttons/SubmitButton.tsx
+
+── components/layouts/[layout].tsx ───────────────────────────────────
+
+  a layout component
+
+  Rule
+    Accept children and no other required prop.
+
+── Constraints applying under components/ ────────────────────────────
+
+  no-as-any                              **/*.ts, **/*.tsx
+    Never write as any. Narrow the type instead.

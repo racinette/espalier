@@ -1,0 +1,3 @@
+package.json is not governed by espalier.
+
+  Ignored by the default ignore list (defaultIgnore: true).

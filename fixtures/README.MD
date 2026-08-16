@@ -14,6 +14,7 @@ They were written from the specification, before the implementation. That order 
   <repository files>    at the fixture root, as in a real project
   expected.json         the expected outcome
   expected-build/       build fixtures only: the tree build must produce
+  human/                golden --format human output, byte for byte
 ```
 
 The fixture directory *is* the repository root — config discovery finds `espalier.config.yaml` there and every path resolves relative to it. Fixtures are not git repositories, so the runner uses the filesystem walk described in [CONFIG.MD](../docs/CONFIG.MD#what-counts-as-a-file).
@@ -49,6 +50,8 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 `exit` is the process exit code — `0` declared, `1` not — and `object` is the single line the run emitted, compared by the same partial rule as everything else. The exit code is asserted separately because it is process state rather than payload, and because "is this path declared" is the whole question `explain` answers.
 
+An optional `human` names a file, relative to the fixture, holding the exact stdout of the same query at `--format human`. It is compared byte for byte, like a build golden and for the same reason: the layout is fixed by [cli/explain/README.MD](../docs/cli/explain/README.MD#human-layout), and a format nobody pins is a format that drifts. Not every query needs one — pin the shapes, not every instance of them.
+
 **`error`** — for `exit: 2`, the operational failure that must be reported. The espalier never compiles, so `issues` is empty.
 
 **`build`** — present only on build fixtures. `exit` is the build run's exit code, `args` any extra flags, and `report` the lines it must print, compared as an unordered multiset with the same partial-field rule as `issues`.
@@ -69,7 +72,7 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 The tree `espalier build` must produce, compared **byte for byte**, both ways: every file in `expected-build/` must exist with exactly those bytes, and every generated file the run produced must appear in `expected-build/`. Nothing is partial here. `build` promises byte-comparable output and a golden tree is the only assertion that holds it to that.
 
-The harness copies the fixture to a scratch directory before running `build`, excluding `FIXTURE.MD`, `expected.json` and `expected-build/` itself, and compares what `build` left behind. Fixtures are never written into.
+The harness copies the fixture to a scratch directory before running `build`, excluding `FIXTURE.MD`, `expected.json`, `human/` and `expected-build/` itself, and compares what `build` left behind. Fixtures are never written into.
 
 **A build fixture with no `expected-build/` asserts that the tree is untouched** — byte-identical to the copy the run started from. That is the assertion for `--check`, which promises to write nothing, and for a run that halts, which must halt before writing rather than partway through. "It failed" and "it failed cleanly" are different claims, and only the second one is worth having.
 

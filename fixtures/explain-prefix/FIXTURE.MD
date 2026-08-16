@@ -53,3 +53,15 @@ none. Reporting it would describe a rule that will never run.
 
 Pins: cli/explain/README.MD "Usage", "Output", "Exit codes";
 MATCHING.MD "The deepest recognized node", "Ownership".
+
+## The human layout is pinned too
+
+`human/prefix.txt`, `human/owned.txt` and `human/undeclared.txt` hold the exact
+stdout of three of these queries at `--format human`, compared byte for byte.
+`human/prefix.txt` is the same bytes as the worked example in
+cli/explain/README.MD; if they ever differ, one of them is wrong.
+
+`components/ESPALIER.MD` has a two-paragraph body on purpose. Author prose is
+copied verbatim and never re-wrapped, and a one-paragraph body that happens to
+break where a greedy wrap would break proves nothing — an earlier draft of this
+fixture had exactly that, and re-wrapping author prose passed it.

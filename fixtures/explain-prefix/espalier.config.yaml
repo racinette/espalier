@@ -4,3 +4,4 @@ root: espalier
 ignore:
   - FIXTURE.MD
   - expected.json
+  - human/**

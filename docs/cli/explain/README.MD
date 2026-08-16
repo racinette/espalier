@@ -36,37 +36,68 @@ $ espalier explain components/
 
 components/                              shared UI components
 
+Everything rendered by more than one screen lives here.
+
+A component used by exactly one screen belongs beside that screen instead.
+
   Declared here:
     components/buttons/[button].tsx      a button component
     components/layouts/[layout].tsx      a layout component
 
-  Nothing else may exist under components/. Any other path is reported
-  as unexpected_path.
+  Zero or more files matching `buttons/[button].tsx` may exist. Zero or more
+  files matching `layouts/[layout].tsx` may exist. Nothing else may exist under
+  components/.
 
 ── components/buttons/[button].tsx ───────────────────────────────────
 
   a button component
-  [button] matches one filename segment. Zero or more may exist.
 
   Rule
     Default-export a single component named after the file.
-    Props must be a named exported interface `<Name>Props`.
 
   Example
     components/buttons/SubmitButton.tsx
 
+── components/layouts/[layout].tsx ───────────────────────────────────
+
+  a layout component
+
+  Rule
+    Accept children and no other required prop.
+
 ── Constraints applying under components/ ────────────────────────────
 
   no-as-any                              **/*.ts, **/*.tsx
-    Never use `as any`. Narrow with a type guard, or widen the
-    declared type.
+    Never write as any. Narrow the type instead.
 ```
 
-The closed-set statement and the cardinality lines come from the espalier's structure rather than from anything an author wrote. They are usually the most useful part of the answer.
+The cardinality paragraph is the same text `espalier build` writes into `components/AGENTS.MD`, from the same function, wrapped to the same width less its indent.
+
+That matters more than it looks. An earlier draft of this document phrased it a second way here — "`[button]` matches one filename segment. Zero or more may exist." — which is the same fact in different words from a different code path, and two code paths stating one fact is a promise to drift. `explain` is the direct query and `build` is the written form of the same answer; if they can disagree, the tool has lost the property it exists to provide.
 
 ## A path
 
 Returns the rule that owns it, its captures, and every constraint that applies.
+
+```text
+$ espalier explain clients/stripe/client.ts
+
+clients/stripe/client.ts                 an integration with an external API
+
+  Owned by  clients/[provider]/client.ts
+            provider = "stripe"
+
+  Rule
+    Export a single `create<Provider>Client(config)` factory.
+
+  Example
+    clients/stripe/client.ts
+
+── Constraints applying to clients/stripe/client.ts ──────────────────
+
+  no-as-any                              **/*.ts, **/*.tsx
+    Never write as any. Narrow the type instead.
+```
 
 The path does not have to exist. Matching is pure, so `explain` answers "would this be legal, and what would apply" before the file is written — the same question `lint` answers afterwards, from the same source, so the two cannot disagree.
 
@@ -75,12 +106,18 @@ For a path nothing declares, the answer is the deepest recognized node:
 ```text
 $ espalier explain components/Modal.tsx
 
-  components/Modal.tsx is not declared.
+components/Modal.tsx is not declared.
 
   The espalier recognizes components/
   Declared there:
     buttons/
     layouts/
+```
+
+When the walk reaches only the root, there is nothing to report beyond the violation itself:
+
+```text
+  The espalier recognizes nothing on this path.
 ```
 
 What is declared at a node is names, not descriptions — every child it has, files and directories together, sorted, with directories carrying a trailing `/`. See [MATCHING.MD](../../MATCHING.MD#the-deepest-recognized-node). Ask about one of those names to get its description; the point of this answer is the boundary, and a description here would read as a recommendation.
@@ -92,9 +129,30 @@ For a path `espalier` does not govern, the answer says so and names which list e
 ```text
 $ espalier explain package.json
 
-  package.json is not governed by espalier.
+package.json is not governed by espalier.
+
   Ignored by the default ignore list (defaultIgnore: true).
 ```
+
+The three cases read:
+
+```text
+  Ignored by the `ignore` list in espalier.config.yaml.
+  Ignored by the default ignore list (defaultIgnore: true).
+  Invisible unconditionally: espalier does not report on its own machinery.
+```
+
+## Human layout
+
+Fixed, so the output is scannable and diffable:
+
+- Descriptions align to **column 41** — on the header line, in the declared list, and beside a constraint's patterns.
+- A section rule is `── ` plus a title plus a space, padded with `─` to **70 columns**.
+- Composed prose wraps at **78** and is indented two, so nothing exceeds 80.
+- Text an author wrote — node prose, rule bodies — is never re-wrapped, exactly as in [build](../build/README.MD#rendering).
+- A section with nothing to say is omitted, along with its heading.
+
+The root prefix displays as `./`.
 
 ## Output
 
