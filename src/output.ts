@@ -37,16 +37,18 @@ export type Format = "human" | "jsonl";
  * "3 files written" and "no issues" are not interchangeable closing lines, and
  * only the caller knows which question was asked.
  */
-export type Mode = "lint" | "build" | "explain" | "init";
+export type Mode = "lint" | "build" | "explain" | "init" | "adopt";
 
 export type DriftState = "missing" | "changed" | "stale";
 
 /** What a `build` run did to the filesystem. docs/cli/build/README.MD "Output". */
 export interface BuildEntry {
-  kind: "written" | "deleted" | "drift";
+  kind: "written" | "deleted" | "drift" | "skipped" | "uncovered" | "narrowed";
   path: string;
   /** `drift` only. */
   state?: DriftState;
+  /** `uncovered` only: why the inference did not declare it. */
+  reason?: string;
 }
 
 interface Destination {
@@ -202,7 +204,7 @@ class HumanReporter implements Reporter {
       return;
     }
 
-    if (this.mode === "build" || this.mode === "init") {
+    if (this.mode === "build" || this.mode === "init" || this.mode === "adopt") {
       this.summarizeBuild();
       this.destination.close();
       return;

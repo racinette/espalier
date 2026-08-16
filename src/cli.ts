@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { parseArgs } from "node:util";
+import { adopt } from "./adopt.js";
 import { build } from "./build.js";
 import { OperationalError } from "./errors.js";
 import { explain } from "./explain.js";
@@ -12,6 +13,7 @@ const USAGE = `espalier <command> [options]
 
   init                  write the configuration and create the espalier root
   build                 generate the repository's agent-facing documentation
+  adopt <path>          infer a directory's shape and write stub rule modules
   lint [paths...]       validate the repository against the espalier
   explain <path>        what the espalier says about a path
 
@@ -27,6 +29,9 @@ const USAGE = `espalier <command> [options]
   --check               compare against what is on disk and write nothing
   --inline              write one document at the root
 
+  adopt only:
+  --dry-run             print what would be written, write nothing
+
   lint only:
   --rule <module>       run one rule module only
   --no-rule-text        omit rule bodies from output
@@ -41,7 +46,8 @@ async function main(): Promise<number> {
     return command === undefined ? 2 : 0;
   }
 
-  if (command !== "lint" && command !== "explain" && command !== "build" && command !== "init") {
+  const COMMANDS = new Set(["lint", "explain", "build", "init", "adopt"]);
+  if (!COMMANDS.has(command)) {
     process.stderr.write(`espalier: unknown command "${command}"\n\n${USAGE}`);
     return 2;
   }
@@ -62,6 +68,7 @@ async function main(): Promise<number> {
         root: { type: "string" },
         "ignore-all": { type: "boolean" },
         inline: { type: "boolean" },
+        "dry-run": { type: "boolean" },
         rule: { type: "string" },
         "no-rule-text": { type: "boolean" },
       },
@@ -89,6 +96,23 @@ async function main(): Promise<number> {
           config: values["config"] as string | undefined,
           root: values["root"] as string | undefined,
           ignoreAll: values["ignore-all"] === true,
+        },
+        reporter,
+      );
+    }
+
+    if (command === "adopt") {
+      const found = positionals[0];
+      if (found === undefined) {
+        reporter.failure("missing_argument", "adopt needs a directory");
+        return 2;
+      }
+      return await adopt(
+        {
+          cwd,
+          config: values["config"] as string | undefined,
+          target: found,
+          dryRun: values["dry-run"] === true,
         },
         reporter,
       );
