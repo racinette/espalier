@@ -41,7 +41,7 @@ espalier/src/clients/[provider]/requestModels.ts.mjs
 
 export const description = "a client";   // TODO
 
-export const rule = String.raw``;        // TODO
+export const rule = ``;                  // TODO
 
 export async function lint() {}
 ```
@@ -56,6 +56,8 @@ and narrows the config:
 ```
 
 Adopting an area that stays ignored would do nothing, so `adopt` edits the entry that covered it. That is the only reason it touches configuration.
+
+When no `ignore` entry covers the path, there is nothing to narrow and `adopt` leaves the config alone. `espalier init` writes no ignore list unless asked, so that is the common case; the narrowing matters for a repository that reached for [`--ignore-all`](../init/README.MD#--ignore-all) to keep a build green while it was being described.
 
 ## Inference
 

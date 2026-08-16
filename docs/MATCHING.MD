@@ -44,6 +44,8 @@ Every upstream provider gets its own directory. Nothing outside
 
 The name is reserved: `espalier/src/clients/ESPALIER.MD` describes the directory, while `espalier/src/clients/ESPALIER.MD.mjs` would be the rule governing a real `src/clients/ESPALIER.MD` file in the repository. Any other non-`.mjs` file in the espalier is an error.
 
+**Dotfiles are the exception, and are skipped entirely.** A `.gitkeep` holding an otherwise-empty espalier root, a `.DS_Store` a file browser left behind — neither is a rule module, and failing the whole run over one is a bad trade. A dotfile that was meant to be a rule module is a mistake you find immediately, because nothing it declares takes effect.
+
 ## Classification
 
 A rule module path that contains `[...name]` is a **constraint**. Every other rule module is **structural**.

@@ -14,10 +14,11 @@ They were written from the specification, before the implementation. That order 
   <repository files>    at the fixture root, as in a real project
   expected.json         the expected outcome
   expected-build/       build fixtures only: the tree build must produce
+  expected-init/        init fixtures only: the tree init must produce
   human/                golden --format human output, byte for byte
 ```
 
-The fixture directory *is* the repository root — config discovery finds `espalier.config.yaml` there and every path resolves relative to it. Fixtures are not git repositories, so the runner uses the filesystem walk described in [CONFIG.MD](../docs/CONFIG.MD#what-counts-as-a-file).
+The fixture directory *is* the repository root — config discovery finds `espalier.config.yaml` there (except for init fixtures, which are testing it being written) and every path resolves relative to it. Fixtures are not git repositories, so the runner uses the filesystem walk described in [CONFIG.MD](../docs/CONFIG.MD#what-counts-as-a-file).
 
 `FIXTURE.MD` and `expected.json` are ignored by every fixture config. They are scaffolding for the harness, not part of the repository under test, and strict enforcement would otherwise report them as `unexpected_path` in every case. `espalier.config.yaml` needs no such entry — it is invisible unconditionally.
 
@@ -54,6 +55,20 @@ An optional `human` names a file, relative to the fixture, holding the exact std
 
 **`error`** — for `exit: 2`, the operational failure that must be reported. The espalier never compiles, so `issues` is empty.
 
+**`init`** — present only on init fixtures. `exit` is the run's exit code, `args` any extra flags, and `report` the lines it must print. Like `build`, it runs against a throwaway copy and its result is compared against an `expected-init/` tree — byte for byte, and both ways.
+
+```json
+{
+  "init": {
+    "exit": 0,
+    "args": ["--ignore-all"],
+    "report": [{ "kind": "written", "path": "espalier.config.yaml" }]
+  }
+}
+```
+
+An init fixture has no `espalier.config.yaml` of its own, because writing one is the thing under test. It is the only kind of fixture that does not, and the harness runs `init` from the fixture root rather than discovering a config.
+
 **`build`** — present only on build fixtures. `exit` is the build run's exit code, `args` any extra flags, and `report` the lines it must print, compared as an unordered multiset with the same partial-field rule as `issues`.
 
 ```json
@@ -72,7 +87,7 @@ An optional `human` names a file, relative to the fixture, holding the exact std
 
 The tree `espalier build` must produce, compared **byte for byte**, both ways: every file in `expected-build/` must exist with exactly those bytes, and every generated file the run produced must appear in `expected-build/`. Nothing is partial here. `build` promises byte-comparable output and a golden tree is the only assertion that holds it to that.
 
-The harness copies the fixture to a scratch directory before running `build`, excluding `FIXTURE.MD`, `expected.json`, `human/` and `expected-build/` itself, and compares what `build` left behind. Fixtures are never written into.
+The harness copies the fixture to a scratch directory before running `build`, excluding `FIXTURE.MD`, `expected.json`, `human/`, `expected-init/` and `expected-build/` itself, and compares what `build` left behind. Fixtures are never written into.
 
 **A build fixture with no `expected-build/` asserts that the tree is untouched** — byte-identical to the copy the run started from. That is the assertion for `--check`, which promises to write nothing, and for a run that halts, which must halt before writing rather than partway through. "It failed" and "it failed cleanly" are different claims, and only the second one is worth having.
 
@@ -113,6 +128,9 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `explain-prefix` | both answer shapes, and the rule that decides which one you get |
 | `explain-ungoverned` | which list excluded a path, and that ignored is not declared |
 | `default-ignore-list` | what the built-in list covers, and what it deliberately does not |
+| `init-bare` | the config and the espalier root, and no ignore list |
+| `init-ignore-all` | the opt-in ignore list, and what `defaultIgnore` keeps out of it |
+| `init-existing-config` | refusing to overwrite, without touching the tree |
 
 ## Adding one
 

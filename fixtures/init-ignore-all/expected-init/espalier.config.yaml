@@ -1,0 +1,13 @@
+version: 1
+
+root: espalier
+
+defaultIgnore: true
+
+# espalier governs nothing yet.
+# Remove entries as you bring each area under the espalier — see `espalier adopt`.
+ignore:
+  - src/**
+  - test/**
+  - README.MD
+  - main.ts

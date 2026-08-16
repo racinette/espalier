@@ -1,6 +1,6 @@
 # `espalier init`
 
-Bootstraps a repository: writes the configuration, creates the espalier root, and puts the existing source tree out of scope so the first run is clean.
+Bootstraps a repository: writes the configuration and creates the espalier root.
 
 ```bash
 espalier init
@@ -11,11 +11,17 @@ espalier init
 ## Usage
 
 ```text
-espalier init [--config <path>] [--root <dir>]
+espalier init [--config <path>] [--root <dir>] [--ignore-all]
 
   --root <dir>     espalier source directory (default: espalier)
+  --ignore-all     also write an ignore entry for every top-level path,
+                   putting the existing tree out of scope
   --config <path>  write the config here instead of ./espalier.config.yaml
+  --format <fmt>   human or jsonl (default: human)
+  --out <dest>     stdout, stderr, or a file path (default: stdout)
 ```
+
+`init` refuses to overwrite an existing configuration. Exit `2`, and nothing is written.
 
 ## What it writes
 
@@ -25,26 +31,39 @@ version: 1
 root: espalier
 
 defaultIgnore: true
+```
 
-# espalier governs nothing yet.
-# Remove entries as you bring each area under the espalier — see `espalier adopt`.
+Plus `espalier/`, holding a `.gitkeep`.
+
+`defaultIgnore: true` is written out even though it is the default, so the mechanism is visible. A built-in list quietly excluding files is otherwise something you discover months later, wondering why a check never ran.
+
+The `.gitkeep` is there because git does not track empty directories. Without it the espalier root vanishes on the first commit and the next person to clone gets `espalier_root_missing` before they have written a line. Dotfiles in the espalier are skipped rather than read, so it costs nothing — see [MATCHING.MD](../../MATCHING.MD#node-kinds).
+
+## Why no ignore list by default
+
+Structural enforcement is total: every file `espalier` can see must be declared, or it is reported as `unexpected_path`. On a repository that already exists, the first run therefore reports every source file at once.
+
+That is loud, and it is also honest, and at this moment nobody is listening. You have just run `init` on a repository that declares nothing; you are not going to wire that into CI before describing anything. The noise is visible only to the person who caused it, who knows exactly why it is there and what it is a list of.
+
+Writing an ignore list here would mean guessing your source layout before anyone has said what matters, and leaving `adopt` to unpick a coarse `src/**` into `src/api/**`, `src/lib/**` and the rest each time it runs. Better to add entries when the noise starts costing you something, and to add the ones you actually want.
+
+## `--ignore-all`
+
+Writes one entry per top-level path — directories as `<dir>/**`, files by name — so `espalier lint` passes from the first run:
+
+```yaml
 ignore:
   - public/**
   - src/**
   - test/**
+  - main.ts
 ```
 
-Plus an empty `espalier/` directory.
+Paths already covered by `defaultIgnore` are left out; so is the espalier root.
 
-`defaultIgnore: true` is written out even though it is the default, so the mechanism is visible. A built-in list quietly excluding files is otherwise something you discover months later, wondering why a check never ran.
+Use it when you are introducing `espalier` to a repository that is already in CI and a red build would be a problem. The list is a **backlog, not a junk drawer**: entries arrive generated and leave by hand, and the list shrinking is what progress looks like.
 
-## Why the ignore list
-
-Structural enforcement is total: every file `espalier` can see must be declared, or it is reported as `unexpected_path`. On a repository that already exists, that means the first run reports every source file at once — hundreds of issues, none actionable, and the tool gets closed.
-
-`defaultIgnore` already covers manifests, lockfiles, CI definitions and tool configuration. What remains is the code, and `init` puts it out of scope so `espalier lint` passes from the first run.
-
-The generated list is deliberately coarse — top-level source directories, not individual files. It is a **backlog, not a junk drawer**: entries arrive generated and leave by hand, and the list shrinking is what progress looks like. Three or four lines that each mean *this area is not described yet* is a readable state to be in.
+Note that this is not only a bootstrap concern. A repository is never expected to end up fully described, so a partial espalier reports its undescribed areas for as long as it stays partial. `ignore` is what makes that liveable, whenever you decide you want it.
 
 ## After `init`
 
