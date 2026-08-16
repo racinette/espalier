@@ -1,19 +1,25 @@
 #!/usr/bin/env node
 
 import { parseArgs } from "node:util";
+import { build } from "./build.js";
 import { OperationalError } from "./errors.js";
 import { explain } from "./explain.js";
 import { lint } from "./lint.js";
-import { createReporter, type Format } from "./output.js";
+import { createReporter, type Format, type Mode } from "./output.js";
 
 const USAGE = `espalier <command> [options]
 
+  build                 generate the repository's agent-facing documentation
   lint [paths...]       validate the repository against the espalier
   explain <path>        what the espalier says about a path
 
   --format human|jsonl  output format (default: human)
   --out <dest>          stdout, stderr, or a file path (default: stdout)
   --config <path>       use this config file instead of discovering one
+
+  build only:
+  --check               compare against what is on disk and write nothing
+  --inline              write one document at the root
 
   lint only:
   --rule <module>       run one rule module only
@@ -30,7 +36,7 @@ async function main(): Promise<number> {
     return command === undefined ? 2 : 0;
   }
 
-  if (command !== "lint" && command !== "explain") {
+  if (command !== "lint" && command !== "explain" && command !== "build") {
     process.stderr.write(`espalier: unknown command "${command}"\n\n${USAGE}`);
     return 2;
   }
@@ -47,6 +53,8 @@ async function main(): Promise<number> {
         format: { type: "string" },
         out: { type: "string" },
         config: { type: "string" },
+        check: { type: "boolean" },
+        inline: { type: "boolean" },
         rule: { type: "string" },
         staged: { type: "boolean" },
         "no-rule-text": { type: "boolean" },
@@ -65,9 +73,21 @@ async function main(): Promise<number> {
 
   const out = (values["out"] ?? "stdout") as string;
   const cwd = process.cwd();
-  const reporter = createReporter(format, out, cwd);
+  const reporter = createReporter(format, out, cwd, command as Mode);
 
   try {
+    if (command === "build") {
+      return await build(
+        {
+          cwd,
+          config: values["config"] as string | undefined,
+          check: values["check"] === true,
+          inline: values["inline"] === true,
+        },
+        reporter,
+      );
+    }
+
     if (command === "explain") {
       const target = positionals[0];
       if (target === undefined) {

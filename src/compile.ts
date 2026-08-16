@@ -1,9 +1,10 @@
 // Reading the espalier tree into a matcher. docs/MATCHING.MD "Node kinds",
 // "Classification", "Ambiguity is rejected".
 
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { parse as parseYaml } from "yaml";
 import { fail } from "./errors.js";
 import { captureNames, intersects, parseSegment, type Segment } from "./pattern.js";
 
@@ -43,6 +44,8 @@ export interface TrieNode {
 
 export interface Constraint {
   modulePath: string;
+  /** The rule name, e.g. `no-as-any`. */
+  name: string;
   /** Directory segments, containing exactly one recursive placeholder. */
   directory: Segment[];
   extension: string;
@@ -51,9 +54,24 @@ export interface Constraint {
   module: LoadedModule;
 }
 
+/** An `ESPALIER.MD`: what a directory is, rather than what any file in it is. */
+export interface NodeDoc {
+  /** The one line that appears in the project map. */
+  description: string | null;
+  /** The markdown long form. Empty when the file is frontmatter only. */
+  body: string;
+}
+
 export interface Espalier {
   root: TrieNode;
   constraints: Constraint[];
+  /**
+   * Espalier-relative directory path to its `ESPALIER.MD`, with `""` for the
+   * root. Kept beside the trie rather than on it: a directory may have prose
+   * and no rules, and giving it a trie node would change what `lint` reports as
+   * declared at its parent.
+   */
+  nodes: Map<string, NodeDoc>;
 }
 
 function emptyNode(display: string, segment: Segment): TrieNode {
@@ -105,6 +123,35 @@ async function loadModule(absolute: string, modulePath: string, structural: bool
     lint: loaded.lint as (context: unknown) => unknown,
     example: typeof loaded.example === "string" ? loaded.example : null,
   };
+}
+
+/**
+ * Reads an `ESPALIER.MD`. YAML frontmatter carries the `description`; the
+ * markdown body is the long form. Both parts are optional.
+ */
+function readNodeDoc(absolute: string, modulePath: string): NodeDoc {
+  const text = readFileSync(absolute, "utf8");
+  const framed = /^---[^\S\n]*\r?\n([\s\S]*?)\r?\n---[^\S\n]*(?:\r?\n|$)/.exec(text);
+
+  if (framed === null) return { description: null, body: text.trim() };
+
+  let front: unknown;
+  try {
+    front = parseYaml(framed[1]!);
+  } catch (cause) {
+    fail("malformed_node_description", `${modulePath}: frontmatter is not valid YAML: ${(cause as Error).message}`);
+  }
+
+  let description: string | null = null;
+  if (front !== null && typeof front === "object" && !Array.isArray(front)) {
+    const value = (front as Record<string, unknown>)["description"];
+    if (value !== undefined && typeof value !== "string") {
+      fail("malformed_node_description", `${modulePath}: \`description\` must be a string`);
+    }
+    if (typeof value === "string") description = value;
+  }
+
+  return { description, body: text.slice(framed[0].length).trim() };
 }
 
 /** `no-as-any.{ts,tsx}` → `{ name, extensions: ["ts", "tsx"] }`. */
@@ -198,12 +245,16 @@ export async function compile(root: string, espalierRoot: string): Promise<Espal
   const absolute = path.join(root, espalierRoot);
   const trie = emptyNode("", parseSegment("", "the espalier root"));
   const constraints: Constraint[] = [];
+  const nodes = new Map<string, NodeDoc>();
 
   for (const modulePath of listEntries(absolute, "")) {
     const segments = modulePath.split("/");
     const leaf = segments[segments.length - 1]!;
 
-    if (leaf === NODE_DESCRIPTION) continue;
+    if (leaf === NODE_DESCRIPTION) {
+      nodes.set(segments.slice(0, -1).join("/"), readNodeDoc(path.join(absolute, modulePath), modulePath));
+      continue;
+    }
 
     if (!leaf.endsWith(".mjs")) {
       fail(
@@ -238,13 +289,14 @@ export async function compile(root: string, espalierRoot: string): Promise<Espal
     // structural. That single signal decides how the leaf is read.
     if (recursive.length === 1) {
       const directory = parsed.slice(0, -1);
-      const { extensions } = splitConstraintLeaf(authored[authored.length - 1]!, modulePath);
+      const { name, extensions } = splitConstraintLeaf(authored[authored.length - 1]!, modulePath);
       const module = await loadModule(absoluteModule, modulePath, false);
       const prefix = directory.map((segment) => segment.shape).join("/");
 
       for (const extension of extensions) {
         constraints.push({
           modulePath,
+          name,
           directory,
           extension,
           pattern: `${prefix === "" ? "" : `${prefix}/`}*.${extension}`,
@@ -271,5 +323,5 @@ export async function compile(root: string, espalierRoot: string): Promise<Espal
 
   checkSiblings(trie, "");
 
-  return { root: trie, constraints };
+  return { root: trie, constraints, nodes };
 }

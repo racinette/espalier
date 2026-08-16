@@ -30,6 +30,23 @@ export interface Issue {
 
 export type Format = "human" | "jsonl";
 
+/**
+ * What the human formatter is summarizing. The encoding is the same either way;
+ * "3 files written" and "no issues" are not interchangeable closing lines, and
+ * only the caller knows which question was asked.
+ */
+export type Mode = "lint" | "build" | "explain";
+
+export type DriftState = "missing" | "changed" | "stale";
+
+/** What a `build` run did to the filesystem. docs/cli/build/README.MD "Output". */
+export interface BuildEntry {
+  kind: "written" | "deleted" | "drift";
+  path: string;
+  /** `drift` only. */
+  state?: DriftState;
+}
+
 interface Destination {
   write(text: string): void;
   close(): void;
@@ -51,6 +68,7 @@ export interface Reporter {
   warning(message: string): void;
   failure(code: string, message: string, detail?: Record<string, unknown>): void;
   object(payload: Record<string, unknown>): void;
+  record(entry: BuildEntry): void;
   finish(): void;
 }
 
@@ -109,6 +127,10 @@ class JsonlReporter implements Reporter {
     this.destination.write(`${JSON.stringify(payload)}\n`);
   }
 
+  record(entry: BuildEntry): void {
+    this.destination.write(`${JSON.stringify(entry)}\n`);
+  }
+
   finish(): void {
     this.destination.close();
   }
@@ -117,9 +139,13 @@ class JsonlReporter implements Reporter {
 class HumanReporter implements Reporter {
   private readonly issues: Issue[] = [];
   private readonly warnings: string[] = [];
+  private readonly records: BuildEntry[] = [];
   private failed = false;
 
-  constructor(private readonly destination: Destination) {}
+  constructor(
+    private readonly destination: Destination,
+    private readonly mode: Mode,
+  ) {}
 
   issue(issue: Issue): void {
     this.issues.push(issue);
@@ -138,9 +164,41 @@ class HumanReporter implements Reporter {
     this.destination.write(`${JSON.stringify(payload, null, 2)}\n`);
   }
 
+  record(entry: BuildEntry): void {
+    this.records.push(entry);
+  }
+
+  private summarizeBuild(): void {
+    // A build that had no work to do should not look like a build that did
+    // some, so an empty run prints nothing at all.
+    if (this.records.length === 0) return;
+
+    const counts = new Map<string, number>();
+    for (const entry of [...this.records].sort((a, b) => (a.path < b.path ? -1 : 1))) {
+      const label = entry.state ?? entry.kind;
+      this.destination.write(`${label.padEnd(9)}${entry.path}\n`);
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    }
+
+    const summary = [...counts.entries()].map(([label, count]) => `${count} ${label}`).join(", ");
+    this.destination.write(`\n${summary}\n`);
+  }
+
   finish(): void {
     // An operational failure means the run produced nothing to summarize.
     if (this.failed) {
+      this.destination.close();
+      return;
+    }
+
+    if (this.mode === "build") {
+      this.summarizeBuild();
+      this.destination.close();
+      return;
+    }
+
+    // `explain` writes its own payload and has no tally to add.
+    if (this.mode === "explain") {
       this.destination.close();
       return;
     }
@@ -203,7 +261,7 @@ class HumanReporter implements Reporter {
   }
 }
 
-export function createReporter(format: Format, out: string, root: string): Reporter {
+export function createReporter(format: Format, out: string, root: string, mode: Mode): Reporter {
   const destination = openDestination(out, root);
-  return format === "jsonl" ? new JsonlReporter(destination) : new HumanReporter(destination);
+  return format === "jsonl" ? new JsonlReporter(destination) : new HumanReporter(destination, mode);
 }
