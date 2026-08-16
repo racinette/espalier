@@ -81,13 +81,11 @@ That asymmetry decides what belongs. An entry omitted today costs a project one 
 
 Lockfiles, manifests, tool configuration, CI definitions, licences, and editor and VCS metadata are in. None of them is a placement decision; all of them are dictated by something other than the project's architecture.
 
-`espalier explain <path>` reports which list excluded a path, which is how you find out without reading this document.
-
-`espalier explain <path>` reports when a path is ignored and by which list. A file quietly not being checked is otherwise the kind of thing discovered months later.
+`espalier explain <path>` reports which list excluded a path — how you find out without reading this document, and the answer to a question otherwise discovered months later.
 
 ### What is ignored without being configured
 
-Three things are invisible unconditionally, because `espalier` reporting on its own machinery is a bug rather than a finding:
+Four things are invisible unconditionally, because `espalier` reporting on its own machinery is a bug rather than a finding:
 
 - the VCS directory
 - `espalier.config.yaml` itself
@@ -155,3 +153,5 @@ Files bearing the marker are regenerated and, when the espalier no longer produc
 ## Errors
 
 Everything in this document that fails — a missing config, an unknown key, an unrecognized version, an addon that will not start, an `ignore` pattern that contradicts a required leaf — is an operational failure. `espalier` exits `2` and reports nothing else. A broken configuration must not be able to look like a clean repository.
+
+Every code is listed in [ERRORS.MD](ERRORS.MD).

@@ -184,3 +184,5 @@ The failures above the run are caught before any file is read, and nothing prece
 Compiling the espalier and starting `addons` is the expensive part of a run, and both are stable while the repository changes. Where a rule depends on a language server or an out-of-process parser, paying that startup on every agent stop is the friction that gets a tool switched off. A persistent runner also makes incremental linting practical, since ownership only needs recomputing for paths that changed.
 
 See [README.MD](../../../README.MD#planned).
+
+Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).

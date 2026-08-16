@@ -73,3 +73,5 @@ Note that this is not only a bootstrap concern. A repository is never expected t
 4. Run [`espalier lint`](../lint/README.MD) to check the areas you have described.
 
 Repeat step 2 for as long as it stays useful. There is no expectation that a repository ends up fully described — an espalier covering the three directories where architecture actually matters is worth more than one covering everything shallowly.
+
+Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).

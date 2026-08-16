@@ -5,8 +5,8 @@ ten conformance fixtures pass.** This document is the brief for what comes next.
 
 **Read before touching anything**, in this order: `README.MD`,
 `docs/MATCHING.MD` (normative — the matcher is a direct transcription of it),
-`docs/CONFIG.MD`, `docs/TYPES.MD`, `docs/cli/lint/README.MD`,
-`fixtures/README.MD`.
+`docs/CONFIG.MD`, `docs/TYPES.MD`, `docs/ERRORS.MD`,
+`docs/cli/lint/README.MD`, `fixtures/README.MD`.
 
 ## What exists
 
@@ -160,8 +160,13 @@ pending.
   harness walks the fixture itself, so a file cannot change hands without a
   failure. Six fixtures asserted `exit: 0` and between them pinned four owners;
   eleven fixtures now pin thirty-eight.
-- **When to harvest the error codes into `docs/cli/lint/README.MD`.** Deferred
-  deliberately. Do it once the set stops moving, in one pass.
+- ~~When to harvest the error codes.~~ **Done**, and into `docs/ERRORS.MD`
+  rather than `lint`'s page: the set outgrew one command once `build`, `init`
+  and `explain` existed. Thirty-five codes, grouped by what went wrong.
+  `test/errors.test.ts` scans `src/` for every `fail()` and `failure()` call and
+  fails both ways — a code the source throws and the document omits, and a code
+  the document lists and nothing throws. Deciding late was fine; letting the
+  record drift afterwards would not be.
 
 ## Known gaps
 

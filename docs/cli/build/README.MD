@@ -324,3 +324,5 @@ Switching modes deletes the files the other mode produced. They carry the marker
 ## Configuration
 
 The output filename and inline mode are configured under `build` in `espalier.config.yaml`. See [CONFIG.MD](../../CONFIG.MD).
+
+Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).

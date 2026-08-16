@@ -211,3 +211,5 @@ A constraint is listed under a prefix when its static prefix and the queried pre
 | `2` | operational failure |
 
 A path espalier does not govern exits `1`. Ignored is not declared — the espalier says nothing about it, which is the same answer as for a path it never described, arrived at by a different route. The route is in `ignoredBy`, for anyone who needs to tell the two apart.
+
+Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).

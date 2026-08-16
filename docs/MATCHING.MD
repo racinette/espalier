@@ -235,7 +235,7 @@ There is no syntax for "at least one." If a file is mandatory, declare it static
 
 ## Files espalier does not see
 
-Three things are invisible unconditionally, because espalier reporting on its own machinery is a bug rather than a finding: the VCS directory, the espalier source root, and every file `espalier build` generated.
+Four things are invisible unconditionally, because espalier reporting on its own machinery is a bug rather than a finding: the VCS directory, `espalier.config.yaml`, the espalier source root, and every file `espalier build` generated.
 
 Everything else in the repository is governed. Files you do not want governed are listed in `ignore` — see [CONFIG.MD](CONFIG.MD).
 
@@ -272,7 +272,7 @@ Two issue codes come from matching rather than from a rule module. Their `rule` 
 
 `missing_required_file` — a required static leaf has no corresponding file.
 
-Everything that makes the espalier itself invalid — overlapping siblings, inconsistent capture names, more than one recursive placeholder in a path, a duplicate placeholder name, a contradiction between `ignore` and a required leaf — is an operational failure, not an issue. It exits `2` and no files are linted.
+Everything that makes the espalier itself invalid — overlapping siblings, inconsistent capture names, more than one recursive placeholder in a path, a duplicate placeholder name, a contradiction between `ignore` and a required leaf — is an operational failure, not an issue. It exits `2` and no files are linted. Every code is listed in [ERRORS.MD](ERRORS.MD).
 
 ## Worked example
 
