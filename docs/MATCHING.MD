@@ -276,7 +276,7 @@ Everything that makes the espalier itself invalid — overlapping siblings, inco
 
 ```text
 espalier
-├─ AGENTS.MD
+├─ ESPALIER.MD
 ├─ main.ts.mjs
 ├─ components
 │  └─ buttons
