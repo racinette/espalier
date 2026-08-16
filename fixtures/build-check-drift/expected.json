@@ -1,0 +1,11 @@
+{
+  "build": {
+    "exit": 1,
+    "args": ["--check"],
+    "report": [
+      { "kind": "drift", "path": "AGENTS.MD", "state": "changed" },
+      { "kind": "drift", "path": "components/buttons/AGENTS.MD", "state": "missing" },
+      { "kind": "drift", "path": "src/legacy/AGENTS.MD", "state": "stale" }
+    ]
+  }
+}

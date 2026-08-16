@@ -1,0 +1,8 @@
+{
+  "build": {
+    "exit": 2,
+    "report": [
+      { "kind": "failure", "code": "unmarked_documentation" }
+    ]
+  }
+}

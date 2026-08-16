@@ -1,0 +1,8 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "deleted", "path": "src/legacy/AGENTS.MD" }
+    ]
+  }
+}

@@ -13,11 +13,12 @@ They were written from the specification, before the implementation. That order 
   espalier/             the espalier tree
   <repository files>    at the fixture root, as in a real project
   expected.json         the expected outcome
+  expected-build/       build fixtures only: the tree build must produce
 ```
 
 The fixture directory *is* the repository root — config discovery finds `espalier.config.yaml` there and every path resolves relative to it. Fixtures are not git repositories, so the runner uses the filesystem walk described in [CONFIG.MD](../docs/CONFIG.MD#what-counts-as-a-file).
 
-`FIXTURE.MD` and `expected.json` are ignored by every fixture config. They are scaffolding for the harness, not part of the repository under test, and strict enforcement would otherwise report them as `unexpected_path` in all nine cases. `espalier.config.yaml` needs no such entry — it is invisible unconditionally.
+`FIXTURE.MD` and `expected.json` are ignored by every fixture config. They are scaffolding for the harness, not part of the repository under test, and strict enforcement would otherwise report them as `unexpected_path` in every case. `espalier.config.yaml` needs no such entry — it is invisible unconditionally.
 
 ## `expected.json`
 
@@ -38,6 +39,30 @@ The fixture directory *is* the repository root — config discovery finds `espal
 **`explain`** — expected `espalier explain --format jsonl` output for specific paths. Ownership is invisible in lint output when a repository is clean, so fixtures that pin *which rule owns what* assert it here rather than contriving a violation to make it observable.
 
 **`error`** — for `exit: 2`, the operational failure that must be reported. The espalier never compiles, so `issues` is empty.
+
+**`build`** — present only on build fixtures. `exit` is the build run's exit code, `args` any extra flags, and `report` the lines it must print, compared as an unordered multiset with the same partial-field rule as `issues`.
+
+```json
+{
+  "build": {
+    "exit": 0,
+    "args": ["--check"],
+    "report": [{ "kind": "drift", "path": "AGENTS.MD", "state": "changed" }]
+  }
+}
+```
+
+`exit` and `issues` describe a `lint` run and `build` describes a `build` run; a fixture may carry either or both, and the harness runs only what is asserted.
+
+## `expected-build/`
+
+The tree `espalier build` must produce, compared **byte for byte**, both ways: every file in `expected-build/` must exist with exactly those bytes, and every generated file the run produced must appear in `expected-build/`. Nothing is partial here. `build` promises byte-comparable output and a golden tree is the only assertion that holds it to that.
+
+The harness copies the fixture to a scratch directory before running `build`, excluding `FIXTURE.MD`, `expected.json` and `expected-build/` itself, and compares what `build` left behind. Fixtures are never written into.
+
+**A build fixture with no `expected-build/` asserts that the tree is untouched** — byte-identical to the copy the run started from. That is the assertion for `--check`, which promises to write nothing, and for a run that halts, which must halt before writing rather than partway through. "It failed" and "it failed cleanly" are different claims, and only the second one is worth having.
+
+The cost is that changing the render template touches every build fixture at once. That is the point: a template change is a change to the product's most-read surface, and it should be visible in a diff rather than absorbed by a substring match.
 
 ## Instrumented rules
 
@@ -65,6 +90,12 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `invalid-overlapping-siblings` | two dynamic siblings that can match the same filename |
 | `invalid-capture-names` | one dynamic directory described under two names |
 | `invalid-ignored-required-file` | a required static leaf that `ignore` also matches |
+| `build-placement-and-pruning` | placement, pruning, ordering, and every part of the rendered document |
+| `build-double-catch` | two open sets described in one closed-set statement; the root is never pruned |
+| `build-unmarked-documentation` | a hand-written documentation file halts the run before anything is written |
+| `build-orphan-deletion` | orphans deleted, unchanged files left alone |
+| `build-check-drift` | `--check` reports `missing`, `changed` and `stale`, and writes nothing |
+| `build-inline` | one document at the root, and the distributed run's files removed |
 
 ## Adding one
 

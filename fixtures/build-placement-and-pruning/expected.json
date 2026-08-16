@@ -1,0 +1,10 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
+      { "kind": "written", "path": "components/buttons/AGENTS.MD" },
+      { "kind": "written", "path": "src/clients/AGENTS.MD" }
+    ]
+  }
+}
