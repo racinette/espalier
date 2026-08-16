@@ -13,7 +13,7 @@ export const description = "a button component";
 
 export const example = "components/buttons/SubmitButton.tsx";
 
-export const rule = String.raw`
+export const rule = `
 Default-export a single component named after the file.
 Props must be a named exported interface \`<Name>Props\`.
 `;
@@ -47,7 +47,14 @@ Constraint modules may omit it. When absent, `espalier` generates one from the p
 
 ### `rule`
 
-The conventions the file must follow, in natural language. Markdown is supported. `String.raw` avoids escaping backticks and backslashes.
+The conventions the file must follow, in natural language. Markdown is supported.
+
+An ordinary template literal is the right default. A backtick inside one has to be written `` \` `` either way — the literal would otherwise end — and an ordinary template literal resolves that escape, while `String.raw` keeps the backslash and puts it in your documentation. Reach for `String.raw` when the text contains backslashes and no backticks, which in practice means a regular expression.
+
+```js
+export const rule = `Props must be a named exported interface \`<Name>Props\`.`;
+export const rule = String.raw`File names must match ^[A-Z][a-zA-Z0-9]*$.`;
+```
 
 The `rule` is **mode-invariant**: the same text applies whether the file is being created or edited. Exporters render it for each surface; they never rewrite it. It is also what a violation carries back to the agent, so write it as guidance rather than as a description of the check.
 
