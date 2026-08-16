@@ -77,13 +77,20 @@ export function compileIgnore(patterns: string[]): IgnoreRule[] {
  * permissive and covers the documented cases; revisit if a real espalier trips
  * over the difference.
  */
-export function ignores(rules: IgnoreRule[], relativePath: string): boolean {
+export function ignores(
+  rules: IgnoreRule[],
+  relativePath: string,
+  asDirectory = false,
+): boolean {
   const segments = relativePath.split("/");
   let ignored = false;
 
   for (let depth = 1; depth <= segments.length; depth += 1) {
     const partial = segments.slice(0, depth).join("/");
-    const isDirectory = depth < segments.length;
+    // Every segment but the last names a directory. The last one usually names
+    // a file — but `init` asks about directories by name, and a `.github/`
+    // entry would never match if it were assumed otherwise.
+    const isDirectory = depth < segments.length || asDirectory;
 
     for (const rule of rules) {
       if (rule.dirOnly && !isDirectory) continue;

@@ -4,11 +4,13 @@ import { parseArgs } from "node:util";
 import { build } from "./build.js";
 import { OperationalError } from "./errors.js";
 import { explain } from "./explain.js";
+import { init } from "./init.js";
 import { lint } from "./lint.js";
 import { createReporter, type Format, type Mode } from "./output.js";
 
 const USAGE = `espalier <command> [options]
 
+  init                  write the configuration and create the espalier root
   build                 generate the repository's agent-facing documentation
   lint [paths...]       validate the repository against the espalier
   explain <path>        what the espalier says about a path
@@ -16,6 +18,10 @@ const USAGE = `espalier <command> [options]
   --format human|jsonl  output format (default: human)
   --out <dest>          stdout, stderr, or a file path (default: stdout)
   --config <path>       use this config file instead of discovering one
+
+  init only:
+  --root <dir>          espalier source directory (default: espalier)
+  --ignore-all          put every top-level path out of scope
 
   build only:
   --check               compare against what is on disk and write nothing
@@ -36,7 +42,7 @@ async function main(): Promise<number> {
     return command === undefined ? 2 : 0;
   }
 
-  if (command !== "lint" && command !== "explain" && command !== "build") {
+  if (command !== "lint" && command !== "explain" && command !== "build" && command !== "init") {
     process.stderr.write(`espalier: unknown command "${command}"\n\n${USAGE}`);
     return 2;
   }
@@ -54,6 +60,8 @@ async function main(): Promise<number> {
         out: { type: "string" },
         config: { type: "string" },
         check: { type: "boolean" },
+        root: { type: "string" },
+        "ignore-all": { type: "boolean" },
         inline: { type: "boolean" },
         rule: { type: "string" },
         staged: { type: "boolean" },
@@ -76,6 +84,18 @@ async function main(): Promise<number> {
   const reporter = createReporter(format, out, cwd, command as Mode);
 
   try {
+    if (command === "init") {
+      return init(
+        {
+          cwd,
+          config: values["config"] as string | undefined,
+          root: values["root"] as string | undefined,
+          ignoreAll: values["ignore-all"] === true,
+        },
+        reporter,
+      );
+    }
+
     if (command === "build") {
       return await build(
         {

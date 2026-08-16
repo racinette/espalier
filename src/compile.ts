@@ -83,6 +83,10 @@ function listEntries(absolute: string, prefix: string): string[] {
   for (const entry of readdirSync(absolute, { withFileTypes: true }).sort((a, b) =>
     a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
   )) {
+    // Dotfiles are skipped entirely: a `.gitkeep` holding an otherwise-empty
+    // espalier root, a `.DS_Store` a file browser left behind. Neither is a
+    // rule module, and failing the whole run over one is a bad trade.
+    if (entry.name.startsWith(".")) continue;
     const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
     if (entry.isDirectory()) {
       found.push(...listEntries(path.join(absolute, entry.name), relative));
