@@ -52,5 +52,10 @@
         "rule": null
       }
     }
+  },
+  "ownership": {
+    "main.ts": "main.ts.mjs",
+    "package.json": null,
+    "vendor/lib.ts": null
   }
 }

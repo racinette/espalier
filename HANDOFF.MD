@@ -148,11 +148,12 @@ pending.
 - ~~The double-catch shape.~~ **Settled.** Two open sets get two sentences and
   one closing sentence covering both, with no warning and no compiler change.
   See `build-double-catch`.
-- **Clean fixtures hide matcher bugs.** Three of the ten assert a clean run, and
-  a clean run is exactly where a bad owner goes unnoticed. `explain` assertions
-  are the only thing making ownership observable and they cover only the paths a
-  fixture names. Tightening this means asserting an owner for *every* file in
-  the clean fixtures, which is a change to how fixtures are written.
+- ~~Clean fixtures hide matcher bugs.~~ **Closed.** Every fixture that runs
+  `lint` now carries an `ownership` map naming the rule that owns each file, and
+  it is the one assertion compared exhaustively rather than partially: the
+  harness walks the fixture itself, so a file cannot change hands without a
+  failure. Six fixtures asserted `exit: 0` and between them pinned four owners;
+  eleven fixtures now pin thirty-eight.
 - **When to harvest the error codes into `docs/cli/lint/README.MD`.** Deferred
   deliberately. Do it once the set stops moving, in one pass.
 

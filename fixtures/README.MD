@@ -53,6 +53,22 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 An optional `human` names a file, relative to the fixture, holding the exact stdout of the same query at `--format human`. It is compared byte for byte, like a build golden and for the same reason: the layout is fixed by [cli/explain/README.MD](../docs/cli/explain/README.MD#human-layout), and a format nobody pins is a format that drifts. Not every query needs one — pin the shapes, not every instance of them.
 
+**`ownership`** — every file in the fixture, and the rule module that owns it, or `null` for one nothing owns.
+
+```json
+"ownership": {
+  "clients/registry.ts": "clients/[summary].ts.mjs",
+  "clients/stripe/client.ts": "clients/[provider]/client.ts.mjs",
+  "package.json": null
+}
+```
+
+Unlike everything else here, this one is **exhaustive**: the harness walks the fixture itself and every file it finds must appear in the map, with no extras. Partial comparison is what makes the other keys readable; it is also what made ownership invisible.
+
+A clean run says nothing about who owns what. A matcher that handed every file to the wrong rule would still exit `0` with no issues, and until now the only thing making ownership observable was an `explain` assertion — which covers the paths a fixture happened to name and no others. Six fixtures asserted `exit: 0` and between them pinned four owners.
+
+**A fixture that runs `lint` should carry an `ownership` map.** It costs a line per file and it is the only assertion that fails when a file quietly changes hands.
+
 **`error`** — for `exit: 2`, the operational failure that must be reported. The espalier never compiles, so `issues` is empty.
 
 **`init`** — present only on init fixtures. `exit` is the run's exit code, `args` any extra flags, and `report` the lines it must print. Like `build`, it runs against a throwaway copy and its result is compared against an `expected-init/` tree — byte for byte, and both ways.

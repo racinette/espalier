@@ -7,5 +7,10 @@
       "severity": "error",
       "rule": null
     }
-  ]
+  ],
+  "ownership": {
+    "clients/stripe/client.ts": "clients/[provider]/client.ts.mjs",
+    "clients/stripe/requestModels.ts": "clients/[provider]/requestModels.ts.mjs",
+    "clients/twilio/client.ts": "clients/[provider]/client.ts.mjs"
+  }
 }

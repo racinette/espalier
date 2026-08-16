@@ -3,6 +3,14 @@
   "issues": [],
   "init": {
     "exit": 2,
-    "report": [{ "kind": "failure", "code": "config_exists" }]
+    "report": [
+      {
+        "kind": "failure",
+        "code": "config_exists"
+      }
+    ]
+  },
+  "ownership": {
+    "main.ts": "main.ts.mjs"
   }
 }

@@ -22,5 +22,9 @@
         }
       }
     }
+  },
+  "ownership": {
+    "clients/registry.ts": "clients/[summary].ts.mjs",
+    "clients/stripe/client.ts": "clients/[provider]/client.ts.mjs"
   }
 }

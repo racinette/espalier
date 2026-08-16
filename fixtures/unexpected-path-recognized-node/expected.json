@@ -5,7 +5,10 @@
       "path": "backend/orders/handler.ts",
       "code": "unexpected_path",
       "rule": null,
-      "metadata": { "recognized": null, "declared": [] }
+      "metadata": {
+        "recognized": null,
+        "declared": []
+      }
     },
     {
       "path": "clients/acme/random.ts",
@@ -13,8 +16,13 @@
       "rule": null,
       "metadata": {
         "recognized": "clients/[provider]",
-        "captures": { "provider": "acme" },
-        "declared": ["client.ts", "requestModels.ts"]
+        "captures": {
+          "provider": "acme"
+        },
+        "declared": [
+          "client.ts",
+          "requestModels.ts"
+        ]
       }
     },
     {
@@ -24,8 +32,17 @@
       "metadata": {
         "recognized": "components",
         "captures": {},
-        "declared": ["buttons/"]
+        "declared": [
+          "buttons/"
+        ]
       }
     }
-  ]
+  ],
+  "ownership": {
+    "backend/orders/handler.ts": null,
+    "clients/acme/client.ts": "clients/[provider]/client.ts.mjs",
+    "clients/acme/random.ts": null,
+    "clients/acme/requestModels.ts": "clients/[provider]/requestModels.ts.mjs",
+    "components/Modal.tsx": null
+  }
 }

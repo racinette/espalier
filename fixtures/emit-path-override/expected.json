@@ -6,14 +6,23 @@
       "code": "registry_empty",
       "severity": "error",
       "rule": "clients/[provider]/client.ts.mjs",
-      "captures": { "provider": "stripe" }
+      "captures": {
+        "provider": "stripe"
+      }
     },
     {
       "path": "clients/registry.ts",
       "code": "registry_empty",
       "severity": "error",
       "rule": "clients/[provider]/client.ts.mjs",
-      "captures": { "provider": "twilio" }
+      "captures": {
+        "provider": "twilio"
+      }
     }
-  ]
+  ],
+  "ownership": {
+    "clients/registry.ts": "clients/registry.ts.mjs",
+    "clients/stripe/client.ts": "clients/[provider]/client.ts.mjs",
+    "clients/twilio/client.ts": "clients/[provider]/client.ts.mjs"
+  }
 }

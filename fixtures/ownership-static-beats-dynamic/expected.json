@@ -23,5 +23,9 @@
         }
       }
     }
+  },
+  "ownership": {
+    "clients/stripe/requestModels.ts": "clients/[provider]/requestModels.ts.mjs",
+    "clients/stripe/stripe.ts": "clients/[provider]/[implementation].ts.mjs"
   }
 }

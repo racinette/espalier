@@ -10,12 +10,20 @@
       "path": "backend/orders/handler.ts",
       "code": "ran_no_fetch",
       "severity": "info",
-      "metadata": { "path": ["orders"] }
+      "metadata": {
+        "path": [
+          "orders"
+        ]
+      }
     },
     {
       "path": "web/app.tsx",
       "code": "ran_no_as_any",
       "severity": "info"
     }
-  ]
+  ],
+  "ownership": {
+    "backend/orders/handler.ts": "backend/orders/handler.ts.mjs",
+    "web/app.tsx": "web/app.tsx.mjs"
+  }
 }

@@ -27,6 +27,7 @@ interface Expected {
   error?: string;
   issues?: unknown[];
   explain?: Record<string, { exit: number; object: unknown; human?: string }>;
+  ownership?: Record<string, string | null>;
   build?: WriteRun;
   init?: WriteRun;
 }
@@ -220,6 +221,39 @@ function checkWrites(dir: string, command: string, expected: WriteRun): void {
   }
 }
 
+/**
+ * Every file in the fixture, and the rule that owns it. Exhaustive, unlike
+ * every other assertion here: a clean run says nothing about who owns what, and
+ * a matcher handing files to the wrong rule would still exit 0 with no issues.
+ */
+function checkOwnership(dir: string, expected: Record<string, string | null>): void {
+  // The espalier root is invisible to matching, so listing its modules would be
+  // a column of nulls. Everything else in the fixture is in scope, including
+  // paths the default ignore list covers — those record `null` and are exactly
+  // the boundary worth writing down.
+  const config = readFileSync(path.join(dir, "espalier.config.yaml"), "utf8");
+  const espalierRoot = /^root:\s*(\S+)/m.exec(config)?.[1] ?? "espalier";
+
+  const files = walk(dir).filter((at) => {
+    const top = at.split("/")[0]!;
+    return !SCAFFOLDING.has(top) && top !== "espalier.config.yaml" && top !== espalierRoot;
+  });
+
+  const actual: Record<string, string | null> = {};
+  for (const at of files) {
+    const explain = run(dir, ["explain", at, "--format", "jsonl"]);
+    const [answer] = parseLines(explain.stdout, `explain ${at}`);
+    const rule = answer?.["rule"];
+    actual[at] = typeof rule === "string" ? rule : null;
+  }
+
+  assert.deepEqual(
+    actual,
+    expected,
+    "ownership: every file in the fixture must appear, with no extras",
+  );
+}
+
 function checkLint(dir: string, expected: Expected): void {
   const lint = run(dir, ["lint", "--format", "jsonl"]);
   const lines = parseLines(lint.stdout, "lint");
@@ -284,6 +318,7 @@ for (const name of fixtures) {
     // A fixture asserts a lint run, a build run, or both. The harness runs
     // only what is asserted.
     if (expected.exit !== undefined) checkLint(dir, expected);
+    if (expected.ownership !== undefined) checkOwnership(dir, expected.ownership);
     if (expected.build !== undefined) checkWrites(dir, "build", expected.build);
     if (expected.init !== undefined) checkWrites(dir, "init", expected.init);
   });

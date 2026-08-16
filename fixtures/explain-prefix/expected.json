@@ -127,5 +127,10 @@
       },
       "human": "human/undeclared.txt"
     }
+  },
+  "ownership": {
+    "components/buttons/SubmitButton.tsx": "components/buttons/[button].tsx.mjs",
+    "components/layouts/Shell.tsx": "components/layouts/[layout].tsx.mjs",
+    "main.ts": "main.ts.mjs"
   }
 }

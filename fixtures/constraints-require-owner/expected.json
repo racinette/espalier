@@ -13,5 +13,9 @@
       "severity": "info",
       "rule": "[...path]/no-as-any.ts.mjs"
     }
-  ]
+  ],
+  "ownership": {
+    "scripts/deploy.ts": null,
+    "src/main.ts": "src/main.ts.mjs"
+  }
 }
