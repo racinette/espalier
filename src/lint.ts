@@ -1,6 +1,5 @@
 // `espalier lint`. docs/cli/lint/README.MD.
 
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -17,7 +16,6 @@ export interface LintOptions {
   config: string | undefined;
   paths: string[];
   rule: string | undefined;
-  staged: boolean;
   ruleText: boolean;
 }
 
@@ -36,19 +34,6 @@ function within(target: unknown, whose: string): string {
     fail("invalid_issue_path", `${whose}: "${target}" escapes the repository`);
   }
   return normalized;
-}
-
-function stagedFiles(root: string): string[] {
-  try {
-    return execFileSync("git", ["diff", "--name-only", "--cached", "-z"], {
-      cwd: root,
-      encoding: "utf8",
-    })
-      .split("\0")
-      .filter((entry) => entry !== "");
-  } catch (cause) {
-    fail("git_failed", `could not list staged files: ${(cause as Error).message}`);
-  }
 }
 
 async function startAddons(repository: Repository): Promise<{
@@ -90,9 +75,7 @@ export async function lint(options: LintOptions, reporter: Reporter): Promise<nu
   const { config, espalier } = repository;
 
   let scope: string[] | null = null;
-  if (options.staged) {
-    scope = stagedFiles(config.root);
-  } else if (options.paths.length > 0) {
+  if (options.paths.length > 0) {
     scope = options.paths.map((entry) => {
       const absolute = path.resolve(options.cwd, entry);
       return path.relative(config.root, absolute).split(path.sep).join("/");

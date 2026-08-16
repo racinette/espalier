@@ -18,7 +18,6 @@ espalier lint [paths...]
   --format human|jsonl  output format (default: human)
   --out <dest>          stdout, stderr, or a file path (default: stdout)
   --rule <module>       run one rule module only
-  --staged              lint git-staged files only
   --config <path>       use this config file instead of discovering one
   --no-rule-text        omit rule bodies from output
 ```
@@ -43,7 +42,7 @@ A path argument restricts the file set. This makes `lint` fast enough for a pre-
 
 A scoped run cannot tell you the repository conforms — only that the part you asked about does. The human summary says so explicitly. **CI runs unscoped.**
 
-`--staged` is scoping by another name, restricted to the files git has staged. Same caveat, same warning.
+There is no `--staged`. A pre-commit hook already knows which files it is about to commit, and passing them as arguments is one shell substitution — `espalier lint $(git diff --name-only --cached)`. Building that into the tool would have meant a git-index dependency, a flag whose behaviour nobody could pin without making fixtures into git repositories, and a second spelling of scoping that already exists.
 
 ## Issues
 

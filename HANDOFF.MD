@@ -79,6 +79,12 @@ Taken while writing the `build` fixtures, and now in the documents:
 
 Taken after `explain`:
 
+- **`--staged` is gone.** A pre-commit hook already knows its files, and
+  `espalier lint $(git diff --name-only --cached)` is one shell substitution.
+  Keeping it meant a git-index dependency and a flag nobody could pin without
+  making fixtures into git repositories — the same reason the amendment warning
+  was dropped.
+
 - **`init` writes no ignore list by default.** Nobody wires an unconfigured
   repository into CI, so the first run's noise is visible only to the person who
   caused it; guessing a source layout before anyone has said what matters would
@@ -166,7 +172,7 @@ Carrying `TODO`s in the code:
   excluded. Ours is more permissive and covers the documented cases.
 
 Implemented but unfixtured, so treat as unproven: `addons` setup and disposal,
-`--staged` (fixtures are not git repositories, so nothing exercises it), the
+the
 compile-time `example` validation from `TYPES.MD`, the generated description for
 a constraint module that exports none (`ALIASES` in `src/render.ts`), the inline
 form of `example`, and a placement point that exists only because a constraint

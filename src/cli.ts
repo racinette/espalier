@@ -29,7 +29,6 @@ const USAGE = `espalier <command> [options]
 
   lint only:
   --rule <module>       run one rule module only
-  --staged              lint git-staged files only
   --no-rule-text        omit rule bodies from output
 `;
 
@@ -64,7 +63,6 @@ async function main(): Promise<number> {
         "ignore-all": { type: "boolean" },
         inline: { type: "boolean" },
         rule: { type: "string" },
-        staged: { type: "boolean" },
         "no-rule-text": { type: "boolean" },
       },
     }) as { values: Record<string, unknown>; positionals: string[] });
@@ -123,7 +121,6 @@ async function main(): Promise<number> {
         config: values["config"] as string | undefined,
         paths: positionals,
         rule: values["rule"] as string | undefined,
-        staged: values["staged"] === true,
         ruleText: values["no-rule-text"] !== true,
       },
       reporter,
