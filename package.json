@@ -10,6 +10,12 @@
   "bin": {
     "espalier": "dist/src/cli.js"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/src/api.d.ts",
+      "default": "./dist/src/api.js"
+    }
+  },
   "files": [
     "dist/src"
   ],

@@ -4,10 +4,11 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Constraint, StructuralRule } from "./compile.js";
+import { createEmit, within } from "./context.js";
 import { fail, OperationalError } from "./errors.js";
 import { matchGlob } from "./files.js";
 import { constraintCaptures, isOwnership, requiredFiles, type CaptureValue } from "./match.js";
-import type { Issue, Reporter, Severity } from "./output.js";
+import type { Issue, Reporter } from "./output.js";
 import { open, type Repository } from "./repository.js";
 import { ignores } from "./ignore.js";
 
@@ -17,23 +18,6 @@ export interface LintOptions {
   paths: string[];
   rule: string | undefined;
   ruleText: boolean;
-}
-
-const SEVERITIES = new Set<Severity>(["error", "warning", "info"]);
-
-/** Normalizes a repo-relative path and rejects anything outside the repository. */
-function within(target: unknown, whose: string): string {
-  if (typeof target !== "string" || target === "") {
-    fail("invalid_issue_path", `${whose}: path must be a non-empty string`);
-  }
-  if (path.isAbsolute(target)) {
-    fail("invalid_issue_path", `${whose}: "${target}" is absolute; paths are repository-relative`);
-  }
-  const normalized = path.posix.normalize(target.split(path.sep).join("/"));
-  if (normalized === ".." || normalized.startsWith("../")) {
-    fail("invalid_issue_path", `${whose}: "${target}" escapes the repository`);
-  }
-  return normalized;
 }
 
 async function startAddons(repository: Repository): Promise<{
@@ -173,45 +157,16 @@ export async function lint(options: LintOptions, reporter: Reporter): Promise<nu
   ): Promise<void> => {
     if (options.rule !== undefined && options.rule !== modulePath) return;
 
-    const emit = (raw: unknown): void => {
-      if (raw === null || typeof raw !== "object") {
-        fail("invalid_issue", `${modulePath}: emit expects an issue object`);
-      }
-      const issue = raw as Record<string, unknown>;
-
-      if (typeof issue["code"] !== "string" || issue["code"] === "") {
-        fail("invalid_issue", `${modulePath}: an issue needs a string \`code\``);
-      }
-      if (typeof issue["message"] !== "string") {
-        fail("invalid_issue", `${modulePath}: an issue needs a string \`message\``);
-      }
-
-      const severity = issue["severity"] ?? "error";
-      if (typeof severity !== "string" || !SEVERITIES.has(severity as Severity)) {
-        fail("invalid_issue", `${modulePath}: severity must be error, warning or info`);
-      }
-
-      // The target may be any path inside the repository — governed, declared,
-      // existing or not. The file that has to change is often one the espalier
-      // has not described yet.
-      const attachedTo = issue["path"] === undefined ? target : within(issue["path"], modulePath);
-
-      record({
-        path: attachedTo,
-        code: issue["code"],
-        message: issue["message"],
-        severity: severity as Severity,
-        rule: modulePath,
-        pattern,
-        captures,
-        line: typeof issue["line"] === "number" ? issue["line"] : null,
-        column: typeof issue["column"] === "number" ? issue["column"] : null,
-        metadata: (issue["metadata"] ?? {}) as Record<string, unknown>,
-        ruleText: options.ruleText ? module.rule : null,
-        description: module.description,
-        example: module.example,
-      });
-    };
+    const emit = createEmit({
+      modulePath,
+      pattern,
+      path: target,
+      captures,
+      ruleText: options.ruleText ? module.rule : null,
+      description: module.description,
+      example: module.example,
+      record,
+    });
 
     try {
       await module.lint({

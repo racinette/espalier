@@ -2,14 +2,11 @@
  * An operational failure: espalier could not do its job. Exits 2, reports the
  * failure, lints nothing.
  *
- * Codes are chosen at the throw site and deliberately have no central registry
- * yet. We do not know which failures actually surface across real codebases,
- * and a list written before the implementation would be a guess — codes nothing
- * throws, and throws with no code. Once the set stops moving it gets harvested
- * into docs/cli/lint/README.MD in one pass.
- *
- * Three are load-bearing today, because fixtures compare against them exactly:
- * `ambiguous_siblings`, `inconsistent_capture_names`, `ignored_required_path`.
+ * Codes are chosen at the throw site rather than in a central registry: a list
+ * written before the implementation would have been a guess — codes nothing
+ * throws, and throws with no code. They have since been harvested into
+ * docs/ERRORS.MD, which test/errors.test.ts holds to the source in both
+ * directions, so a new code here needs a line there.
  */
 export class OperationalError extends Error {
   readonly code: string;
