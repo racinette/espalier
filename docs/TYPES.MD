@@ -253,3 +253,5 @@ Captures name values. They never constrain the relationship between them: both `
 Rules execute independently, in unspecified order, with no shared state. A rule may read any visible file, but must not assume another rule has or has not run.
 
 A `lint` function that throws is a bug in the rule, not a finding about the repository: the run fails with exit `2` and reports `rule_threw`. See [cli/lint/README.MD](cli/lint/README.MD) and [ERRORS.MD](ERRORS.MD).
+
+A `lint` function is ordinary code and can be called from an ordinary test. [API.MD](API.MD) describes `runRule`, which builds this context from values you supply and returns the issues rather than printing them.

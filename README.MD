@@ -279,11 +279,26 @@ That is as far as the tool goes, and deliberately so. `espalier` cannot stop an 
 
 Every additional knob is a place where deterministic behavior leaks. The value `espalier` offers — architectural convergence you can rely on — is preserved by keeping escape hatches few and coarse.
 
+## Testing rule modules
+
+Rules are code, and a `lint` function that quietly stops catching what it was written to catch is worse than no rule at all: the repository still lints clean, and nothing distinguishes that from conformance.
+
+So `espalier` is a library as well as a CLI, and returns issues instead of printing them.
+
+```js
+import { runRule } from "espalier";
+import * as rule from "../espalier/components/[name].tsx.mjs";
+
+const issues = await runRule(rule, {
+  path: "components/Button.tsx",
+  captures: { name: "Button" },
+  tree: { "components/Button.tsx": "export default function Other() {}" },
+});
+```
+
+There is no `espalier test` command. Fixtures, assertions, reporting and watch mode are what a test framework already does, and a linter reimplementing them would ship a worse `node:test` with none of the tooling around it. The lint context is the only part nobody else can supply, so that is the part `espalier` exposes. See [docs/API.MD](docs/API.MD).
+
 ## Planned
-
-Two commands are specified but not yet implemented.
-
-**`espalier test`** runs rule modules against fixtures. Rules are code, and a `lint` function that quietly stops catching what it was written to catch is worse than no rule at all — the espalier needs its own test harness: fixture files, expected issues, and a report when a rule's behaviour changes. See [docs/cli/test/README.MD](docs/cli/test/README.MD).
 
 **`espalier lint --watch`** keeps the runner alive between checks. This matters most where rules depend on `addons`: a language server or an out-of-process AST parser can take seconds to start, and paying that on every agent stop is the kind of friction that gets a tool switched off. A persistent runner is also what makes incremental linting practical on a large repository.
 
