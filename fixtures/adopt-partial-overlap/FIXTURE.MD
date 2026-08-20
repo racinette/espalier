@@ -23,8 +23,10 @@ nothing and legalise every future `.ts` file in every client directory. That is
 the over-general failure the document warns about everywhere else, and it fails
 quietly, which is worse. `optional` names one file. That is the difference.
 
-The written module is compared byte for byte, so the `// TODO` on the optional
-line is pinned too: it is the guess most worth reviewing, and a stub that did
-not say so would be one the architect skims past.
+The report marks it, and the golden pins the marker: three identical `written`
+lines would hide the run's least confident guess among its most confident ones.
+The written module is compared byte for byte too, so the `// TODO` on the
+optional line is pinned — a stub that did not say so would be one the architect
+skims past.
 
 Pins: cli/adopt/README.MD "Siblings that only partly match".

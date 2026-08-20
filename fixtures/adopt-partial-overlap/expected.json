@@ -6,7 +6,7 @@
     "report": [
       { "kind": "written", "path": "espalier/src/clients/[client]/client.ts.mjs" },
       { "kind": "written", "path": "espalier/src/clients/[client]/requestModels.ts.mjs" },
-      { "kind": "written", "path": "espalier/src/clients/[client]/webhook.ts.mjs" },
+      { "kind": "written", "path": "espalier/src/clients/[client]/webhook.ts.mjs", "optional": true },
       { "kind": "narrowed", "path": "espalier.config.yaml" }
     ]
   }

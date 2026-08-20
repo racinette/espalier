@@ -47,6 +47,8 @@ export interface BuildEntry {
   path: string;
   /** `drift` only. */
   state?: DriftState;
+  /** `written` only: the module declares the file optional. */
+  optional?: boolean;
 }
 
 interface Destination {
@@ -191,7 +193,11 @@ class HumanReporter implements Reporter {
       // and ran straight into the path when this padded to nine. The width
       // outlived the label, and narrowing it now would re-fix nothing and
       // reflow every golden.
-      this.destination.write(`${label.padEnd(10)}${entry.path}\n`);
+      // The marker rather than a fifth label: what happened to the file is
+      // still that it was written, and the tally should say so. What differs
+      // is how much the run is claiming, which belongs beside the path.
+      const marker = entry.optional === true ? "  (optional)" : "";
+      this.destination.write(`${label.padEnd(10)}${entry.path}${marker}\n`);
       counts.set(label, (counts.get(label) ?? 0) + 1);
     }
 

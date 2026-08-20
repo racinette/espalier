@@ -289,7 +289,7 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
   const name = target === "" ? "" : target.split("/").pop()!;
   infer(root, [target], target, name, found);
 
-  const written: string[] = [];
+  const written: { path: string; optional: boolean }[] = [];
   const skipped: string[] = [];
 
   for (const leaf of found.leaves.sort((a, b) => (a.at < b.at ? -1 : 1))) {
@@ -307,10 +307,16 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
       mkdirSync(path.dirname(moduleAbsolute), { recursive: true });
       writeFileSync(moduleAbsolute, stub(leaf.description, leaf.optional), "utf8");
     }
-    written.push(modulePath);
+    written.push({ path: modulePath, optional: leaf.optional });
   }
 
-  for (const at of written) reporter.record({ kind: "written", path: at });
+  for (const entry of written) {
+    reporter.record(
+      entry.optional
+        ? { kind: "written", path: entry.path, optional: true }
+        : { kind: "written", path: entry.path },
+    );
+  }
   for (const at of skipped) reporter.record({ kind: "skipped", path: at });
 
   if (written.length > 0) {
