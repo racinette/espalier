@@ -2,6 +2,7 @@
   "adopt": {
     "exit": 0,
     "args": ["src/clients"],
+    "human": "human/adopt.txt",
     "report": [
       { "kind": "written", "path": "espalier/src/clients/[client]/client.ts.mjs" },
       { "kind": "written", "path": "espalier/src/clients/[client]/requestModels.ts.mjs" },

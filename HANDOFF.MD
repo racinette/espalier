@@ -184,6 +184,15 @@ Taken while writing the `explain` fixtures:
    rule fails under test for the same reason it fails in production, and two
    implementations would make that a coincidence.
 
+7. **Dogfooding.** Running `init` → `adopt` → `build` → `lint` on this repository
+   found five things no fixture could. Three are fixed and pinned:
+   `uncovered` is exactly nine characters and the report padded to nine, so it
+   ran into the path; `adopt` never checked its own target for a dot-prefixed
+   segment and so wrote modules under `espalier/.cursor/` that the compiler
+   skips; and an empty `rule` rendered a heading with nothing under it, against
+   the assembly rule in `cli/build/README.MD`. The other two are open questions
+   below.
+
 `--watch` is explicitly planned rather than pending.
 
 ## Open questions
@@ -205,6 +214,20 @@ Taken while writing the `explain` fixtures:
   the document lists and nothing throws. Deciding late was fine; letting the
   record drift afterwards would not be.
 
+Open, both raised by dogfooding:
+
+- **`build` deletes provenance-marked files anywhere in the visible set.** On
+  this repository that meant fourteen `fixtures/*/expected-build/AGENTS.MD`
+  goldens, which are provenance-marked by construction. It is exactly what
+  `cli/build/README.MD` specifies, and the alternative — a manifest of what the
+  last run wrote — is state on disk that can be wrong. But any repository
+  holding generated documentation it does not own loses it on the first build,
+  and nothing warns.
+- **`cli/adopt/README.MD` contradicts itself.** The worked example under
+  "Partial overlap" shows a `declared` output kind with continuation lines; the
+  Output table lists only `written`, `skipped`, `uncovered` and `narrowed`.
+  Reported rather than decided, per the constraint below.
+
 ## Known gaps
 
 Carrying `TODO`s in the code:
@@ -213,12 +236,13 @@ Carrying `TODO`s in the code:
   Git additionally refuses to re-include a path whose parent directory is
   excluded. Ours is more permissive and covers the documented cases.
 
-Implemented but unfixtured, so treat as unproven: `addons` setup and disposal,
-the
-compile-time `example` validation from `TYPES.MD`, the generated description for
-a constraint module that exports none (`ALIASES` in `src/render.ts`), the inline
-form of `example`, and a placement point that exists only because a constraint
-was assigned to it and so has no trie node, no map, and no cardinality.
+Implemented but unfixtured, so treat as unproven: the inline form of `example`.
+The other four that stood here — `addons` setup and disposal, the compile-time
+`example` validation from `TYPES.MD`, the generated description for a constraint
+module that exports none (`ALIASES` in `src/render.ts`), and a placement point
+that exists only because a constraint was assigned to it — are now covered by
+`addons-shared-resource`, `addons-disposed-on-failure`, `invalid-example` and
+`constraint-only-placement`.
 
 `ESPALIER.MD` frontmatter now reaches the renderer through `Espalier.nodes`, a
 map beside the trie rather than fields on it. Putting a directory's prose on a

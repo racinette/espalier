@@ -1,0 +1,6 @@
+narrowed  espalier.config.yaml
+written   espalier/src/clients/[client]/client.ts.mjs
+written   espalier/src/clients/[client]/requestModels.ts.mjs
+uncovered src/clients/stripe/webhook.ts
+
+1 narrowed, 2 written, 1 uncovered

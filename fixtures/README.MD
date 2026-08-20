@@ -102,6 +102,8 @@ An init fixture has no `espalier.config.yaml` of its own, because writing one is
 }
 ```
 
+All three write blocks also accept **`human`**, naming a file that holds the exact `--format human` stdout of the same run. It is compared byte for byte, like an `explain` golden and for the same reason: the report's column widths are fixed by the command's page, and a format nobody pins is a format that drifts. `adopt-partial-overlap` carries one because `uncovered` is the longest label there is and the only one that ever collided with the path beside it.
+
 `exit` and `issues` describe a `lint` run and `build` describes a `build` run; a fixture may carry either or both, and the harness runs only what is asserted.
 
 ## `expected-build/`
@@ -146,6 +148,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `build-orphan-deletion` | orphans deleted, unchanged files left alone |
 | `build-check-drift` | `--check` reports `missing`, `changed` and `stale`, and writes nothing |
 | `build-inline` | one document at the root, and the distributed run's files removed |
+| `build-empty-rule` | a section with nothing to say is omitted, heading and all |
 | `explain-prefix` | both answer shapes, and the rule that decides which one you get |
 | `explain-ungoverned` | which list excluded a path, and that ignored is not declared |
 | `default-ignore-list` | what the built-in list covers, and what it deliberately does not |
@@ -160,6 +163,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `adopt-partial-overlap` | the intersection is declared and the odd file out is reported |
 | `adopt-repeated-filenames` | files sharing an extension collapse, but not inside a family |
 | `adopt-skips-existing` | a second run does not overwrite a written rule body |
+| `adopt-dotted-target` | a dot-prefixed target is refused, because no module there would load |
 
 ## Adding one
 

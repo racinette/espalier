@@ -371,16 +371,25 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
     }
 
     const { module } = section.rule;
-    const heading = module.description === null ? "" : ` — ${module.description}`;
-    blocks.push(`${hashes} ${section.at}${heading}`, module.rule.trim());
+    const body: string[] = [];
+
+    if (module.rule.trim() !== "") body.push(module.rule.trim());
 
     if (module.example !== null) {
-      blocks.push(
+      body.push(
         module.example.includes("\n")
           ? `Example:\n\n\`\`\`\n${module.example.trim()}\n\`\`\``
           : `Example: ${module.example}`,
       );
     }
+
+    // A section with nothing to say is omitted entirely, along with its
+    // heading. docs/cli/build/README.MD "Rendering". `adopt` writes an empty
+    // `rule` as a TODO, so a freshly adopted project hits this on every node.
+    if (body.length === 0) continue;
+
+    const heading = module.description === null ? "" : ` — ${module.description}`;
+    blocks.push(`${hashes} ${section.at}${heading}`, ...body);
   }
 
   if (point.constraints.length > 0) {

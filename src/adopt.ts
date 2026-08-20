@@ -217,6 +217,16 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
   if (target === espalierRoot || target.startsWith(`${espalierRoot}/`)) {
     fail("invalid_adopt_target", "the espalier root is not itself governed");
   }
+  // `entries` refuses to infer *from* a dotfile, but the target itself was
+  // never checked — so `adopt .cursor` wrote modules under `espalier/.cursor/`,
+  // which the compiler skips, and reported success while `lint` went on calling
+  // every file under it undeclared.
+  if (target.split("/").some((segment) => segment.startsWith("."))) {
+    fail(
+      "invalid_adopt_target",
+      `${options.target} has a dot-prefixed segment and cannot be declared; use \`ignore\``,
+    );
+  }
 
   const found: Inference = { leaves: [], uncovered: [] };
   const name = target === "" ? "" : target.split("/").pop()!;

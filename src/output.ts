@@ -189,7 +189,9 @@ class HumanReporter implements Reporter {
     const counts = new Map<string, number>();
     for (const entry of [...this.records].sort((a, b) => (a.path < b.path ? -1 : 1))) {
       const label = entry.state ?? entry.kind;
-      this.destination.write(`${label.padEnd(9)}${entry.path}\n`);
+      // Ten, not nine: `uncovered` is exactly nine characters and would run
+      // straight into the path.
+      this.destination.write(`${label.padEnd(10)}${entry.path}\n`);
       counts.set(label, (counts.get(label) ?? 0) + 1);
     }
 

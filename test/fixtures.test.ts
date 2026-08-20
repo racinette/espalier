@@ -39,6 +39,8 @@ interface WriteRun {
   exit: number;
   args?: string[];
   report?: unknown[];
+  /** A file holding the exact `--format human` stdout of the same run. */
+  human?: string;
 }
 
 /** Scaffolding for the harness, never part of the repository under test. */
@@ -183,6 +185,24 @@ function checkWrites(dir: string, command: string, expected: WriteRun): void {
       recursive: true,
       filter: (source) => !SCAFFOLDING.has(path.relative(dir, source)),
     });
+
+    // The report is what a person reads, and its column widths are fixed by
+    // the command's page. Run it on its own copy first: the jsonl run below
+    // needs the tree as it started.
+    if (expected.human !== undefined) {
+      const spare = mkdtempSync(path.join(os.tmpdir(), "espalier-human-"));
+      try {
+        cpSync(scratch, spare, { recursive: true });
+        const shown = run(spare, [command, ...(expected.args ?? [])]);
+        assert.equal(
+          shown.stdout,
+          readFileSync(path.join(dir, expected.human), "utf8"),
+          `${command} --format human differs from ${expected.human}`,
+        );
+      } finally {
+        rmSync(spare, { recursive: true, force: true });
+      }
+    }
     const before = new Map(
       walk(scratch).map((at) => [at, readFileSync(path.join(scratch, at), "utf8")]),
     );
