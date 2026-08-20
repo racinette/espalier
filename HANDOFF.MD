@@ -33,7 +33,7 @@ src/output.ts       human and jsonl formatters, --out destinations
 src/cli.ts          argument parsing and exit codes
 ```
 
-`npm test` builds and runs everything: thirty fixtures, nine unit tests for the
+`npm test` builds and runs everything: thirty-three fixtures, nine unit tests for the
 sibling-overlap decision procedure — subtle and only partly fixtured — and
 thirteen for the programmatic API, which no subprocess fixture can reach. All
 green.
@@ -223,6 +223,18 @@ Open, both raised by dogfooding:
   last run wrote — is state on disk that can be wrong. But any repository
   holding generated documentation it does not own loses it on the first build,
   and nothing warns.
+- **Nothing documents how the two forms of `example` are told apart.**
+  `TYPES.MD` describes a path form and an inline form and gives each a
+  different guarantee, but never says which is which; the code decides on
+  "contains a newline" (`src/repository.ts`), so a one-line inline example is
+  indistinguishable from a path and fails with `invalid_example`. Two smaller
+  gaps follow from the same silence: `cli/explain/README.MD` and
+  `cli/lint/README.MD` both show only the path form, and the human lint
+  formatter interpolates `example` into a single `Reference implementation:`
+  line whatever form it is (`src/output.ts`), so a multi-line one breaks the
+  report's indentation. `example-inline` pins the multi-line case, which is the
+  only one any document describes.
+
 - **`cli/adopt/README.MD` contradicts itself.** The worked example under
   "Partial overlap" shows a `declared` output kind with continuation lines; the
   Output table lists only `written`, `skipped`, `uncovered` and `narrowed`.
@@ -236,13 +248,15 @@ Carrying `TODO`s in the code:
   Git additionally refuses to re-include a path whose parent directory is
   excluded. Ours is more permissive and covers the documented cases.
 
-Implemented but unfixtured, so treat as unproven: the inline form of `example`.
-The other four that stood here — `addons` setup and disposal, the compile-time
-`example` validation from `TYPES.MD`, the generated description for a constraint
-module that exports none (`ALIASES` in `src/render.ts`), and a placement point
-that exists only because a constraint was assigned to it — are now covered by
-`addons-shared-resource`, `addons-disposed-on-failure`, `invalid-example` and
-`constraint-only-placement`.
+Nothing is left standing here. The inline form of `example` was the last one,
+and `example-inline` now pins both halves of what makes it a second form: it is
+exempt from the existence and pattern checks the path form gets, and it renders
+as a fenced block rather than a line. The four before it — `addons` setup and
+disposal, the compile-time `example` validation from `TYPES.MD`, the generated
+description for a constraint module that exports none (`ALIASES` in
+`src/render.ts`), and a placement point that exists only because a constraint
+was assigned to it — are covered by `addons-shared-resource`,
+`addons-disposed-on-failure`, `invalid-example` and `constraint-only-placement`.
 
 `ESPALIER.MD` frontmatter now reaches the renderer through `Espalier.nodes`, a
 map beside the trie rather than fields on it. Putting a directory's prose on a

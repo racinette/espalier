@@ -158,6 +158,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `addons-shared-resource` | one setup, one shared object, one disposal |
 | `addons-disposed-on-failure` | disposal runs even when a rule throws |
 | `invalid-example` | an example that does not match its own rule's pattern |
+| `example-inline` | the inline form of `example`: exempt from the path checks, fenced when rendered |
 | `constraint-only-placement` | a placement point with no trie node, and a generated description |
 | `adopt-sibling-directories` | matching siblings become a dynamic directory, and the ignore entry narrows |
 | `adopt-partial-overlap` | the intersection is declared and the odd file out is reported |

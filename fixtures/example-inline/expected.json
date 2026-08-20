@@ -1,0 +1,15 @@
+{
+  "exit": 0,
+  "issues": [],
+  "ownership": {
+    "src/001_initial.sql": "src/[migration].sql.mjs",
+    "src/schema.sql": "src/schema.sql.mjs"
+  },
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
+      { "kind": "written", "path": "src/AGENTS.MD" }
+    ]
+  }
+}
