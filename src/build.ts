@@ -9,6 +9,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fail } from "./errors.js";
 import { collectCandidates, PROVENANCE } from "./files.js";
+import { ignores } from "./ignore.js";
 import type { Reporter } from "./output.js";
 import { plan, renderDistributed, renderInline } from "./render.js";
 import { open } from "./repository.js";
@@ -46,6 +47,9 @@ export async function build(options: BuildOptions, reporter: Reporter): Promise<
   }
 
   // Every documentation file already on disk, and whether espalier wrote it.
+  // The raw walk rather than `repository.visible`, which excludes generated
+  // files by design — they would otherwise be `unexpected_path` in every run —
+  // and so would hide the very files this is looking for.
   const existing = new Map<string, string>();
   for (const candidate of collectCandidates(root)) {
     if (path.basename(candidate) !== settings.filename) continue;
@@ -65,8 +69,15 @@ export async function build(options: BuildOptions, reporter: Reporter): Promise<
     );
   }
 
+  // Confined to what the configuration governs, and narrowed here rather than
+  // above so that an unmarked file is still refused wherever it sits. The
+  // marker says a file is generated documentation, not that it is this run's,
+  // and a repository holding a copy of espalier's output — a golden fixture, a
+  // vendored package — would lose it otherwise.
+  // docs/cli/build/README.MD "Ownership".
   const generated = [...existing]
     .filter(([, contents]) => contents.startsWith(PROVENANCE))
+    .filter(([at]) => !ignores(repository.ignoreRules, at))
     .map(([at]) => at);
 
   const orphans = generated.filter((at) => !planned.has(at)).sort();
