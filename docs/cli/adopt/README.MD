@@ -71,7 +71,7 @@ Three targets, all for the same reason — the run could not produce a module th
 
 A path outside the repository, or one that is not a directory. The espalier root, which is not itself governed. And a path with a dot-prefixed segment: `espalier/.cursor/rules/` is skipped by the compiler, so `adopt .cursor` would report modules written and exit `0` while `lint` went on calling every file under it undeclared. All three fail with `invalid_adopt_target`.
 
-Dot-prefixed paths *inside* an adopted directory are simply not inferred from — they are tooling rather than architecture, and [MATCHING.MD](../../MATCHING.MD#node-kinds) has the reasoning. They are not reported as `uncovered` either, because "undeclared" is not a decision anyone can revisit here; `ignore` is where they belong.
+Dot-prefixed paths *inside* an adopted directory are simply not inferred from — they are tooling rather than architecture, and [MATCHING.MD](../../MATCHING.MD#node-kinds) has the reasoning. They are not declared optional either, which is what everything else the inference passes over now becomes: a dot-prefixed path cannot be declared at all, so there is no module to write and nothing for the architect to revisit. `ignore` is where they belong.
 
 ## Inference
 
@@ -87,7 +87,7 @@ When in doubt, `adopt` generalises. An over-general espalier is a working one th
 
 ### Siblings that only partly match
 
-Real directories are rarely uniform. `adopt` declares **the intersection** — the filenames every sibling has — and reports the rest:
+Real directories are rarely uniform. `adopt` declares the filenames every sibling has as required, and the rest as [optional](../../TYPES.MD#optional):
 
 ```text
 src/clients/stripe/client.ts
@@ -98,16 +98,18 @@ src/clients/twilio/requestModels.ts
 ```
 
 ```text
-declared  [client]/client.ts
-          [client]/requestModels.ts
-uncovered src/clients/stripe/webhook.ts
+written   espalier/src/clients/[client]/client.ts.mjs
+written   espalier/src/clients/[client]/requestModels.ts.mjs
+written   espalier/src/clients/[client]/webhook.ts.mjs
 ```
 
-The union was the alternative, and it asserts something nobody said: that every client has a webhook. It would also report `src/clients/twilio/webhook.ts` as `missing_required_file` on the very first run, which is `adopt` inventing a requirement and then complaining that it is unmet.
+The third module carries `export const optional = true;`, and the run says exactly what the tree says: every client has a `client.ts` and a `requestModels.ts`, and a client may have a `webhook.ts`.
 
-Declaring the extras as a dynamic leaf was the other alternative, and it is worse in the quiet direction — it silently legalises every future `.ts` file in every client directory, which is the over-general failure this document warns about everywhere else.
+The two alternatives were both false, which is why this needed a third statement rather than a better guess. Declaring `webhook.ts` required asserts something nobody said — that every client has one — and reports `src/clients/twilio/webhook.ts` as `missing_required_file` on the very first run, which is `adopt` inventing a requirement and then complaining that it is unmet. Leaving it undeclared is the opposite failure: `lint` reports `unexpected_path` for a file everyone agrees belongs there, and the first thing the command does after succeeding is hand you a broken repository.
 
-So the odd file out is left undeclared and named in the output. `lint` will report it as `unexpected_path` until you decide whether it is a fourth rule, a fifth client, or something that belongs elsewhere. That decision is exactly the kind `adopt` cannot make and should not fake.
+Declaring the extras as a dynamic leaf was a third wrong answer, quieter than either — it silently legalises every future `.ts` file in every client directory, which is the over-general failure this document warns about everywhere else. `optional` names one file. That is the difference.
+
+An optional declaration is still a guess, and it is the one worth reviewing first: `adopt` has seen one client with a webhook and cannot know whether that makes webhooks a client-shaped thing or makes stripe unusual. The stub says so, and renaming or deleting it is the same two-minute edit as any other.
 
 ### Placeholder names
 
@@ -138,21 +140,21 @@ The value is in the prose you add afterwards, and prose is written per area. The
 
 ## Output
 
-Four kinds of line, tagged as such under `--format jsonl`:
+Three kinds of line, tagged as such under `--format jsonl`:
 
 | `kind` | |
 |---|---|
 | `written` | a stub rule module this run created |
 | `skipped` | a rule module that already existed and was left alone |
-| `uncovered` | a file the inference did not declare, and why |
 | `narrowed` | an `ignore` entry that was replaced |
 
 ```json
 {"kind":"written","path":"espalier/src/clients/[client]/client.ts.mjs"}
 {"kind":"skipped","path":"espalier/src/clients/[client]/requestModels.ts.mjs"}
-{"kind":"uncovered","path":"src/clients/stripe/webhook.ts","reason":"present in some sibling directories but not all"}
 {"kind":"narrowed","path":"espalier.config.yaml"}
 ```
+
+There is no kind for a file the inference declined to declare, because it no longer declines. Every visible file under the target is named by a module when the run finishes, and the run's output is what it wrote rather than what it gave up on.
 
 `--dry-run` prints exactly these lines and writes nothing.
 

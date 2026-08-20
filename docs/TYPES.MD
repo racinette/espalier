@@ -29,6 +29,7 @@ export async function lint(context) {
 | `rule` | yes | the natural-language conventions, in markdown |
 | `lint` | yes | deterministic validation |
 | `example` | no | a canonical conforming file |
+| `optional` | no | whether this file has to exist |
 
 ### `description`
 
@@ -81,6 +82,20 @@ The path form is preferred because it cannot drift. The referenced file is a rea
 `espalier` checks at compile time that the path exists and that this rule's pattern matches it. A rule whose example does not match its own pattern is a specification error and exits `2`.
 
 The inline form has no such guarantee and should be used only when no conforming file exists yet.
+
+### `optional`
+
+```js
+export const optional = true;
+```
+
+A static leaf is required: `main.ts.mjs` means `main.ts` must exist. `optional` says this one does not have to, while keeping everything else a rule module gives you — a line in the map, a rule body in the generated documentation, and a `lint` that runs whenever the file is there.
+
+It exists for the file that some instances of a shape have and others do not. Without it, an espalier has two ways to describe `webhook.ts` when one client has one and another does not, and both say something false. Declare it and every client without a webhook is missing a required file. Leave it undeclared and the client that has one is reporting `unexpected_path` for a file everybody agrees belongs there. Optional is the third statement — *a client may have a webhook, and here is how to write it* — and it is the only one of the three that is true.
+
+The payoff is in the generated documentation, where an agent reads it before the file exists. `webhook.ts is optional` in a directory's `AGENTS.MD` is a standing invitation with a rule attached; the alternative is prose nobody wrote and a violation nobody expected.
+
+Only structural leaves take it. A dynamic leaf is already a collection that may be empty, and a constraint never requires anything, so `optional` on either has nothing to say and is rejected as `module_invalid_export` rather than ignored.
 
 ## Captures
 

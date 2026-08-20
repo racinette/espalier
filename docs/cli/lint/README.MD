@@ -89,7 +89,7 @@ Two codes come from matching rather than from a rule module. Their `rule` is `nu
 
 `unexpected_path` — no structural rule owns this file.
 
-`missing_required_file` — a required static leaf has no corresponding file.
+`missing_required_file` — a required static leaf has no corresponding file. A leaf whose module exports `optional` never reports it, at any depth or in any instance of a dynamic directory.
 
 `unexpected_path` carries the **deepest recognized node** in `metadata`: how far the path was recognized by the espalier, and what is declared at that point. It is never a ranked guess at where the file belongs — see [MATCHING.MD](../../MATCHING.MD).
 

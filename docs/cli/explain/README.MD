@@ -194,7 +194,7 @@ Carries the owning rule, the normalized pattern that matched, the captures, and 
 {"kind":"explanation","prefix":"components/","description":"shared UI components","body":"","rules":[{"path":"components/buttons/[button].tsx","pattern":"components/buttons/*.tsx","rule":"components/buttons/[button].tsx.mjs","description":"a button component","ruleText":"Default-export a single component named after the file.","example":"components/buttons/SubmitButton.tsx","required":false}],"cardinality":"Zero or more files matching `buttons/[button].tsx` may exist. Nothing else may exist under components/.","constraints":[]}
 ```
 
-`rules` is every structural rule in the subtree, in the same order `build` lists them, with `required` distinguishing a static leaf that must exist from a collection that may be empty. `description` and `body` come from the directory's `ESPALIER.MD`.
+`rules` is every structural rule in the subtree, in the same order `build` lists them, with `required` false for anything the espalier does not insist on — a collection that may be empty, and a static leaf whose module exports `optional`. The two are different declarations and `path` tells them apart, but the question `required` answers is whether `lint` will report the file's absence, and for both the answer is no. `description` and `body` come from the directory's `ESPALIER.MD`.
 
 It is called `rules` rather than `declared` because `declared` already means something narrower and is already in the output above: the names of a node's immediate children, which is what `lint` attaches to `unexpected_path`. One key, one shape.
 

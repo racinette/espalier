@@ -33,7 +33,7 @@ src/output.ts       human and jsonl formatters, --out destinations
 src/cli.ts          argument parsing and exit codes
 ```
 
-`npm test` builds and runs everything: thirty-three fixtures, nine unit tests for the
+`npm test` builds and runs everything: thirty-five fixtures, nine unit tests for the
 sibling-overlap decision procedure — subtle and only partly fixtured — and
 thirteen for the programmatic API, which no subprocess fixture can reach. All
 green.
@@ -90,6 +90,35 @@ Taken while writing the `build` fixtures, and now in the documents:
   printing them. Coverage — which rules no test exercises — falls out of the
   project's existing unused-module tooling, because a rule with no test is a
   module nothing imports. See `docs/API.MD`.
+
+- **Static leaves may be declared optional**, with `export const optional = true`.
+  This came out of asking whether catchall nodes were worth keeping at all. They
+  are — a catchall is the only way an espalier can reason about a file that does
+  not exist yet, which is the whole product — but the partial-overlap case had
+  no true statement available to it. Declaring `webhook.ts` under `[client]/`
+  says every client has one, and is false. Leaving it undeclared makes the
+  client that has one report `unexpected_path`, and is also false. `optional` is
+  the third statement, and it is the only correct one.
+
+  It also dissolves a harder problem it was not aimed at. A named sibling of a
+  dynamic directory means two irreconcilable things — `stripe/` is a client with
+  an extra file, `utils/` is not a client at all — and every precedence rule we
+  tried served one and broke the other. With optional leaves nobody needs to
+  name a family member, so a named sibling only ever means *replaces the
+  catchall*, which is what the matcher already does. No new key, no new
+  precedence, no inference of intent.
+
+  Rejected: `webhook?.ts.mjs`. The `?` is reserved on Windows and `package.json`
+  declares no OS restriction, so an espalier using it could not be checked out
+  there. Optionality is a semantic property like `description` and `rule`, and
+  it lives with them. `requiredFiles` already reads the loaded module off the
+  trie node, so this costs nothing structurally.
+
+  One consequence to watch: `adopt` no longer has a "look here" signal. Three
+  `written` lines read identically, and the optional one is the guess most
+  worth reviewing. For now the stub says so — `export const optional = true;
+  // TODO` — and the report does not. A field on the `written` record would
+  fix it, and was left out rather than invented.
 
 Taken after `explain`:
 
@@ -193,6 +222,14 @@ Taken while writing the `explain` fixtures:
    the assembly rule in `cli/build/README.MD`. The other two are open questions
    below.
 
+8. ~~Optional static leaves.~~ **Done.** `export const optional = true` on a
+   static leaf, rejected on anything else. `requiredFiles` and
+   `unconditionallyRequired` skip them, so neither `missing_required_file` nor
+   the `ignore` contradiction applies; `cardinality` gained two sentences;
+   `adopt` declares partly-shared files optional instead of reporting them,
+   and the `uncovered` record kind is gone. Pinned by `optional-leaf` and a
+   rewritten `adopt-partial-overlap`, each verified to guard.
+
 `--watch` is explicitly planned rather than pending.
 
 ## Open questions
@@ -235,10 +272,12 @@ Open, both raised by dogfooding:
   report's indentation. `example-inline` pins the multi-line case, which is the
   only one any document describes.
 
-- **`cli/adopt/README.MD` contradicts itself.** The worked example under
-  "Partial overlap" shows a `declared` output kind with continuation lines; the
-  Output table lists only `written`, `skipped`, `uncovered` and `narrowed`.
-  Reported rather than decided, per the constraint below.
+- ~~`cli/adopt/README.MD` contradicts itself.~~ **Dissolved.** The worked
+  example and the Output table disagreed about a `declared` kind, and the
+  answer turned out not to be either of them: with optional leaves `adopt` has
+  something true to write about a partly-shared file, so `uncovered` has no
+  producer left and is gone. The section and the table now describe one run
+  that declares every visible file.
 
 ## Known gaps
 

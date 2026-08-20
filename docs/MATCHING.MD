@@ -212,7 +212,7 @@ Ambiguity is never resolved by declaration order or alphabetically. An espalier 
 
 Only files are validated. Directories are not checked for their own sake — a directory matters exactly as much as the files declared inside it.
 
-**Static leaves are required.** `main.ts.mjs` means `main.ts` must exist. Its absence is `missing_required_file`.
+**Static leaves are required unless their module says otherwise.** `main.ts.mjs` means `main.ts` must exist, and its absence is `missing_required_file`. A module exporting `optional = true` declares a file that *may* exist: it is owned, documented and linted whenever it is there, and nothing is reported when it is not. See [TYPES.MD](TYPES.MD#optional).
 
 **Dynamic leaves are collections.** `[util].ts.mjs` means *every file matching this shape follows this rule*, including none. Zero matches is not a violation.
 
@@ -231,6 +231,10 @@ An empty `clients/` is valid. Once `clients/stripe/client.ts` exists, `clients/s
 
 Any visible file under the instance instantiates it, whether or not a structural rule owns that file. `clients/stripe/notes.md` alone is enough: something is there, so the directory exists, and a `clients/stripe/` that exists without a client is exactly the drift this reports. Ignored files do not count, being invisible.
 
+**Optional descendants stay optional per instance.** `clients/[provider]/webhook.ts.mjs` marked optional means any provider may have a webhook and none has to. This is the case the espalier could not state before: the shared files stay required for every instance, and the one that only some instances carry is declared with its rule rather than left undeclared.
+
+**A directory is optional when everything it declares is.** Directories are never required for their own sake, so nothing needs to be marked at the directory level — a subtree becomes optional by marking its leaves, and stops being optional the moment one of them is required.
+
 **Constraints require nothing.** They describe how matching files are written. They never make a file mandatory.
 
 There is no syntax for "at least one." If a file is mandatory, declare it statically.
@@ -241,7 +245,7 @@ Four things are invisible unconditionally, because espalier reporting on its own
 
 Everything else in the repository is governed. Files you do not want governed are listed in `ignore` — see [CONFIG.MD](CONFIG.MD).
 
-Ignoring is not declaring. If a path is both required by a static leaf and ignored, the configuration contradicts itself and espalier fails at startup rather than silently passing.
+Ignoring is not declaring. If a path is both required by a static leaf and ignored, the configuration contradicts itself and espalier fails at startup rather than silently passing. An ignored *optional* leaf is not a contradiction — nothing was promised, so hiding it breaks no promise — but the rule is then unreachable, which is worth knowing before you write one.
 
 ## The deepest recognized node
 
@@ -272,7 +276,7 @@ Two issue codes come from matching rather than from a rule module. Their `rule` 
 
 `unexpected_path` — the file is not owned by any structural rule.
 
-`missing_required_file` — a required static leaf has no corresponding file.
+`missing_required_file` — a required static leaf has no corresponding file. A leaf its module marks `optional` never reports it.
 
 Everything that makes the espalier itself invalid — overlapping siblings, inconsistent capture names, more than one recursive placeholder in a path, a duplicate placeholder name, a contradiction between `ignore` and a required leaf — is an operational failure, not an issue. It exits `2` and no files are linted. Every code is listed in [ERRORS.MD](ERRORS.MD).
 

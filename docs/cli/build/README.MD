@@ -106,11 +106,12 @@ One paragraph, covering **the same subtree the map covers**. A closed-set statem
 Walking that subtree in map order produces, in this order:
 
 1. **Required here.** `<a>, <b> and <c> are required.` — every static leaf reachable from this point through static directories only, as paths relative to it.
-2. **Per dynamic directory.** ``Zero or more `<path>/` directories may exist.`` When instantiating it requires files: `For each one that does, <a>, <b> and <c> are required.`, those paths relative to the instance.
-3. **Per dynamic leaf.** ``Zero or more files matching `<path>` may exist.``
-4. **The closed set.** `Nothing else may exist under <path>/.`, or `under the repository root.` at the root.
+2. **Optional here.** `<a>, <b> and <c> are optional.` — every leaf reachable the same way whose module exports `optional`. A separate sentence rather than a qualifier inside the first, because the two say opposite things to the reader they are written for: one is what an agent must produce, the other what it may.
+3. **Per dynamic directory.** ``Zero or more `<path>/` directories may exist.`` When instantiating it requires files: `For each one that does, <a>, <b> and <c> are required.`, those paths relative to the instance. Optional descendants take a further `Each one may also have <a> and <b>.`, for the same reason the second sentence exists at the top level.
+4. **Per dynamic leaf.** ``Zero or more files matching `<path>` may exist.``
+5. **The closed set.** `Nothing else may exist under <path>/.`, or `under the repository root.` at the root.
 
-Sentences 2 and 3 name the node by its authored path relative to the placement point, in backticks — `[provider]/` for an immediate child, `src/clients/[provider]/` for one further down. Both the brackets and the path are load-bearing: an agent is being told a shape it has to reproduce and a place to reproduce it, and "zero or more provider directories" tells it neither.
+Sentences 3 and 4 name the node by its authored path relative to the placement point, in backticks — `[provider]/` for an immediate child, `src/clients/[provider]/` for one further down. Both the brackets and the path are load-bearing: an agent is being told a shape it has to reproduce and a place to reproduce it, and "zero or more provider directories" tells it neither.
 
 A directory holding both a dynamic directory and a dynamic leaf simply gets both sentences, in that order, and one closing sentence covering them together. That shape is legal — see [MATCHING.MD](../../MATCHING.MD#ambiguity-is-rejected) — and two open sets are describable as long as each is described.
 
