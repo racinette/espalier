@@ -114,11 +114,12 @@ Taken while writing the `build` fixtures, and now in the documents:
   it lives with them. `requiredFiles` already reads the loaded module off the
   trie node, so this costs nothing structurally.
 
-  One consequence to watch: `adopt` no longer has a "look here" signal. Three
-  `written` lines read identically, and the optional one is the guess most
-  worth reviewing. For now the stub says so — `export const optional = true;
-  // TODO` — and the report does not. A field on the `written` record would
-  fix it, and was left out rather than invented.
+  `adopt` marks the optional line in both formats — `optional: true` on the
+  `written` record, `(optional)` after the path in `human`. Without it the
+  three `written` lines read identically, which hides the run's least
+  confident guess among its most confident ones: `client.ts` was observed in
+  every sibling and `webhook.ts` in one. A marker rather than a fifth label,
+  because what happened to the file is still that it was written.
 
 Taken after `explain`:
 

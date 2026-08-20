@@ -148,11 +148,20 @@ Three kinds of line, tagged as such under `--format jsonl`:
 | `skipped` | a rule module that already existed and was left alone |
 | `narrowed` | an `ignore` entry that was replaced |
 
+A `written` line carries `optional` when the module it wrote declares the file optional, and `--format human` marks the same line:
+
 ```json
 {"kind":"written","path":"espalier/src/clients/[client]/client.ts.mjs"}
+{"kind":"written","path":"espalier/src/clients/[client]/webhook.ts.mjs","optional":true}
 {"kind":"skipped","path":"espalier/src/clients/[client]/requestModels.ts.mjs"}
 {"kind":"narrowed","path":"espalier.config.yaml"}
 ```
+
+```text
+written   espalier/src/clients/[client]/webhook.ts.mjs  (optional)
+```
+
+The marker is there because the three `written` lines are not equally trustworthy. `client.ts` was observed in every sibling; `webhook.ts` was observed in one, and whether that makes webhooks part of the shape or makes that sibling unusual is the question only the architect can answer. A report that printed them identically would be hiding its least confident guess among its most confident ones.
 
 There is no kind for a file the inference declined to declare, because it no longer declines. Every visible file under the target is named by a module when the run finishes, and the run's output is what it wrote rather than what it gave up on.
 
