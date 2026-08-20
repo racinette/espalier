@@ -161,6 +161,8 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `example-inline` | the inline form of `example`: exempt from the path checks, fenced when rendered |
 | `optional-leaf` | an optional leaf on the spine and inside a dynamic directory, and both new sentences |
 | `invalid-optional` | `optional` on a dynamic leaf is rejected, not ignored |
+| `backreference-leaf` | `{name}` resolves, is required per instance, and coexists with a dynamic sibling |
+| `invalid-backreference` | a `{name}` with no `[name]` above it never compiles |
 | `constraint-only-placement` | a placement point with no trie node, and a generated description |
 | `adopt-sibling-directories` | matching siblings become a dynamic directory, and the ignore entry narrows |
 | `adopt-partial-overlap` | the shared files are required and the odd one out is declared optional |

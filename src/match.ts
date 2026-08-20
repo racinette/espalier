@@ -2,9 +2,12 @@
 // docs/MATCHING.MD "Ownership", "What must exist", "The deepest recognized node".
 
 import type { Constraint, Espalier, StructuralRule, TrieNode } from "./compile.js";
-import { matchSegment } from "./pattern.js";
+import { matchSegment, resolveSegment, type CaptureValue } from "./pattern.js";
 
-export type CaptureValue = string | string[];
+// Defined beside the parser, because what a capture can hold is a fact about
+// segments rather than about matching. Re-exported here: every reader of an
+// issue reaches for it through this module.
+export type { CaptureValue } from "./pattern.js";
 
 export interface Ownership {
   rule: StructuralRule;
@@ -51,15 +54,31 @@ export function resolve(espalier: Espalier, filePath: string): Ownership | Recog
     const usable = (child: TrieNode): boolean =>
       last ? child.rule !== null : child.children.size > 0;
 
-    // Static beats dynamic: a more specific node wins at every level.
+    // static > resolved > dynamic: a more specific node wins at every level.
+    // docs/MATCHING.MD "Ownership".
     let next = node.children.get(segment);
-    if (next !== undefined && (next.segment.dynamic || !usable(next))) next = undefined;
+    if (next !== undefined && (next.segment.dynamic || next.segment.resolved || !usable(next))) {
+      next = undefined;
+    }
     let bound: Record<string, string> = {};
+
+    // A resolved node is keyed by its authored form, so it is never the exact
+    // hit above; it becomes a literal only once the captures collected on the
+    // way down are substituted in.
+    if (next === undefined) {
+      for (const child of node.children.values()) {
+        if (!child.segment.resolved || !usable(child)) continue;
+        if (resolveSegment(child.segment, captures) === segment) {
+          next = child;
+          break;
+        }
+      }
+    }
 
     if (next === undefined) {
       for (const child of node.children.values()) {
         if (!child.segment.dynamic || !usable(child)) continue;
-        const found = matchSegment(child.segment, segment);
+        const found = matchSegment(child.segment, segment, captures);
         if (found !== null) {
           next = child;
           bound = found;
@@ -111,16 +130,20 @@ export function requiredFiles(espalier: Espalier, visible: Set<string>): Require
     captures: Record<string, CaptureValue>,
   ): void => {
     for (const child of node.children.values()) {
-      const under = prefix === "" ? child.display : `${prefix}/${child.display}`;
+      // A resolved segment is one filename per instance, so the path it
+      // requires is the substituted one rather than the authored one.
+      const here = child.segment.resolved ? resolveSegment(child.segment, captures) : child.display;
+      if (here === null) continue;
+      const at = prefix === "" ? here : `${prefix}/${here}`;
 
       if (child.rule !== null && !child.segment.dynamic && !child.rule.module.optional) {
-        required.push({ path: under, rule: child.rule, captures: { ...captures } });
+        required.push({ path: at, rule: child.rule, captures: { ...captures } });
       }
 
       if (child.children.size === 0) continue;
 
       if (!child.segment.dynamic) {
-        descend(child, under, captures);
+        descend(child, at, captures);
         continue;
       }
 

@@ -1,0 +1,26 @@
+{
+  "exit": 0,
+  "issues": [],
+  "ownership": {
+    "clients/stripe/retry.ts": "clients/[provider]/[helper].ts.mjs",
+    "clients/stripe/stripe.ts": "clients/[provider]/{provider}.ts.mjs",
+    "clients/twilio/twilio.ts": "clients/[provider]/{provider}.ts.mjs"
+  },
+  "explain": {
+    "clients/stripe/stripe.ts": {
+      "exit": 0,
+      "object": {
+        "rule": "clients/[provider]/{provider}.ts.mjs",
+        "pattern": "clients/*/*.ts",
+        "captures": { "provider": "stripe" }
+      }
+    }
+  },
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
+      { "kind": "written", "path": "clients/AGENTS.MD" }
+    ]
+  }
+}

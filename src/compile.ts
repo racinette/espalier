@@ -6,7 +6,14 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { fail } from "./errors.js";
-import { captureNames, intersects, parseSegment, type Segment } from "./pattern.js";
+import {
+  backrefNames,
+  captureNames,
+  intersects,
+  parseSegment,
+  trieKey,
+  type Segment,
+} from "./pattern.js";
 
 export const NODE_DESCRIPTION = "ESPALIER.MD";
 
@@ -210,11 +217,12 @@ function insert(root: TrieNode, segments: Segment[], rule: StructuralRule): void
   let node = root;
 
   for (const [index, segment] of segments.entries()) {
-    let child = node.children.get(segment.shape);
+    const key = trieKey(segment);
+    let child = node.children.get(key);
 
     if (child === undefined) {
       child = emptyNode(segment.source, segment);
-      node.children.set(segment.shape, child);
+      node.children.set(key, child);
     } else if (child.captures.join("|") !== captureNames(segment).join("|")) {
       // A dynamic directory is one node in the trie, so it has one name.
       fail(
@@ -246,23 +254,33 @@ function insert(root: TrieNode, segments: Segment[], rule: StructuralRule): void
  * the role the segment needs.
  */
 function checkSiblings(node: TrieNode, at: string): void {
-  const dynamic = [...node.children.values()].filter((child) => child.segment.dynamic);
+  const children = [...node.children.values()];
 
-  for (let i = 0; i < dynamic.length; i += 1) {
-    for (let j = i + 1; j < dynamic.length; j += 1) {
-      const left = dynamic[i]!;
-      const right = dynamic[j]!;
+  // Within a tier only. Static names cannot collide with each other, and a
+  // static or resolved sibling beside a dynamic one is settled by specificity
+  // rather than by guessing. docs/MATCHING.MD "Ambiguity is rejected".
+  const tiers = [
+    children.filter((child) => child.segment.dynamic),
+    children.filter((child) => child.segment.resolved),
+  ];
 
-      const bothLeaves = left.rule !== null && right.rule !== null;
-      const bothDirectories = left.children.size > 0 && right.children.size > 0;
-      if (!bothLeaves && !bothDirectories) continue;
+  for (const peers of tiers) {
+    for (let i = 0; i < peers.length; i += 1) {
+      for (let j = i + 1; j < peers.length; j += 1) {
+        const left = peers[i]!;
+        const right = peers[j]!;
 
-      if (intersects(left.segment.shape, right.segment.shape)) {
-        fail(
-          "ambiguous_siblings",
-          `${at === "" ? "" : `${at}/`}${left.display} and ${at === "" ? "" : `${at}/`}${right.display} can both match one name, so ownership would be undecidable`,
-          { left: left.display, right: right.display },
-        );
+        const bothLeaves = left.rule !== null && right.rule !== null;
+        const bothDirectories = left.children.size > 0 && right.children.size > 0;
+        if (!bothLeaves && !bothDirectories) continue;
+
+        if (intersects(left.segment.shape, right.segment.shape)) {
+          fail(
+            "ambiguous_siblings",
+            `${at === "" ? "" : `${at}/`}${left.display} and ${at === "" ? "" : `${at}/`}${right.display} can both match one name, so ownership would be undecidable`,
+            { left: left.display, right: right.display },
+          );
+        }
       }
     }
   }
@@ -295,7 +313,33 @@ export async function compile(root: string, espalierRoot: string): Promise<Espal
     }
 
     const authored = [...segments.slice(0, -1), leaf.slice(0, -".mjs".length)];
-    const parsed = authored.map((segment) => parseSegment(segment, modulePath));
+
+    // Braces mean an extension list in a constraint leaf and a back-reference
+    // everywhere else, so the parser has to be told which position it is in.
+    // Constraint-ness is a plain string test, decidable before any parsing.
+    const constraintPath = authored.some((segment) => segment.includes("[..."));
+    const parsed = authored.map((segment, index) =>
+      parseSegment(segment, modulePath, {
+        backrefs: !(constraintPath && index === authored.length - 1),
+      }),
+    );
+
+    // A `{name}` matches what a `[name]` above it captured, so the placeholder
+    // has to come first. `[...name]` is excluded deliberately: it captures an
+    // array, and there is no text for a back-reference to stand for.
+    const bound = new Set<string>();
+    for (const segment of parsed) {
+      for (const name of backrefNames(segment)) {
+        if (!bound.has(name)) {
+          fail(
+            "unbound_backreference",
+            `${modulePath}: "{${name}}" refers to a capture no earlier segment declares`,
+            { name },
+          );
+        }
+      }
+      if (segment.recursive === null) for (const name of captureNames(segment)) bound.add(name);
+    }
 
     const recursive = parsed.filter((segment) => segment.recursive !== null);
     if (recursive.length > 1) {
@@ -337,13 +381,10 @@ export async function compile(root: string, espalierRoot: string): Promise<Espal
       continue;
     }
 
+    // Braces on a structural leaf are already handled by the parser: a list
+    // is rejected as `extension_list_on_structural_leaf` and a lone name is a
+    // back-reference. Nothing is left to check here.
     const leafSegment = parsed[parsed.length - 1]!;
-    if (/\{[^}]*\}/.test(leafSegment.source)) {
-      fail(
-        "extension_list_on_structural_leaf",
-        `${modulePath}: only constraint leaves may list extensions; a structural leaf names one file`,
-      );
-    }
 
     insert(trie, parsed, {
       modulePath,

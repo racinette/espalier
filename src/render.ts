@@ -100,8 +100,12 @@ function ordered(node: TrieNode): TrieNode[] {
   return [...node.children.values()].sort((left, right) => {
     const kind = Number(!isDirectory(left)) - Number(!isDirectory(right));
     if (kind !== 0) return kind;
-    const dynamic = Number(left.segment.dynamic) - Number(right.segment.dynamic);
-    if (dynamic !== 0) return dynamic;
+    // static, then resolved, then dynamic — the same specificity order the
+    // matcher uses. docs/cli/build/README.MD "Generation".
+    const tier = (node: TrieNode): number =>
+      node.segment.dynamic ? 2 : node.segment.resolved ? 1 : 0;
+    const specificity = tier(left) - tier(right);
+    if (specificity !== 0) return specificity;
     return left.display < right.display ? -1 : left.display > right.display ? 1 : 0;
   });
 }

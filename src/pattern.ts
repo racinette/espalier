@@ -3,9 +3,13 @@
 
 import { fail } from "./errors.js";
 
+/** A `[name]` captures a string; a `[...name]` captures the segments it spanned. */
+export type CaptureValue = string | string[];
+
 export type Part =
   | { kind: "literal"; text: string }
-  | { kind: "capture"; name: string };
+  | { kind: "capture"; name: string }
+  | { kind: "backref"; name: string };
 
 export interface Segment {
   /** As authored: `clients`, `[provider]`, `test-[name].ts`, `[...path]`. */
@@ -21,12 +25,31 @@ export interface Segment {
    * two directories.
    */
   shape: string;
+  /** Contains a `[name]`, so it matches many. */
   dynamic: boolean;
+  /**
+   * Contains a `{name}` and no `[name]`, so it becomes one literal as soon as
+   * the captures above it are bound. docs/MATCHING.MD "Back-references".
+   *
+   * A segment holding both is dynamic, not resolved: it still matches many,
+   * and the tier is decided by how many files a segment can name.
+   */
+  resolved: boolean;
 }
 
 const CAPTURE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-export function parseSegment(source: string, context: string): Segment {
+/**
+ * `backrefs` is false for a constraint leaf, where braces are an extension
+ * list instead. The two positions are disjoint, so nothing has to be
+ * disambiguated by content. docs/MATCHING.MD "Multiple extensions".
+ */
+export function parseSegment(
+  source: string,
+  context: string,
+  options: { backrefs?: boolean } = {},
+): Segment {
+  const backrefs = options.backrefs !== false;
   const parts: Part[] = [];
   let recursive: string | null = null;
   let literal = "";
@@ -36,6 +59,32 @@ export function parseSegment(source: string, context: string): Segment {
 
     if (char === "]") {
       fail("malformed_placeholder", `unmatched "]" in "${source}" (${context})`);
+    }
+
+    if (backrefs && char === "{") {
+      const close = source.indexOf("}", i);
+      if (close === -1) {
+        fail("malformed_placeholder", `unclosed "{" in "${source}" (${context})`);
+      }
+      const inner = source.slice(i + 1, close);
+      // The mistake worth naming: braces holding a list, written where only a
+      // back-reference can go.
+      if (inner.includes(",")) {
+        fail(
+          "extension_list_on_structural_leaf",
+          `${context}: "{${inner}}" lists extensions, and only a constraint leaf may do that; "{name}" here is a back-reference`,
+        );
+      }
+      if (!CAPTURE_NAME.test(inner)) {
+        fail("malformed_placeholder", `"{${inner}}" is not a valid capture name (${context})`);
+      }
+      if (literal !== "") {
+        parts.push({ kind: "literal", text: literal });
+        literal = "";
+      }
+      parts.push({ kind: "backref", name: inner });
+      i = close + 1;
+      continue;
     }
 
     if (char !== "[") {
@@ -79,7 +128,7 @@ export function parseSegment(source: string, context: string): Segment {
   }
 
   if (recursive !== null) {
-    return { source, parts: [], recursive, shape: "**", dynamic: true };
+    return { source, parts: [], recursive, shape: "**", dynamic: true, resolved: false };
   }
   if (literal !== "") parts.push({ kind: "literal", text: literal });
 
@@ -87,13 +136,30 @@ export function parseSegment(source: string, context: string): Segment {
     .map((part) => (part.kind === "literal" ? part.text : "*"))
     .join("");
 
+  const dynamic = parts.some((part) => part.kind === "capture");
+
   return {
     source,
     parts,
     recursive: null,
     shape,
-    dynamic: parts.some((part) => part.kind === "capture"),
+    dynamic,
+    resolved: !dynamic && parts.some((part) => part.kind === "backref"),
   };
+}
+
+/** The captures a segment refers back to, in order. */
+export function backrefNames(segment: Segment): string[] {
+  return segment.parts.flatMap((part) => (part.kind === "backref" ? [part.name] : []));
+}
+
+/**
+ * How the trie keys a segment. Shape, so that `[provider]` and `[vendor]` are
+ * one directory under two names — except where a back-reference is involved,
+ * because two of those are two different rules that happen to share a shape.
+ */
+export function trieKey(segment: Segment): string {
+  return segment.parts.some((part) => part.kind === "backref") ? segment.source : segment.shape;
 }
 
 export function captureNames(segment: Segment): string[] {
@@ -108,23 +174,76 @@ function escape(text: string): string {
 const matchers = new Map<string, RegExp>();
 
 /**
+ * A resolved segment as the literal it stands for, or null when a capture it
+ * refers to is unbound. Compilation rejects an unbound back-reference, so null
+ * here means the walk has not reached the placeholder yet.
+ */
+export function resolveSegment(
+  segment: Segment,
+  bound: Record<string, CaptureValue>,
+): string | null {
+  let text = "";
+  for (const part of segment.parts) {
+    if (part.kind === "literal") {
+      text += part.text;
+      continue;
+    }
+    if (part.kind === "capture") return null;
+    const value = bound[part.name];
+    if (typeof value !== "string") return null;
+    text += value;
+  }
+  return text;
+}
+
+/**
  * Matches one path segment. Returns the captures, or null. A `[name]` matches
  * one character or more, so `[button].tsx` does not match a file named `.tsx`.
+ *
+ * `bound` carries the captures already collected on the way down, which is
+ * what a `{name}` matches against.
  */
 export function matchSegment(
   segment: Segment,
   text: string,
+  bound: Record<string, CaptureValue> = {},
 ): Record<string, string> | null {
   if (segment.recursive !== null) return null;
+
+  if (segment.resolved) {
+    const literal = resolveSegment(segment, bound);
+    return literal !== null && literal === text ? {} : null;
+  }
+
   if (!segment.dynamic) return segment.shape === text ? {} : null;
 
-  let matcher = matchers.get(segment.source);
-  if (matcher === undefined) {
-    const source = segment.parts
-      .map((part) => (part.kind === "literal" ? escape(part.text) : "(.+?)"))
-      .join("");
-    matcher = new RegExp(`^${source}$`);
-    matchers.set(segment.source, matcher);
+  const held = backrefNames(segment);
+  const build = (): RegExp | null => {
+    const pieces: string[] = [];
+    for (const part of segment.parts) {
+      if (part.kind === "literal") pieces.push(escape(part.text));
+      else if (part.kind === "capture") pieces.push("(.+?)");
+      else {
+        const value = bound[part.name];
+        if (typeof value !== "string") return null;
+        pieces.push(escape(value));
+      }
+    }
+    return new RegExp(`^${pieces.join("")}$`);
+  };
+
+  // Only a back-reference-free segment can be cached: the pattern of one that
+  // holds a back-reference depends on the instance being walked.
+  let matcher: RegExp | null;
+  if (held.length > 0) {
+    matcher = build();
+    if (matcher === null) return null;
+  } else {
+    matcher = matchers.get(segment.source) ?? null;
+    if (matcher === null) {
+      matcher = build()!;
+      matchers.set(segment.source, matcher);
+    }
   }
 
   const found = matcher.exec(text);
