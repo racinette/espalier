@@ -146,6 +146,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `build-double-catch` | two open sets described in one closed-set statement; the root is never pruned |
 | `build-unmarked-documentation` | a hand-written documentation file halts the run before anything is written |
 | `build-orphan-deletion` | orphans deleted, unchanged files left alone |
+| `build-ignored-generated` | an ignored path is not swept, and a real orphan still is |
 | `build-check-drift` | `--check` reports `missing`, `changed` and `stale`, and writes nothing |
 | `build-inline` | one document at the root, and the distributed run's files removed |
 | `build-empty-rule` | a section with nothing to say is omitted, heading and all |

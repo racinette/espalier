@@ -266,12 +266,13 @@ That one line does three jobs: it tells `build` which files it may delete, it te
 `source:` names the espalier directory the file was rendered from — the configured `root` for the root document, `root` plus the placement point below it otherwise. It is there for a human reading the generated file who wants to know where to go and edit; nothing reads it back, and orphan detection uses the marker's presence rather than its contents.
 
 - Files bearing the marker are rewritten each run. Any that this run did not produce — because the espalier node was renamed or removed — are deleted, since a document that keeps steering agents after its rule is gone is worse than no document.
+- **The sweep is confined to what the configuration governs.** A marked file matched by `ignore` is never a candidate for deletion. The marker says a file is generated documentation; it does not say it is *this* run's. A repository holding a copy of `espalier`'s output — a golden fixture, a vendored package, a nested project with its own espalier — would otherwise lose it on the first build, with nothing to warn it.
 - A documentation file **without** the marker halts the build. Move its content into the corresponding `ESPALIER.MD` and run again; `build` will not eat a hand-written file.
 - Generated files are invisible to matching, so espalier's own output is never reported as `unexpected_path`.
 
 Only files are deleted. A directory left empty by an orphan deletion stays, because git does not track it and because a tool that removes directories it did not create is one bad path away from removing something it should not have.
 
-No record of past runs is kept. Finding orphans is a scan of the file list `build` already has for files matching the configured filename and carrying the marker — a manifest would be a second source of truth with nothing to add.
+No record of past runs is kept. Finding orphans is a scan of the candidate files, less anything `ignore` matched, for those matching the configured filename and carrying the marker — a manifest would be a second source of truth with nothing to add.
 
 ## Output
 
