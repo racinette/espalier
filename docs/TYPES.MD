@@ -103,6 +103,7 @@ Path placeholders are exposed to `lint` through `captures`.
 
 - `[name]` captures a string from one path segment
 - `[...name]` captures an array containing each matched path segment
+- `{name}` captures nothing; it matches what `[name]` already captured
 - an exact path produces an empty object
 
 Matching `clients/stripe/stripe.ts` against `clients/[provider]/[implementation].ts`:

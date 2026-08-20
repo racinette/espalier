@@ -72,9 +72,11 @@ Square brackets mark variable parts of a path.
 
 `[...name]` matches zero or more complete path segments and captures them as an array of strings. It must occupy an entire segment — `foo[...bar]` is invalid — and it is legal only in constraint paths.
 
-Placeholder names must be unique within a single path. `[provider]/[provider].ts` is rejected.
+`{name}` matches the text a `[name]` earlier in the same path already captured. It is a back-reference, not a placeholder: it captures nothing and introduces no name of its own. See [Back-references](#back-references).
 
-Names are descriptive only. They capture values; they never constrain the relationship between them. Both `stripe/stripe.ts` and `stripe/client.ts` match `[provider]/[implementation].ts`. If the two must agree, the rule text says so and `lint` checks it.
+Placeholder names must be unique within a single path. `[provider]/[provider].ts` is rejected — the second one is either a mistake or a back-reference, and `[provider]/{provider}.ts` says which.
+
+Two different placeholders never constrain each other. Both `stripe/stripe.ts` and `stripe/client.ts` match `[provider]/[implementation].ts`, because `[implementation]` is a fresh name that captures whatever is there. When two parts of a path must agree, that is what `{name}` is for.
 
 ### Normalization
 
@@ -83,6 +85,7 @@ Every path normalizes to a glob:
 ```text
 [name]      →  *
 [...name]   →  **
+{name}      →  *
 ```
 
 ```text
@@ -93,6 +96,8 @@ backend/[...path]/no-fetch.ts        →  backend/**/*.ts
 ```
 
 The normalized form is what `lint` receives as `context.pattern`. Human-facing output — the project map, generated documentation, `explain` — keeps the placeholder names, because they carry meaning a glob does not.
+
+Normalization is lossy for a back-reference and unavoidably so: no glob can say *the same text as that other part*. `clients/[provider]/{provider}.ts` normalizes to `clients/*/*.ts`, which matches strictly more than the rule does. Nothing that decides ownership uses the glob — the matcher walks segments — so this costs precision only where a glob is being read as documentation, and `context.path` is always exact.
 
 Patterns use `/` as separator on every platform, match case-sensitively even on case-insensitive filesystems, and match dotfiles like any other name. There is no `?` and no brace expansion.
 
@@ -114,6 +119,24 @@ Matching `backend/deep/nested/handler.ts` against `backend/[...path]/no-fetch.ts
 
 Constraint captures come only from the directory portion of the path. The leaf of a constraint is a rule name and an extension, not a placeholder, so the filename is not captured — read `context.path` for it.
 
+### Back-references
+
+A `[name]` says *some text goes here and I will call it name*. A `{name}` says *that same text, again*.
+
+```text
+clients/[provider]/{provider}.ts.mjs
+```
+
+`clients/stripe/stripe.ts` matches. `clients/stripe/client.ts` does not, and neither does `clients/stripe/twilio.ts`. The directory named the file.
+
+**A back-reference resolves to exactly one name once its capture is bound.** Everything else follows from that sentence. It is required for each instance, the way a static leaf is required — `clients/twilio/` without a `twilio.ts` reports `missing_required_file`. It beats a dynamic sibling for ownership, because naming one file is more specific than matching many. And it can never be ambiguous with a static sibling, because by the time it is compared it is a literal too.
+
+It must refer to a `[name]` **earlier in the same path**. `{provider}` with no `[provider]` above it is `unbound_backreference`, reported at compile time. This also means a back-reference always sits beneath a placeholder, so it is always a per-instance requirement and never an unconditional one.
+
+It carries literal text like any other segment part: `[provider]/{provider}.test.ts`, `[provider]/test-{provider}.ts`. Nothing stops it appearing in a directory segment either — `[provider]/{provider}-config/settings.ts` — though the leaf is where it earns its keep.
+
+What it replaces is a rule body asking politely. Before, `[provider]/[implementation].ts` matched every filename in the directory and the module's `rule` had to say "name this after the directory" and its `lint` had to check. That is prose an agent may or may not follow, checked by code someone has to write, for a fact the espalier could simply state. Stating it also puts it in the generated documentation and the project map, where an agent reads it before writing the file rather than after.
+
 ### Multiple extensions
 
 A constraint leaf may list extensions:
@@ -124,7 +147,16 @@ A constraint leaf may list extensions:
 
 This is shorthand for two patterns sharing one module, not glob brace expansion. It exists because a constraint that applies to `.ts` almost always applies to `.tsx`, and the alternative is two files with duplicated bodies that drift apart.
 
-Only constraint leaves may list extensions. A structural leaf names one file, and `main.{ts,tsx}.mjs` would be declaring that two files are each required — which is either two rules or a `[name]` placeholder, and is clearer written as whichever was meant. It is rejected.
+Only constraint leaves may list extensions. A structural leaf names one file, and `main.{ts,tsx}.mjs` would be declaring that two files are each required — which is either two rules or a `[name]` placeholder, and is clearer written as whichever was meant. It is rejected as `extension_list_on_structural_leaf`.
+
+Braces therefore mean two things, and never in the same place:
+
+```text
+braces in a constraint leaf     an extension list
+braces anywhere else            a back-reference
+```
+
+The two positions are disjoint, so nothing has to be disambiguated at read time. A constraint leaf is a rule name plus a target extension rather than a segment that matches a file, so a back-reference has nothing to refer to there; and a structural leaf names one file, so a list of extensions has nothing to mean. The comma survives only as a diagnostic: braces containing one, on a structural leaf, is someone expecting a union, and that is what the rejection says.
 
 ## Ownership
 
@@ -133,8 +165,12 @@ Every file in the repository is owned by **exactly one** structural rule.
 Structural rules compile into a trie, one node per path segment. Matching walks the trie segment by segment, and at each level a more specific node wins:
 
 ```text
-static  >  dynamic
+static  >  resolved  >  dynamic
 ```
+
+A **static** segment is a literal. A **resolved** segment contains a back-reference and becomes a literal once the captures above it are bound. A **dynamic** segment contains a `[name]` and matches many.
+
+The order is specificity, not a table to memorise: a segment that names one file beats one that names many, and a segment that always names the same file beats one that names a different file per instance.
 
 Given:
 
@@ -183,7 +219,16 @@ Dynamic siblings that cannot collide are fine:
 [helper].ts           accepted — no filename ends in both
 ```
 
-The conflict is between siblings competing for the same thing: two leaves that could own one file, or two directories that could claim one subtree. A dynamic directory beside a dynamic leaf is not a conflict even when their names overlap, because a directory never owns a file:
+Siblings only conflict within their own tier. Static names cannot collide with each other at all, and a static or resolved sibling beside a dynamic one is decided by specificity rather than by guessing — `requestModels.ts` beside `[implementation].ts`, or `{provider}.ts` beside `[implementation].ts`, are both fine. Two *resolved* siblings are checked exactly like two dynamic ones, because two back-references can resolve to the same text:
+
+```text
+[region]/[provider]/{region}.ts
+[region]/[provider]/{provider}.ts     rejected — "eu/eu/eu.ts" satisfies both
+```
+
+Whether the two captures are ever equal is a fact about the repository, not about the espalier, so it cannot be settled at compile time. Undecidable is undecidable.
+
+Within a tier, the conflict is between siblings competing for the same thing: two leaves that could own one file, or two directories that could claim one subtree. A dynamic directory beside a dynamic leaf is not a conflict even when their names overlap, because a directory never owns a file:
 
 ```text
 clients/[provider]/client.ts
@@ -214,11 +259,13 @@ Only files are validated. Directories are not checked for their own sake — a d
 
 **Static leaves are required unless their module says otherwise.** `main.ts.mjs` means `main.ts` must exist, and its absence is `missing_required_file`. A module exporting `optional = true` declares a file that *may* exist: it is owned, documented and linted whenever it is there, and nothing is reported when it is not. See [TYPES.MD](TYPES.MD#optional).
 
+**Resolved leaves are required per instance.** `[provider]/{provider}.ts.mjs` means each provider directory must contain a file named after itself. It behaves as a static leaf does, one instance at a time: `clients/stripe/` without `stripe.ts` reports `missing_required_file`, and `optional` relaxes it the same way. A back-reference cannot occur above the placeholder it refers to, so there is no such thing as an unconditionally required resolved leaf.
+
 **Dynamic leaves are collections.** `[util].ts.mjs` means *every file matching this shape follows this rule*, including none. Zero matches is not a violation.
 
 **Dynamic directories are collections.** `clients/[provider]/` may have zero instances.
 
-**Instantiating a dynamic directory makes its static descendants required.** Given:
+**Instantiating a dynamic directory makes its static and resolved descendants required.** Given:
 
 ```text
 clients

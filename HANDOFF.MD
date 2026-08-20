@@ -33,7 +33,7 @@ src/output.ts       human and jsonl formatters, --out destinations
 src/cli.ts          argument parsing and exit codes
 ```
 
-`npm test` builds and runs everything: thirty-five fixtures, nine unit tests for the
+`npm test` builds and runs everything: thirty-seven fixtures, nine unit tests for the
 sibling-overlap decision procedure — subtle and only partly fixtured — and
 thirteen for the programmatic API, which no subprocess fixture can reach. All
 green.
@@ -120,6 +120,36 @@ Taken while writing the `build` fixtures, and now in the documents:
   confident guess among its most confident ones: `client.ts` was observed in
   every sibling and `webhook.ts` in one. A marker rather than a fifth label,
   because what happened to the file is still that it was written.
+
+- **A `{name}` back-reference matches what a `[name]` earlier in the same path
+  captured.** `clients/[provider]/{provider}.ts` requires each provider
+  directory to hold a file named after itself. Before this, the espalier could
+  only match every filename and leave the naming relationship to a `rule` body
+  asking politely and a `lint` function checking afterwards — prose an agent
+  may not follow, checked by code someone has to write, for a fact the espalier
+  can state. `README.MD` taught that workaround as the answer and no longer
+  does.
+
+  One sentence carries it: **a back-reference resolves to exactly one name once
+  its capture is bound.** Required per instance like a static leaf, beats a
+  dynamic sibling, never ambiguous with a static one. Precedence became three
+  tiers — `static > resolved > dynamic` — which is the existing specificity
+  rule extended rather than an exception to it, and siblings are now checked
+  only against their own tier.
+
+  Braces already meant an extension list, so the rule is positional: braces in
+  a constraint leaf are a list, braces anywhere else are a back-reference. The
+  two positions are disjoint, so nothing is disambiguated by content. The comma
+  survives as a diagnostic for the mistake someone will actually make.
+
+  The trie keys a resolved segment by its authored form rather than its shape.
+  Shape-keying is what makes `[provider]` and `[vendor]` one directory under
+  two names; two back-references sharing a shape are two different rules, and
+  keying them together would have merged them silently.
+
+  Not implemented deliberately: `adopt` does not infer back-references.
+  Spotting `stripe/stripe.ts` from one instance is the guess this project
+  spent an afternoon removing.
 
 Taken after `explain`:
 
@@ -231,6 +261,12 @@ Taken while writing the `explain` fixtures:
    and the `uncovered` record kind is gone. Pinned by `optional-leaf` and a
    rewritten `adopt-partial-overlap`, each verified to guard.
 
+9. ~~Back-references.~~ **Done.** `{name}` in `pattern.ts`, the binding check
+   and tiered sibling comparison in `compile.ts`, a resolved pass in
+   `resolve`, substituted paths in `requiredFiles`, and specificity ordering
+   in `render`. Pinned by `backreference-leaf` and `invalid-backreference`,
+   with four deliberate breaks each failing the right fixture.
+
 `--watch` is explicitly planned rather than pending.
 
 ## Open questions
@@ -288,7 +324,15 @@ Carrying `TODO`s in the code:
   Git additionally refuses to re-include a path whose parent directory is
   excluded. Ours is more permissive and covers the documented cases.
 
-Nothing is left standing here. The inline form of `example` was the last one,
+One thing stands here again: **the specificity tier in `ordered()` is not
+observably pinned.** `{` and `[` both sort after every letter, so for any
+realistic name the lexicographic tiebreak lands a resolved sibling in the same
+place the tier does. Only a static sibling named above `{` would separate them,
+and contriving one would pin the contrivance rather than the rule. The tier is
+still there, because the map must list siblings in the order ownership
+resolves them.
+
+The inline form of `example` was the last of the others,
 and `example-inline` now pins both halves of what makes it a second form: it is
 exempt from the existence and pattern checks the path form gets, and it renders
 as a fenced block rather than a line. The four before it — `addons` setup and

@@ -145,33 +145,25 @@ Square brackets define named path placeholders:
 
 ```text
 clients
-└─ [apiProviderDirectory]
-   └─ [apiProviderImplementation].ts.mjs
+└─ [provider]
+   └─ [implementation].ts.mjs
 ```
 
 `[name]` matches within one path segment and captures the matched text as a string. `[...name]` matches across zero or more complete path segments, captures them as an array of strings, and marks the rule as a constraint.
 
-Placeholder names describe values; they do not constrain relationships between them. In the example above, both `stripe/stripe.ts` and `stripe/client.ts` match the structural pattern. A naming relationship belongs in the rule text and is enforced explicitly by `lint`:
+Two different placeholders never constrain each other. In the example above, both `stripe/stripe.ts` and `stripe/client.ts` match, because the second name captures whatever is there. When two parts of a path must agree, `{name}` says so:
 
-```js
-export async function lint({
-  captures: {
-    apiProviderDirectory,
-    apiProviderImplementation,
-  },
-  emit,
-}) {
-  if (apiProviderDirectory !== apiProviderImplementation) {
-    emit({
-      code: "api_provider_name_mismatch",
-      message:
-        "The API provider implementation filename must match its directory.",
-    });
-  }
-}
+```text
+clients
+└─ [provider]
+   └─ {provider}.ts.mjs
 ```
 
-The matcher normalizes `[name]` to `*` and `[...name]` to `**`. The normalized glob is exposed as `context.pattern`; the matched values are exposed as `context.captures`.
+`clients/stripe/stripe.ts` matches. `clients/stripe/client.ts` does not. A back-reference captures nothing and introduces no name — it matches the text a `[name]` earlier in the path already captured, and it makes that file required for every provider directory that exists.
+
+The alternative is a rule body asking politely and a `lint` function checking afterwards, for a fact the espalier can simply state. Stating it also puts the requirement in the generated documentation, where an agent reads it before writing the file rather than after.
+
+The matcher normalizes `[name]` to `*`, `[...name]` to `**`, and `{name}` to `*`. The normalized glob is exposed as `context.pattern`; the matched values are exposed as `context.captures`.
 
 Full grammar, matching precedence, and requiredness: [docs/MATCHING.MD](docs/MATCHING.MD).
 

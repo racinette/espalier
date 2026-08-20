@@ -73,7 +73,9 @@ The root file additionally carries the project preamble, the map of the entire r
 4. Render each surviving point.
 5. Write with a provenance header, in deterministic order. A file whose rendered bytes match what is already on disk is left alone rather than rewritten, so a second run touches nothing and reports nothing.
 
-Everywhere siblings are listed — in a map, in a cardinality sentence, in the order files are written — the order is: directories before files, then static before dynamic, then lexicographic by authored name. All three tiers do work, and together they are total, so output is byte-comparable between runs.
+Everywhere siblings are listed — in a map, in a cardinality sentence, in the order files are written — the order is: directories before files, then by specificity (static, then resolved, then dynamic), then lexicographic by authored name. Every tier does work, and together they are total, so output is byte-comparable between runs.
+
+The specificity tier is rarely what decides, because `{` and `[` both sort after every letter, so an authored name usually lands in the same place either way. It is stated because it is the order the matcher uses, and a document listing siblings in one order while ownership resolves them in another would be describing a different espalier.
 
 ## Rendering
 
@@ -110,6 +112,8 @@ Walking that subtree in map order produces, in this order:
 3. **Per dynamic directory.** ``Zero or more `<path>/` directories may exist.`` When instantiating it requires files: `For each one that does, <a>, <b> and <c> are required.`, those paths relative to the instance. Optional descendants take a further `Each one may also have <a> and <b>.`, for the same reason the second sentence exists at the top level.
 4. **Per dynamic leaf.** ``Zero or more files matching `<path>` may exist.``
 5. **The closed set.** `Nothing else may exist under <path>/.`, or `under the repository root.` at the root.
+
+A resolved leaf appears in the required list of the instance it belongs to, written as authored: `For each one that does, {provider}.ts is required.` Rendering it as the shape it resolves to would need an instance to resolve against, and the paragraph describes the rule rather than any one directory.
 
 Sentences 3 and 4 name the node by its authored path relative to the placement point, in backticks — `[provider]/` for an immediate child, `src/clients/[provider]/` for one further down. Both the brackets and the path are load-bearing: an agent is being told a shape it has to reproduce and a place to reproduce it, and "zero or more provider directories" tells it neither.
 
