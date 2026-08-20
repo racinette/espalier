@@ -65,6 +65,14 @@ Adopting an area that stays ignored would do nothing, so `adopt` edits the entry
 
 When no `ignore` entry covers the path, there is nothing to narrow and `adopt` leaves the config alone. `espalier init` writes no ignore list unless asked, so that is the common case; the narrowing matters for a repository that reached for [`--ignore-all`](../init/README.MD#--ignore-all) to keep a build green while it was being described.
 
+## What it refuses
+
+Three targets, all for the same reason — the run could not produce a module that governs anything.
+
+A path outside the repository, or one that is not a directory. The espalier root, which is not itself governed. And a path with a dot-prefixed segment: `espalier/.cursor/rules/` is skipped by the compiler, so `adopt .cursor` would report modules written and exit `0` while `lint` went on calling every file under it undeclared. All three fail with `invalid_adopt_target`.
+
+Dot-prefixed paths *inside* an adopted directory are simply not inferred from — they are tooling rather than architecture, and [MATCHING.MD](../../MATCHING.MD#node-kinds) has the reasoning. They are not reported as `uncovered` either, because "undeclared" is not a decision anyone can revisit here; `ignore` is where they belong.
+
 ## Inference
 
 Two signals, both conservative, and **two of a thing is a pattern**. That threshold comes from the failure being asymmetric rather than from confidence: two directories that happen to look alike cost you a placeholder to rename, while an espalier that declared them separately forbids the third one.
