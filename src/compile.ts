@@ -15,6 +15,7 @@ export interface RuleModule {
   rule?: unknown;
   lint?: unknown;
   example?: unknown;
+  optional?: unknown;
 }
 
 export interface LoadedModule {
@@ -22,7 +23,17 @@ export interface LoadedModule {
   rule: string;
   lint: (context: unknown) => unknown;
   example: string | null;
+  /** docs/TYPES.MD "optional". Always false for anything but a static leaf. */
+  optional: boolean;
 }
+
+/**
+ * Which of the three module kinds is being read. `optional` is meaningless on
+ * two of them — a dynamic leaf is already a collection that may be empty, and a
+ * constraint never requires anything — so the kind has to reach the loader
+ * rather than being recovered from the path afterwards.
+ */
+type ModuleKind = "constraint" | "static" | "dynamic";
 
 export interface StructuralRule {
   /** Espalier-relative module path, e.g. `clients/[provider]/client.ts.mjs`. */
@@ -97,7 +108,8 @@ function listEntries(absolute: string, prefix: string): string[] {
   return found;
 }
 
-async function loadModule(absolute: string, modulePath: string, structural: boolean): Promise<LoadedModule> {
+async function loadModule(absolute: string, modulePath: string, kind: ModuleKind): Promise<LoadedModule> {
+  const structural = kind !== "constraint";
   let loaded: RuleModule;
   try {
     loaded = (await import(pathToFileURL(absolute).href)) as RuleModule;
@@ -120,12 +132,27 @@ async function loadModule(absolute: string, modulePath: string, structural: bool
   if (loaded.example !== undefined && typeof loaded.example !== "string") {
     fail("module_invalid_export", `${modulePath}: \`example\` must be a string`);
   }
+  if (loaded.optional !== undefined && typeof loaded.optional !== "boolean") {
+    fail("module_invalid_export", `${modulePath}: \`optional\` must be a boolean`);
+  }
+  // Rejected rather than ignored on the other two kinds: a module that exports
+  // it has said something, and silently dropping it would leave the author
+  // believing a file is governed one way while it is governed another.
+  if (loaded.optional !== undefined && kind !== "static") {
+    fail(
+      "module_invalid_export",
+      `${modulePath}: \`optional\` has no meaning on a ${kind === "constraint" ? "constraint" : "dynamic leaf"}; ${
+        kind === "constraint" ? "constraints never require a file" : "a dynamic leaf may already match nothing"
+      }`,
+    );
+  }
 
   return {
     description: typeof loaded.description === "string" ? loaded.description : null,
     rule: loaded.rule,
     lint: loaded.lint as (context: unknown) => unknown,
     example: typeof loaded.example === "string" ? loaded.example : null,
+    optional: loaded.optional === true,
   };
 }
 
@@ -294,7 +321,7 @@ export async function compile(root: string, espalierRoot: string): Promise<Espal
     if (recursive.length === 1) {
       const directory = parsed.slice(0, -1);
       const { name, extensions } = splitConstraintLeaf(authored[authored.length - 1]!, modulePath);
-      const module = await loadModule(absoluteModule, modulePath, false);
+      const module = await loadModule(absoluteModule, modulePath, "constraint");
       const prefix = directory.map((segment) => segment.shape).join("/");
 
       for (const extension of extensions) {
@@ -321,7 +348,7 @@ export async function compile(root: string, espalierRoot: string): Promise<Espal
     insert(trie, parsed, {
       modulePath,
       pattern: parsed.map((segment) => segment.shape).join("/"),
-      module: await loadModule(absoluteModule, modulePath, true),
+      module: await loadModule(absoluteModule, modulePath, leafSegment.dynamic ? "dynamic" : "static"),
     });
   }
 

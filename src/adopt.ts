@@ -34,11 +34,15 @@ function stemOf(name: string): string {
   return dot <= 0 ? name : name.slice(0, dot);
 }
 
-function stub(description: string): string {
+function stub(description: string, optional: boolean): string {
+  // The optional line carries its own TODO because it is the guess most worth
+  // reviewing: `adopt` has seen one sibling with this file and cannot know
+  // whether that makes it part of the shape or makes that sibling unusual.
+  const marker = optional ? "\nexport const optional = true;             // TODO\n" : "";
   return `export const description = "${description}";   // TODO
 
 export const rule = \`\`;                  // TODO
-
+${marker}
 export async function lint() {}
 `;
 }
@@ -61,15 +65,22 @@ interface Inferred {
   /** Espalier-relative, e.g. `src/clients/[client]/client.ts`. */
   at: string;
   description: string;
+  /** Present in some siblings but not all, or inside something that is. */
+  optional: boolean;
 }
 
 interface Inference {
   leaves: Inferred[];
-  /** Repository-relative paths the inference did not declare, and why. */
-  uncovered: { path: string; reason: string }[];
 }
 
-const PARTIAL = "present in some sibling directories but not all";
+/** One sibling's contribution to the union: the entry, and who has it. */
+interface Member {
+  name: string;
+  directory: boolean;
+  /** The real directories holding it. */
+  holders: string[];
+  optional: boolean;
+}
 
 /**
  * Infers the shape of one directory, recursively.
@@ -78,44 +89,80 @@ const PARTIAL = "present in some sibling directories but not all";
  * repository path as soon as a dynamic directory is introduced: several real
  * `stripe/`, `twilio/` directories collapse into one `[client]/` node.
  */
-function infer(root: string, real: string[], at: string, name: string, out: Inference): void {
+function infer(
+  root: string,
+  real: string[],
+  at: string,
+  name: string,
+  out: Inference,
+  optional = false,
+): void {
   const listings = real.map((directory) => entries(path.join(root, directory)));
 
-  // Names every sibling has. With one sibling this is simply its contents.
-  const common = listings[0]!.filter((entry) =>
-    listings.every((other) => other.some((candidate) => candidate.name === entry.name)),
-  );
-  const shared = new Set(common.map((entry) => entry.name));
-
-  if (listings.length > 1) {
-    for (const [index, listing] of listings.entries()) {
-      for (const entry of listing) {
-        if (shared.has(entry.name)) continue;
-        out.uncovered.push({ path: `${real[index]!}/${entry.name}`, reason: PARTIAL });
+  // The union of every sibling's contents, not the intersection. A name only
+  // some of them carry is declared optional rather than left out: "a client
+  // may have a webhook" is what the tree says, and it is the only statement
+  // available here that is true. docs/cli/adopt/README.MD "Siblings that only
+  // partly match".
+  const union = new Map<string, Member>();
+  for (const [index, listing] of listings.entries()) {
+    for (const entry of listing) {
+      const found = union.get(entry.name);
+      if (found === undefined) {
+        union.set(entry.name, {
+          name: entry.name,
+          directory: entry.directory,
+          holders: [real[index]!],
+          optional: false,
+        });
+      } else {
+        found.holders.push(real[index]!);
       }
     }
   }
 
-  const directories = common.filter((entry) => entry.directory);
-  const files = common.filter((entry) => !entry.directory);
+  const members = [...union.values()]
+    .map((member) => ({
+      ...member,
+      // Optionality is inherited: everything inside a directory only some
+      // siblings have is itself only sometimes present.
+      optional: optional || member.holders.length !== listings.length,
+      holders: member.holders.map((holder) => `${holder}/${member.name}`),
+    }))
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+
+  const directories = members.filter((member) => member.directory);
+  const files = members.filter((member) => !member.directory);
+  const shared = directories.filter((member) => !member.optional);
 
   // Two of a thing is a pattern. The threshold comes from the failure being
   // asymmetric: a placeholder costs a rename, while separate declarations
-  // forbid the third one.
-  if (directories.length >= 2) {
-    const family = directories.flatMap((entry) =>
-      real.map((directory) => `${directory}/${entry.name}`),
-    );
+  // forbid the third one. Only shared directories count — a directory one
+  // sibling has is not evidence of a repeating unit.
+  if (shared.length >= 2) {
     const placeholder = `[${singular(name)}]`;
-    infer(root, family, `${at}/${placeholder}`, singular(name), out);
+    infer(
+      root,
+      shared.flatMap((member) => member.holders),
+      `${at}/${placeholder}`,
+      singular(name),
+      out,
+      optional,
+    );
   } else {
-    for (const entry of directories) {
-      const family = real.map((directory) => `${directory}/${entry.name}`);
-      infer(root, family, `${at}/${entry.name}`, entry.name, out);
+    for (const member of shared) {
+      infer(root, member.holders, `${at}/${member.name}`, member.name, out, optional);
     }
   }
 
-  const byExtension = new Map<string, Entry[]>();
+  // Declared where they are, with everything inside them optional. They never
+  // join a family: the shape they would be claiming to share is one nobody
+  // observed twice.
+  for (const member of directories.filter((entry) => entry.optional)) {
+    infer(root, member.holders, `${at}/${member.name}`, member.name, out, true);
+  }
+
+  const byExtension = new Map<string, Member[]>();
   for (const entry of files) {
     const extension = extensionOf(entry.name);
     const bucket = byExtension.get(extension);
@@ -129,11 +176,21 @@ function infer(root: string, real: string[], at: string, name: string, out: Infe
     // because they share an extension would throw away the stronger finding
     // and declare something nobody observed.
     if (listings.length === 1 && group.length >= 2 && extension !== "") {
-      out.leaves.push({ at: `${at}/[${extension}].${extension}`, description: `a ${extension}` });
+      // A dynamic leaf already matches nothing without complaint, so the
+      // collapsed node is never optional — only what it stands in for was.
+      out.leaves.push({
+        at: `${at}/[${extension}].${extension}`,
+        description: `a ${extension}`,
+        optional: false,
+      });
       continue;
     }
     for (const entry of group) {
-      out.leaves.push({ at: `${at}/${entry.name}`, description: `a ${stemOf(entry.name)}` });
+      out.leaves.push({
+        at: `${at}/${entry.name}`,
+        description: `a ${stemOf(entry.name)}`,
+        optional: entry.optional,
+      });
     }
   }
 }
@@ -228,7 +285,7 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
     );
   }
 
-  const found: Inference = { leaves: [], uncovered: [] };
+  const found: Inference = { leaves: [] };
   const name = target === "" ? "" : target.split("/").pop()!;
   infer(root, [target], target, name, found);
 
@@ -248,17 +305,13 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
 
     if (!options.dryRun) {
       mkdirSync(path.dirname(moduleAbsolute), { recursive: true });
-      writeFileSync(moduleAbsolute, stub(leaf.description), "utf8");
+      writeFileSync(moduleAbsolute, stub(leaf.description, leaf.optional), "utf8");
     }
     written.push(modulePath);
   }
 
   for (const at of written) reporter.record({ kind: "written", path: at });
   for (const at of skipped) reporter.record({ kind: "skipped", path: at });
-
-  for (const entry of found.uncovered.sort((a, b) => (a.path < b.path ? -1 : 1))) {
-    reporter.record({ kind: "uncovered", path: entry.path, reason: entry.reason });
-  }
 
   if (written.length > 0) {
     const relative = path.relative(root, configPath).split(path.sep).join("/");

@@ -43,12 +43,10 @@ export type DriftState = "missing" | "changed" | "stale";
 
 /** What a `build` run did to the filesystem. docs/cli/build/README.MD "Output". */
 export interface BuildEntry {
-  kind: "written" | "deleted" | "drift" | "skipped" | "uncovered" | "narrowed";
+  kind: "written" | "deleted" | "drift" | "skipped" | "narrowed";
   path: string;
   /** `drift` only. */
   state?: DriftState;
-  /** `uncovered` only: why the inference did not declare it. */
-  reason?: string;
 }
 
 interface Destination {
@@ -189,8 +187,10 @@ class HumanReporter implements Reporter {
     const counts = new Map<string, number>();
     for (const entry of [...this.records].sort((a, b) => (a.path < b.path ? -1 : 1))) {
       const label = entry.state ?? entry.kind;
-      // Ten, not nine: `uncovered` is exactly nine characters and would run
-      // straight into the path.
+      // Ten, not the longest label plus two: `uncovered` was nine characters
+      // and ran straight into the path when this padded to nine. The width
+      // outlived the label, and narrowing it now would re-fix nothing and
+      // reflow every golden.
       this.destination.write(`${label.padEnd(10)}${entry.path}\n`);
       counts.set(label, (counts.get(label) ?? 0) + 1);
     }

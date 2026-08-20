@@ -1,0 +1,14 @@
+{
+  "exit": 0,
+  "issues": [],
+  "ownership": {
+    "main.ts": "main.ts.mjs",
+    "stripe/client.ts": "[client]/client.ts.mjs",
+    "stripe/webhook.ts": "[client]/webhook.ts.mjs",
+    "twilio/client.ts": "[client]/client.ts.mjs"
+  },
+  "build": {
+    "exit": 0,
+    "report": [{ "kind": "written", "path": "AGENTS.MD" }]
+  }
+}

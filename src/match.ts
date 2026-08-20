@@ -96,9 +96,10 @@ export interface RequiredFile {
 /**
  * Every file the espalier requires to exist.
  *
- * Static leaves are required. Dynamic leaves are collections and require
- * nothing. A dynamic directory requires nothing until it is instantiated —
- * after which its static descendants are required, for that instance only.
+ * Static leaves are required unless their module marks them `optional`.
+ * Dynamic leaves are collections and require nothing. A dynamic directory
+ * requires nothing until it is instantiated — after which its static
+ * descendants are required, for that instance only.
  */
 export function requiredFiles(espalier: Espalier, visible: Set<string>): RequiredFile[] {
   const required: RequiredFile[] = [];
@@ -112,7 +113,7 @@ export function requiredFiles(espalier: Espalier, visible: Set<string>): Require
     for (const child of node.children.values()) {
       const under = prefix === "" ? child.display : `${prefix}/${child.display}`;
 
-      if (child.rule !== null && !child.segment.dynamic) {
+      if (child.rule !== null && !child.segment.dynamic && !child.rule.module.optional) {
         required.push({ path: under, rule: child.rule, captures: { ...captures } });
       }
 
@@ -147,7 +148,12 @@ export function requiredFiles(espalier: Espalier, visible: Set<string>): Require
   return required;
 }
 
-/** Static leaves required regardless of what the repository contains. */
+/**
+ * Static leaves required regardless of what the repository contains. An
+ * optional leaf is absent here for the same reason it is absent from
+ * `requiredFiles`: nothing promises it exists, so `ignore` covering it is a
+ * configuration choice rather than a contradiction.
+ */
 export function unconditionallyRequired(espalier: Espalier): string[] {
   const found: string[] = [];
 
@@ -155,7 +161,7 @@ export function unconditionallyRequired(espalier: Espalier): string[] {
     for (const child of node.children.values()) {
       if (child.segment.dynamic) continue;
       const under = prefix === "" ? child.display : `${prefix}/${child.display}`;
-      if (child.rule !== null) found.push(under);
+      if (child.rule !== null && !child.rule.module.optional) found.push(under);
       if (child.children.size > 0) descend(child, under);
     }
   };

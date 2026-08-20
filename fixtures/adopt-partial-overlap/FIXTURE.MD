@@ -1,24 +1,30 @@
 # adopt: siblings that only partly match
 
 `stripe/` has a `webhook.ts` that `twilio/` does not. `adopt` declares the
-**intersection** — `client.ts` and `requestModels.ts` — and reports the odd
-file out as `uncovered`.
+shared filenames as required and the odd one out as
+[optional](../../docs/TYPES.MD#optional) — `[client]/webhook.ts.mjs` carries
+`export const optional = true`, and the run leaves a repository that lints
+clean.
 
-Both alternatives are worse, in opposite directions.
+Both alternatives were false, in opposite directions, which is why this needed
+a third statement rather than a better guess.
 
-The **union** would declare `[client]/webhook.ts`, asserting that every client
-has a webhook. Nobody said that. It would also report
-`src/clients/twilio/webhook.ts` as `missing_required_file` on the first run,
-which is `adopt` inventing a requirement and then complaining that it is unmet.
+Declaring `webhook.ts` **required** asserts that every client has one. Nobody
+said that, and it reports `src/clients/twilio/webhook.ts` as
+`missing_required_file` on the first run — `adopt` inventing a requirement and
+then complaining that it is unmet.
+
+Leaving it **undeclared** is the opposite failure: `lint` reports
+`unexpected_path` for a file everybody agrees belongs there, so the command
+succeeds and hands back a broken repository.
 
 An **extra dynamic leaf** — `[client]/[ts].ts` for the remainder — would say
 nothing and legalise every future `.ts` file in every client directory. That is
 the over-general failure the document warns about everywhere else, and it fails
-quietly, which is worse.
+quietly, which is worse. `optional` names one file. That is the difference.
 
-So the file is left undeclared and named in the output. `lint` reports it as
-`unexpected_path` until someone decides whether it is a fourth rule, a fifth
-client, or something that belongs elsewhere. That decision is exactly what
-`adopt` cannot make and must not fake.
+The written module is compared byte for byte, so the `// TODO` on the optional
+line is pinned too: it is the guess most worth reviewing, and a stub that did
+not say so would be one the architect skims past.
 
 Pins: cli/adopt/README.MD "Siblings that only partly match".

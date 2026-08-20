@@ -122,21 +122,31 @@ function* subtree(node: TrieNode, depth = 0, at = ""): Generator<Visit> {
 }
 
 /**
- * Static leaves reachable through static directories only, in map order. These
- * are the files that must exist — either always, when the walk starts at a
+ * Static leaves reachable through static directories only, in map order,
+ * split by whether the espalier insists they exist. These are the files an
+ * agent is being told about — either always, when the walk starts at a
  * placement point, or per instance, when it starts at a dynamic directory.
  */
-export function requiredUnder(node: TrieNode, at = ""): string[] {
-  const found: string[] = [];
+export function leavesUnder(node: TrieNode, at = ""): { required: string[]; optional: string[] } {
+  const required: string[] = [];
+  const optional: string[] = [];
 
   for (const child of ordered(node)) {
     if (child.segment.dynamic) continue;
     const path = under(at, child.display);
-    if (child.rule !== null) found.push(path);
-    if (isDirectory(child)) found.push(...requiredUnder(child, path));
+    if (child.rule !== null) (child.rule.module.optional ? optional : required).push(path);
+    if (isDirectory(child)) {
+      const inside = leavesUnder(child, path);
+      required.push(...inside.required);
+      optional.push(...inside.optional);
+    }
   }
 
-  return found;
+  return { required, optional };
+}
+
+export function requiredUnder(node: TrieNode, at = ""): string[] {
+  return leavesUnder(node, at).required;
 }
 
 /** The longest static prefix of a constraint's directory path. */
@@ -268,9 +278,16 @@ function renderMap(espalier: Espalier, point: Placement): string | null {
  */
 export function cardinality(node: TrieNode, at: string): string {
   const sentences: string[] = [];
-  const required = requiredUnder(node);
+  const { required, optional } = leavesUnder(node);
   if (required.length > 0) {
     sentences.push(`${list(required)} ${required.length === 1 ? "is" : "are"} required.`);
+  }
+  // Its own sentence rather than a qualifier inside the first: the two are
+  // addressed to the same reader for opposite purposes, one being what an
+  // agent must produce and the other what it may.
+  // docs/cli/build/README.MD "The cardinality paragraph".
+  if (optional.length > 0) {
+    sentences.push(`${list(optional)} ${optional.length === 1 ? "is" : "are"} optional.`);
   }
 
   for (const visit of subtree(node)) {
@@ -278,11 +295,14 @@ export function cardinality(node: TrieNode, at: string): string {
 
     if (isDirectory(visit.node)) {
       sentences.push(`Zero or more \`${visit.at}/\` directories may exist.`);
-      const inside = requiredUnder(visit.node);
-      if (inside.length > 0) {
+      const inside = leavesUnder(visit.node);
+      if (inside.required.length > 0) {
         sentences.push(
-          `For each one that does, ${list(inside)} ${inside.length === 1 ? "is" : "are"} required.`,
+          `For each one that does, ${list(inside.required)} ${inside.required.length === 1 ? "is" : "are"} required.`,
         );
+      }
+      if (inside.optional.length > 0) {
+        sentences.push(`Each one may also have ${list(inside.optional)}.`);
       }
     } else {
       sentences.push(`Zero or more files matching \`${visit.at}\` may exist.`);

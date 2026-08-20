@@ -102,7 +102,7 @@ An init fixture has no `espalier.config.yaml` of its own, because writing one is
 }
 ```
 
-All three write blocks also accept **`human`**, naming a file that holds the exact `--format human` stdout of the same run. It is compared byte for byte, like an `explain` golden and for the same reason: the report's column widths are fixed by the command's page, and a format nobody pins is a format that drifts. `adopt-partial-overlap` carries one because `uncovered` is the longest label there is and the only one that ever collided with the path beside it.
+All three write blocks also accept **`human`**, naming a file that holds the exact `--format human` stdout of the same run. It is compared byte for byte, like an `explain` golden and for the same reason: the report's column widths are fixed by the command's page, and a format nobody pins is a format that drifts. `adopt-partial-overlap` carries one because the label column is padded to a width no surviving label reaches — `uncovered` was nine characters and collided with the path beside it, and the golden is what keeps the fix from being quietly undone.
 
 `exit` and `issues` describe a `lint` run and `build` describes a `build` run; a fixture may carry either or both, and the harness runs only what is asserted.
 
@@ -159,9 +159,11 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `addons-disposed-on-failure` | disposal runs even when a rule throws |
 | `invalid-example` | an example that does not match its own rule's pattern |
 | `example-inline` | the inline form of `example`: exempt from the path checks, fenced when rendered |
+| `optional-leaf` | an optional leaf on the spine and inside a dynamic directory, and both new sentences |
+| `invalid-optional` | `optional` on a dynamic leaf is rejected, not ignored |
 | `constraint-only-placement` | a placement point with no trie node, and a generated description |
 | `adopt-sibling-directories` | matching siblings become a dynamic directory, and the ignore entry narrows |
-| `adopt-partial-overlap` | the intersection is declared and the odd file out is reported |
+| `adopt-partial-overlap` | the shared files are required and the odd one out is declared optional |
 | `adopt-repeated-filenames` | files sharing an extension collapse, but not inside a family |
 | `adopt-skips-existing` | a second run does not overwrite a written rule body |
 | `adopt-dotted-target` | a dot-prefixed target is refused, because no module there would load |
