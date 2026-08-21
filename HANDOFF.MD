@@ -220,6 +220,12 @@ Taken while writing the `explain` fixtures:
   ran. `ignore` demotes a child to plain content, which is what this repository
   needs for `fixtures/`. CONFIG.MD "Nested espaliers"; discovery in
   `src/children.ts`, recursion in `src/nested.ts`, and four `nested-*` fixtures.
+- **Every command respects the boundary, not just `lint` and `build`.**
+  `explain` and `adopt` both answer from the nearest espalier at or above the
+  path, so neither depends on where the command ran. `adopt` also passes over a
+  child inside its target, and does not declare it optional — a stub inviting
+  the architect to revisit one would be inviting them to break the boundary.
+  `init` needed nothing: running it inside a package is how a child is made.
 - **A generated document names the children below it.** `## Governed elsewhere`
   exists because the closed-set sentence and an undescribed directory the
   reader can see are a contradiction otherwise. It names them and stops: a
@@ -304,13 +310,14 @@ Taken while writing the `explain` fixtures:
 
 Open, both raised by dogfooding:
 
-- **`build` deletes provenance-marked files anywhere in the visible set.** On
-  this repository that meant fourteen `fixtures/*/expected-build/AGENTS.MD`
-  goldens, which are provenance-marked by construction. It is exactly what
-  `cli/build/README.MD` specifies, and the alternative — a manifest of what the
-  last run wrote — is state on disk that can be wrong. But any repository
-  holding generated documentation it does not own loses it on the first build,
-  and nothing warns.
+- ~~**`build` deletes provenance-marked files anywhere in the visible set.**~~
+  **Closed**, in two halves. `ignore` now confines the sweep, which covers a
+  repository storing generated documentation as data — this one's goldens, a
+  vendored copy. And a child espalier's subtree leaves the outer run entirely,
+  which covers the case the outer run genuinely should not touch. No manifest
+  was needed: both answers are about who owns the path, not about what the
+  last run wrote. Pinned by `build-ignored-generated` and
+  `nested-build-per-child`.
 - **Nothing documents how the two forms of `example` are told apart.**
   `TYPES.MD` describes a path form and an inline form and gives each a
   different guarantee, but never says which is which; the code decides on

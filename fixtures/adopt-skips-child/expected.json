@@ -1,0 +1,10 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": ["packages"],
+    "report": [
+      { "kind": "written", "path": "espalier/packages/lib/main.ts.mjs" },
+      { "kind": "written", "path": "espalier/packages/lib/notes.md.mjs" }
+    ]
+  }
+}

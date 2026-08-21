@@ -178,6 +178,8 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `adopt-repeated-filenames` | files sharing an extension collapse, but not inside a family |
 | `adopt-skips-existing` | a second run does not overwrite a written rule body |
 | `adopt-dotted-target` | a dot-prefixed target is refused, because no module there would load |
+| `adopt-skips-child` | a child inside the target is passed over, not declared optional |
+| `adopt-into-child` | a target inside a child is adopted by the child's espalier |
 
 ## Adding one
 

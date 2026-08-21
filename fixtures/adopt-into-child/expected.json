@@ -1,0 +1,13 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": ["packages/web/src"],
+    "report": [
+      {
+        "kind": "written",
+        "path": "packages/web/espalier/src/handler.ts.mjs",
+        "espalier": "packages/web"
+      }
+    ]
+  }
+}

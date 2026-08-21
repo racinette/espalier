@@ -10,6 +10,7 @@ import path from "node:path";
 import { fail } from "./errors.js";
 import { compileIgnore, ignores } from "./ignore.js";
 import type { Reporter } from "./output.js";
+import { delegated } from "./nested.js";
 import { open } from "./repository.js";
 
 export interface AdoptOptions {
@@ -95,9 +96,18 @@ function infer(
   at: string,
   name: string,
   out: Inference,
+  children: Set<string>,
   optional = false,
 ): void {
-  const listings = real.map((directory) => entries(path.join(root, directory)));
+  // A child espalier's subtree is not this espalier's to declare, so it is not
+  // evidence either: two packages of which one has an espalier of its own are
+  // one package as far as the inference is concerned.
+  // docs/cli/adopt/README.MD "Nested espaliers".
+  const listings = real.map((directory) =>
+    entries(path.join(root, directory)).filter(
+      (entry) => !children.has(directory === "" ? entry.name : `${directory}/${entry.name}`),
+    ),
+  );
 
   // The union of every sibling's contents, not the intersection. A name only
   // some of them carry is declared optional rather than left out: "a client
@@ -147,11 +157,12 @@ function infer(
       `${at}/${placeholder}`,
       singular(name),
       out,
+      children,
       optional,
     );
   } else {
     for (const member of shared) {
-      infer(root, member.holders, `${at}/${member.name}`, member.name, out, optional);
+      infer(root, member.holders, `${at}/${member.name}`, member.name, out, children, optional);
     }
   }
 
@@ -159,7 +170,7 @@ function infer(
   // join a family: the shape they would be claiming to share is one nobody
   // observed twice.
   for (const member of directories.filter((entry) => entry.optional)) {
-    infer(root, member.holders, `${at}/${member.name}`, member.name, out, true);
+    infer(root, member.holders, `${at}/${member.name}`, member.name, out, children, true);
   }
 
   const byExtension = new Map<string, Member[]>();
@@ -271,6 +282,20 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
   if (!existsSync(absolute) || !statSync(absolute).isDirectory()) {
     fail("invalid_adopt_target", `${options.target} is not a directory`);
   }
+
+  // The nearest espalier at or above the target is the one that gains the
+  // modules, exactly as with `explain`. Writing them into the outer espalier
+  // would declare files it cannot see and will never lint.
+  // docs/cli/adopt/README.MD "Nested espaliers".
+  const child = repository.children.find(
+    (at) => target === at || target.startsWith(`${at}/`),
+  );
+  if (child !== undefined) {
+    return await adopt(
+      { ...options, cwd: path.join(root, child), config: undefined, target: absolute },
+      delegated(reporter, child),
+    );
+  }
   if (target === espalierRoot || target.startsWith(`${espalierRoot}/`)) {
     fail("invalid_adopt_target", "the espalier root is not itself governed");
   }
@@ -287,7 +312,7 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
 
   const found: Inference = { leaves: [] };
   const name = target === "" ? "" : target.split("/").pop()!;
-  infer(root, [target], target, name, found);
+  infer(root, [target], target, name, found, new Set(repository.children));
 
   const written: { path: string; optional: boolean }[] = [];
   const skipped: string[] = [];
