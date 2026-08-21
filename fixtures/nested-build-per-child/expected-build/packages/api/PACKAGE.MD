@@ -4,7 +4,7 @@
 
     index.ts  the package entry point
 
-index.ts is required. Nothing else may exist under the repository root.
+index.ts is required. Nothing else may exist under this directory.
 
 ## index.ts — the package entry point
 

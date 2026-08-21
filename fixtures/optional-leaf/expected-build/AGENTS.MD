@@ -10,7 +10,7 @@
 
 main.ts is required. notes.md is optional. Zero or more `[client]/` directories
 may exist. For each one that does, client.ts is required. Each one may also have
-webhook.ts. Nothing else may exist under the repository root.
+webhook.ts. Nothing else may exist under this directory.
 
 ## [client]/client.ts — a client
 

@@ -300,9 +300,10 @@ export function assignChildren(points: Placement[], children: string[]): Map<str
 }
 
 /**
- * The section that keeps the closed set above it honest. A reader who can see a
- * directory the document does not describe, under a sentence saying nothing
- * else may exist here, is reading a contradiction; this is what resolves it.
+ * What the closed set above defers to. A reader who can see a directory the
+ * document does not describe, under a sentence saying nothing else may exist
+ * here, is reading a lie — so the sentence defers instead, and this is where it
+ * defers to.
  *
  * It names the children and stops. What they contain is not this espalier's to
  * summarize — a copy of somebody else's rules is a second source of truth that
@@ -334,7 +335,7 @@ function renderChildren(at: string, children: string[], level: number): string[]
  * documentation in the repository from drifting apart — there is nothing
  * between them to drift.
  */
-export function cardinality(node: TrieNode, at: string): string {
+export function cardinality(node: TrieNode, at: string, defers = false): string {
   const sentences: string[] = [];
   const { required, optional } = leavesUnder(node);
   if (required.length > 0) {
@@ -367,18 +368,27 @@ export function cardinality(node: TrieNode, at: string): string {
     }
   }
 
-  sentences.push(
-    at === ""
-      ? "Nothing else may exist under the repository root."
-      : `Nothing else may exist under ${at}/.`,
-  );
+  // No path to print at an espalier's own root — it would be `under .` — so the
+  // sentence anchors on the file's location instead. A document cannot know
+  // where it sits in an outer tree, and in a package "the repository root" is
+  // wrong on both counts. docs/cli/build/README.MD "The cardinality paragraph".
+  const where = at === "" ? "this directory" : `${at}/`;
+  // Where a child espalier falls inside the closed set, it defers rather than
+  // stating something the reader can see is untrue — listing them after an
+  // absolute sentence would not retract it. Stated in general rather than by
+  // name, because every document whose subtree covers a child has to defer,
+  // while only the deepest one above it names them. "already" is load-bearing:
+  // this is an exception for the directories that have one, not a licence to
+  // create another.
+  const except = defers ? ", apart from the directories that already have an espalier of their own" : "";
+  sentences.push(`Nothing else may exist under ${where}${except}.`);
 
   return sentences.join(" ");
 }
 
-function renderCardinality(point: Placement): string | null {
+function renderCardinality(point: Placement, covered: boolean): string | null {
   if (point.node === null) return null;
-  return wrap(cardinality(point.node, point.at));
+  return wrap(cardinality(point.node, point.at, covered));
 }
 
 /** `**​/*.ts` and `**​/*.tsx` → "applies to TypeScript files throughout the project". */
@@ -493,25 +503,31 @@ function marker(espalierRoot: string, at: string): string {
 }
 
 /** The body every document shares: prose, structure, sections. */
+/** Whether any child espalier falls inside this placement point's closed set. */
+function covers(at: string, children: string[]): boolean {
+  return children.some((child) => at === "" || child === at || child.startsWith(`${at}/`));
+}
+
 function core(
   espalier: Espalier,
   point: Placement,
   level: number,
-  children: string[],
+  named: string[],
+  all: string[],
 ): string[] {
   const blocks: string[] = [];
 
   if (point.doc !== null && point.doc.body !== "") blocks.push(point.doc.body);
 
   const map = renderMap(espalier, point);
-  const cardinality = renderCardinality(point);
+  const cardinality = renderCardinality(point, covers(point.at, all));
 
   if (map !== null) {
     blocks.push(`${"#".repeat(level)} Structure`, map);
     if (cardinality !== null) blocks.push(cardinality);
   }
 
-  blocks.push(...renderChildren(point.at, children, level));
+  blocks.push(...renderChildren(point.at, named, level));
   blocks.push(...renderSections(espalier, point, level));
   return blocks;
 }
@@ -520,9 +536,10 @@ export function renderDistributed(
   espalier: Espalier,
   point: Placement,
   espalierRoot: string,
-  children: string[] = [],
+  named: string[] = [],
+  all: string[] = named,
 ): string {
-  const blocks = [marker(espalierRoot, point.at), ...core(espalier, point, 2, children)];
+  const blocks = [marker(espalierRoot, point.at), ...core(espalier, point, 2, named, all)];
   if (point.at === "") blocks.push(CHECKING);
   blocks.push(AMENDING);
   return `${blocks.join("\n\n")}\n`;
@@ -541,7 +558,7 @@ export function renderInline(
 ): string {
   const root = points.find((point) => point.at === "")!;
   const assigned = assignChildren(points, children);
-  const blocks = [marker(espalierRoot, ""), ...core(espalier, root, 2, assigned.get("") ?? [])];
+  const blocks = [marker(espalierRoot, ""), ...core(espalier, root, 2, assigned.get("") ?? [], children)];
 
   for (const point of points) {
     if (point.at === "") continue;
@@ -550,10 +567,11 @@ export function renderInline(
 
     if (point.doc !== null && point.doc.body !== "") blocks.push(point.doc.body);
 
-    const cardinality = renderCardinality(point);
+    const inside = assigned.get(point.at) ?? [];
+    const cardinality = renderCardinality(point, covers(point.at, children));
     if (cardinality !== null) blocks.push(cardinality);
 
-    blocks.push(...renderChildren(point.at, assigned.get(point.at) ?? [], 3));
+    blocks.push(...renderChildren(point.at, inside, 3));
     blocks.push(...renderSections(espalier, point, 3));
   }
 

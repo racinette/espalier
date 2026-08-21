@@ -4,7 +4,7 @@
 
     main.ts  the entry point
 
-main.ts is required. Nothing else may exist under the repository root.
+main.ts is required. Nothing else may exist under this directory.
 
 ## main.ts — the entry point
 

@@ -21,7 +21,7 @@ main.ts is required. Zero or more files matching
 `components/buttons/[button].tsx` may exist. Zero or more
 `src/clients/[provider]/` directories may exist. For each one that does,
 handlers/webhook.ts, client.ts and requestModels.ts are required. Nothing else
-may exist under the repository root.
+may exist under this directory.
 
 ## main.ts — the application entry point
 

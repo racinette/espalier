@@ -149,7 +149,16 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
       body: doc?.body ?? "",
       captures: found?.captures ?? {},
       rules,
-      cardinality: found === null ? null : cardinality(found.node, target),
+      cardinality:
+        found === null
+          ? null
+          : cardinality(
+              found.node,
+              target,
+              repository.children.some(
+                (child) => target === "" || child === target || child.startsWith(`${target}/`),
+              ),
+            ),
       constraints: groups
         .filter((group) => reaches(group.prefix, target))
         .map(({ members: _members, prefix: _prefix, ...summary }) => summary),

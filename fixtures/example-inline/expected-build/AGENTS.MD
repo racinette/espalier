@@ -7,7 +7,7 @@
       [migration].sql  a migration
 
 src/schema.sql is required. Zero or more files matching `src/[migration].sql`
-may exist. Nothing else may exist under the repository root.
+may exist. Nothing else may exist under this directory.
 
 ## Checking your work
 

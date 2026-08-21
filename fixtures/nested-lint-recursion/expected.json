@@ -36,6 +36,14 @@
         "espalier": null,
         "rule": "main.ts.mjs"
       }
+    },
+    ".": {
+      "exit": 0,
+      "object": {
+        "prefix": "",
+        "espalier": null,
+        "cardinality": "main.ts is required. Zero or more `packages/[package]/` directories may exist. For each one that does, index.ts is required. Nothing else may exist under this directory, apart from the directories that already have an espalier of their own."
+      }
     }
   }
 }

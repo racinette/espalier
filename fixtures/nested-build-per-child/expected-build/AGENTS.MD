@@ -4,7 +4,8 @@
 
     main.ts  the application entry point
 
-main.ts is required. Nothing else may exist under the repository root.
+main.ts is required. Nothing else may exist under this directory, apart from the
+directories that already have an espalier of their own.
 
 ## Governed elsewhere
 

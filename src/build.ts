@@ -79,6 +79,7 @@ async function buildOne(
           point,
           repository.config.espalierRoot,
           assigned.get(point.at) ?? [],
+          repository.children,
         ),
       );
     }

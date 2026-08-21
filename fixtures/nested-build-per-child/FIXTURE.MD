@@ -3,14 +3,18 @@
 Two packages, each with an espalier of its own, and a root that describes only
 `main.ts`.
 
-**The root names its children and stops.** `## Governed elsewhere` lists both
-directories, because the closed set above it has just said nothing else may
-exist under the repository root and the reader can see two directories that do.
-It says who governs them and not what they contain.
+**The root names its children and stops.** The closed-set sentence defers —
+"apart from the directories that
+already have an espalier of their own" — and `## Governed elsewhere` lists
+both. Deferring rather than listing after an absolute sentence is the point: a
+reader who can see two directories under "nothing else may exist" is reading a
+lie, and a section further down does not retract it. It says who governs them
+and not what they contain.
 
 **Each child renders in its own frame.** `packages/web/AGENTS.MD` says
-`source: espalier` and closes with "under the repository root", because a reader
-standing in the package is in the package's frame. `packages/api` uses
+`source: espalier` and closes with "under this directory", because a document
+cannot know where it sits in an outer tree and a package is neither a
+repository nor a root. `packages/api` uses
 `build.filename: PACKAGE.MD`, which is its setting and reaches nothing else.
 
 **The outer run does not sweep the child's document.** `packages/web/AGENTS.MD`

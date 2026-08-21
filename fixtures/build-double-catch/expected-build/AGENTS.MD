@@ -9,7 +9,7 @@
 
 Zero or more `clients/[provider]/` directories may exist. For each one that
 does, client.ts is required. Zero or more files matching `clients/[summary].ts`
-may exist. Nothing else may exist under the repository root.
+may exist. Nothing else may exist under this directory.
 
 ## Checking your work
 

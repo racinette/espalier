@@ -7,7 +7,7 @@
       [module].ts  a module
 
 src/registry.ts is required. Zero or more files matching `src/[module].ts` may
-exist. Nothing else may exist under the repository root.
+exist. Nothing else may exist under this directory.
 
 ## Checking your work
 

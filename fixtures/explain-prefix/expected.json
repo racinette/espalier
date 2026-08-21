@@ -57,7 +57,7 @@
         "kind": "explanation",
         "prefix": "",
         "description": "a small example application",
-        "cardinality": "main.ts is required. Zero or more files matching `components/buttons/[button].tsx` may exist. Zero or more files matching `components/layouts/[layout].tsx` may exist. Nothing else may exist under the repository root."
+        "cardinality": "main.ts is required. Zero or more files matching `components/buttons/[button].tsx` may exist. Zero or more files matching `components/layouts/[layout].tsx` may exist. Nothing else may exist under this directory."
       }
     },
     "main.ts": {

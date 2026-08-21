@@ -11,8 +11,8 @@ the repository root.
     main.ts           the application entry point
 
 main.ts is required. Zero or more files matching
-`components/buttons/[button].tsx` may exist. Nothing else may exist under the
-repository root.
+`components/buttons/[button].tsx` may exist. Nothing else may exist under this
+directory.
 
 ## main.ts — the application entry point
 
