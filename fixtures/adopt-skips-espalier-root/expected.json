@@ -1,0 +1,9 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": ["tools"],
+    "report": [
+      { "kind": "written", "path": "tools/espalier/tools/lib/util.ts.mjs" }
+    ]
+  }
+}

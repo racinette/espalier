@@ -220,6 +220,13 @@ Taken while writing the `explain` fixtures:
   ran. `ignore` demotes a child to plain content, which is what this repository
   needs for `fixtures/`. CONFIG.MD "Nested espaliers"; discovery in
   `src/children.ts`, recursion in `src/nested.ts`, and four `nested-*` fixtures.
+- **`build` is all-or-nothing across every espalier, `lint` is not.** The
+  difference is what each produces. `lint` writes to a stream: advisory, over
+  when the run is, and a sibling's findings are worth having when one package
+  is broken. `build` writes files that outlive the run while the exit code does
+  not, and a root document sending readers into a directory with nothing in it
+  says nothing about why. `--check` is the exception, because it writes
+  nothing. Pinned by `nested-build-child-failure`.
 - **Every command respects the boundary, not just `lint` and `build`.**
   `explain` and `adopt` both answer from the nearest espalier at or above the
   path, so neither depends on where the command ran. `adopt` also passes over a
@@ -264,8 +271,19 @@ Taken while writing the `explain` fixtures:
    rule fails under test for the same reason it fails in production, and two
    implementations would make that a coincidence.
 
-7. **Dogfooding.** Running `init` → `adopt` → `build` → `lint` on this repository
-   found five things no fixture could. Three are fixed and pinned:
+7. ~~**Dogfooding.**~~ **Done, twice.** The second pass — after nested espaliers
+   — runs clean end to end: `init`, `adopt src test docs`, two hand-written root
+   rules, `lint` with no issues, `build` writing five documents, `--check`
+   clean, and nothing under `fixtures/` written or deleted. It found four more
+   things, all in `adopt`, all now pinned: it inferred from child espaliers,
+   from its own root and config, produced `[]` as a capture name at the
+   repository root so the next command could not compile, and reported a path
+   it had not written to. It also showed `build` leaving a tree half-built
+   across espaliers, which is why the command now plans every espalier before
+   writing any of them.
+
+   The first pass found five things no fixture could. Three were fixed and
+   pinned then:
    `uncovered` is exactly nine characters and the report padded to nine, so it
    ran into the path; `adopt` never checked its own target for a dot-prefixed
    segment and so wrote modules under `espalier/.cursor/` that the compiler

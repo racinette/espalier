@@ -155,6 +155,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `nested-ignored-config` | a config `ignore` matches is data, not a child |
 | `nested-child-failure` | one child that will not compile, and a sibling reported anyway |
 | `nested-build-per-child` | each child builds in its own frame, and the outer run sweeps none of it |
+| `nested-build-child-failure` | one espalier that will not compile, and nothing written anywhere |
 | `build-check-drift` | `--check` reports `missing`, `changed` and `stale`, and writes nothing |
 | `build-inline` | one document at the root, and the distributed run's files removed |
 | `build-empty-rule` | a section with nothing to say is omitted, heading and all |
@@ -179,6 +180,8 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `adopt-skips-existing` | a second run does not overwrite a written rule body |
 | `adopt-dotted-target` | a dot-prefixed target is refused, because no module there would load |
 | `adopt-skips-child` | a child inside the target is passed over, not declared optional |
+| `adopt-skips-espalier-root` | a target containing the espalier root does not infer from it |
+| `adopt-root-target` | the root has no name to singularise, and no empty path segment |
 | `adopt-into-child` | a target inside a child is adopted by the child's espalier |
 
 ## Adding one

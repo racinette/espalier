@@ -1,0 +1,9 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": ["."],
+    "report": [
+      { "kind": "written", "path": "espalier/[directory]/handler.ts.mjs" }
+    ]
+  }
+}

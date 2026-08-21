@@ -1,0 +1,12 @@
+{
+  "build": {
+    "exit": 2,
+    "report": [
+      {
+        "kind": "failure",
+        "code": "invalid_espalier_entry",
+        "espalier": "packages/broken"
+      }
+    ]
+  }
+}

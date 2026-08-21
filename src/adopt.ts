@@ -20,9 +20,21 @@ export interface AdoptOptions {
   dryRun: boolean;
 }
 
-/** Naive on purpose: a trailing `s` and nothing more. */
+/**
+ * Naive on purpose: a trailing `s` and nothing more.
+ *
+ * The repository root is the one directory with no name to borrow — paths are
+ * root-relative, so its name is the empty string, and `[]` is not a valid
+ * capture name. docs/cli/adopt/README.MD "Placeholder names".
+ */
 function singular(name: string): string {
+  if (name === "") return "directory";
   return name.length > 1 && name.endsWith("s") ? name.slice(0, -1) : name;
+}
+
+/** Joins an espalier-relative path, where the root itself is the empty string. */
+function under(at: string, name: string): string {
+  return at === "" ? name : `${at}/${name}`;
 }
 
 function extensionOf(name: string): string {
@@ -96,16 +108,17 @@ function infer(
   at: string,
   name: string,
   out: Inference,
-  children: Set<string>,
+  outside: Set<string>,
   optional = false,
 ): void {
-  // A child espalier's subtree is not this espalier's to declare, so it is not
-  // evidence either: two packages of which one has an espalier of its own are
-  // one package as far as the inference is concerned.
-  // docs/cli/adopt/README.MD "Nested espaliers".
+  // What this espalier does not describe is not evidence of a shape either: two
+  // packages of which one has an espalier of its own are one package as far as
+  // the inference is concerned, and the espalier root counted as a sibling is
+  // how a whole tree collapses into a placeholder nobody chose.
+  // docs/cli/adopt/README.MD "What it refuses" and "Nested espaliers".
   const listings = real.map((directory) =>
     entries(path.join(root, directory)).filter(
-      (entry) => !children.has(directory === "" ? entry.name : `${directory}/${entry.name}`),
+      (entry) => !outside.has(directory === "" ? entry.name : `${directory}/${entry.name}`),
     ),
   );
 
@@ -154,15 +167,15 @@ function infer(
     infer(
       root,
       shared.flatMap((member) => member.holders),
-      `${at}/${placeholder}`,
+      under(at, placeholder),
       singular(name),
       out,
-      children,
+      outside,
       optional,
     );
   } else {
     for (const member of shared) {
-      infer(root, member.holders, `${at}/${member.name}`, member.name, out, children, optional);
+      infer(root, member.holders, under(at, member.name), member.name, out, outside, optional);
     }
   }
 
@@ -170,7 +183,7 @@ function infer(
   // join a family: the shape they would be claiming to share is one nobody
   // observed twice.
   for (const member of directories.filter((entry) => entry.optional)) {
-    infer(root, member.holders, `${at}/${member.name}`, member.name, out, children, true);
+    infer(root, member.holders, under(at, member.name), member.name, out, outside, true);
   }
 
   const byExtension = new Map<string, Member[]>();
@@ -190,7 +203,7 @@ function infer(
       // A dynamic leaf already matches nothing without complaint, so the
       // collapsed node is never optional — only what it stands in for was.
       out.leaves.push({
-        at: `${at}/[${extension}].${extension}`,
+        at: under(at, `[${extension}].${extension}`),
         description: `a ${extension}`,
         optional: false,
       });
@@ -198,7 +211,7 @@ function infer(
     }
     for (const entry of group) {
       out.leaves.push({
-        at: `${at}/${entry.name}`,
+        at: under(at, entry.name),
         description: `a ${stemOf(entry.name)}`,
         optional: entry.optional,
       });
@@ -312,7 +325,11 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
 
   const found: Inference = { leaves: [] };
   const name = target === "" ? "" : target.split("/").pop()!;
-  infer(root, [target], target, name, found, new Set(repository.children));
+  // Everything this espalier does not describe: the subtrees it gave to a child,
+  // and its own machinery.
+  const configRelative = path.relative(root, configPath).split(path.sep).join("/");
+  const outside = new Set([...repository.children, espalierRoot, configRelative]);
+  infer(root, [target], target, name, found, outside);
 
   const written: { path: string; optional: boolean }[] = [];
   const skipped: string[] = [];
