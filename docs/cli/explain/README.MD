@@ -168,6 +168,8 @@ Fixed, so the output is scannable and diffable:
 
 The root prefix displays as `./`.
 
+Both forms of the example share the `Example` heading and the same four-space indent: `example` is one line under it, `exampleSource` is as many as it has. Nothing distinguishes them in the layout, because nothing needs to — the reader wants the example, not the mechanism that supplied it.
+
 ## Output
 
 As with `lint`, `--format` chooses the encoding and `--out` the destination.

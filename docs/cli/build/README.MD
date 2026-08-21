@@ -162,7 +162,17 @@ A directory below the placement point may have prose too — a dynamic directory
 <the ESPALIER.MD body, verbatim>
 ```
 
-Sections appear in map order, so the map doubles as a table of contents, and a directory's section precedes the sections of everything inside it. The heading is the rule's full path from the repository root, not from the placement point — an agent reading `src/clients/AGENTS.MD` is being told where the file goes, and a relative fragment makes it guess. The `Example:` line is omitted when the module exports no `example`, and carries the path form or a fenced block for the inline form.
+Sections appear in map order, so the map doubles as a table of contents, and a directory's section precedes the sections of everything inside it. The heading is the rule's full path from the repository root, not from the placement point — an agent reading `src/clients/AGENTS.MD` is being told where the file goes, and a relative fragment makes it guess. The `Example:` line carries `example`, the path, and is omitted when the module exports none. A module exporting `exampleSource` instead gets the source as a fenced block under the same heading:
+
+```markdown
+Example:
+
+```
+export default function Submit() { … }
+```
+```
+
+One or the other, never both — [TYPES.MD](../../TYPES.MD#example-and-examplesource) rejects a module setting each.
 
 Constraints render the same way one level down, under a shared `## Constraints` heading, with the rule name as the `###` heading and a line naming what it applies to:
 

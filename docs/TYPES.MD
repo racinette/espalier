@@ -28,7 +28,8 @@ export async function lint(context) {
 | `description` | structural only | what this file is, in one phrase |
 | `rule` | yes | the natural-language conventions, in markdown |
 | `lint` | yes | deterministic validation |
-| `example` | no | a canonical conforming file |
+| `example` | no | a path to a canonical conforming file |
+| `exampleSource` | no | source for one, when no conforming file exists yet |
 | `optional` | no | whether this file has to exist |
 
 ### `description`
@@ -68,20 +69,25 @@ export const rule = String.raw`File names must match ^[A-Z][a-zA-Z0-9]*$.`;
 
 The `rule` is **mode-invariant**: the same text applies whether the file is being created or edited. Exporters render it for each surface; they never rewrite it. It is also what a violation carries back to the agent, so write it as guidance rather than as a description of the check.
 
-### `example`
+### `example` and `exampleSource`
 
-An optional pointer to one file that gets this right. Models follow an example far more reliably than they follow prose, and exported documentation is the only guidance available before a file is written.
+One file that gets this right. Models follow an example far more reliably than they follow prose, and exported documentation is the only guidance available before a file is written.
 
 ```js
-export const example = "components/buttons/SubmitButton.tsx";   // preferred
-export const example = String.raw`export default function Submit() { … }`;
+export const example = "components/buttons/SubmitButton.tsx";
 ```
 
-The path form is preferred because it cannot drift. The referenced file is a real file in the repository, so it is linted by this very rule on every run — if it stops conforming, you get an ordinary issue on it. Nothing extra is needed to keep it honest.
+**`example` is a path, and it is the form to reach for**, because it cannot drift. The file it names is a real file in the repository, linted by this very rule on every run — if it stops conforming you get an ordinary issue on it, and nothing extra is needed to keep it honest. `espalier` checks at compile time that the path exists and that this rule's own pattern matches it; a rule whose example does not is a specification error and exits `2`.
 
-`espalier` checks at compile time that the path exists and that this rule's pattern matches it. A rule whose example does not match its own pattern is a specification error and exits `2`.
+```js
+export const exampleSource = String.raw`
+export default function Submit() { … }
+`;
+```
 
-The inline form has no such guarantee and should be used only when no conforming file exists yet.
+**`exampleSource` is the source itself**, for the case the path form cannot serve: no conforming file exists yet. It carries none of the guarantees — there is no file to check, nothing to lint, and nothing that notices when it goes stale. Replace it with a path as soon as one file conforms.
+
+They are two exports rather than one because a value has to say which it is. Deciding by inspection means a rule that looks like a path is a path, and a mistyped path then becomes a code sample nobody validates — trading a compile-time error for a silent one. **Setting both is a specification error**: two examples that could disagree is worse than either, and the run exits `2` with `module_invalid_export`.
 
 ### `optional`
 
