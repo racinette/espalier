@@ -197,6 +197,7 @@ async function lintOne(
       ruleText: options.ruleText ? module.rule : null,
       description: module.description,
       example: module.example,
+      exampleSource: module.exampleSource,
       record,
     });
 

@@ -33,6 +33,7 @@ export interface Issue {
   /** Not reported; carried so the human formatter can show it. */
   description?: string | null;
   example?: string | null;
+  exampleSource?: string | null;
 }
 
 export type Format = "human" | "jsonl";
@@ -297,8 +298,16 @@ class HumanReporter implements Reporter {
           this.destination.write(`\n    ${heading}\n${indent(issue.ruleText, "      ")}\n`);
         }
 
+        // A path is one line and reads as one. Source goes under the heading and
+        // is indented like the rule body — interpolating it into a sentence
+        // breaks the indentation a fixed layout exists to keep.
+        // docs/cli/lint/README.MD "human".
         if (issue.example != null) {
           this.destination.write(`\n    Reference implementation: ${issue.example}\n`);
+        } else if (issue.exampleSource != null) {
+          this.destination.write(
+            `\n    Reference implementation:\n${indent(issue.exampleSource, "      ")}\n`,
+          );
         }
       }
     }

@@ -130,6 +130,7 @@ export async function runRule(module: RuleModule, context: RuleContext): Promise
     ruleText: typeof module.rule === "string" ? module.rule : null,
     description: typeof module.description === "string" ? module.description : null,
     example: typeof module.example === "string" ? module.example : null,
+    exampleSource: typeof module.exampleSource === "string" ? module.exampleSource : null,
     record: (issue) => void issues.push(issue),
   });
 

@@ -138,6 +138,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
               description: visit.node.rule!.module.description,
               ruleText: visit.node.rule!.module.rule.trim(),
               example: visit.node.rule!.module.example,
+              exampleSource: visit.node.rule!.module.exampleSource,
               required: required.has(visit.at),
             }));
 
@@ -222,6 +223,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     description: owner.rule.module.description,
     ruleText: owner.rule.module.rule.trim(),
     example: owner.rule.module.example,
+    exampleSource: owner.rule.module.exampleSource,
     constraints,
   });
 

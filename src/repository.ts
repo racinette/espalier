@@ -58,10 +58,9 @@ function validateExamples(root: string, espalier: Espalier): void {
   }
 
   for (const [modulePath, { patterns: globs, example }] of patterns) {
+    // `exampleSource` is source and has no file behind it; only `example` is a
+    // path, and only a path can be checked. docs/TYPES.MD.
     if (example === null) continue;
-    // The inline form is a source string rather than a path; only the path form
-    // carries the guarantee that it cannot drift.
-    if (example.includes("\n")) continue;
 
     if (!existsSync(path.join(root, example))) {
       fail("invalid_example", `${modulePath}: example "${example}" does not exist`);

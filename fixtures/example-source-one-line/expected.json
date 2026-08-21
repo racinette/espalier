@@ -1,0 +1,27 @@
+{
+  "exit": 0,
+  "issues": [
+    {
+      "path": "components/buttons/SubmitButton.tsx",
+      "code": "seen",
+      "severity": "info"
+    }
+  ],
+  "ownership": {
+    "components/buttons/SubmitButton.tsx": "components/buttons/[button].tsx.mjs"
+  },
+  "build": {
+    "exit": 0,
+    "report": [
+      {
+        "kind": "written",
+        "path": "AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "components/buttons/AGENTS.MD"
+      }
+    ]
+  },
+  "human": "human/report.txt"
+}

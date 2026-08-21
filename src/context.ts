@@ -37,6 +37,7 @@ export interface EmitOptions {
   ruleText: string | null;
   description?: string | null;
   example?: string | null;
+  exampleSource?: string | null;
   record: (issue: Issue) => void;
 }
 
@@ -80,6 +81,7 @@ export function createEmit(options: EmitOptions): (raw: unknown) => void {
       ruleText: options.ruleText,
       description: options.description,
       example: options.example,
+      exampleSource: options.exampleSource,
     });
   };
 }

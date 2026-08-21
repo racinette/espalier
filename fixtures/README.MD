@@ -168,7 +168,9 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `addons-shared-resource` | one setup, one shared object, one disposal |
 | `addons-disposed-on-failure` | disposal runs even when a rule throws |
 | `invalid-example` | an example that does not match its own rule's pattern |
-| `example-inline` | the inline form of `example`: exempt from the path checks, fenced when rendered |
+| `example-inline` | `exampleSource`: exempt from the path checks, fenced when rendered |
+| `example-source-one-line` | a one-line source, which the old newline rule could not express |
+| `invalid-example-both` | a module setting both example exports is refused, not resolved |
 | `optional-leaf` | an optional leaf on the spine and inside a dynamic directory, and both new sentences |
 | `invalid-optional` | `optional` on a dynamic leaf is rejected, not ignored |
 | `backreference-leaf` | `{name}` resolves, is required per instance, and coexists with a dynamic sibling |

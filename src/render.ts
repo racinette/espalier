@@ -413,6 +413,7 @@ export interface ConstraintGroup {
   description: string;
   ruleText: string;
   example: string | null;
+  exampleSource: string | null;
   /** The longest static prefix of the directory the constraint applies under. */
   prefix: string;
   members: Constraint[];
@@ -439,6 +440,7 @@ export function constraintGroups(espalier: Espalier): ConstraintGroup[] {
       ),
       ruleText: first.module.rule.trim(),
       example: first.module.example,
+      exampleSource: first.module.exampleSource,
       prefix: staticPrefix(first.directory),
       members,
     };
@@ -463,12 +465,11 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
 
     if (module.rule.trim() !== "") body.push(module.rule.trim());
 
-    if (module.example !== null) {
-      body.push(
-        module.example.includes("\n")
-          ? `Example:\n\n\`\`\`\n${module.example.trim()}\n\`\`\``
-          : `Example: ${module.example}`,
-      );
+    // A path reads as one line; source gets a fence, however many lines it has.
+    // docs/cli/build/README.MD "Rule sections".
+    if (module.example !== null) body.push(`Example: ${module.example}`);
+    if (module.exampleSource !== null) {
+      body.push(`Example:\n\n\`\`\`\n${module.exampleSource.trim()}\n\`\`\``);
     }
 
     // A section with nothing to say is omitted entirely, along with its

@@ -336,17 +336,17 @@ Open, both raised by dogfooding:
   was needed: both answers are about who owns the path, not about what the
   last run wrote. Pinned by `build-ignored-generated` and
   `nested-build-per-child`.
-- **Nothing documents how the two forms of `example` are told apart.**
-  `TYPES.MD` describes a path form and an inline form and gives each a
-  different guarantee, but never says which is which; the code decides on
-  "contains a newline" (`src/repository.ts`), so a one-line inline example is
-  indistinguishable from a path and fails with `invalid_example`. Two smaller
-  gaps follow from the same silence: `cli/explain/README.MD` and
-  `cli/lint/README.MD` both show only the path form, and the human lint
-  formatter interpolates `example` into a single `Reference implementation:`
-  line whatever form it is (`src/output.ts`), so a multi-line one breaks the
-  report's indentation. `example-inline` pins the multi-line case, which is the
-  only one any document describes.
+- ~~**Nothing documents how the two forms of `example` are told apart.**~~
+  **Closed**, by making them two exports. `example` is a path and is checked;
+  `exampleSource` is source and is not. Deciding by inspection was the problem
+  rather than the documentation of it: with one export told apart by "contains
+  a newline", the single-line value printed in TYPES.MD's own illustration was
+  read as a path and exited `2` saying the file did not exist. Setting both is
+  `module_invalid_export` — two examples that could disagree is worse than
+  either. The formatters follow: a path is one line, source is fenced in
+  `build` and indented under its heading in `lint` and `explain`. Pinned by
+  `example-inline`, `example-source-one-line` — which also holds the lint
+  report layout byte for byte — and `invalid-example-both`.
 
 - ~~`cli/adopt/README.MD` contradicts itself.~~ **Dissolved.** The worked
   example and the Output table disagreed about a `declared` kind, and the

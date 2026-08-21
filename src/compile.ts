@@ -22,6 +22,7 @@ export interface RuleModule {
   rule?: unknown;
   lint?: unknown;
   example?: unknown;
+  exampleSource?: unknown;
   optional?: unknown;
 }
 
@@ -30,6 +31,7 @@ export interface LoadedModule {
   rule: string;
   lint: (context: unknown) => unknown;
   example: string | null;
+  exampleSource: string | null;
   /** docs/TYPES.MD "optional". Always false for anything but a static leaf. */
   optional: boolean;
 }
@@ -139,6 +141,17 @@ async function loadModule(absolute: string, modulePath: string, kind: ModuleKind
   if (loaded.example !== undefined && typeof loaded.example !== "string") {
     fail("module_invalid_export", `${modulePath}: \`example\` must be a string`);
   }
+  if (loaded.exampleSource !== undefined && typeof loaded.exampleSource !== "string") {
+    fail("module_invalid_export", `${modulePath}: \`exampleSource\` must be a string`);
+  }
+  // Two examples that could disagree is worse than either, and nothing decides
+  // between them. docs/TYPES.MD "`example` and `exampleSource`".
+  if (typeof loaded.example === "string" && typeof loaded.exampleSource === "string") {
+    fail(
+      "module_invalid_export",
+      `${modulePath}: set \`example\` or \`exampleSource\`, not both`,
+    );
+  }
   if (loaded.optional !== undefined && typeof loaded.optional !== "boolean") {
     fail("module_invalid_export", `${modulePath}: \`optional\` must be a boolean`);
   }
@@ -159,6 +172,7 @@ async function loadModule(absolute: string, modulePath: string, kind: ModuleKind
     rule: loaded.rule,
     lint: loaded.lint as (context: unknown) => unknown,
     example: typeof loaded.example === "string" ? loaded.example : null,
+    exampleSource: typeof loaded.exampleSource === "string" ? loaded.exampleSource : null,
     optional: loaded.optional === true,
   };
 }
