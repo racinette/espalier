@@ -62,7 +62,7 @@ listed here only so nobody reopens them by accident.
 - **Error codes are emergent.** They are chosen at the throw site with no
   central registry, because we do not yet know which failures surface in real
   codebases. Three are load-bearing, pinned by fixtures: `ambiguous_siblings`,
-  `inconsistent_capture_names`, `ignored_required_path`.
+  `inconsistent_capture_names`, `ignored_required_path`, `conflicting_espaliers`.
 
 Taken while writing the `build` fixtures, and now in the documents:
 
@@ -211,6 +211,12 @@ Taken while writing the `explain` fixtures:
   meant leaving the read surface unspecified.
 - **Ignored is not declared.** An ungoverned path exits `1` like any other
   undeclared path, with `ignoredBy` naming the route.
+- **Espaliers do not nest.** A second `espalier.config.yaml` the root does not
+  ignore is `conflicting_espaliers`, because composing two espaliers over one
+  subtree gives a path two answers. The boundary is a partition: `ignore` hands
+  the subtree over whole, and rules are shared by `import` rather than by
+  inheritance. `invalid-conflicting-espaliers` and `nested-espalier-ignored`
+  pin both halves.
 
 ## Order of work
 

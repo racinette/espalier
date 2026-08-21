@@ -63,6 +63,7 @@ See [TYPES.MD](TYPES.MD).
 | Code | |
 |---|---|
 | `ignored_required_path` | a static leaf that `ignore` also matches — the configuration asks for both and gets neither |
+| `conflicting_espaliers` | a second `espalier.config.yaml` that `ignore` does not cover — two espaliers claiming one subtree |
 
 ## During a run
 

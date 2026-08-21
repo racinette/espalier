@@ -53,6 +53,16 @@ Ignored files are invisible, not exempt. No structural rule owns them, no constr
 
 Keep this list short. Boilerplate is handled by `defaultIgnore`, so what remains should be things specific to this project — and a long list of those is a signal that the espalier describes less of the repository than it claims to. Better for that to be visibly annoying in the config than filed away in a document of its own.
 
+### Nested espaliers
+
+One file, one owner. A repository holding a second `espalier.config.yaml` — a monorepo package that wants an espalier of its own — has to say which of the two governs that subtree, and the only available answer is the outer one giving it up. Any `espalier.config.yaml` other than the one this run loaded is a `conflicting_espaliers` failure unless `ignore` matches it.
+
+There is no composing them. If the root espalier declared `packages/web/src/` and the package's own espalier declared something else under `src/`, both would be right and one path would have two answers — worse than either alone. So the boundary is a partition rather than an overlay: `ignore: [packages/web/**]` hands the subtree over whole, and `espalier lint` run inside `packages/web` governs it in full.
+
+Ignore the package, not just its config. Ignoring the file alone leaves the rule modules beneath it visible to the outer run, which reports every one of them as `unexpected_path`.
+
+None of this stops packages sharing rules. A rule module is an ES module, so one espalier can `import` from another — put the constraints everyone follows in a single file and have each espalier pull them in. What a partition cannot give you is enforcement across the boundary: a subtree the root has ignored is a subtree the root can require nothing of.
+
 ## `defaultIgnore`
 
 Applies a built-in list of paths no project wants to govern: manifests and lockfiles, tool configuration, CI definitions, licence and editor files. Defaults to `true`.

@@ -142,6 +142,8 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `invalid-overlapping-siblings` | two dynamic siblings that can match the same filename |
 | `invalid-capture-names` | one dynamic directory described under two names |
 | `invalid-ignored-required-file` | a required static leaf that `ignore` also matches |
+| `invalid-conflicting-espaliers` | a second config the root does not ignore, and no composing the two |
+| `nested-espalier-ignored` | the subtree given up whole, so the second config is somebody else's |
 | `build-placement-and-pruning` | placement, pruning, ordering, and every part of the rendered document |
 | `build-double-catch` | two open sets described in one closed-set statement; the root is never pruned |
 | `build-unmarked-documentation` | a hand-written documentation file halts the run before anything is written |
