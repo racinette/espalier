@@ -305,6 +305,14 @@ Taken while writing the `explain` fixtures:
    in `render`. Pinned by `backreference-leaf` and `invalid-backreference`,
    with four deliberate breaks each failing the right fixture.
 
+10. ~~The `--inline` cardinality paragraph.~~ **Done.** A folded point
+   contributes its prose and its rule sections and nothing else. The nested
+   maps were already dropped as the root's; the paragraphs are those maps in
+   prose, and each was written relative to its own point, so folded in they
+   stated one rule several times in words that differed every time.
+   `fixtures/build-inline/FIXTURE.MD` argued the other way and now argues this
+   way, with the reversal on the record. Verified to guard.
+
 `--watch` is explicitly planned rather than pending.
 
 ## Open questions
