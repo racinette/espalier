@@ -55,6 +55,31 @@ test("check throws an OperationalError rather than returning it", async () => {
   );
 });
 
+test("check visits child espaliers and re-roots what they report", async () => {
+  const issues = await check({ cwd: path.join(fixturesDir, "nested-lint-recursion") });
+
+  const stray = issues.find((issue) => issue.code === "unexpected_path");
+  assert.equal(stray?.path, "packages/web/stray.ts");
+  assert.equal(stray?.espalier, "packages/web");
+  assert.ok(issues.some((issue) => issue.code === "child_ran"));
+});
+
+test("check raises a child's failure, but only once its siblings have run", async () => {
+  // That the siblings ran is pinned by the fixture, which sees the report the
+  // CLI writes. What is only visible here is that the failure survives the
+  // recursion and says whose it was. docs/API.MD `check(options)`.
+  const cwd = path.join(fixturesDir, "nested-child-failure");
+  await rejects(() => check({ cwd }), "invalid_espalier_entry");
+
+  let raised: unknown;
+  try {
+    await check({ cwd });
+  } catch (cause) {
+    raised = cause;
+  }
+  assert.ok((raised as Error).message.startsWith("packages/broken: "));
+});
+
 test("runRule returns what the module emitted, in the runner's shape", async () => {
   const module = {
     description: "a button component",

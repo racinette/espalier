@@ -1,0 +1,6 @@
+espalier: packages/broken: notes.txt: everything in the espalier is a rule module or an ESPALIER.MD  (invalid_espalier_entry)
+
+packages/ok/stray.ts
+  error  unexpected_path   this path is not declared in the espalier
+
+1 error

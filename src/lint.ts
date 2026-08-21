@@ -9,6 +9,7 @@ import { fail, OperationalError } from "./errors.js";
 import { matchGlob } from "./files.js";
 import { constraintCaptures, isOwnership, requiredFiles, type CaptureValue } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
+import { eachChild } from "./nested.js";
 import { open, type Repository } from "./repository.js";
 import { ignores } from "./ignore.js";
 
@@ -54,8 +55,39 @@ async function startAddons(repository: Repository): Promise<{
   };
 }
 
+/**
+ * The outer espalier, then every child below it. docs/cli/lint/README.MD
+ * "Nested espaliers".
+ *
+ * Scope arguments are resolved here and passed down absolute, because the
+ * directory they were written relative to is this one and every run below has a
+ * different root. A child the scope does not reach is not run at all.
+ */
 export async function lint(options: LintOptions, reporter: Reporter): Promise<number> {
   const repository = await open(options.config, options.cwd);
+  const { root } = repository.config;
+
+  const absolute = options.paths.map((entry) => path.resolve(options.cwd, entry));
+  const reaches = (child: string): boolean => {
+    if (absolute.length === 0) return true;
+    const at = path.join(root, child);
+    return absolute.some((target) => target === at || target.startsWith(`${at}${path.sep}`) || at.startsWith(`${target}${path.sep}`));
+  };
+
+  const here = await lintOne(repository, { ...options, paths: absolute }, reporter);
+
+  const below = await eachChild(root, repository.children.filter(reaches), reporter, (childRoot, childReporter) =>
+    lint({ ...options, cwd: childRoot, config: undefined, paths: absolute }, childReporter),
+  );
+
+  return Math.max(here, below);
+}
+
+async function lintOne(
+  repository: Repository,
+  options: LintOptions,
+  reporter: Reporter,
+): Promise<number> {
   const { config, espalier } = repository;
 
   let scope: string[] | null = null;

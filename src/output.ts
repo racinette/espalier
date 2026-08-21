@@ -25,6 +25,11 @@ export interface Issue {
   column: number | null;
   metadata: Record<string, unknown>;
   ruleText: string | null;
+  /**
+   * Repo-relative directory of the espalier that reported this, or null for the
+   * one the command loaded. docs/cli/lint/README.MD "Nested espaliers".
+   */
+  espalier?: string | null;
   /** Not reported; carried so the human formatter can show it. */
   description?: string | null;
   example?: string | null;
@@ -49,6 +54,8 @@ export interface BuildEntry {
   state?: DriftState;
   /** `written` only: the module declares the file optional. */
   optional?: boolean;
+  /** The espalier that produced it, or null for the one the command loaded. */
+  espalier?: string | null;
 }
 
 interface Destination {
@@ -70,7 +77,12 @@ function openDestination(out: string, root: string): Destination {
 export interface Reporter {
   issue(issue: Issue): void;
   warning(message: string): void;
-  failure(code: string, message: string, detail?: Record<string, unknown>): void;
+  failure(
+    code: string,
+    message: string,
+    detail?: Record<string, unknown>,
+    espalier?: string | null,
+  ): void;
   object(payload: Record<string, unknown>): void;
   explanation(answer: Explanation): void;
   record(entry: BuildEntry): void;
@@ -81,6 +93,7 @@ function serialize(issue: Issue): string {
   return JSON.stringify({
     kind: "issue",
     path: issue.path,
+    espalier: issue.espalier ?? null,
     code: issue.code,
     message: issue.message,
     severity: issue.severity,
@@ -124,8 +137,15 @@ class JsonlReporter implements Reporter {
     this.destination.write(`${JSON.stringify({ kind: "warning", message })}\n`);
   }
 
-  failure(code: string, message: string, detail: Record<string, unknown> = {}): void {
-    this.destination.write(`${JSON.stringify({ kind: "failure", code, message, detail })}\n`);
+  failure(
+    code: string,
+    message: string,
+    detail: Record<string, unknown> = {},
+    espalier: string | null = null,
+  ): void {
+    this.destination.write(
+      `${JSON.stringify({ kind: "failure", espalier, code, message, detail })}\n`,
+    );
   }
 
   object(payload: Record<string, unknown>): void {
@@ -137,7 +157,7 @@ class JsonlReporter implements Reporter {
   }
 
   record(entry: BuildEntry): void {
-    this.destination.write(`${JSON.stringify(entry)}\n`);
+    this.destination.write(`${JSON.stringify({ espalier: null, ...entry })}\n`);
   }
 
   finish(): void {
@@ -150,6 +170,13 @@ class HumanReporter implements Reporter {
   private readonly warnings: string[] = [];
   private readonly records: BuildEntry[] = [];
   private failed = false;
+  /**
+   * A failure of the run this reporter belongs to, as opposed to one inside a
+   * child espalier. Only the first kind means there is nothing to summarize;
+   * the second leaves every sibling's findings standing, and hiding them here
+   * would be the broken package concealing a violation in another.
+   */
+  private failedHere = false;
 
   constructor(
     private readonly destination: Destination,
@@ -164,9 +191,18 @@ class HumanReporter implements Reporter {
     this.warnings.push(message);
   }
 
-  failure(code: string, message: string): void {
+  failure(
+    code: string,
+    message: string,
+    _detail?: Record<string, unknown>,
+    espalier: string | null = null,
+  ): void {
     this.failed = true;
-    this.destination.write(`espalier: ${message}  (${code})\n`);
+    if (espalier === null) this.failedHere = true;
+    // A person reading a monorepo run needs to know which package could not be
+    // built; the path in the message is relative to that package, not to here.
+    const whose = espalier === null ? "" : `${espalier}: `;
+    this.destination.write(`espalier: ${whose}${message}  (${code})\n`);
   }
 
   object(payload: Record<string, unknown>): void {
@@ -206,8 +242,8 @@ class HumanReporter implements Reporter {
   }
 
   finish(): void {
-    // An operational failure means the run produced nothing to summarize.
-    if (this.failed) {
+    // An operational failure here means the run produced nothing to summarize.
+    if (this.failedHere) {
       this.destination.close();
       return;
     }

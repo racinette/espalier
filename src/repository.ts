@@ -3,6 +3,7 @@
 
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { findChildren } from "./children.js";
 import { compile, type Espalier } from "./compile.js";
 import { loadConfig, type Config } from "./config.js";
 import { DEFAULT_IGNORE } from "./defaults.js";
@@ -19,13 +20,15 @@ export interface Repository {
   visibleSet: Set<string>;
   /** User `ignore` only; the default list is a heuristic a declaration overrides. */
   ignoreRules: IgnoreRule[];
+  /** Repo-relative directories holding an espalier of their own, sorted. */
+  children: string[];
   resolve(filePath: string): Ownership | Recognition;
   /**
    * Which list excludes this path, or null when espalier governs it. `espalier`
    * covers the three things invisible unconditionally, which are grouped
    * together because a user cannot un-ignore any of them.
    */
-  ungoverned(filePath: string): "ignore" | "defaultIgnore" | "espalier" | null;
+  ungoverned(filePath: string): "ignore" | "defaultIgnore" | "espalier" | "child" | null;
 }
 
 function validateExamples(root: string, espalier: Espalier): void {
@@ -83,6 +86,10 @@ export async function open(configOption: string | undefined, cwd: string): Promi
   const espalierPrefix = `${config.espalierRoot}/`;
   const configRelative = path.relative(config.root, config.configPath).split(path.sep).join("/");
 
+  const candidates = collectCandidates(config.root);
+  const children = findChildren(candidates, configRelative, ignoreRules);
+  const childPrefixes = children.map((child) => `${child}/`);
+
   const ownership = new Map<string, Ownership | Recognition>();
   const lookup = (filePath: string): Ownership | Recognition => {
     let found = ownership.get(filePath);
@@ -93,12 +100,17 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     return found;
   };
 
-  const ungoverned = (candidate: string): "ignore" | "defaultIgnore" | "espalier" | null => {
+  const ungoverned = (candidate: string): "ignore" | "defaultIgnore" | "espalier" | "child" | null => {
     // Invisible unconditionally: espalier reporting on its own machinery is a
     // bug rather than a finding.
     if (candidate === configRelative) return "espalier";
     if (candidate === config.espalierRoot || candidate.startsWith(espalierPrefix)) return "espalier";
     if (candidate.split("/")[0] === ".git") return "espalier";
+
+    // A child espalier's subtree is not this espalier's to describe. Checked
+    // before anything else it could be, because the answer is not that this
+    // run excused the path — it is that the path was never this run's.
+    if (childPrefixes.some((prefix) => candidate.startsWith(prefix))) return "child";
     if (path.basename(candidate) === config.build.filename && isGenerated(config.root, candidate)) {
       return "espalier";
     }
@@ -115,7 +127,7 @@ export async function open(configOption: string | undefined, cwd: string): Promi
   };
 
   const visible: string[] = [];
-  for (const candidate of collectCandidates(config.root)) {
+  for (const candidate of candidates) {
     if (ungoverned(candidate) === null) visible.push(candidate);
   }
 
@@ -137,6 +149,7 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     visible,
     visibleSet: new Set(visible),
     ignoreRules,
+    children,
     resolve: lookup,
     ungoverned,
   };

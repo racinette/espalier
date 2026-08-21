@@ -218,7 +218,13 @@ Taken while writing the `explain` fixtures:
   answers. Rules are shared by `import`, never by inheritance, because an
   inherited constraint would make a file's answer depend on which espalier you
   ran. `ignore` demotes a child to plain content, which is what this repository
-  needs for `fixtures/`. Specified in CONFIG.MD "Nested espaliers"; not built.
+  needs for `fixtures/`. CONFIG.MD "Nested espaliers"; discovery in
+  `src/children.ts`, recursion in `src/nested.ts`, and four `nested-*` fixtures.
+- **A generated document names the children below it.** `## Governed elsewhere`
+  exists because the closed-set sentence and an undescribed directory the
+  reader can see are a contradiction otherwise. It names them and stops: a
+  summary of somebody else's rules is a second source of truth that goes stale
+  silently.
 
 ## Order of work
 

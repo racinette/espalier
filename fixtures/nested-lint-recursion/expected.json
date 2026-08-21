@@ -1,0 +1,41 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "path": "main.ts",
+      "code": "root_constraint_ran",
+      "severity": "info",
+      "espalier": null
+    },
+    {
+      "path": "packages/web/index.ts",
+      "code": "child_ran",
+      "severity": "info",
+      "espalier": "packages/web"
+    },
+    {
+      "path": "packages/web/stray.ts",
+      "code": "unexpected_path",
+      "severity": "error",
+      "espalier": "packages/web"
+    }
+  ],
+  "explain": {
+    "packages/web/index.ts": {
+      "exit": 0,
+      "object": {
+        "path": "packages/web/index.ts",
+        "espalier": "packages/web",
+        "rule": "index.ts.mjs"
+      }
+    },
+    "main.ts": {
+      "exit": 0,
+      "object": {
+        "path": "main.ts",
+        "espalier": null,
+        "rule": "main.ts.mjs"
+      }
+    }
+  }
+}

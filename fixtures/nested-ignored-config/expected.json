@@ -1,0 +1,25 @@
+{
+  "exit": 0,
+  "issues": [
+    {
+      "path": "templates/index.ts",
+      "code": "root_governed",
+      "severity": "info",
+      "espalier": null
+    }
+  ],
+  "explain": {
+    "templates/index.ts": {
+      "exit": 0,
+      "object": {
+        "path": "templates/index.ts",
+        "espalier": null,
+        "rule": "templates/index.ts.mjs"
+      }
+    },
+    "templates/espalier.config.yaml": {
+      "exit": 1,
+      "object": { "ignoredBy": "ignore", "rule": null }
+    }
+  }
+}

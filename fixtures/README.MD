@@ -39,6 +39,10 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 **Only the fields present are compared.** An expected issue naming `path`, `code` and `severity` asserts nothing about `line` or `ruleText`. This keeps fixtures readable and stops them failing over cosmetic changes to fields they were not written to test. The rule applies at every depth, so an expected `metadata` naming two keys asserts nothing about a third.
 
+**`error`** — the `code` of an expected `kind: "failure"` line. A fixture needing to pin another of its fields — which espalier reported it — gives an object instead, compared by the same partial rule as everything else.
+
+**`human`** — a file holding the exact `--format human` stdout of the same lint run, compared byte for byte.
+
 **`explain`** — expected `espalier explain --format jsonl` output for specific paths. Ownership is invisible in lint output when a repository is clean, so fixtures that pin *which rule owns what* assert it here rather than contriving a violation to make it observable.
 
 ```json
@@ -147,6 +151,10 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `build-unmarked-documentation` | a hand-written documentation file halts the run before anything is written |
 | `build-orphan-deletion` | orphans deleted, unchanged files left alone |
 | `build-ignored-generated` | an ignored path is not swept, and a real orphan still is |
+| `nested-lint-recursion` | a child is found and run, root rules stop at the boundary, paths are re-rooted |
+| `nested-ignored-config` | a config `ignore` matches is data, not a child |
+| `nested-child-failure` | one child that will not compile, and a sibling reported anyway |
+| `nested-build-per-child` | each child builds in its own frame, and the outer run sweeps none of it |
 | `build-check-drift` | `--check` reports `missing`, `changed` and `stale`, and writes nothing |
 | `build-inline` | one document at the root, and the distributed run's files removed |
 | `build-empty-rule` | a section with nothing to say is omitted, heading and all |

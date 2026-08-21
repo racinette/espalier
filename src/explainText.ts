@@ -37,6 +37,8 @@ export interface RuleAnswer {
 export interface PrefixAnswer {
   kind: "explanation";
   prefix: string;
+  /** The espalier that answered, or null for the one the command loaded. */
+  espalier?: string | null;
   description: string | null;
   body: string;
   captures: Record<string, CaptureValue>;
@@ -48,6 +50,8 @@ export interface PrefixAnswer {
 export interface OwnedAnswer {
   kind: "explanation";
   path: string;
+  /** The espalier that answered, or null for the one the command loaded. */
+  espalier?: string | null;
   rule: string;
   pattern: string;
   captures: Record<string, CaptureValue>;
@@ -60,6 +64,8 @@ export interface OwnedAnswer {
 export interface UndeclaredAnswer {
   kind: "explanation";
   path: string;
+  /** The espalier that answered, or null for the one the command loaded. */
+  espalier?: string | null;
   rule: null;
   pattern: null;
   captures: Record<string, CaptureValue>;
@@ -71,7 +77,9 @@ export interface UndeclaredAnswer {
 export interface UngovernedAnswer {
   kind: "explanation";
   path: string;
-  ignoredBy: "ignore" | "defaultIgnore" | "espalier";
+  /** The espalier that answered, or null for the one the command loaded. */
+  espalier?: string | null;
+  ignoredBy: "ignore" | "defaultIgnore" | "espalier" | "child";
   rule: null;
   pattern: null;
   captures: Record<string, CaptureValue>;
@@ -157,9 +165,18 @@ function constraintBlocks(constraints: ConstraintAnswer[], applying: string): st
 export function renderExplanation(answer: Explanation): string {
   const blocks: string[] = [];
 
+  // Which espalier is speaking, before what it says. Only ever present in a
+  // repository with children, and the answer for a path does not depend on the
+  // directory the command ran in — so this names the espalier, not the caller.
+  const answeredBy =
+    answer.espalier === null || answer.espalier === undefined
+      ? null
+      : `  Answered by  ${answer.espalier}`;
+
   if (isPrefixAnswer(answer)) {
     const shown = answer.prefix === "" ? "./" : answer.prefix;
     blocks.push(head(shown, answer.description));
+    if (answeredBy !== null) blocks.push(answeredBy);
     if (answer.body !== "") blocks.push(answer.body);
 
     if (answer.rules.length > 0) {
@@ -188,12 +205,15 @@ export function renderExplanation(answer: Explanation): string {
       ignore: "Ignored by the `ignore` list in espalier.config.yaml.",
       defaultIgnore: "Ignored by the default ignore list (defaultIgnore: true).",
       espalier: "Invisible unconditionally: espalier does not report on its own machinery.",
+      child: "Inside an espalier of its own, which is what answers for this path.",
     }[answer.ignoredBy];
-    return `${answer.path} is not governed by espalier.\n\n  ${reason}\n`;
+    const whose = answeredBy === null ? "" : `${answeredBy}\n\n`;
+    return `${answer.path} is not governed by espalier.\n\n${whose}  ${reason}\n`;
   }
 
   if (answer.rule === null) {
     blocks.push(`${answer.path} is not declared.`);
+    if (answeredBy !== null) blocks.push(answeredBy);
 
     if (answer.recognized === null) {
       blocks.push("  The espalier recognizes nothing on this path.");
@@ -212,6 +232,7 @@ export function renderExplanation(answer: Explanation): string {
   }
 
   blocks.push(head(answer.path, answer.description));
+  if (answeredBy !== null) blocks.push(answeredBy);
   blocks.push(
     [
       `  Owned by  ${answer.rule.replace(/\.mjs$/, "")}`,

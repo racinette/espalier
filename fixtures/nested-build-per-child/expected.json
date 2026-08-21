@@ -1,0 +1,9 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD", "espalier": null },
+      { "kind": "written", "path": "packages/api/PACKAGE.MD", "espalier": "packages/api" }
+    ]
+  }
+}

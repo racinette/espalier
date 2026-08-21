@@ -11,8 +11,9 @@ import { fail } from "./errors.js";
 import { collectCandidates, PROVENANCE } from "./files.js";
 import { ignores } from "./ignore.js";
 import type { Reporter } from "./output.js";
-import { plan, renderDistributed, renderInline } from "./render.js";
-import { open } from "./repository.js";
+import { eachChild } from "./nested.js";
+import { assignChildren, plan, renderDistributed, renderInline } from "./render.js";
+import { open, type Repository } from "./repository.js";
 
 export interface BuildOptions {
   cwd: string;
@@ -29,20 +30,57 @@ function read(absolute: string): string | null {
   }
 }
 
+/**
+ * The outer espalier, then every child below it. docs/cli/build/README.MD
+ * "Nested espaliers".
+ *
+ * `--inline` is the invocation's, not the configuration's, so it is not passed
+ * down: a child renders as its own config says to. Everything else about a
+ * child run is the child's already.
+ */
 export async function build(options: BuildOptions, reporter: Reporter): Promise<number> {
   const repository = await open(options.config, options.cwd);
+  const { root } = repository.config;
+
+  const here = await buildOne(repository, options, reporter);
+
+  const below = await eachChild(root, repository.children, reporter, (childRoot, childReporter) =>
+    build({ ...options, cwd: childRoot, config: undefined, inline: false }, childReporter),
+  );
+
+  return Math.max(here, below);
+}
+
+async function buildOne(
+  repository: Repository,
+  options: BuildOptions,
+  reporter: Reporter,
+): Promise<number> {
   const { root, build: settings } = repository.config;
   const inline = options.inline || settings.inline;
 
   const points = plan(repository.espalier);
 
+  const assigned = assignChildren(points, repository.children);
+
   const planned = new Map<string, string>();
   if (inline) {
-    planned.set(settings.filename, renderInline(repository.espalier, points, repository.config.espalierRoot));
+    planned.set(
+      settings.filename,
+      renderInline(repository.espalier, points, repository.config.espalierRoot, repository.children),
+    );
   } else {
     for (const point of points) {
       const at = point.at === "" ? settings.filename : `${point.at}/${settings.filename}`;
-      planned.set(at, renderDistributed(repository.espalier, point, repository.config.espalierRoot));
+      planned.set(
+        at,
+        renderDistributed(
+          repository.espalier,
+          point,
+          repository.config.espalierRoot,
+          assigned.get(point.at) ?? [],
+        ),
+      );
     }
   }
 
@@ -50,9 +88,12 @@ export async function build(options: BuildOptions, reporter: Reporter): Promise<
   // The raw walk rather than `repository.visible`, which excludes generated
   // files by design — they would otherwise be `unexpected_path` in every run —
   // and so would hide the very files this is looking for.
+  const childPrefixes = repository.children.map((child) => `${child}/`);
   const existing = new Map<string, string>();
   for (const candidate of collectCandidates(root)) {
     if (path.basename(candidate) !== settings.filename) continue;
+    // A child espalier's subtree is not this run's to read, describe or delete.
+    if (childPrefixes.some((prefix) => candidate.startsWith(prefix))) continue;
     const contents = read(path.join(root, candidate));
     if (contents !== null) existing.set(candidate, contents);
   }

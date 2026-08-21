@@ -1,0 +1,16 @@
+{
+  "exit": 2,
+  "error": {
+    "code": "invalid_espalier_entry",
+    "espalier": "packages/broken"
+  },
+  "issues": [
+    {
+      "path": "packages/ok/stray.ts",
+      "code": "unexpected_path",
+      "severity": "error",
+      "espalier": "packages/ok"
+    }
+  ],
+  "human": "human/report.txt"
+}

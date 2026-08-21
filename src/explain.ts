@@ -12,6 +12,7 @@ import { constraintCaptures, isOwnership, type CaptureValue } from "./match.js";
 import type { Reporter } from "./output.js";
 import { matchSegment } from "./pattern.js";
 import { cardinality, constraintGroups, isDirectory, requiredUnder, subtree } from "./render.js";
+import { delegated } from "./nested.js";
 import { open } from "./repository.js";
 
 export interface ExplainOptions {
@@ -85,6 +86,25 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     fail("path_outside_repository", `${options.target} is outside the repository`);
   }
 
+  // The espalier that answers is the nearest one at or above the path, so the
+  // answer does not depend on the directory the command ran in.
+  // docs/cli/explain/README.MD "Nested espaliers".
+  const child = repository.children.find(
+    (at) => target === at || target.startsWith(`${at}/`),
+  );
+  if (child !== undefined) {
+    return await explain(
+      {
+        cwd: path.join(repository.config.root, child),
+        config: undefined,
+        // A trailing slash is the reader asking for a prefix, and resolving the
+        // path away would silently change the question.
+        target: absolute + (options.target.endsWith("/") ? "/" : ""),
+      },
+      delegated(reporter, child),
+    );
+  }
+
   const groups = constraintGroups(espalier);
   const segments = target === "" ? [] : target.split("/");
   const found = descend(espalier, segments);
@@ -123,6 +143,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
 
     reporter.explanation({
       kind: "explanation",
+      espalier: null,
       prefix,
       description: doc?.description ?? null,
       body: doc?.body ?? "",
@@ -141,6 +162,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
   if (excluded !== null) {
     reporter.explanation({
       kind: "explanation",
+      espalier: null,
       path: target,
       ignoredBy: excluded,
       rule: null,
@@ -159,6 +181,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     // never run on it.
     reporter.explanation({
       kind: "explanation",
+      espalier: null,
       path: target,
       rule: null,
       pattern: null,
@@ -182,6 +205,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
 
   reporter.explanation({
     kind: "explanation",
+    espalier: null,
     path: target,
     rule: owner.rule.modulePath,
     pattern: owner.rule.pattern,

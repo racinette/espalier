@@ -31,11 +31,18 @@ export interface CheckOptions {
  * both ways of saying something to a person through a stream; a caller holding
  * the issues can decide for itself.
  */
-function collector(into: Issue[]): Reporter {
+function collector(into: Issue[], failures: OperationalError[]): Reporter {
   return {
     issue: (issue) => void into.push(issue),
     warning: () => {},
-    failure: () => {},
+    // A child espalier's failure arrives here rather than being thrown, so that
+    // its siblings still run. It is held and raised once they have: a caller
+    // holding issues from a run where one espalier never compiled would have no
+    // way to know which half of the repository the answer covers.
+    failure: (code, message, detail, espalier) =>
+      void failures.push(
+        new OperationalError(code, espalier == null ? message : `${espalier}: ${message}`, detail),
+      ),
     object: () => {},
     explanation: () => {},
     record: () => {},
@@ -46,6 +53,7 @@ function collector(into: Issue[]): Reporter {
 /** Runs the same lint the CLI runs, over a real repository. docs/API.MD. */
 export async function check(options: CheckOptions): Promise<Issue[]> {
   const issues: Issue[] = [];
+  const failures: OperationalError[] = [];
   await runLint(
     {
       cwd: options.cwd,
@@ -54,8 +62,9 @@ export async function check(options: CheckOptions): Promise<Issue[]> {
       rule: options.rule,
       ruleText: true,
     },
-    collector(issues),
+    collector(issues, failures),
   );
+  if (failures[0] !== undefined) throw failures[0];
   return issues;
 }
 

@@ -24,11 +24,13 @@ const fixturesDir = path.join(root, "fixtures");
 
 interface Expected {
   exit?: number;
-  error?: string;
+  error?: string | Record<string, unknown>;
   issues?: unknown[];
   explain?: Record<string, { exit: number; object: unknown; human?: string }>;
   ownership?: Record<string, string | null>;
   stderr?: string[];
+  /** A file holding the exact `--format human` stdout of the same lint run. */
+  human?: string;
   build?: WriteRun;
   init?: WriteRun;
   adopt?: WriteRun;
@@ -289,9 +291,14 @@ function checkLint(dir: string, expected: Expected): void {
 
   if (expected.error !== undefined) {
     const failures = lines.filter((line) => line.kind === "failure");
+    // A bare string is the common case and means the code alone. An object is
+    // compared by the same partial rule as everything else, for a fixture that
+    // needs to pin another field of the failure — which espalier reported it.
+    const want =
+      typeof expected.error === "string" ? { code: expected.error } : expected.error;
     assert.ok(
-      failures.some((failure) => failure.code === expected.error),
-      `expected a failure with code ${expected.error}, got ${JSON.stringify(failures)}`,
+      failures.some((failure) => mismatch(failure, want, "failure") === null),
+      `expected a failure matching ${JSON.stringify(want)}, got ${JSON.stringify(failures)}`,
     );
   }
 
@@ -300,6 +307,17 @@ function checkLint(dir: string, expected: Expected): void {
     expected.issues ?? [],
   );
   assert.ok(problems.length === 0, problems.join("\n"));
+
+  // What a person reads is a separate surface from what a machine parses, and a
+  // format nobody pins is a format that drifts.
+  if (expected.human !== undefined) {
+    const shown = run(dir, ["lint"]);
+    assert.equal(
+      shown.stdout,
+      readFileSync(path.join(dir, expected.human), "utf8"),
+      `lint --format human differs from ${expected.human}`,
+    );
+  }
 
   // Some effects have no reporting channel — addon disposal happens after the
   // last issue is emitted and after the exit code is decided. A marker on

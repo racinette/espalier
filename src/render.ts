@@ -275,6 +275,60 @@ function renderMap(espalier: Espalier, point: Placement): string | null {
 }
 
 /**
+ * Which placement point names each child espalier: the deepest one above it.
+ * Exactly one document names each, and it is the one whose closed set would
+ * otherwise have covered the directory.
+ * docs/cli/build/README.MD "Governed elsewhere".
+ */
+export function assignChildren(points: Placement[], children: string[]): Map<string, string[]> {
+  const assigned = new Map<string, string[]>();
+
+  for (const child of children) {
+    let deepest = "";
+    for (const point of points) {
+      if (point.at === "") continue;
+      if (child === point.at || child.startsWith(`${point.at}/`)) {
+        if (point.at.length > deepest.length) deepest = point.at;
+      }
+    }
+    const found = assigned.get(deepest);
+    if (found === undefined) assigned.set(deepest, [child]);
+    else found.push(child);
+  }
+
+  return assigned;
+}
+
+/**
+ * The section that keeps the closed set above it honest. A reader who can see a
+ * directory the document does not describe, under a sentence saying nothing
+ * else may exist here, is reading a contradiction; this is what resolves it.
+ *
+ * It names the children and stops. What they contain is not this espalier's to
+ * summarize — a copy of somebody else's rules is a second source of truth that
+ * goes stale silently — so the reader is sent to the directory instead.
+ */
+function renderChildren(at: string, children: string[], level: number): string[] {
+  if (children.length === 0) return [];
+
+  const prefix = at === "" ? "" : `${at}/`;
+  const names = children
+    .map((child) => `${child.slice(prefix.length)}/`)
+    .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+
+  const column = Math.max(...names.map((name) => name.length)) + 2;
+  const rows = names.map((name) => `    ${name.padEnd(column)}has an espalier of its own`);
+
+  return [
+    `${"#".repeat(level)} Governed elsewhere`,
+    rows.join("\n"),
+    names.length === 1
+      ? "Read the documentation inside it."
+      : "Read the documentation inside each one.",
+  ];
+}
+
+/**
  * The closed-set statement, as one unwrapped string. `build` wraps it; explain
  * reports it as it is. Sharing this is what keeps `espalier explain` and the
  * documentation in the repository from drifting apart — there is nothing
@@ -439,7 +493,12 @@ function marker(espalierRoot: string, at: string): string {
 }
 
 /** The body every document shares: prose, structure, sections. */
-function core(espalier: Espalier, point: Placement, level: number): string[] {
+function core(
+  espalier: Espalier,
+  point: Placement,
+  level: number,
+  children: string[],
+): string[] {
   const blocks: string[] = [];
 
   if (point.doc !== null && point.doc.body !== "") blocks.push(point.doc.body);
@@ -452,6 +511,7 @@ function core(espalier: Espalier, point: Placement, level: number): string[] {
     if (cardinality !== null) blocks.push(cardinality);
   }
 
+  blocks.push(...renderChildren(point.at, children, level));
   blocks.push(...renderSections(espalier, point, level));
   return blocks;
 }
@@ -460,8 +520,9 @@ export function renderDistributed(
   espalier: Espalier,
   point: Placement,
   espalierRoot: string,
+  children: string[] = [],
 ): string {
-  const blocks = [marker(espalierRoot, point.at), ...core(espalier, point, 2)];
+  const blocks = [marker(espalierRoot, point.at), ...core(espalier, point, 2, children)];
   if (point.at === "") blocks.push(CHECKING);
   blocks.push(AMENDING);
   return `${blocks.join("\n\n")}\n`;
@@ -476,9 +537,11 @@ export function renderInline(
   espalier: Espalier,
   points: Placement[],
   espalierRoot: string,
+  children: string[] = [],
 ): string {
   const root = points.find((point) => point.at === "")!;
-  const blocks = [marker(espalierRoot, ""), ...core(espalier, root, 2)];
+  const assigned = assignChildren(points, children);
+  const blocks = [marker(espalierRoot, ""), ...core(espalier, root, 2, assigned.get("") ?? [])];
 
   for (const point of points) {
     if (point.at === "") continue;
@@ -490,6 +553,7 @@ export function renderInline(
     const cardinality = renderCardinality(point);
     if (cardinality !== null) blocks.push(cardinality);
 
+    blocks.push(...renderChildren(point.at, assigned.get(point.at) ?? [], 3));
     blocks.push(...renderSections(espalier, point, 3));
   }
 
