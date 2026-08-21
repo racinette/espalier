@@ -112,7 +112,7 @@ Walking that subtree in map order produces, in this order:
 2. **Optional here.** `<a>, <b> and <c> are optional.` — every leaf reachable the same way whose module exports `optional`. A separate sentence rather than a qualifier inside the first, because the two say opposite things to the reader they are written for: one is what an agent must produce, the other what it may.
 3. **Per dynamic directory.** ``Zero or more `<path>/` directories may exist.`` When instantiating it requires files: `For each one that does, <a>, <b> and <c> are required.`, those paths relative to the instance. Optional descendants take a further `Each one may also have <a> and <b>.`, for the same reason the second sentence exists at the top level.
 4. **Per dynamic leaf.** ``Zero or more files matching `<path>` may exist.``
-5. **The closed set.** `Nothing else may exist under <path>/.`, or `under the repository root.` at the root.
+5. **The closed set.** `Nothing else may exist under <path>/.` At a placement point that is the espalier's own root there is no path to print — it would be `under .` — so the sentence anchors on the file's location instead: `Nothing else may exist under this directory.` A document has no way to know where it sits in an outer tree, by design, and claiming to be a repository or a root is wrong in a package on both counts. Where a child espalier falls inside the closed set, the sentence defers: `, apart from the directories that already have an espalier of their own.` Stated in general rather than by name, because **every** document whose subtree covers a child has to defer while only one names them — see [Governed elsewhere](#governed-elsewhere) — and an ancestor promising a list it does not carry would be a second lie in place of the first. `already` is load-bearing: this is an exception for the directories that have one, not a licence to create another.
 
 A resolved leaf appears in the required list of the instance it belongs to, written as authored: `For each one that does, {provider}.ts is required.` Rendering it as the shape it resolves to would need an instance to resolve against, and the paragraph describes the rule rather than any one directory.
 
@@ -124,9 +124,12 @@ Lists join with commas and a final `and`. A single item takes neither.
 
 ### Governed elsewhere
 
-A directory holding an espalier of its own is not described by this one, and the closed-set sentence above has just told the reader that nothing else may exist here. Both are true, and together they read as a contradiction to anyone who can see the directory. This section is what resolves it.
+A directory holding an espalier of its own is not described by this one, and the closed-set sentence above would otherwise have said nothing else may exist here — which a reader who can see the directory reads as a lie, not as a subtlety. Listing the children after an absolute sentence does not retract it, so the sentence defers instead and this section is what it defers to.
 
 ```markdown
+main.ts is required. Nothing else may exist under this directory, apart from
+the directories that already have an espalier of their own.
+
 ## Governed elsewhere
 
     packages/api/  has an espalier of its own
