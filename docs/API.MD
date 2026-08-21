@@ -34,7 +34,7 @@ test("the repository conforms", async () => {
 
 Returns `Promise<Issue[]>` — every issue, in the order the runner produced them, deduplicated no more than the CLI deduplicates them, which is not at all.
 
-Child espaliers are visited exactly as the CLI visits them, and their issues arrive in the same array with paths re-rooted to `cwd` and `espalier` naming the one that reported them. A failure inside a child raises, like any other, once the runs that could still complete have.
+Child espaliers are visited exactly as the CLI visits them, and their issues arrive in the same array with paths re-rooted to `cwd` and `espalier` naming the one that reported them. A failure inside a child raises, like any other, once the runs that could still complete have — the first in path order, with the child's directory on the front of the message.
 
 There is no exit code and no partial-run warning. Both are ways of saying something to a person through a stream; a caller holding the issues can decide for itself. Everything else is identical, including `addons` setup and disposal: `check` is the runner with a collecting reporter, not a second implementation.
 

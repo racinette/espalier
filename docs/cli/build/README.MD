@@ -85,6 +85,7 @@ The document is assembled in a fixed order. A section with nothing to say is omi
 provenance marker
 node prose                    the ESPALIER.MD body, verbatim
 ## Structure                  the map, then the cardinality paragraph
+## Governed elsewhere         child espaliers below this point, when any
 ## <rule> — <description>     one per structural rule placed here
 ## Constraints                one ### per constraint placed here
 ## Checking your work         root file only
@@ -120,6 +121,25 @@ Sentences 3 and 4 name the node by its authored path relative to the placement p
 A directory holding both a dynamic directory and a dynamic leaf simply gets both sentences, in that order, and one closing sentence covering them together. That shape is legal — see [MATCHING.MD](../../MATCHING.MD#ambiguity-is-rejected) — and two open sets are describable as long as each is described.
 
 Lists join with commas and a final `and`. A single item takes neither.
+
+### Governed elsewhere
+
+A directory holding an espalier of its own is not described by this one, and the closed-set sentence above has just told the reader that nothing else may exist here. Both are true, and together they read as a contradiction to anyone who can see the directory. This section is what resolves it.
+
+```markdown
+## Governed elsewhere
+
+    packages/api/  has an espalier of its own
+    packages/web/  has an espalier of its own
+
+Read the documentation inside each one.
+```
+
+An indented block, one line per child, sorted by path, aligned by the same rule as the map. Names are relative to the placement point and carry a trailing `/`. The closing sentence takes its singular form — `Read the documentation inside it.` — when there is one child.
+
+**Each child is named in exactly one document:** the one at the deepest placement point above it. A child two levels below the nearest placement point is still named there, as `tools/reports/`, because that is the document whose closed set would otherwise have covered it.
+
+The section names the children and stops. It does not say what they contain, which document to open, or what the child's `build.filename` is, because the outer espalier does not know and must not appear to: a summary of somebody else's rules is a second source of truth that goes stale silently. The reader is sent to the directory, where the child's own document is.
 
 ### Rule sections
 
@@ -258,6 +278,8 @@ appears to require changing that shape is a task to hand back, not to unblock.
 A directory holding an `espalier.config.yaml` of its own is a child espalier, and its subtree belongs to it. See [CONFIG.MD](../../CONFIG.MD#nested-espaliers).
 
 The outer run places no document inside a child's subtree and sweeps nothing there — the subtree is not its to describe. Each child is then built as its own run, with its own `build.filename` and `build.inline`, so a monorepo can keep distributed documents at the root and one inline document inside a package that prefers it. Neither run can see the other's output, which is why neither can delete it.
+
+Each child renders exactly as if it had been run alone: its `source:` marker, its `Amending this structure` text and its closed sets are all relative to the child's own root, because that is the frame a reader standing in the package is in. Only the report is re-rooted — its paths are relative to where the command was invoked, and each line's `espalier` names the run that produced it.
 
 `--check` recurses identically. Drift inside any espalier is drift, and the exit code is the worst of every run.
 
