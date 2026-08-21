@@ -73,6 +73,14 @@ A path outside the repository, or one that is not a directory. The espalier root
 
 Dot-prefixed paths *inside* an adopted directory are simply not inferred from — they are tooling rather than architecture, and [MATCHING.MD](../../MATCHING.MD#node-kinds) has the reasoning. They are not declared optional either, which is what everything else the inference passes over now becomes: a dot-prefixed path cannot be declared at all, so there is no module to write and nothing for the architect to revisit. `ignore` is where they belong.
 
+## Nested espaliers
+
+A directory holding an `espalier.config.yaml` of its own is a child espalier, and its subtree belongs to it. See [CONFIG.MD](../../CONFIG.MD#nested-espaliers).
+
+**A target inside a child is adopted by that child.** The espalier that gains the modules is the nearest one at or above the target, exactly as with [`explain`](../explain/README.MD#nested-espaliers), so `espalier adopt packages/web/src` writes into `packages/web/espalier/` whether it was run from the repository root or from inside the package. Writing them into the outer espalier would declare files that espalier cannot see and will never lint.
+
+**A child inside the target is skipped.** `adopt packages` infers across every package that has no espalier of its own and passes over the ones that do — subtree, config and rule modules alike. They are not declared optional either. Optionality is what the inference says about a file it could have declared and did not always find; a child's contents are not this espalier's to declare at all, and a stub inviting the architect to revisit one would be inviting them to break the boundary.
+
 ## Inference
 
 Two signals, both conservative, and **two of a thing is a pattern**. That threshold comes from the failure being asymmetric rather than from confidence: two directories that happen to look alike cost you a placeholder to rename, while an espalier that declared them separately forbids the third one.
