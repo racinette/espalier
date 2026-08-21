@@ -548,8 +548,9 @@ export function renderDistributed(
 
 /**
  * One document at the root, with every other placement point folded into it a
- * heading level down. There is one map, because the root's was always the whole
- * repository, and one amendment instruction, because there is one file.
+ * heading level down. There is one map and one cardinality paragraph, because
+ * the root's were always the whole repository, and one amendment instruction,
+ * because there is one file.
  */
 export function renderInline(
   espalier: Espalier,
@@ -563,17 +564,23 @@ export function renderInline(
 
   for (const point of points) {
     if (point.at === "") continue;
-    const heading = point.doc?.description == null ? "" : ` — ${point.doc.description}`;
-    blocks.push(`## ${point.at}/${heading}`);
-
-    if (point.doc !== null && point.doc.body !== "") blocks.push(point.doc.body);
-
+    // Prose and rule sections only. The root's map and cardinality paragraph
+    // cover the whole repository already, and both are written relative to the
+    // point that produced them — folded in, they would state one rule several
+    // times over in words that differ every time.
+    // docs/cli/build/README.MD "`--inline`".
     const inside = assigned.get(point.at) ?? [];
-    const cardinality = renderCardinality(point, covers(point.at, children));
-    if (cardinality !== null) blocks.push(cardinality);
+    const body: string[] = [];
+    if (point.doc !== null && point.doc.body !== "") body.push(point.doc.body);
+    body.push(...renderChildren(point.at, inside, 3));
+    body.push(...renderSections(espalier, point, 3));
+    // A point exists because it has a document or rules of its own, so this is
+    // all but unreachable — a description with an empty body and nothing placed
+    // here. A bare heading is still not written.
+    if (body.length === 0) continue;
 
-    blocks.push(...renderChildren(point.at, inside, 3));
-    blocks.push(...renderSections(espalier, point, 3));
+    const heading = point.doc?.description == null ? "" : ` — ${point.doc.description}`;
+    blocks.push(`## ${point.at}/${heading}`, ...body);
   }
 
   blocks.push(CHECKING, AMENDING);

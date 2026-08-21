@@ -363,14 +363,16 @@ The document is the root document with the other placement points folded into it
 Outbound API integrations. Every upstream provider gets its own directory;
 nothing outside src/clients/ performs HTTP requests directly.
 
-Zero or more `[provider]/` directories may exist. For each one that does,
-handlers/webhook.ts, client.ts and requestModels.ts are required. Nothing
-else may exist under src/clients/.
-
 ### src/clients/[provider]/client.ts — an integration with an external API
 ```
 
-Everything shifts one heading level down; nothing else changes, and the rule bodies are the same bytes they would have been distributed. There is no second map — the root's already covers the repository — and the amendment instruction appears once, at the end.
+**A folded point contributes its prose and its rule sections, and nothing else.** Everything shifts one heading level down, and the rule bodies are the same bytes they would have been distributed.
+
+There is no second map and no second cardinality paragraph, because the root's are the whole repository already and the paragraph is that map restated in prose. Both are written relative to the point that produced them, so folded in they would state one rule several times over in words that differ every time — `[provider]/` here, `clients/[provider]/` a section up, `src/clients/[provider]/` at the root — leaving the reader to work out that the three are one. The distributed form repeats itself because each of its files is read alone, which is exactly what this mode is not.
+
+A point exists because it has a document or rules of its own, so this leaves it with something to say. One whose document has a description and an empty body would be left with a bare heading, and loses the heading too, under the ordinary rule that a section with nothing in it is not written.
+
+The amendment instruction appears once, at the end.
 
 Switching modes deletes the files the other mode produced. They carry the marker, this run did not produce them, and that is the whole orphan rule doing its ordinary job.
 

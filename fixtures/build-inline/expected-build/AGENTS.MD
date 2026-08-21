@@ -20,9 +20,6 @@ Wire up the application and start it.
 
 ## components/buttons/
 
-Zero or more files matching `[button].tsx` may exist. Nothing else may exist
-under components/buttons/.
-
 ### components/buttons/[button].tsx — a button component
 
 Default-export a single component named after the file.
