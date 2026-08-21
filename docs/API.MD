@@ -34,6 +34,8 @@ test("the repository conforms", async () => {
 
 Returns `Promise<Issue[]>` — every issue, in the order the runner produced them, deduplicated no more than the CLI deduplicates them, which is not at all.
 
+Child espaliers are visited exactly as the CLI visits them, and their issues arrive in the same array with paths re-rooted to `cwd` and `espalier` naming the one that reported them. A failure inside a child raises, like any other, once the runs that could still complete have.
+
 There is no exit code and no partial-run warning. Both are ways of saying something to a person through a stream; a caller holding the issues can decide for itself. Everything else is identical, including `addons` setup and disposal: `check` is the runner with a collecting reporter, not a second implementation.
 
 An operational failure — an espalier that does not compile, a rule that throws, an issue with no `code` — raises an `OperationalError` carrying the `code` from [ERRORS.MD](ERRORS.MD). It is thrown rather than returned because it is not a finding about the repository.

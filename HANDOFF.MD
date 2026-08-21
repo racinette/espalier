@@ -62,7 +62,7 @@ listed here only so nobody reopens them by accident.
 - **Error codes are emergent.** They are chosen at the throw site with no
   central registry, because we do not yet know which failures surface in real
   codebases. Three are load-bearing, pinned by fixtures: `ambiguous_siblings`,
-  `inconsistent_capture_names`, `ignored_required_path`, `conflicting_espaliers`.
+  `inconsistent_capture_names`, `ignored_required_path`.
 
 Taken while writing the `build` fixtures, and now in the documents:
 
@@ -211,12 +211,14 @@ Taken while writing the `explain` fixtures:
   meant leaving the read surface unspecified.
 - **Ignored is not declared.** An ungoverned path exits `1` like any other
   undeclared path, with `ignoredBy` naming the route.
-- **Espaliers do not nest.** A second `espalier.config.yaml` the root does not
-  ignore is `conflicting_espaliers`, because composing two espaliers over one
-  subtree gives a path two answers. The boundary is a partition: `ignore` hands
-  the subtree over whole, and rules are shared by `import` rather than by
-  inheritance. `invalid-conflicting-espaliers` and `nested-espalier-ignored`
-  pin both halves.
+- **Espaliers partition, they do not compose.** A directory holding a config of
+  its own is a child espalier: its subtree leaves the outer one, and every
+  command then runs it as a separate run. Discovery and recursion are one
+  feature — either alone leaves a subtree ungoverned or gives a path two
+  answers. Rules are shared by `import`, never by inheritance, because an
+  inherited constraint would make a file's answer depend on which espalier you
+  ran. `ignore` demotes a child to plain content, which is what this repository
+  needs for `fixtures/`. Specified in CONFIG.MD "Nested espaliers"; not built.
 
 ## Order of work
 

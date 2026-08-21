@@ -253,6 +253,14 @@ appears to require changing that shape is a task to hand back, not to unblock.
 
 `handlers/` sorts ahead of its file siblings because directories come first, and the cardinality sentence lists the same three leaves in the same order — a reader comparing the sentence against the map should not have to re-sort it in their head. `no-as-any` is a constraint on `[...path]`, whose longest static prefix is the root, so it renders in the root file and not here.
 
+## Nested espaliers
+
+A directory holding an `espalier.config.yaml` of its own is a child espalier, and its subtree belongs to it. See [CONFIG.MD](../../CONFIG.MD#nested-espaliers).
+
+The outer run places no document inside a child's subtree and sweeps nothing there — the subtree is not its to describe. Each child is then built as its own run, with its own `build.filename` and `build.inline`, so a monorepo can keep distributed documents at the root and one inline document inside a package that prefers it. Neither run can see the other's output, which is why neither can delete it.
+
+`--check` recurses identically. Drift inside any espalier is drift, and the exit code is the worst of every run.
+
 ## Ownership
 
 Output is distributed through the tree rather than confined to one directory, so ownership is tracked by provenance rather than by path. Every generated file opens with a marker:
@@ -266,7 +274,7 @@ That one line does three jobs: it tells `build` which files it may delete, it te
 `source:` names the espalier directory the file was rendered from — the configured `root` for the root document, `root` plus the placement point below it otherwise. It is there for a human reading the generated file who wants to know where to go and edit; nothing reads it back, and orphan detection uses the marker's presence rather than its contents.
 
 - Files bearing the marker are rewritten each run. Any that this run did not produce — because the espalier node was renamed or removed — are deleted, since a document that keeps steering agents after its rule is gone is worse than no document.
-- **The sweep is confined to what the configuration governs.** A marked file matched by `ignore` is never a candidate for deletion. The marker says a file is generated documentation; it does not say it is *this* run's. A repository holding a copy of `espalier`'s output — a golden fixture, a vendored package, a nested project with its own espalier — would otherwise lose it on the first build, with nothing to warn it.
+- **The sweep is confined to what the configuration governs.** A marked file matched by `ignore` is never a candidate for deletion. The marker says a file is generated documentation; it does not say it is *this* run's. A repository holding a copy of `espalier`'s output — a golden fixture, a vendored copy of another repository — would otherwise lose it on the first build, with nothing to warn it.
 - A documentation file **without** the marker halts the build. Move its content into the corresponding `ESPALIER.MD` and run again; `build` will not eat a hand-written file.
 - Generated files are invisible to matching, so espalier's own output is never reported as `unexpected_path`.
 

@@ -142,6 +142,20 @@ The three cases read:
   Invisible unconditionally: espalier does not report on its own machinery.
 ```
 
+## Nested espaliers
+
+The espalier that answers is the nearest one at or above the path — the same rule matching uses, so the answer is the one that would actually govern the file. See [CONFIG.MD](../../CONFIG.MD#nested-espaliers).
+
+```text
+$ espalier explain packages/web/src/index.ts
+
+  Answered by  packages/web
+```
+
+This is what makes `explain` trustworthy in a monorepo: run it from the repository root or from inside the package and the answer is the same, because the espalier is chosen by the path rather than by the working directory. `explain` never recurses — one path has one owner, so there is nothing to aggregate.
+
+A prefix is a different question. It lists what one espalier declares, so a prefix spanning a child boundary lists only the outer espalier's declarations and says where the boundary is.
+
 ## Human layout
 
 Fixed, so the output is scannable and diffable:

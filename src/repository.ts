@@ -4,7 +4,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { compile, type Espalier } from "./compile.js";
-import { CONFIG_FILENAME, loadConfig, type Config } from "./config.js";
+import { loadConfig, type Config } from "./config.js";
 import { DEFAULT_IGNORE } from "./defaults.js";
 import { fail } from "./errors.js";
 import { collectCandidates, isGenerated, matchGlob } from "./files.js";
@@ -117,20 +117,6 @@ export async function open(configOption: string | undefined, cwd: string): Promi
   const visible: string[] = [];
   for (const candidate of collectCandidates(config.root)) {
     if (ungoverned(candidate) === null) visible.push(candidate);
-  }
-
-  // One file, one owner. A second config means another espalier claims part of
-  // this tree, and there is no composing the two — a path with two answers is
-  // worse than either of them. `visible` rather than the raw walk, because
-  // `ignore` is what gives a subtree up, and giving it up is the resolution.
-  // docs/CONFIG.MD "Nested espaliers".
-  for (const candidate of visible) {
-    if (path.basename(candidate) !== CONFIG_FILENAME) continue;
-    fail(
-      "conflicting_espaliers",
-      `${candidate} is a second espalier; add the directory holding it to \`ignore\``,
-      { path: candidate },
-    );
   }
 
   // Ignoring is not declaring. A path both required and ignored is a

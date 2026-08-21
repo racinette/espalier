@@ -44,6 +44,18 @@ A scoped run cannot tell you the repository conforms — only that the part you 
 
 There is no `--staged`. A pre-commit hook already knows which files it is about to commit, and passing them as arguments is one shell substitution — `espalier lint $(git diff --name-only --cached)`. Building that into the tool would have meant a git-index dependency, a flag whose behaviour nobody could pin without making fixtures into git repositories, and a second spelling of scoping that already exists.
 
+## Nested espaliers
+
+A directory holding an `espalier.config.yaml` of its own is a child espalier, and its subtree belongs to it rather than to the outer one. See [CONFIG.MD](../../CONFIG.MD#nested-espaliers).
+
+`lint` runs them all. The outer run finishes first — including `addons` disposal, since a child shares nothing with it — and each child is then visited in turn as a complete separate run. A child's own children are found by the child's run, so nesting has no depth limit.
+
+**Paths are re-rooted.** A child reports paths relative to itself; the outer run rewrites them relative to where the command was invoked, so `packages/web/src/index.ts` reads the same whether it came from the root espalier or the one inside `packages/web`. The `espalier` field on the issue says which one spoke.
+
+**Scoping applies first.** A child whose directory does not intersect the path arguments is not run at all. `espalier lint packages/api` visits the espalier in `packages/api` and no other.
+
+**A child that fails does not stop its siblings.** The run reports the failure with its `espalier` field set, continues to the next child, and exits `2`. This is the one place a failure is not the end of the run, and the partition is why: the outer espalier and every sibling are complete without it, and a broken package hiding a violation in another package would be a worse report than the one that names both. What a `2` promises is unchanged — the output is partial, however much of it arrived.
+
 ## Issues
 
 An issue is one finding at one path. Fields come from the `emit` call, plus what the runner knows:
@@ -55,6 +67,7 @@ An issue is one finding at one path. Fields come from the `emit` call, plus what
 | `message` | human-readable description, from the rule |
 | `severity` | `error`, `warning`, or `info`; defaults to `error` |
 | `rule` | espalier-relative module path, or `null` for built-in issues |
+| `espalier` | repo-relative directory of the espalier that reported it, or `null` for the one this command loaded |
 | `pattern` | the normalized glob that matched, or `null` |
 | `captures` | values from placeholders in the matched pattern |
 | `line`, `column` | 1-based, or `null` |
@@ -139,8 +152,8 @@ One JSON object per line, nothing else. No header, no summary object, no wrappin
 Every line carries a `kind` — `issue`, `warning`, or `failure`. A reader dispatches on one field rather than inferring from which keys happen to be present, and a line whose `kind` it does not recognize is one it can skip rather than one it misreads.
 
 ```json
-{"kind":"issue","path":"clients/acme/random.ts","code":"unexpected_path","message":"…","severity":"error","rule":null,"pattern":null,"captures":{},"line":null,"column":null,"metadata":{"recognized":"clients/[provider]","captures":{"provider":"acme"},"declared":["client.ts","requestModels.ts"]},"ruleText":null}
-{"kind":"issue","path":"clients/stripe/client.ts","code":"missing_factory","message":"…","severity":"error","rule":"clients/[provider]/client.ts.mjs","pattern":"clients/*/client.ts","captures":{"provider":"stripe"},"line":12,"column":3,"metadata":{},"ruleText":"…"}
+{"kind":"issue","path":"clients/acme/random.ts","code":"unexpected_path","message":"…","severity":"error","espalier":null,"rule":null,"pattern":null,"captures":{},"line":null,"column":null,"metadata":{"recognized":"clients/[provider]","captures":{"provider":"acme"},"declared":["client.ts","requestModels.ts"]},"ruleText":null}
+{"kind":"issue","path":"clients/stripe/client.ts","code":"missing_factory","message":"…","severity":"error","espalier":null,"rule":"clients/[provider]/client.ts.mjs","pattern":"clients/*/client.ts","captures":{"provider":"stripe"},"line":12,"column":3,"metadata":{},"ruleText":"…"}
 {"kind":"warning","message":"scoped run — 3 of 214 files checked"}
 {"kind":"failure","code":"ambiguous_siblings","message":"…"}
 ```
@@ -160,6 +173,8 @@ Presentation is the formatter's business, and formatters may buffer. `human` gro
 | `0` | no error-severity issues |
 | `1` | one or more error-severity issues |
 | `2` | operational failure |
+
+In a repository with child espaliers the code is the worst of every run: `2` if any espalier failed, otherwise `1` if any reported an error-severity issue, otherwise `0`.
 
 Warnings and info do not fail the run. There is no flag to make them fail: severity belongs to the rule that emits it, and a project that wants a build to break changes the rule rather than the invocation. One rule, one answer, everywhere it runs.
 

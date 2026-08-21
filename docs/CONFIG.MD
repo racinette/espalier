@@ -31,6 +31,30 @@ Every key except `version` is optional. Unknown keys are errors — a typo in a 
 
 If no config is found, `espalier` exits `2`. There is no implicit default configuration, because guessing a repository root is a good way to lint someone's home directory.
 
+## Nested espaliers
+
+A package in a monorepo may hold an `espalier.config.yaml` of its own. Finding one is how `espalier` learns where one espalier's authority ends and another's begins: **the boundary is discovered, never declared.** There is no `children` key and no list to keep in sync — putting a config in a directory is the whole act.
+
+**A directory holding a config is a child espalier, and its subtree leaves the outer one.** Nothing under it is matched or owned, no constraint reaches in — a root `[...path]` rule stops at the boundary — nothing there is `unexpected_path`, and `build` neither places a document there nor sweeps one away.
+
+**Every command then runs it.** `lint` and `build` at the root visit each child once the outer run is finished, and a visit is a complete separate run: its own config, its own espalier, its own `defaultIgnore`, `addons` and `build` settings, and its own children beneath it. Nothing is inherited and nothing crosses.
+
+Those two halves are one feature. A subtree that left the outer espalier and were never visited would be ungoverned, which is the failure this tool exists to prevent. A subtree visited from inside the outer run would answer to two espaliers at once, and a path with two answers is worse than either. Together they say: **every file is governed by exactly one espalier, and one command still checks them all.**
+
+The alternative was to let the outer espalier's rules reach in, which sounds like sharing and is not. A file's answer would then depend on which espalier you happened to run — the root's constraints in CI, the package's on a developer's machine — and a rule that means different things depending on where you stood is not a rule. Rules are shared the way code is shared: a rule module is an ES module, so several espaliers can `import` the same constraint and each declares that it applies.
+
+The trade is explicit. The root can require nothing of a child, because it cannot see one. If every package must have a `README.MD`, each package's espalier says so.
+
+### Suppressing discovery
+
+`ignore` still wins. A config the outer `ignore` matches is not a child at all: the subtree is ignored the ordinary way and nothing recurses into it.
+
+That is what a repository storing configs as data needs. `espalier`'s own `fixtures/` holds sixty of them, several deliberately invalid, and `espalier lint` at the root running all sixty is not what anyone means by it. Ignoring the config file alone is enough to demote a child to plain content, though ignoring the directory is usually what is wanted.
+
+### Making one
+
+`cd packages/web && espalier init`. The outer espalier stops governing that subtree the moment the config exists, and starts recursing into it in the same moment. Nothing at the root needs editing.
+
 ## `version`
 
 Required. Currently `1`. An unrecognized version is an error rather than a warning — a config written for a future release will mean something different than what this release would do with it.
@@ -49,19 +73,11 @@ This is the only escape from strict structural enforcement. Everything else in t
 
 Ignored files are invisible, not exempt. No structural rule owns them, no constraint runs against them, and they cannot satisfy a required leaf. If a path is both required by a static leaf in the espalier and matched by `ignore`, the configuration contradicts itself and `espalier` exits `2` rather than quietly passing.
 
-`build` does not delete under an ignored path either. Generated documentation is identified by its provenance header rather than by its location, so a repository that keeps a copy of `espalier`'s output — a golden fixture, a vendored package, a nested project with an espalier of its own — holds files a run cannot tell from its own by looking. `ignore` is where you say they are not this run's to sweep.
+`build` does not delete under an ignored path either. Generated documentation is identified by its provenance header rather than by its location, so a repository that keeps a copy of `espalier`'s output — a golden fixture, a vendored copy of another repository — holds files a run cannot tell from its own by looking. `ignore` is where you say they are not this run's to sweep.
+
+`ignore` also decides what is *not* a child espalier. See [Nested espaliers](#nested-espaliers).
 
 Keep this list short. Boilerplate is handled by `defaultIgnore`, so what remains should be things specific to this project — and a long list of those is a signal that the espalier describes less of the repository than it claims to. Better for that to be visibly annoying in the config than filed away in a document of its own.
-
-### Nested espaliers
-
-One file, one owner. A repository holding a second `espalier.config.yaml` — a monorepo package that wants an espalier of its own — has to say which of the two governs that subtree, and the only available answer is the outer one giving it up. Any `espalier.config.yaml` other than the one this run loaded is a `conflicting_espaliers` failure unless `ignore` matches it.
-
-There is no composing them. If the root espalier declared `packages/web/src/` and the package's own espalier declared something else under `src/`, both would be right and one path would have two answers — worse than either alone. So the boundary is a partition rather than an overlay: `ignore: [packages/web/**]` hands the subtree over whole, and `espalier lint` run inside `packages/web` governs it in full.
-
-Ignore the package, not just its config. Ignoring the file alone leaves the rule modules beneath it visible to the outer run, which reports every one of them as `unexpected_path`.
-
-None of this stops packages sharing rules. A rule module is an ES module, so one espalier can `import` from another — put the constraints everyone follows in a single file and have each espalier pull them in. What a partition cannot give you is enforcement across the boundary: a subtree the root has ignored is a subtree the root can require nothing of.
 
 ## `defaultIgnore`
 
