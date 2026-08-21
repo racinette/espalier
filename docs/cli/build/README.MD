@@ -284,7 +284,11 @@ The outer run places no document inside a child's subtree and sweeps nothing the
 
 Each child renders exactly as if it had been run alone: its `source:` marker, its `Amending this structure` text and its closed sets are all relative to the child's own root, because that is the frame a reader standing in the package is in. Only the report is re-rooted — its paths are relative to where the command was invoked, and each line's `espalier` names the run that produced it.
 
-`--check` recurses identically. Drift inside any espalier is drift, and the exit code is the worst of every run.
+**Nothing is written unless every espalier planned successfully.** Each one is rendered in memory, the whole set is checked, and only then does anything reach the filesystem. A child that will not compile means no documents at all — not the root's, not a healthy sibling's.
+
+This is where `build` and [`lint`](../lint/README.MD#nested-espaliers) part company, and the difference is what each of them produces. `lint` writes to a stream: it is advisory, it ends when the run does, and a sibling's findings are worth having even when one package is broken. `build` writes files that outlive the run, and the exit code does not. A tree half-built across espaliers is a root document sending readers to a directory with nothing in it, and nothing in the file to say why. Every failure is reported, so a run that writes nothing still names all of what is wrong.
+
+`--check` is the exception, because it writes nothing to begin with: it reports the drift it found in the espaliers that planned, alongside any failure, and exits `2`. Drift inside any espalier is drift, and the exit code is the worst of every run.
 
 ## Ownership
 

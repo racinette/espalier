@@ -73,6 +73,8 @@ A path outside the repository, or one that is not a directory. The espalier root
 
 Dot-prefixed paths *inside* an adopted directory are simply not inferred from — they are tooling rather than architecture, and [MATCHING.MD](../../MATCHING.MD#node-kinds) has the reasoning. They are not declared optional either, which is what everything else the inference passes over now becomes: a dot-prefixed path cannot be declared at all, so there is no module to write and nothing for the architect to revisit. `ignore` is where they belong.
 
+The espalier root and the configuration are not inferred from either, for the reason they are invisible to matching: espalier does not describe its own machinery. Nor are they evidence of a shape — with `root: tools/espalier`, counting the espalier root as a sibling is how `adopt tools` turns `tools/espalier/` and `tools/lib/` into one dynamic directory nobody chose.
+
 ## Nested espaliers
 
 A directory holding an `espalier.config.yaml` of its own is a child espalier, and its subtree belongs to it. See [CONFIG.MD](../../CONFIG.MD#nested-espaliers).
@@ -126,7 +128,10 @@ Mechanical, and meant to be renamed:
 ```text
 src/clients/stripe/      →  [client]      the parent directory, singularised
 components/*.tsx         →  [tsx]         the extension, when there is no parent to name
+alpha/, beta/            →  [directory]   at the repository root, which has no name
 ```
+
+The root is the one place with no parent to borrow from — paths are root-relative, so its name is the empty string. `[directory]` is the same kind of guess as `[client]`: mechanical, obviously a placeholder, and renaming it is step one of [After adopting](#after-adopting).
 
 Singularising is naive — it strips a trailing `s`, and nothing more. `[client]` for a `clients/` directory is right often enough to be worth doing and wrong in a way that is obvious on sight, which is the useful combination for a name you are being asked to replace.
 
