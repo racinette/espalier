@@ -512,6 +512,28 @@ Copied rather than applied is the whole of the change in kind. An upgrade can no
 longer alter what a repository governs, and `explain` answers with a line in a
 file the user owns instead of the name of a list inside the tool.
 
+## Packaging
+
+Settled while getting the tarball right:
+
+- **MIT**, `LICENSE` written, `Copyright (c) 2026 Andrei Karavatski`. The
+  manifest had declared MIT for some time, so the file made true what was
+  already claimed rather than choosing anything. Apache-2.0 was the only real
+  alternative and was declined: its patent grant is close to theoretical for an
+  architecture linter, and the ceremony is not free. `author` is the name
+  without an email.
+- **`repository`, `homepage`, `bugs`** point at `racinette/espalier`. The first
+  is load-bearing: npm resolves relative links in a rendered README against it,
+  so without it every `docs/…` link on the package page 404s.
+- **`prepublishOnly`** deletes `dist/` and runs the suite. `dist/` is gitignored
+  and nothing cleaned it, so `files: ["dist/src", "ignores"]` shipped whatever
+  was sitting there — stale JavaScript no test had run against, in a tarball
+  that looked normal. Verified both ways: a dry run rebuilds and passes 108
+  tests, and a deliberately failing test aborts the publish before a tarball
+  exists.
+- `ignores/` is in `files`. `LICENSE`, `README.MD` and `package.json` are
+  included by npm regardless of that list.
+
 ## Constraints
 
 - The docs are the specification. If the code and a document disagree, the

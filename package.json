@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "description": "An architecture compiler for agent-driven development",
   "license": "MIT",
+  "author": "Andrei Karavatski",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/racinette/espalier.git"
+  },
+  "homepage": "https://github.com/racinette/espalier#readme",
+  "bugs": "https://github.com/racinette/espalier/issues",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -21,6 +28,7 @@
     "ignores"
   ],
   "scripts": {
+    "prepublishOnly": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\" && npm test",
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test dist/test/*.test.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
