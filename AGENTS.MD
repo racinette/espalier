@@ -9,16 +9,16 @@ the two still point at each other, rather than checking style.
 
 ## Structure
 
-    docs/
-      cli/
+    docs/                   the specification
+      cli/                  one page per command
         [command]/
           README.MD         the page for one command
       [doc].MD              a specification document
-    ignores/
+    ignores/                the ignore lists espalier ships
       [language].gitignore  a shipped ignore list
-    src/
+    src/                    the implementation
       [name].ts             an implementation module
-    test/
+    test/                   the argument that the tool works
       [name].test.ts        a test module
     HANDOFF.MD              the record of what was decided and why
     README.MD               the front page
