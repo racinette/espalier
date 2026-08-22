@@ -178,6 +178,14 @@ async function lintOne(
   const contents = new Map<string, string>();
   const readFile = async (target: string, whose: string): Promise<string> => {
     const normalized = within(target, whose);
+    // A file this espalier does not govern is a file it does not watch: nothing
+    // stamps it, so a rule that read one would be replayed after it changed.
+    if (!repository.visibleSet.has(normalized)) {
+      fail(
+        "read_ungoverned",
+        `${whose}: "${normalized}" is not among the files this espalier governs — ignored, invisible, or absent`,
+      );
+    }
     watching?.reads.add(normalized);
     const cached = contents.get(normalized);
     if (cached !== undefined) return cached;

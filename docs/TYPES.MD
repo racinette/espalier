@@ -197,9 +197,11 @@ Captures name values. They never constrain the relationship between them: both `
  * Otherwise (or if `path` is `undefined`), reads the file indicated
  * by the context's `path` property.
  *
- * Paths are repository-relative. Reading outside the repository, or
- * reading a file that does not exist, is an operational failure —
- * check with `files` first if a file's existence is in question.
+ * Paths are repository-relative, and must name a file this espalier
+ * governs — the same set `files` lists. Reading outside the repository,
+ * reading an ignored or invisible path, or reading a file that does not
+ * exist, is an operational failure — check with `files` first if a
+ * file's existence is in question.
  *
  * The result is cached for the duration of the lint run,
  * so repeated calls do not re-read the file.
@@ -273,6 +275,8 @@ Captures name values. They never constrain the relationship between them: both `
 ## Execution
 
 Rules execute independently, in unspecified order, with no shared state. A rule may read any visible file, but must not assume another rule has or has not run.
+
+**Visible is the whole of what a rule may see.** `read` refuses a path outside the governed set with `read_ungoverned`, and `files` never returns one. This is not tidiness: an ungoverned path is one nothing stamps, so a rule that depended on one would be replayed unchanged after it changed. A rule that needs to consult an ignored file is a rule whose espalier should stop ignoring it.
 
 **A `lint` function must be pure.** Its answer must follow from what it is handed — `path`, `pattern`, `captures`, and whatever `read` and `files` return — and from nothing else. The clock, the network and the environment are not inputs the runner can see, so a rule that consults one will be replayed from cache with an answer it would no longer give. The failure is silent: a stale pass, not an error. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
 

@@ -73,6 +73,8 @@ The unit is one rule invocation — a module, the pattern that matched, and the 
 
 A `lint` function must be a function of what it is handed: `path`, `pattern`, `captures`, and whatever `read` and `files` return. One that consults the clock, the network, or the environment will be replayed with an answer it would no longer give, and the failure is silent — a stale pass, not an error. See [TYPES.MD](../../TYPES.MD#execution).
 
+The governed set bounds this. `read` refuses a path the espalier does not govern, with `read_ungoverned`, and `files` never returns one — an ignored or invisible path is one nothing stamps, so a rule that depended on one would be replayed unchanged after it changed. A rule that needs to consult such a file is a rule whose espalier should stop ignoring it.
+
 `addons` are held to the same standard, with one addition: **an addon must not read the repository itself.** A parser handed a path opens a file the run never saw, and that dependency goes unrecorded. Hand it contents, or `read` the path first and throw the string away.
 
 ### The cache

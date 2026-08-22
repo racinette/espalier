@@ -326,9 +326,77 @@ test("a rule whose read is gone does not replay", () => {
     const warm = run(root, "second");
 
     // A missing path cannot match the stamp it had, so the rule runs — and
-    // discovers for itself that what it depends on is gone.
+    // discovers for itself that what it depends on is gone. A deleted file is
+    // no longer a candidate, so it fails the scope check before the open.
     assert.equal(warm.status, 2, "a rule replayed over a file that no longer exists");
-    assert.equal(warm.failures[0]?.["code"], "read_failed");
+    assert.equal(warm.failures[0]?.["code"], "read_ungoverned");
+  } finally {
+    discard(root);
+  }
+});
+
+test("files never lists a path the espalier does not govern", () => {
+  const root = repository(
+    module(`  const found = await context.files("**/*");
+  emit({ code: "listed", message: found.join(","), severity: "warning" });`),
+  );
+  try {
+    writeFileSync(path.join(root, "notes.txt"), "not governed\n");
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nignore:\n  - notes.txt\n",
+    );
+
+    // The glob matches `notes.txt` outright. What keeps it out of the listing
+    // is the governed set, which is also the set the cache stamps.
+    const listed = lint(root, "first");
+    assert.deepEqual(listed, { "a.ts": "a.ts,b.ts", "b.ts": "a.ts,b.ts" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("read refuses a path the espalier does not govern", () => {
+  const root = repository(
+    module(`  await context.read("notes.txt");
+  emit({ code: "token", message: ${token}, severity: "warning" });`),
+  );
+  try {
+    writeFileSync(path.join(root, "notes.txt"), "not governed\n");
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nignore:\n  - notes.txt\n",
+    );
+
+    // The file is there and readable. Being ungoverned is the whole objection:
+    // nothing stamps it, so a rule that depended on it could never be replayed
+    // safely.
+    const failed = run(root, "first");
+    assert.equal(failed.status, 2, "a rule read an ignored file");
+    assert.equal(failed.failures[0]?.["code"], "read_ungoverned");
+  } finally {
+    discard(root);
+  }
+});
+
+test("an edited config discards the cache", () => {
+  const root = repository();
+  try {
+    assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
+
+    // Nothing under the espalier moved, and neither file changed. The config
+    // decides what is governed and what each rule may see, so an entry recorded
+    // under the old one describes a run that no longer exists.
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nignore:\n  - notes.txt\n",
+    );
+
+    assert.deepEqual(
+      lint(root, "second"),
+      { "a.ts": "second", "b.ts": "second" },
+      "an entry recorded under a different config was replayed",
+    );
   } finally {
     discard(root);
   }

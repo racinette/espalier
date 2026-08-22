@@ -339,6 +339,15 @@ Taken while writing the `explain` fixtures:
    against a throwaway copy. `test/api.test.ts` runs `check` with
    `cache: false`, because fixtures are inputs.
 
+   The cache also bounded what a rule may see. `read` used to accept any path
+   inside the repository; it now refuses one outside the governed set with
+   `read_ungoverned`, because an ungoverned path is one nothing stamps and a
+   rule depending on one would replay stale. `files` was already scoped and
+   documented that way, and now has a test saying so. The version key covers
+   the config as well as the espalier, since the config decides scope — worth
+   remembering if `ignore` ever gains an external source such as `.gitignore`,
+   which would have to join the key.
+
    `--watch` was dropped. Its stated reason was keeping `addons` warm between
    checks, and addons are pure by contract — the process is stateful, its
    answers are not — so there was nothing to keep warm. What the reason was

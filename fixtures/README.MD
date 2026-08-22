@@ -201,6 +201,12 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `adopt-skips-espalier-root` | a target containing the espalier root does not infer from it |
 | `adopt-root-target` | the root has no name to singularise, and no empty path segment |
 | `adopt-into-child` | a target inside a child is adopted by the child's espalier |
+| `lint-cache-replay` | an unchanged file is not linted again |
+| `lint-cache-read-dependency` | a rule reruns when a file it read changed, and only that rule |
+| `lint-cache-glob-dependency` | a listing that gained a file reruns the rules that listed it |
+| `lint-cache-espalier-changed` | an edited espalier discards every entry, not the edited rule's |
+| `lint-cache-not-trusted` | a cache written against another espalier is discarded unread |
+| `read-ungoverned` | `read` refuses an ignored file, though it exists and is readable |
 
 ## Adding one
 

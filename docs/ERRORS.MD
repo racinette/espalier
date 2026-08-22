@@ -72,6 +72,7 @@ See [TYPES.MD](TYPES.MD).
 | `invalid_issue` | `emit` was called with something that is not a well-formed issue |
 | `invalid_issue_path` | an issue's `path` is absolute, empty, or escapes the repository |
 | `read_failed` | `read` could not open a file — check with `files` first if existence is in question |
+| `read_ungoverned` | `read` was given a path outside the governed set — ignored, invisible, another espalier's, or not there |
 | `git_failed` | `git ls-files` did not succeed in a git-backed root |
 
 ## Addons
