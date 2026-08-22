@@ -1,0 +1,58 @@
+{
+  "exit": 0,
+  "env": {
+    "ESPALIER_FIXTURE_TOKEN": "first"
+  },
+  "issues": [
+    {
+      "path": "a.ts",
+      "code": "token",
+      "message": "first",
+      "severity": "warning"
+    },
+    {
+      "path": "b.ts",
+      "code": "token",
+      "message": "first",
+      "severity": "warning"
+    },
+    {
+      "path": "shared.ts",
+      "code": "token",
+      "message": "first",
+      "severity": "warning"
+    }
+  ],
+  "ownership": {
+    "a.ts": "a.ts.mjs",
+    "b.ts": "b.ts.mjs",
+    "shared.ts": "shared.ts.mjs"
+  },
+  "again": {
+    "apply": "after",
+    "env": {
+      "ESPALIER_FIXTURE_TOKEN": "second"
+    },
+    "exit": 0,
+    "issues": [
+      {
+        "path": "a.ts",
+        "code": "token",
+        "message": "second",
+        "severity": "warning"
+      },
+      {
+        "path": "b.ts",
+        "code": "token",
+        "message": "first",
+        "severity": "warning"
+      },
+      {
+        "path": "shared.ts",
+        "code": "token",
+        "message": "second",
+        "severity": "warning"
+      }
+    ]
+  }
+}

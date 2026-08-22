@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { dependencies, listing, open as openCache, stored, type Dependencies } from "./cache.js";
 import type { Constraint, StructuralRule } from "./compile.js";
 import { createEmit, within } from "./context.js";
 import { fail, OperationalError } from "./errors.js";
@@ -19,6 +20,8 @@ export interface LintOptions {
   paths: string[];
   rule: string | undefined;
   ruleText: boolean;
+  /** Read and write the incremental cache. `--no-cache` turns it off. */
+  cache: boolean;
 }
 
 async function startAddons(repository: Repository): Promise<{
@@ -162,23 +165,37 @@ async function lintOne(
 
   const { addons, dispose } = await startAddons(repository);
 
-  const cache = new Map<string, string>();
+  const globOf = (pattern: string): string =>
+    listing(repository.visible.filter((target) => matchGlob(pattern, target)));
+
+  const cache = openCache(config, options.cache, globOf);
+
+  // What the invocation currently running has looked at. Rules run one at a
+  // time, so one slot is enough; it is null while nothing is running, and the
+  // context functions belong to whichever invocation is holding it.
+  let watching: Dependencies | null = null;
+
+  const contents = new Map<string, string>();
   const readFile = async (target: string, whose: string): Promise<string> => {
     const normalized = within(target, whose);
-    const cached = cache.get(normalized);
+    watching?.reads.add(normalized);
+    const cached = contents.get(normalized);
     if (cached !== undefined) return cached;
-    let contents: string;
+    let text: string;
     try {
-      contents = readFileSync(path.join(config.root, normalized), "utf8");
+      text = readFileSync(path.join(config.root, normalized), "utf8");
     } catch (cause) {
       fail("read_failed", `${whose}: could not read "${normalized}": ${(cause as Error).message}`);
     }
-    cache.set(normalized, contents);
-    return contents;
+    contents.set(normalized, text);
+    return text;
   };
 
-  const listFiles = async (pattern: string): Promise<string[]> =>
-    repository.visible.filter((target) => matchGlob(pattern, target));
+  const listFiles = async (pattern: string): Promise<string[]> => {
+    const found = repository.visible.filter((target) => matchGlob(pattern, target));
+    watching?.globs.set(pattern, listing(found));
+    return found;
+  };
 
   const invoke = async (
     modulePath: string,
@@ -189,6 +206,26 @@ async function lintOne(
   ): Promise<void> => {
     if (options.rule !== undefined && options.rule !== modulePath) return;
 
+    // Everything an issue carries beyond what `emit` was given is derived from
+    // the module and the match, and both are pinned by the cache's key, so a
+    // replayed issue is the issue the rule would have emitted again.
+    const derived = {
+      rule: modulePath,
+      pattern,
+      captures,
+      ruleText: options.ruleText ? module.rule : null,
+      description: module.description,
+      example: module.example,
+      exampleSource: module.exampleSource,
+    };
+
+    const replayed = cache.replay(modulePath, pattern, target);
+    if (replayed !== null) {
+      for (const issue of replayed) record({ ...issue, ...derived });
+      return;
+    }
+
+    const produced: ReturnType<typeof stored>[] = [];
     const emit = createEmit({
       modulePath,
       pattern,
@@ -198,9 +235,14 @@ async function lintOne(
       description: module.description,
       example: module.example,
       exampleSource: module.exampleSource,
-      record,
+      record: (issue) => {
+        produced.push(stored(issue));
+        record(issue);
+      },
     });
 
+    const watched = dependencies();
+    watching = watched;
     try {
       await module.lint({
         path: target,
@@ -216,7 +258,11 @@ async function lintOne(
       // A rule that throws is a bug in the rule, not a finding about the
       // repository.
       fail("rule_threw", `${modulePath} threw while linting ${target}: ${(cause as Error).message}`);
+    } finally {
+      watching = null;
     }
+
+    cache.record(modulePath, pattern, target, watched, produced);
   };
 
   const applicable = (target: string): { constraint: Constraint; captures: Record<string, CaptureValue> }[] =>
@@ -238,6 +284,10 @@ async function lintOne(
   } finally {
     await dispose();
   }
+
+  // Only a run that saw everything may drop what it did not see. A run that
+  // failed does not get here at all: half a work list is not a record of one.
+  cache.write(scope === null && options.rule === undefined);
 
   if (scope !== null) {
     reporter.warning(

@@ -313,25 +313,32 @@ Taken while writing the `explain` fixtures:
    `fixtures/build-inline/FIXTURE.MD` argued the other way and now argues this
    way, with the reversal on the record. Verified to guard.
 
-11. **Incremental lint.** Specified, not built. `lint` caches what each rule
-   invocation read, listed and emitted, and replays the ones whose inputs are
-   unchanged, so an unscoped run is affordable and scoping stops being the way
-   to get speed. Keyed on size and mtime, never hashes; any change under the
-   espalier root voids the whole cache; structural findings are always fresh.
-   `docs/cli/lint/README.MD` "Incremental runs" is the specification, with the
-   purity obligation in `docs/TYPES.MD` "Execution" and `docs/CONFIG.MD`
-   "`addons`".
+11. ~~Incremental lint.~~ **Done.** `src/cache.ts` keys one entry per rule
+   invocation — module, pattern, path — holding the paths it read, the globs
+   it listed and the issues it emitted. An entry replays when every read still
+   has its size and mtime, every glob still returns the same list, and the
+   espalier version matches; nothing is hashed but the espalier itself, so a
+   warm run opens no source file. Ownership resolution is untouched and runs
+   in full, so `unexpected_path` and `missing_required_file` are always fresh.
+   `--no-cache` and `check({ cache: false })` opt out. Every failure of the
+   cache is silent by construction: `src/cache.ts` throws nowhere.
 
-   Tests are the hard part, because the feature is deliberately unobservable —
-   output is byte-identical warm and cold. A skip is made visible by a rule
-   that lies: emit `process.env.SOMETHING`, change it between runs, and a warm
-   run still reporting the old value proves the replay. That needs the fixture
-   harness to learn a second run with mutations between; `checkLint` running
-   against a throwaway copy is the first step and is already in.
+   Guarded by five fixtures and `test/cache.test.ts`, with ten deliberate
+   breaks each failing the right test — no replay, unchecked reads, unchecked
+   globs, a frozen espalier version, a trusted foreign header, a target that
+   is not its own dependency, pruning on a narrowed run, never pruning, and an
+   ignored `--no-cache`. `lint-cache-not-trusted` passed at first for the
+   wrong reason, saved by a stale stamp rather than by the header check; its
+   entry now depends on nothing, so the header is the only thing that can turn
+   it away.
+
+   The harness learned `env` and `again` for this, and `checkLint` runs
+   against a throwaway copy. `test/api.test.ts` runs `check` with
+   `cache: false`, because fixtures are inputs.
 
    `--watch` was dropped. Its stated reason was keeping `addons` warm between
    checks, and addons are pure by contract — the process is stateful, its
-   answers are not — so there is nothing to keep warm. What the reason was
+   answers are not — so there was nothing to keep warm. What the reason was
    actually describing is the cache.
 
 ## Open questions

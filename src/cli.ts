@@ -35,6 +35,7 @@ const USAGE = `espalier <command> [options]
   lint only:
   --rule <module>       run one rule module only
   --no-rule-text        omit rule bodies from output
+  --no-cache            re-run every rule, and write no cache
 `;
 
 async function main(): Promise<number> {
@@ -71,6 +72,7 @@ async function main(): Promise<number> {
         "dry-run": { type: "boolean" },
         rule: { type: "string" },
         "no-rule-text": { type: "boolean" },
+        "no-cache": { type: "boolean" },
       },
     }) as { values: Record<string, unknown>; positionals: string[] });
   } catch (cause) {
@@ -146,6 +148,7 @@ async function main(): Promise<number> {
         paths: positionals,
         rule: values["rule"] as string | undefined,
         ruleText: values["no-rule-text"] !== true,
+        cache: values["no-cache"] !== true,
       },
       reporter,
     );

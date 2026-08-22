@@ -63,7 +63,7 @@ The unit is one rule invocation — a module, the pattern that matched, and the 
 
 **Nothing is hashed.** Size and modification time come from the file's inode, so a warm run opens no source file at all — its whole I/O is listing the repository, reading the cache, and one `stat` per path some rule depended on. What this leaves open is a file edited within the same second to the same length. Closing it would mean reading every file in the repository on every run, which is the cost being avoided.
 
-**The espalier is all-or-nothing.** Any change under `root`, or to the config, discards the cache entirely. One comparison covers a rule edit, a module the rules import, a renamed node and a changed setting, where tracking them apart would mean walking the module graph. The architect changes the espalier far less often than the repository changes under it.
+**The espalier is all-or-nothing.** Any change under `root`, or to the config, discards the cache entirely. One comparison covers a rule edit, a module the rules import, a renamed node and a changed setting, where tracking them apart would mean walking the module graph. The architect changes the espalier far less often than the repository changes under it. The `addons` module counts as well, since what it returns decides what rules are told. A module *it* imports does not: it lives outside the espalier, where there is no directory to hash and no bound on what could be reached. Editing one is the one change that needs a `--no-cache` run to take effect.
 
 **Structural findings are never cached.** Ownership resolution reads no file contents and runs in full every time, so `unexpected_path` and `missing_required_file` are always fresh. Only rule bodies are skipped.
 

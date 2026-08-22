@@ -43,6 +43,22 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 **`human`** — a file holding the exact `--format human` stdout of the same lint run, compared byte for byte.
 
+**`env`** — environment the lint run is given, on top of the harness's own. Only an impure rule has any use for it, and only one fixture family has a use for an impure rule: warm and cold output are identical by design, so a token the runner cannot see is the only way a skipped rule becomes visible.
+
+**`again`** — a second `lint` over the same copy, after something changed. Only an incremental run has anything to say here; a fixture that reran without a cache would be asserting that the same input gives the same answer.
+
+```json
+"again": {
+  "apply": "after",
+  "delete": ["src/gone.ts"],
+  "env": { "ESPALIER_FIXTURE_TOKEN": "second" },
+  "exit": 0,
+  "issues": [ ... ]
+}
+```
+
+`apply` names a directory in the fixture copied over the repository — files to add, or to replace. `delete` removes paths. `env` applies to this run alone. `exit` and `issues` are compared exactly as the first run's are. A fixture with an `after/` directory ignores it in its config, like the rest of its scaffolding.
+
 **`explain`** — expected `espalier explain --format jsonl` output for specific paths. Ownership is invisible in lint output when a repository is clean, so fixtures that pin *which rule owns what* assert it here rather than contriving a violation to make it observable.
 
 ```json

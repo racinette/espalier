@@ -24,6 +24,8 @@ export interface CheckOptions {
   paths?: string[];
   /** Run one rule module only, by espalier-relative path. */
   rule?: string;
+  /** Read and write the incremental cache. Defaults to true. */
+  cache?: boolean;
 }
 
 /**
@@ -61,6 +63,7 @@ export async function check(options: CheckOptions): Promise<Issue[]> {
       paths: options.paths ?? [],
       rule: options.rule,
       ruleText: true,
+      cache: options.cache ?? true,
     },
     collector(issues, failures),
   );

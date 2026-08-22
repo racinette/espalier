@@ -98,7 +98,7 @@ function emptyNode(display: string, segment: Segment): TrieNode {
   return { display, segment, captures: captureNames(segment), children: new Map(), rule: null };
 }
 
-function listEntries(absolute: string, prefix: string): string[] {
+export function listEntries(absolute: string, prefix: string): string[] {
   const found: string[] = [];
   for (const entry of readdirSync(absolute, { withFileTypes: true }).sort((a, b) =>
     a.name < b.name ? -1 : a.name > b.name ? 1 : 0,

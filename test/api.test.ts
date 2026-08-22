@@ -14,6 +14,14 @@ import { check, OperationalError, runRule } from "../src/api.js";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(here, "..", "..", "fixtures");
 
+/**
+ * Fixtures are inputs and are never written into, so these runs do not cache.
+ * `check` caches by default, like the CLI it shares a runner with; what that
+ * costs is covered by test/cache.test.ts, against repositories it builds
+ * itself and then throws away.
+ */
+const cold: typeof check = (options) => check({ ...options, cache: false });
+
 async function rejects(run: () => Promise<unknown>, code: string): Promise<void> {
   await assert.rejects(run, (error: unknown) => {
     assert.ok(error instanceof OperationalError, `expected an OperationalError, got ${String(error)}`);
@@ -23,7 +31,7 @@ async function rejects(run: () => Promise<unknown>, code: string): Promise<void>
 }
 
 test("check returns the issues a run would have printed", async () => {
-  const issues = await check({ cwd: path.join(fixturesDir, "unexpected-path-recognized-node") });
+  const issues = await cold({ cwd: path.join(fixturesDir, "unexpected-path-recognized-node") });
 
   assert.ok(issues.length > 0);
   assert.ok(issues.every((issue) => issue.code === "unexpected_path"));
@@ -31,7 +39,7 @@ test("check returns the issues a run would have printed", async () => {
 });
 
 test("check reports nothing for a conforming repository", async () => {
-  const issues = await check({ cwd: path.join(fixturesDir, "ownership-static-beats-dynamic") });
+  const issues = await cold({ cwd: path.join(fixturesDir, "ownership-static-beats-dynamic") });
 
   assert.deepEqual(
     issues.filter((issue) => issue.severity === "error"),
@@ -41,8 +49,8 @@ test("check reports nothing for a conforming repository", async () => {
 
 test("check scopes to the paths it is given", async () => {
   const cwd = path.join(fixturesDir, "unexpected-path-recognized-node");
-  const all = await check({ cwd });
-  const scoped = await check({ cwd, paths: [path.join(cwd, "components")] });
+  const all = await cold({ cwd });
+  const scoped = await cold({ cwd, paths: [path.join(cwd, "components")] });
 
   assert.ok(scoped.length < all.length);
   assert.ok(scoped.every((issue) => issue.path.startsWith("components/")));
@@ -50,13 +58,13 @@ test("check scopes to the paths it is given", async () => {
 
 test("check throws an OperationalError rather than returning it", async () => {
   await rejects(
-    () => check({ cwd: path.join(fixturesDir, "invalid-capture-names") }),
+    () => cold({ cwd: path.join(fixturesDir, "invalid-capture-names") }),
     "inconsistent_capture_names",
   );
 });
 
 test("check visits child espaliers and re-roots what they report", async () => {
-  const issues = await check({ cwd: path.join(fixturesDir, "nested-lint-recursion") });
+  const issues = await cold({ cwd: path.join(fixturesDir, "nested-lint-recursion") });
 
   const stray = issues.find((issue) => issue.code === "unexpected_path");
   assert.equal(stray?.path, "packages/web/stray.ts");
@@ -69,11 +77,11 @@ test("check raises a child's failure, but only once its siblings have run", asyn
   // CLI writes. What is only visible here is that the failure survives the
   // recursion and says whose it was. docs/API.MD `check(options)`.
   const cwd = path.join(fixturesDir, "nested-child-failure");
-  await rejects(() => check({ cwd }), "invalid_espalier_entry");
+  await rejects(() => cold({ cwd }), "invalid_espalier_entry");
 
   let raised: unknown;
   try {
-    await check({ cwd });
+    await cold({ cwd });
   } catch (cause) {
     raised = cause;
   }
