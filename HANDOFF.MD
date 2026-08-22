@@ -323,14 +323,17 @@ Taken while writing the `explain` fixtures:
    `--no-cache` and `check({ cache: false })` opt out. Every failure of the
    cache is silent by construction: `src/cache.ts` throws nowhere.
 
-   Guarded by five fixtures and `test/cache.test.ts`, with ten deliberate
-   breaks each failing the right test — no replay, unchecked reads, unchecked
-   globs, a frozen espalier version, a trusted foreign header, a target that
-   is not its own dependency, pruning on a narrowed run, never pruning, and an
-   ignored `--no-cache`. `lint-cache-not-trusted` passed at first for the
-   wrong reason, saved by a stale stamp rather than by the header check; its
-   entry now depends on nothing, so the header is the only thing that can turn
-   it away.
+   Guarded by five fixtures and twelve tests in `test/cache.test.ts`, with
+   sixteen deliberate breaks each failing the right one: no replay, unchecked
+   reads, unchecked globs, an overlooked vanished read, a frozen espalier
+   version, a trusted foreign header, a target that is not its own
+   dependency, dropped metadata, stored rule text, replayed issues that miss
+   the error count, pruning on a narrowed run, never pruning, a failed run
+   that writes anyway, children that do not cache, a `check` that never
+   caches, and an ignored `--no-cache`. `lint-cache-not-trusted` passed at
+   first for the wrong reason, saved by a stale stamp rather than by the
+   header check; its entry now depends on nothing, so the header is the only
+   thing that can turn it away.
 
    The harness learned `env` and `again` for this, and `checkLint` runs
    against a throwaway copy. `test/api.test.ts` runs `check` with
