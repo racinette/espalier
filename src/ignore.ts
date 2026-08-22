@@ -1,11 +1,18 @@
-// Gitignore-syntax matching for the `ignore` list and the built-in default
-// list. docs/CONFIG.MD "ignore".
+// Gitignore-syntax matching for `ignore` and for whatever `ignoreFiles` names.
+// docs/CONFIG.MD "ignore".
 
 export interface IgnoreRule {
   matcher: RegExp;
   negated: boolean;
   dirOnly: boolean;
-  source: string;
+  /** The pattern as written, for reporting. */
+  pattern: string;
+  /**
+   * Where the pattern came from: `"ignore"`, or the repo-relative path of the
+   * `ignoreFiles` entry that held it. `explain` reports this, which is the
+   * whole point of reading these lists from files a user can open.
+   */
+  origin: string;
 }
 
 function escape(char: string): string {
@@ -42,7 +49,7 @@ function toMatcher(glob: string, anchored: boolean): RegExp {
   return new RegExp(`^${anchored ? body : `(?:.*/)?${body}`}$`);
 }
 
-export function compileIgnore(patterns: string[]): IgnoreRule[] {
+export function compileIgnore(patterns: string[], origin = "ignore"): IgnoreRule[] {
   const rules: IgnoreRule[] = [];
 
   for (const pattern of patterns) {
@@ -62,7 +69,7 @@ export function compileIgnore(patterns: string[]): IgnoreRule[] {
     // a bare name matches at any depth.
     const anchored = rooted || glob.includes("/");
 
-    rules.push({ matcher: toMatcher(glob, anchored), negated, dirOnly, source: pattern });
+    rules.push({ matcher: toMatcher(glob, anchored), negated, dirOnly, pattern, origin });
   }
 
   return rules;
@@ -77,13 +84,13 @@ export function compileIgnore(patterns: string[]): IgnoreRule[] {
  * permissive and covers the documented cases; revisit if a real espalier trips
  * over the difference.
  */
-export function ignores(
+export function excludedBy(
   rules: IgnoreRule[],
   relativePath: string,
   asDirectory = false,
-): boolean {
+): IgnoreRule | null {
   const segments = relativePath.split("/");
-  let ignored = false;
+  let winner: IgnoreRule | null = null;
 
   for (let depth = 1; depth <= segments.length; depth += 1) {
     const partial = segments.slice(0, depth).join("/");
@@ -94,9 +101,17 @@ export function ignores(
 
     for (const rule of rules) {
       if (rule.dirOnly && !isDirectory) continue;
-      if (rule.matcher.test(partial)) ignored = !rule.negated;
+      if (rule.matcher.test(partial)) winner = rule.negated ? null : rule;
     }
   }
 
-  return ignored;
+  return winner;
+}
+
+export function ignores(
+  rules: IgnoreRule[],
+  relativePath: string,
+  asDirectory = false,
+): boolean {
+  return excludedBy(rules, relativePath, asDirectory) !== null;
 }

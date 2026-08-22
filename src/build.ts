@@ -139,7 +139,7 @@ function planFor(
   // and so would hide the very files this is looking for.
   const childPrefixes = repository.children.map((child) => `${child}/`);
   const existing = new Map<string, string>();
-  for (const candidate of collectCandidates(root)) {
+  for (const candidate of collectCandidates(root, repository.ignoreRules)) {
     if (path.basename(candidate) !== settings.filename) continue;
     // A child espalier's subtree is not this run's to read, describe or delete.
     if (childPrefixes.some((prefix) => candidate.startsWith(prefix))) continue;

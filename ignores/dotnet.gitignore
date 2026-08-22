@@ -1,0 +1,5 @@
+# Project and solution files.
+*.csproj
+*.fsproj
+*.vbproj
+*.sln

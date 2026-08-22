@@ -401,3 +401,28 @@ test("an edited config discards the cache", () => {
     discard(root);
   }
 });
+
+test("an edited ignore file discards the cache", () => {
+  const root = repository();
+  try {
+    // It excludes itself, so the espalier does not have to declare it.
+    writeFileSync(path.join(root, ".gitignore"), ".gitignore\n");
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
+    );
+    assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
+
+    // `ignoreFiles` decides what is governed, and it lives outside the config.
+    // An entry recorded before this line existed describes a different run.
+    writeFileSync(path.join(root, ".gitignore"), ".gitignore\nnotes/\n");
+
+    assert.deepEqual(
+      lint(root, "second"),
+      { "a.ts": "second", "b.ts": "second" },
+      "an entry recorded under a different .gitignore was replayed",
+    );
+  } finally {
+    discard(root);
+  }
+});

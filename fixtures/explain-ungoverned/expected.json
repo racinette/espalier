@@ -15,24 +15,24 @@
       "object": {
         "kind": "explanation",
         "path": "package.json",
-        "ignoredBy": "defaultIgnore",
+        "ignoredBy": "ignore",
         "rule": null,
         "pattern": null,
         "captures": {},
         "constraints": []
       },
-      "human": "human/default-ignore.txt"
+      "human": "human/ignore.txt"
     },
     "vendor/lib.ts": {
       "exit": 1,
       "object": {
         "kind": "explanation",
         "path": "vendor/lib.ts",
-        "ignoredBy": "ignore",
+        "ignoredBy": ".gitignore.fixture",
         "rule": null,
         "constraints": []
       },
-      "human": "human/ignore.txt"
+      "human": "human/ignore-file.txt"
     },
     "espalier.config.yaml": {
       "exit": 1,
@@ -54,6 +54,7 @@
     }
   },
   "ownership": {
+    ".gitignore.fixture": null,
     "main.ts": "main.ts.mjs",
     "package.json": null,
     "vendor/lib.ts": null

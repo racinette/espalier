@@ -23,6 +23,9 @@ const USAGE = `espalier <command> [options]
 
   init only:
   --root <dir>          espalier source directory (default: espalier)
+  -l, --lang <name>     write a shipped ignore list; repeat for a polyglot repo
+  -i, --ignore-file     a file holding ignore patterns (default: .gitignore)
+  --no-ignore-file      write no ignoreFiles entry at all
   --ignore-all          put every top-level path out of scope
 
   build only:
@@ -68,6 +71,9 @@ async function main(): Promise<number> {
         check: { type: "boolean" },
         root: { type: "string" },
         "ignore-all": { type: "boolean" },
+        lang: { type: "string", short: "l", multiple: true },
+        "ignore-file": { type: "string", short: "i", multiple: true },
+        "no-ignore-file": { type: "boolean" },
         inline: { type: "boolean" },
         "dry-run": { type: "boolean" },
         rule: { type: "string" },
@@ -97,6 +103,9 @@ async function main(): Promise<number> {
           cwd,
           config: values["config"] as string | undefined,
           root: values["root"] as string | undefined,
+          languages: (values["lang"] as string[] | undefined) ?? [],
+          ignoreFiles: values["ignore-file"] as string[] | undefined,
+          noIgnoreFile: values["no-ignore-file"] === true,
           ignoreAll: values["ignore-all"] === true,
         },
         reporter,

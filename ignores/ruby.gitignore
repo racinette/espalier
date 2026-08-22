@@ -1,0 +1,8 @@
+# Manifests and lockfiles.
+Gemfile
+Gemfile.lock
+*.gemspec
+
+# Tool configuration.
+.ruby-version
+.rubocop.yml

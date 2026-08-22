@@ -82,7 +82,11 @@ export interface UngovernedAnswer {
   path: string;
   /** The espalier that answered, or null for the one the command loaded. */
   espalier?: string | null;
-  ignoredBy: "ignore" | "defaultIgnore" | "espalier" | "child";
+  /**
+   * `"ignore"`, `"espalier"`, `"child"`, or the repo-relative path of the
+   * `ignoreFiles` entry whose pattern excluded it.
+   */
+  ignoredBy: string;
   rule: null;
   pattern: null;
   captures: Record<string, CaptureValue>;
@@ -203,12 +207,15 @@ export function renderExplanation(answer: Explanation): string {
   }
 
   if ("ignoredBy" in answer) {
-    const reason = {
-      ignore: "Ignored by the `ignore` list in espalier.config.yaml.",
-      defaultIgnore: "Ignored by the default ignore list (defaultIgnore: true).",
-      espalier: "Invisible unconditionally: espalier does not report on its own machinery.",
-      child: "Inside an espalier of its own, which is what answers for this path.",
-    }[answer.ignoredBy];
+    const reason =
+      {
+        ignore: "Ignored by the `ignore` list in espalier.config.yaml.",
+        espalier: "Invisible unconditionally: espalier does not report on its own machinery.",
+        child: "Inside an espalier of its own, which is what answers for this path.",
+      }[answer.ignoredBy] ??
+      // Anything else is the path of the `ignoreFiles` entry that held the
+      // winning pattern — a file the reader can open and edit.
+      `Ignored by a pattern from ${answer.ignoredBy}, read because \`ignoreFiles\` names it.`;
     const whose = answeredBy === null ? "" : `${answeredBy}\n\n`;
     return `${answer.path} is not governed by espalier.\n\n${whose}  ${reason}\n`;
   }

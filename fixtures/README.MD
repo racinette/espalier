@@ -43,6 +43,8 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 **`human`** — a file holding the exact `--format human` stdout of the same lint run, compared byte for byte.
 
+**`warnings`** — on an `init`, `build` or `adopt` block: the warning messages the run must emit, in order, and no others. A warning is advice about what was written rather than part of the record of it, so it is compared separately from `report`. `init` uses this to say a repository has no `.gitignore`.
+
 **`env`** — environment the lint run is given, on top of the harness's own. Only an impure rule has any use for it, and only one fixture family has a use for an impure rule: warm and cold output are identical by design, so a token the runner cannot see is the only way a skipped rule becomes visible.
 
 **`again`** — a second `lint` over the same copy, after something changed. Only an incremental run has anything to say here; a fixture that reran without a cache would be asserting that the same input gives the same answer.
@@ -177,9 +179,8 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `build-empty-rule` | a section with nothing to say is omitted, heading and all |
 | `explain-prefix` | both answer shapes, and the rule that decides which one you get |
 | `explain-ungoverned` | which list excluded a path, and that ignored is not declared |
-| `default-ignore-list` | what the built-in list covers, and what it deliberately does not |
-| `init-bare` | the config and the espalier root, and no ignore list |
-| `init-ignore-all` | the opt-in ignore list, and what `defaultIgnore` keeps out of it |
+| `init-bare` | the config, the espalier root, and the warning about a missing .gitignore |
+| `init-ignore-all` | the opt-in backlog, and the three routes that keep paths out of it |
 | `init-existing-config` | refusing to overwrite, without touching the tree |
 | `addons-shared-resource` | one setup, one shared object, one disposal |
 | `addons-disposed-on-failure` | disposal runs even when a rule throws |
@@ -207,7 +208,11 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `lint-cache-espalier-changed` | an edited espalier discards every entry, not the edited rule's |
 | `lint-cache-not-trusted` | a cache written against another espalier is discarded unread |
 | `read-ungoverned` | `read` refuses an ignored file, though it exists and is readable |
+| `ignore-files` | two named ignore files, and `ignore` layered after both |
+| `shipped-ignore-lists` | what `--lang` writes covers, and what it deliberately does not |
 
 ## Adding one
+
+A fixture needing an `ignoreFiles` source names it **`.gitignore.fixture`**, never `.gitignore`. Git honours a real one, so every path it excluded would be a path `git add -A` silently skips and the next clone never receives. The mechanism under test is `ignoreFiles`, which reads whatever the config names, so the filename is free — and picking a free one is better than committing around git. `explain-ungoverned` and `ignore-files` both do this. `init` takes `-i` for exactly this, so a fixture can exercise the real mechanism under a name git leaves alone. The behaviours that genuinely need the real filename — `init` defaulting to it, and refusing when it is not there — live in `test/candidates.test.ts`, in a temporary directory git never sees.
 
 A fixture earns its place when prose in the specification could be read two ways. Write `FIXTURE.MD` first, saying which sentence of which document it pins — if that cannot be written, the case is probably covered already.

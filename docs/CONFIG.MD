@@ -7,7 +7,8 @@ version: 1
 
 root: espalier
 
-defaultIgnore: true
+ignoreFiles:
+  - .gitignore
 
 ignore:
   - src/api/*.generated.ts
@@ -37,7 +38,7 @@ A package in a monorepo may hold an `espalier.config.yaml` of its own. Finding o
 
 **A directory holding a config is a child espalier, and its subtree leaves the outer one.** Nothing under it is matched or owned, no constraint reaches in — a root `[...path]` rule stops at the boundary — nothing there is `unexpected_path`, and `build` neither places a document there nor sweeps one away.
 
-**Every command then runs it.** `lint` and `build` at the root visit each child once the outer run is finished, and a visit is a complete separate run: its own config, its own espalier, its own `defaultIgnore`, `addons` and `build` settings, and its own children beneath it. Nothing is inherited and nothing crosses.
+**Every command then runs it.** `lint` and `build` at the root visit each child once the outer run is finished, and a visit is a complete separate run: its own config, its own espalier, its own `ignore`, `addons` and `build` settings, and its own children beneath it. Nothing is inherited and nothing crosses.
 
 Those two halves are one feature. A subtree that left the outer espalier and were never visited would be ungoverned, which is the failure this tool exists to prevent. A subtree visited from inside the outer run would answer to two espaliers at once, and a path with two answers is worse than either. Together they say: **every file is governed by exactly one espalier, and one command still checks them all.**
 
@@ -50,6 +51,8 @@ The trade is explicit. The root can require nothing of a child, because it canno
 `ignore` still wins. A config the outer `ignore` matches is not a child at all: the subtree is ignored the ordinary way and nothing recurses into it.
 
 That is what a repository storing configs as data needs. `espalier`'s own `fixtures/` holds sixty of them, several deliberately invalid, and `espalier lint` at the root running all sixty is not what anyone means by it. Ignoring the config file alone is enough to demote a child to plain content, though ignoring the directory is usually what is wanted.
+
+Patterns from `ignoreFiles` count here too, which is worth knowing before it surprises someone: a `.gitignore` entry covering a package directory stops that package's espalier from being discovered. Usually that is right — a directory git does not track is not a subtree anyone is governing — but it means a child can disappear from a change made in another tool's file. `espalier explain <dir>` says which pattern did it.
 
 ### Making one
 
@@ -77,68 +80,68 @@ Ignored files are invisible, not exempt. No structural rule owns them, no constr
 
 `ignore` also decides what is *not* a child espalier. See [Nested espaliers](#nested-espaliers).
 
-Keep this list short. Boilerplate is handled by `defaultIgnore`, so what remains should be things specific to this project — and a long list of those is a signal that the espalier describes less of the repository than it claims to. Better for that to be visibly annoying in the config than filed away in a document of its own.
+**An ignored directory is never entered.** The patterns are consulted during the filesystem walk, not after it, so `node_modules/` costs one `readdir` rather than forty thousand. This is the same behaviour git has, and it carries git's limitation with it: a negation cannot re-include something under a directory that was pruned. `!node_modules/keep/**` matches nothing, because nothing under `node_modules/` is ever looked at. Ignore the parent more narrowly instead.
 
-## `defaultIgnore`
+Most of this list arrives written — from `ignoreFiles`, and from what `espalier init` put there. What you add by hand should be specific to this project, and a long list of those is a signal that the espalier describes less of the repository than it claims to. Better for that to be visibly annoying in the config than filed away in a document of its own.
 
-Applies a built-in list of paths no project wants to govern: manifests and lockfiles, tool configuration, CI definitions, licence and editor files. Defaults to `true`.
+## `ignoreFiles`
 
-Nobody should hand-write `package.json`, `tsconfig.json`, `.github/**` and a lockfile into every project they start, and a generated config listing forty such entries reads as "this tool is complicated" before anyone has used it. Keeping the list in `espalier` also means it can be corrected centrally rather than frozen into every config that ran `init` two years ago.
-
-The list is universal rather than detected per language. Ignoring `Cargo.lock` in a JavaScript project costs nothing, while detection is a guess that fails on polyglot repositories.
-
-Layering is: the default list first, then `ignore`. Because `ignore` uses gitignore syntax, a project that wants to govern something the default list covers re-includes it rather than turning the whole list off:
+Other files holding ignore patterns, read and prepended to `ignore`. Empty by default; `espalier init` writes `.gitignore` into it.
 
 ```yaml
-defaultIgnore: true
-ignore:
-  - "!package.json"
+ignoreFiles:
+  - .gitignore
 ```
 
-A lint rule enforcing the shape of `package.json` is a reasonable thing to want, and wanting it should not cost you the other thirty-nine entries. `defaultIgnore: false` remains available for projects that want to specify everything themselves.
+Paths are relative to the repository root. Each is read in order, its contents parsed as `ignore` entries, and the result placed **before** anything in `ignore` — so your own list is what wins a disagreement.
 
-**A path the espalier declares overrides the default list.** Declaring `package.json.mjs` is an unambiguous statement that you want to govern `package.json`, so the built-in list steps aside. This differs from `ignore`, where a declaration and an ignore together are a contradiction and an error — your `ignore` is an explicit statement about this repository, while the default list is a heuristic the tool ships. Explicit beats declared; declared beats heuristic.
+**A file named here must exist.** A missing one is `ignore_file_missing` and the run stops. The alternative — contributing nothing and carrying on — turns a typo or a deleted file into a repository that governs everything and reports thousands of paths, with the cause several steps removed from the symptom. A configuration that names a file is a configuration that depends on it.
 
-**The list is append-only within a major version.** Adding an entry can only make a run quieter: files you declared stay governed, and files you did not were being reported as `unexpected_path` anyway. Removing one can only make a run noisier, producing violations from an upgrade nobody asked for — so removals are breaking changes and require a major version. A project depending on `^2` never sees its governed set grow underneath it.
+That is also why the key is empty rather than defaulting to `.gitignore`. A default that must exist is a default that breaks every repository without one, and a repository without a `.gitignore` is unusual rather than wrong. `init` decides, once, and writes down what it decided; the config never assumes.
 
-That asymmetry decides what belongs. An entry omitted today costs a project one line of `ignore` and can be added in any minor release; an entry included wrongly is stuck until the next major. So the bar is **is this file ever a project's own structural decision**, not is it common. A file matched here and wanted back costs one line too — `ignore: ["!Dockerfile"]` — but the shipped list should not be making that bet on anyone's behalf.
+Every repository already maintains a list of paths that are not source: build output, dependency directories, caches, editor droppings. Keeping a second copy of it inside `espalier.config.yaml` would be a list that goes stale the first time someone adds a bundler, and staleness here is expensive — an entry missing from `espalier`'s copy is a directory it walks and a thousand paths it reports.
 
-### What is deliberately absent
+**This reverses an earlier position.** Previous releases said `.gitignore` was not a policy input: it answers "what is a file in this repository," not "what does `espalier` govern." That distinction is real, and it is why the second question still has its own answer in `ignore`. What changed is the first question. `espalier` used to ask git — it shelled out to `git ls-files` — and a tool that needs another binary installed to know what a file is has a dependency it should not have. Reading the file directly removes the subprocess, removes the divergence between the two code paths that existed when git was absent, and leaves one definition of candidacy written in one place.
 
-`README.MD`, `CHANGELOG.MD`, `Makefile`, `Dockerfile`, `CMakeLists.txt`. Each is common enough to look like an oversight, and each is a file some projects genuinely place on purpose — a README per package directory is exactly the kind of convention an espalier exists to hold. Being reported as `unexpected_path` until you say what they are is the correct outcome for a tool whose whole claim is that nothing goes unaccounted for.
+**It is read as `espalier`'s syntax, not as git's.** No compatibility is claimed and none should be relied on. Concretely: nested `.gitignore` files in subdirectories are not read, only the paths you list; character classes (`[a-z]`) and backslash escapes are unsupported. `espalier` is not a git client and a second, silently different implementation of gitignore is exactly what this was meant to avoid. What it reads is a list of patterns in a well-known shape.
 
-Lockfiles, manifests, tool configuration, CI definitions, licences, and editor and VCS metadata are in. None of them is a placement decision; all of them are dictated by something other than the project's architecture.
+`espalier init --no-ignore-file` writes an empty list for a repository that genuinely has none. See [cli/init/README.MD](cli/init/README.MD#--ignore-file-and---no-ignore-file).
 
-`espalier explain <path>` reports which list excluded a path — how you find out without reading this document, and the answer to a question otherwise discovered months later.
+**It does not cover files that are tracked on purpose.** `package.json`, `Cargo.toml`, `pnpm-lock.yaml` and `tsconfig.json` appear in no `.gitignore` anywhere, because they are meant to be committed — and they are also not architecture, so no rule should have to declare them. That list has no upstream to defer to; it is `espalier`'s own opinion, and `espalier init --lang` writes it into `ignore` where you can read it. See [cli/init/README.MD](cli/init/README.MD#--lang).
+
+One consequence worth knowing. A path your `.gitignore` names and your espalier declares is a contradiction, and contradictions are `ignored_required_path` — an error, not a silent winner. A repository that commits something out of `dist/` and wants it governed re-includes it, which works because `ignore` is layered after `ignoreFiles`:
+
+```yaml
+ignoreFiles:
+  - .gitignore
+ignore:
+  - "!dist/index.js"
+```
 
 ### What is ignored without being configured
 
 Four things are invisible unconditionally, because `espalier` reporting on its own machinery is a bug rather than a finding:
 
-- the VCS directory
 - `espalier.config.yaml` itself
+- every file `ignoreFiles` names
 - the `root` directory
 - every file `espalier build` generated
 
+`ignoreFiles` entries are on that list for the same reason the config is: they are configuration this run read. With the default name it never showed, because the common list `init` writes covers `.gitignore` anyway — but a project naming `.customignore` should not then have to ignore it as well.
+
 These cannot be un-ignored. Generated documentation is identified by its provenance header, not by path, because `build` distributes files through the tree rather than confining them to one directory.
+
+The VCS directory is **not** on this list, though it once was. `.git/` is excluded by an entry `espalier init` writes into `ignore` like any other, alongside the rest of the common block — CI definitions, licence files, editor droppings, and the repository metadata that is committed on purpose. All of it is visible, appealable, and deletable by anyone who has a reason. Nothing in `espalier` decides on your behalf which paths exist.
 
 ### What counts as a file
 
-The set of candidate files is what git already knows about:
+`espalier` walks the filesystem from the repository root, and does not descend into a directory `ignore` matches. That walk is the whole definition: there is no second code path, no query to another tool, and nothing that behaves differently depending on what is installed.
 
-```bash
-git ls-files --cached --others --exclude-standard
-```
+The consequence to keep in mind is that **an empty `ignore` means a total walk.** A configuration that names nothing will enumerate `.git/`, `node_modules/` and every build directory, and report each file in them as `unexpected_path`. That failure is slow and extremely loud, which is the intended shape: a repository's exclusions live in a file you can read, and their absence is obvious rather than compensated for.
 
-Tracked files, plus untracked files that are not gitignored. This means `node_modules`, `dist`, and every other build artifact are excluded without anyone configuring it, and — importantly — the file an agent created ten seconds ago and has not committed is still linted.
+Untracked files are candidates. The file an agent created ten seconds ago and has not committed is linted, because it is there.
 
-`.gitignore` is not a policy input. It answers "what is a file in this repository," not "what does `espalier` govern." The second question is `ignore`, and the two lists are unrelated: a committed generated file is invisible to git's ignore rules and very much something you want `espalier` to skip.
-
-The root is git-backed when it contains a `.git` entry of its own. Otherwise `espalier` walks the filesystem with a small built-in exclusion list.
-
-Small, and it stays small. Unlike `defaultIgnore`, nothing can re-include what this list skips — a path excluded here is not a file as far as `espalier` is concerned, and no configuration brings it back. So it holds only directories that are machinery rather than content: the VCS directory, `node_modules`, `__pycache__`, `.venv`. A build output directory is not on it, because `build/` and `target/` are real source directories in enough projects that skipping them would silently un-govern a subtree.
-
-The test is deliberately local rather than asking git. A directory nested inside some larger repository is not thereby a repository — asking git would answer about the enclosing one, and every path would resolve against a root the config never named.
+Nothing here consults git. Earlier releases ran `git ls-files --cached --others --exclude-standard` in a git-backed root and walked the filesystem otherwise, which meant two definitions of candidacy that agreed most of the time. The two disagreed in ways nobody would find on purpose — a committed `node_modules` is tracked, so git listed it and the walk did not — and the tool never promised git compliance in the first place. One walk, in one language, is what a linter can explain.
 
 ## `addons`
 

@@ -1,0 +1,3 @@
+# Manifests and lockfiles.
+mix.exs
+mix.lock

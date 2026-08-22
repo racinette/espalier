@@ -1,0 +1,6 @@
+# Manifests and lockfiles.
+Package.swift
+Package.resolved
+
+# Tool configuration.
+.swiftlint.yml

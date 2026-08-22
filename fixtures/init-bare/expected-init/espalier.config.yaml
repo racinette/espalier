@@ -2,4 +2,54 @@ version: 1
 
 root: espalier
 
-defaultIgnore: true
+ignoreFiles: []
+
+ignore:
+  # Version control metadata. `.gitignore` never lists `.git/` — git has no need
+  # to ignore itself — so this is the one exclusion no other file supplies.
+  - .git/
+  - .hg/
+  - .svn/
+
+  # Repository metadata. Tracked on purpose, and dictated by the tool that reads
+  # them rather than by this project's architecture.
+  - .gitignore
+  - .gitattributes
+  - .gitmodules
+  - .mailmap
+  - .git-blame-ignore-revs
+  - .editorconfig
+  - .dockerignore
+  - .tool-versions
+
+  # Continuous integration.
+  - .github/
+  - .gitlab/
+  - .gitlab-ci.yml
+  - .circleci/
+  - .buildkite/
+  - .travis.yml
+  - azure-pipelines.yml
+  - Jenkinsfile
+  - .drone.yml
+  - .woodpecker.yml
+
+  # Licence and legal.
+  - LICENSE
+  - LICENSE.*
+  - LICENCE
+  - LICENCE.*
+  - COPYING
+  - NOTICE
+  - AUTHORS
+  - CONTRIBUTORS
+
+  # Editor and operating system droppings.
+  - .vscode/
+  - .idea/
+  - .fleet/
+  - .zed/
+  - "*.swp"
+  - .DS_Store
+  - Thumbs.db
+  - desktop.ini

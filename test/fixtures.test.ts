@@ -44,6 +44,12 @@ interface WriteRun {
   exit: number;
   args?: string[];
   report?: unknown[];
+  /**
+   * Warning messages the run must emit, in order. A warning is advice about
+   * what was written rather than part of the record of it, so it is compared
+   * separately from `report`.
+   */
+  warnings?: string[];
   /** A file holding the exact `--format human` stdout of the same run. */
   human?: string;
 }
@@ -238,7 +244,18 @@ function checkWrites(dir: string, command: string, expected: WriteRun): void {
       `exit code\nstdout:\n${build.stdout}\nstderr:\n${build.stderr}`,
     );
 
-    const problems = compareIssues(parseLines(build.stdout, command), expected.report ?? []);
+    const lines = parseLines(build.stdout, command);
+    const warnings = lines.filter((line) => line["kind"] === "warning");
+    assert.deepEqual(
+      warnings.map((line) => line["message"]),
+      expected.warnings ?? [],
+      `${command} warnings`,
+    );
+
+    const problems = compareIssues(
+      lines.filter((line) => line["kind"] !== "warning"),
+      expected.report ?? [],
+    );
     assert.ok(problems.length === 0, problems.join("\n"));
 
     const after = new Map(
@@ -276,8 +293,8 @@ function checkWrites(dir: string, command: string, expected: WriteRun): void {
 function checkOwnership(dir: string, expected: Record<string, string | null>): void {
   // The espalier root is invisible to matching, so listing its modules would be
   // a column of nulls. Everything else in the fixture is in scope, including
-  // paths the default ignore list covers — those record `null` and are exactly
-  // the boundary worth writing down.
+  // paths `ignore` covers — those record `null` and are exactly the boundary
+  // worth writing down.
   const config = readFileSync(path.join(dir, "espalier.config.yaml"), "utf8");
   const espalierRoot = /^root:\s*(\S+)/m.exec(config)?.[1] ?? "espalier";
 

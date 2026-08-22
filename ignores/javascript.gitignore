@@ -1,0 +1,30 @@
+# Manifests and lockfiles.
+package.json
+package-lock.json
+npm-shrinkwrap.json
+yarn.lock
+pnpm-lock.yaml
+pnpm-workspace.yaml
+bun.lock
+bun.lockb
+deno.json
+deno.jsonc
+deno.lock
+
+# Tool configuration. The tool decides the filename; the project only decides
+# the contents.
+tsconfig.json
+tsconfig.*.json
+jsconfig.json
+.eslintrc
+.eslintrc.*
+eslint.config.*
+.prettierrc
+.prettierrc.*
+prettier.config.*
+.babelrc
+.babelrc.*
+babel.config.*
+.npmrc
+.nvmrc
+.node-version

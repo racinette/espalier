@@ -14,14 +14,15 @@ export interface Config {
   configPath: string;
   /** Repo-relative directory holding the espalier tree. */
   espalierRoot: string;
-  defaultIgnore: boolean;
+  /** Repo-relative paths holding further ignore patterns, in order. */
+  ignoreFiles: string[];
   ignore: string[];
   /** Repo-relative path to the addons module, or null. */
   addons: string | null;
   build: { filename: string; inline: boolean };
 }
 
-const KNOWN = new Set(["version", "root", "defaultIgnore", "ignore", "addons", "build"]);
+const KNOWN = new Set(["version", "root", "ignoreFiles", "ignore", "addons", "build"]);
 const KNOWN_BUILD = new Set(["filename", "inline"]);
 
 function findConfig(from: string): string {
@@ -104,6 +105,23 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     fail("config_invalid_value", "root must be a relative path inside the repository");
   }
 
+  // Empty rather than `[".gitignore"]`: an entry here must exist, and a default
+  // that must exist is a default that breaks every repository without one.
+  // `init` decides once and writes down what it decided.
+  let ignoreFiles: string[] = [];
+  if ("ignoreFiles" in values) {
+    const listed = values["ignoreFiles"];
+    if (!Array.isArray(listed) || listed.some((entry) => typeof entry !== "string")) {
+      fail("config_invalid_value", "ignoreFiles must be a list of strings");
+    }
+    for (const entry of listed as string[]) {
+      if (path.isAbsolute(entry) || entry.split(/[\\/]/).includes("..")) {
+        fail("config_invalid_value", `ignoreFiles entry "${entry}" must be inside the repository`);
+      }
+    }
+    ignoreFiles = listed as string[];
+  }
+
   let ignore: string[] = [];
   if ("ignore" in values) {
     const listed = values["ignore"];
@@ -144,8 +162,7 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     root,
     configPath,
     espalierRoot,
-    defaultIgnore:
-      "defaultIgnore" in values ? asBoolean(values["defaultIgnore"], "defaultIgnore") : true,
+    ignoreFiles,
     ignore,
     addons,
     build: { filename, inline },

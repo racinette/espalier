@@ -1,15 +1,14 @@
 // Everything both `lint` and `explain` need: the config, the compiled espalier,
 // and the set of files espalier can see.
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { findChildren } from "./children.js";
 import { compile, type Espalier } from "./compile.js";
 import { loadConfig, type Config } from "./config.js";
-import { DEFAULT_IGNORE } from "./defaults.js";
 import { fail } from "./errors.js";
 import { collectCandidates, isGenerated, matchGlob } from "./files.js";
-import { compileIgnore, ignores, type IgnoreRule } from "./ignore.js";
+import { compileIgnore, excludedBy, ignores, type IgnoreRule } from "./ignore.js";
 import { isOwnership, resolve, unconditionallyRequired, type Ownership, type Recognition } from "./match.js";
 
 export interface Repository {
@@ -24,11 +23,12 @@ export interface Repository {
   children: string[];
   resolve(filePath: string): Ownership | Recognition;
   /**
-   * Which list excludes this path, or null when espalier governs it. `espalier`
-   * covers the three things invisible unconditionally, which are grouped
-   * together because a user cannot un-ignore any of them.
+   * What excludes this path, or null when espalier governs it: `"ignore"`, the
+   * repo-relative path of the `ignoreFiles` entry whose pattern won, `"child"`,
+   * or `"espalier"` for the three things invisible unconditionally, which are
+   * grouped together because a user cannot un-ignore any of them.
    */
-  ungoverned(filePath: string): "ignore" | "defaultIgnore" | "espalier" | "child" | null;
+  ungoverned(filePath: string): string | null;
 }
 
 function validateExamples(root: string, espalier: Espalier): void {
@@ -74,18 +74,40 @@ function validateExamples(root: string, espalier: Espalier): void {
   }
 }
 
+/**
+ * The contents of one `ignoreFiles` entry, as patterns.
+ *
+ * A file that is not there is an error rather than an empty contribution.
+ * Carrying on would turn a typo or a deleted file into a repository that
+ * governs everything and reports thousands of paths, with the cause several
+ * steps removed from the symptom. A config that names a file depends on it.
+ */
+function readIgnoreFile(root: string, entry: string): string[] {
+  try {
+    return readFileSync(path.join(root, entry), "utf8").split("\n");
+  } catch {
+    fail("ignore_file_missing", `ignoreFiles names "${entry}", which is not here`, {
+      path: entry,
+    });
+  }
+}
+
 export async function open(configOption: string | undefined, cwd: string): Promise<Repository> {
   const config = loadConfig(configOption, cwd);
   const espalier = await compile(config.root, config.espalierRoot);
   validateExamples(config.root, espalier);
 
-  const ignoreRules = compileIgnore(config.ignore);
-  const defaultRules = config.defaultIgnore ? compileIgnore(DEFAULT_IGNORE) : [];
+  // Patterns from `ignoreFiles` first, `ignore` last: later rules win, so the
+  // config is what settles a disagreement with another tool's file.
+  const ignoreRules = [
+    ...config.ignoreFiles.flatMap((entry) => compileIgnore(readIgnoreFile(config.root, entry), entry)),
+    ...compileIgnore(config.ignore),
+  ];
 
   const espalierPrefix = `${config.espalierRoot}/`;
   const configRelative = path.relative(config.root, config.configPath).split(path.sep).join("/");
 
-  const candidates = collectCandidates(config.root);
+  const candidates = collectCandidates(config.root, ignoreRules);
   const children = findChildren(candidates, configRelative, ignoreRules);
   const childPrefixes = children.map((child) => `${child}/`);
 
@@ -99,12 +121,17 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     return found;
   };
 
-  const ungoverned = (candidate: string): "ignore" | "defaultIgnore" | "espalier" | "child" | null => {
+  const ungoverned = (candidate: string): string | null => {
     // Invisible unconditionally: espalier reporting on its own machinery is a
-    // bug rather than a finding.
+    // bug rather than a finding. The VCS directory is not among these — it is
+    // an `ignore` entry like any other, which is how a user can see it.
     if (candidate === configRelative) return "espalier";
+    // A file `ignoreFiles` names is configuration this run read, the same as
+    // the config itself. Reporting it would be espalier reporting on its own
+    // input — and `_common` covering `.gitignore` only ever hid that for the
+    // default name.
+    if (config.ignoreFiles.includes(candidate)) return "espalier";
     if (candidate === config.espalierRoot || candidate.startsWith(espalierPrefix)) return "espalier";
-    if (candidate.split("/")[0] === ".git") return "espalier";
 
     // A child espalier's subtree is not this espalier's to describe. Checked
     // before anything else it could be, because the answer is not that this
@@ -114,15 +141,9 @@ export async function open(configOption: string | undefined, cwd: string): Promi
       return "espalier";
     }
 
-    if (ignores(ignoreRules, candidate)) return "ignore";
-
-    // Explicit beats declared; declared beats heuristic. A path the espalier
-    // declares overrides the default list, which `ignore` never does.
-    if (defaultRules.length > 0 && ignores(defaultRules, candidate) && !isOwnership(lookup(candidate))) {
-      return "defaultIgnore";
-    }
-
-    return null;
+    // `origin` names the file the pattern came from, so `explain` can answer
+    // with something the user can open rather than the name of a list.
+    return excludedBy(ignoreRules, candidate)?.origin ?? null;
   };
 
   const visible: string[] = [];

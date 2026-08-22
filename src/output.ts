@@ -251,6 +251,10 @@ class HumanReporter implements Reporter {
 
     if (this.mode === "build" || this.mode === "init" || this.mode === "adopt") {
       this.summarizeBuild();
+      // Warnings outlive the tally here as they do for `lint`. `init` uses this
+      // to say there is no `.gitignore`, which is advice about the config it
+      // just wrote rather than something wrong with the run.
+      for (const warning of this.warnings) this.destination.write(`\n${warning}\n`);
       this.destination.close();
       return;
     }

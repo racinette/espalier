@@ -124,23 +124,25 @@ What is declared at a node is names, not descriptions — every child it has, fi
 
 This is never a ranked guess at where the file belongs.
 
-For a path `espalier` does not govern, the answer says so and names which list excluded it:
+For a path `espalier` does not govern, the answer says so and names what excluded it:
 
 ```text
 $ espalier explain package.json
 
 package.json is not governed by espalier.
 
-  Ignored by the default ignore list (defaultIgnore: true).
+  Ignored by the `ignore` list in espalier.config.yaml.
 ```
 
 The three cases read:
 
 ```text
   Ignored by the `ignore` list in espalier.config.yaml.
-  Ignored by the default ignore list (defaultIgnore: true).
+  Ignored by a pattern from .gitignore, read because `ignoreFiles` names it.
   Invisible unconditionally: espalier does not report on its own machinery.
 ```
+
+Every exclusion is now a line in a file you can open. Naming the file rather than a built-in list is the point of `ignoreFiles` and of `init --lang` writing what it writes — see [CONFIG.MD](../../CONFIG.MD#ignorefiles).
 
 ## Nested espaliers
 
@@ -198,10 +200,10 @@ Carries the owning rule, the normalized pattern that matched, the captures, and 
 
 ### A path espalier does not govern
 
-`ignoredBy` names the list that excluded it — `ignore`, `defaultIgnore`, or `espalier` for the three things that are invisible unconditionally:
+`ignoredBy` names what excluded it — `ignore`, the path of the `ignoreFiles` entry the pattern came from, or `espalier` for the three things that are invisible unconditionally:
 
 ```json
-{"kind":"explanation","path":"package.json","ignoredBy":"defaultIgnore","rule":null,"pattern":null,"captures":{},"constraints":[]}
+{"kind":"explanation","path":"package.json","ignoredBy":"ignore","rule":null,"pattern":null,"captures":{},"constraints":[]}
 ```
 
 ### A prefix

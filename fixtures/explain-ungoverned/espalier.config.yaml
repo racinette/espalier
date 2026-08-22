@@ -1,10 +1,12 @@
 version: 1
 root: espalier
 
-defaultIgnore: true
+ignoreFiles:
+  - .gitignore.fixture
 
 ignore:
   - FIXTURE.MD
   - expected.json
-  - vendor/**
+  - .gitignore.fixture
+  - package.json
   - human/**

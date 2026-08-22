@@ -1,0 +1,8 @@
+# Manifests and lockfiles.
+Cargo.toml
+Cargo.lock
+
+# Tool configuration.
+rustfmt.toml
+.rustfmt.toml
+clippy.toml

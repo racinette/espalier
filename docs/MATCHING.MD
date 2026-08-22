@@ -46,7 +46,7 @@ The name is reserved: `espalier/src/clients/ESPALIER.MD` describes the directory
 
 **Dotfiles are the exception, and are skipped entirely.** A `.gitkeep` holding an otherwise-empty espalier root, a `.DS_Store` a file browser left behind — neither is a rule module, and failing the whole run over one is a bad trade. A dotfile that was meant to be a rule module is a mistake you find immediately, because nothing it declares takes effect.
 
-Skipping applies to directories too, and that has a consequence worth stating plainly: **a repository path with a dot-prefixed segment cannot be declared.** Governing `.cursor/rules/backwards-compat.mdc` would need a module at `espalier/.cursor/rules/backwards-compat.mdc.mjs`, which the compiler never reads. Such a path has exactly one legal resting place, `ignore` — `defaultIgnore` already covers `.github/`, `.vscode/` and `.idea/` for this reason — and `adopt` refuses a dot-prefixed target rather than writing a module that would never load.
+Skipping applies to directories too, and that has a consequence worth stating plainly: **a repository path with a dot-prefixed segment cannot be declared.** Governing `.cursor/rules/backwards-compat.mdc` would need a module at `espalier/.cursor/rules/backwards-compat.mdc.mjs`, which the compiler never reads. Such a path has exactly one legal resting place, `ignore` — which is where `.github/`, `.vscode/` and `.idea/` arrive from, whether by way of your `.gitignore` or by way of what `espalier init --lang` wrote — and `adopt` refuses a dot-prefixed target rather than writing a module that would never load.
 
 ## Classification
 

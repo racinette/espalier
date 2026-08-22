@@ -19,49 +19,49 @@
       "exit": 1,
       "object": {
         "path": "package.json",
-        "ignoredBy": "defaultIgnore"
+        "ignoredBy": "ignore"
       }
     },
     "packages/web/package.json": {
       "exit": 1,
       "object": {
         "path": "packages/web/package.json",
-        "ignoredBy": "defaultIgnore"
+        "ignoredBy": "ignore"
       }
     },
     "pnpm-lock.yaml": {
       "exit": 1,
       "object": {
         "path": "pnpm-lock.yaml",
-        "ignoredBy": "defaultIgnore"
+        "ignoredBy": "ignore"
       }
     },
     "tsconfig.json": {
       "exit": 1,
       "object": {
         "path": "tsconfig.json",
-        "ignoredBy": "defaultIgnore"
+        "ignoredBy": "ignore"
       }
     },
     ".github/workflows/ci.yml": {
       "exit": 1,
       "object": {
         "path": ".github/workflows/ci.yml",
-        "ignoredBy": "defaultIgnore"
+        "ignoredBy": "ignore"
       }
     },
     ".vscode/settings.json": {
       "exit": 1,
       "object": {
         "path": ".vscode/settings.json",
-        "ignoredBy": "defaultIgnore"
+        "ignoredBy": "ignore"
       }
     },
     "LICENSE": {
       "exit": 1,
       "object": {
         "path": "LICENSE",
-        "ignoredBy": "defaultIgnore"
+        "ignoredBy": "ignore"
       }
     },
     "README.MD": {

@@ -2,8 +2,17 @@
   "init": {
     "exit": 0,
     "report": [
-      { "kind": "written", "path": "espalier.config.yaml" },
-      { "kind": "written", "path": "espalier/.gitkeep" }
+      {
+        "kind": "written",
+        "path": "espalier.config.yaml"
+      },
+      {
+        "kind": "written",
+        "path": "espalier/.gitkeep"
+      }
+    ],
+    "args": [
+      "--no-ignore-file"
     ]
   }
 }

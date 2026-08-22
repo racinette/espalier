@@ -1,0 +1,43 @@
+{
+  "exit": 0,
+  "issues": [],
+  "explain": {
+    "build/nested/out.js": {
+      "exit": 1,
+      "object": {
+        "path": "build/nested/out.js",
+        "ignoredBy": ".gitignore.fixture"
+      }
+    },
+    "vendor/lib.ts": {
+      "exit": 1,
+      "object": {
+        "path": "vendor/lib.ts",
+        "ignoredBy": ".espalierignore"
+      }
+    },
+    "src/generated.ts": {
+      "exit": 0,
+      "object": {
+        "path": "src/generated.ts",
+        "rule": "src/[file].ts.mjs"
+      }
+    },
+    "src/kept.ts": {
+      "exit": 0,
+      "object": {
+        "path": "src/kept.ts",
+        "rule": "src/[file].ts.mjs"
+      }
+    }
+  },
+  "ownership": {
+    ".espalierignore": null,
+    ".gitignore.fixture": null,
+    "build/nested/out.js": null,
+    "src/a.ts": "src/[file].ts.mjs",
+    "src/generated.ts": "src/[file].ts.mjs",
+    "src/kept.ts": "src/[file].ts.mjs",
+    "vendor/lib.ts": null
+  }
+}

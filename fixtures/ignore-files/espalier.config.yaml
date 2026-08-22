@@ -1,0 +1,13 @@
+version: 1
+root: espalier
+
+ignoreFiles:
+  - .gitignore.fixture
+  - .espalierignore
+
+ignore:
+  - FIXTURE.MD
+  - expected.json
+  - .gitignore.fixture
+  - .espalierignore
+  - "!src/kept.ts"

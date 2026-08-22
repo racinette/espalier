@@ -1,0 +1,18 @@
+# Manifests and lockfiles.
+pyproject.toml
+setup.cfg
+requirements.txt
+requirements-*.txt
+Pipfile
+Pipfile.lock
+poetry.lock
+uv.lock
+
+# Tool configuration.
+.python-version
+ruff.toml
+.ruff.toml
+mypy.ini
+.flake8
+tox.ini
+pytest.ini

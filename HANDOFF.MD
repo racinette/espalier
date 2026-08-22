@@ -182,20 +182,24 @@ Taken after `explain`:
   `.gitkeep` so the espalier root survives a commit, and a `.DS_Store` stops
   being able to fail a whole run.
 
-- **`DEFAULT_IGNORE` is settled.** The append-only promise makes an omission a
-  one-line fix in any minor and an inclusion stuck until the next major, so the
-  bar is "is this file ever a project's own structural decision" rather than "is
-  it common". `README.MD`, `CHANGELOG.MD`, `Makefile`, `Dockerfile` and
-  `CMakeLists.txt` are absent for that reason, and `default-ignore-list` pins
-  their absence as firmly as it pins the list's contents.
-- **`WALK_EXCLUSIONS` stays minimal.** Nothing can re-include what it skips, so
-  it holds only machinery. Build output directories are absent: `build/` and
-  `target/` are real source directories often enough that skipping them would
-  silently un-govern a subtree.
+- **~~`DEFAULT_IGNORE` is settled.~~ Superseded.** The list is no longer applied
+  at run time; it ships as data under `ignores/` and `init --lang` copies what
+  you ask for into your `ignore`. The bar it was chosen by is unchanged — "is
+  this file ever a project's own structural decision" rather than "is it
+  common" — and `README.MD`, `CHANGELOG.MD`, `Makefile`, `Dockerfile` and
+  `CMakeLists.txt` stay absent for that reason. What went away is the
+  append-only promise, which was there to make central correction safe; nothing
+  is corrected centrally now, because nothing is read at run time.
+- **~~`WALK_EXCLUSIONS` stays minimal.~~ Deleted.** It was the one unappealable
+  list in the tool, and it was hardcoded not because those six names are
+  universal but because `walk` had no configuration in scope. It has one now.
+  Build output directories were absent from it and stay absent from the shipped
+  lists: `build/` and `target/` are real source directories often enough that
+  skipping them would silently un-govern a subtree.
 
-- **No git-history integration.** `lint` asks git what the files are and nothing
-  more. Anything needing to know what the repository looked like before is out
-  of scope, which is what settled the amendment warning below.
+- **No git-history integration**, and now no git at all. `lint` walks the
+  filesystem itself. Anything needing to know what the repository looked like
+  before is out of scope, which is what settled the amendment warning below.
 
 Taken while writing the `explain` fixtures:
 
@@ -440,9 +444,65 @@ warning that fired on `espalier/` changing would fire on the intended workflow
 and be muted. Telling them apart needs the previous espalier reconstructed from
 git and an ownership diff — real, but its only output is a note nobody is
 obliged to read, and it would drag git-history integration into a tool that
-otherwise only asks git what the files are. Enforcement belongs to whatever can
+now does not use git at all. Enforcement belongs to whatever can
 refuse: the harness, `CODEOWNERS`, a CI path check. The amendment instruction
 `build` writes is now imperative, and that is the tool's whole contribution.
+
+## Candidacy and the ignore lists
+
+What replaced `WALK_EXCLUSIONS` and `DEFAULT_IGNORE`: one walk, one list,
+nothing invisible.
+
+`collectCandidates` walks the filesystem and does not descend into a directory
+`ignore` matches. `fromGit`, `isGitBacked` and `git_failed` are gone: two
+definitions of candidacy that agreed most of the time were a silent-divergence
+hazard, and needing another binary installed to know what a file is was a
+dependency a CLI tool should not have.
+
+`ignoreFiles` reads the list every repository already keeps. It is read as
+`espalier`'s syntax and not as git's — nested files are not read, character
+classes and escapes are unsupported — because a second, silently different
+gitignore implementation is the thing this was meant to avoid. Patterns land
+before `ignore`, so the config wins a disagreement.
+
+**A file it names must exist**, or `ignore_file_missing` stops the run. That is
+what decided the default: a key defaulting to `.gitignore` would break every
+repository without one, so it is empty, and `init` writes down what it chose.
+`init` insists on finding the file before writing anything, and takes
+`--ignore-file`/`-i` to name others or `--no-ignore-file` to decline — the two
+together are `contradictory_flags` rather than a precedence rule. Tolerating a
+missing file was the first design and it was wrong: a typo or a deletion would
+leave a repository governing everything and reporting thousands of paths, with
+the cause several steps from the symptom.
+
+Files `ignoreFiles` names are invisible unconditionally, like the config
+itself: they are configuration the run read. The default name never showed it,
+because `_common` covers `.gitignore` anyway.
+
+The three exclusion problems are genuinely different and were repeatedly
+conflated while this was being settled. Worth keeping straight:
+
+1. **Traversal.** `.git/`, `node_modules/`, `dist/`. Has an external source of
+   truth. Answered by `ignoreFiles`, except for the VCS directory — `.gitignore`
+   never lists `.git/`, so it rides in on `ignores/_common.gitignore`, which
+   every `init` writes.
+2. **Tracked but not architecture.** `package.json`, lockfiles, `tsconfig.json`,
+   and also `LICENSE` and `.github/`. Committed on purpose, so no `.gitignore`
+   will ever name them. No upstream exists; this is espalier's own opinion,
+   shipped as data under `ignores/` and copied into the config — `_common`
+   always, a language file per `--lang`.
+3. **Undeclarable.** Dot-prefixed paths, which `compile.ts` cannot express and
+   `adopt` refuses. Still only ever `ignore`-able. Lifting that restriction is
+   open and is not a prerequisite for any of the above.
+
+Fixtures that need an ignore source name it `.gitignore.fixture`, never
+`.gitignore`: git honours the real name, so every path such a file excluded
+would be a path `git add -A` silently skips and the next clone never receives.
+`-i` exists partly so that choice is available.
+
+Copied rather than applied is the whole of the change in kind. An upgrade can no
+longer alter what a repository governs, and `explain` answers with a line in a
+file the user owns instead of the name of a list inside the tool.
 
 ## Constraints
 

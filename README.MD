@@ -265,7 +265,7 @@ That is as far as the tool goes, and deliberately so. `espalier` cannot stop an 
 
 `espalier` is strict by default and provides exactly one escape hatch per concern.
 
-- The structural model is strict. Files not matching the espalier are violations. Exemptions go in `espalier.config.yaml`, with gitignore-compatible syntax.
+- The structural model is strict. Files not matching the espalier are violations. Exemptions go in `espalier.config.yaml`, in gitignore syntax, and your `.gitignore` is read into them.
 - Severity is decided by the rule, not by configuration. Reusable checks ship as library functions that expose severity as an argument; the project's rule file passes the value it wants. Policy lives where the rule lives.
 - Issue codes are free-form strings. `espalier` does not validate uniqueness or namespace them automatically. Projects adopt their own conventions.
 
