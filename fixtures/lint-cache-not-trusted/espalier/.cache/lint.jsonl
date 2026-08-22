@@ -1,0 +1,2 @@
+{"kind":"cache","version":1,"espalier":"0000000000000000"}
+{"rule":"[file].ts.mjs","pattern":"*.ts","path":"a.ts","reads":{},"globs":{},"issues":[{"code":"impostor","message":"no rule here emits this","severity":"error","path":"a.ts","line":null,"column":null,"metadata":{}}]}
