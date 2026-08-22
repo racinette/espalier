@@ -53,6 +53,8 @@ export interface InitOptions {
   ignoreFiles: string[] | undefined;
   /** `--no-ignore-file`: write an empty list rather than looking for one. */
   noIgnoreFile: boolean;
+  /** `--no-common-ignore`: write none of the common block either. */
+  noCommonIgnore: boolean;
   ignoreAll: boolean;
 }
 
@@ -178,9 +180,11 @@ export function init(options: InitOptions, reporter: Reporter): number {
     }
   }
 
-  // `_common` every time: `.gitignore` never lists `.git/`, so the walk would
-  // otherwise descend into it, and nothing else supplies that entry.
-  const shipped = [COMMON, ...options.languages].flatMap((name) => readList(name));
+  // `_common` unless declined: `.gitignore` never lists `.git/`, so the walk
+  // would otherwise descend into it, and nothing else supplies that entry.
+  // Declining it is a decision the flag exists to make, not an accident.
+  const wanted = options.noCommonIgnore ? options.languages : [COMMON, ...options.languages];
+  const shipped = wanted.flatMap((name) => readList(name));
   // What the config will already exclude once written: the shipped lists, plus
   // whatever the `ignoreFiles` default is going to bring in. Listing a path
   // twice is how a backlog turns into a junk drawer.
@@ -190,7 +194,7 @@ export function init(options: InitOptions, reporter: Reporter): number {
     ...ignoreFiles,
     ...ignoreFiles.flatMap((entry) => readIgnoreFile(root, entry)),
   ];
-  const blocks = [COMMON, ...options.languages].map((name) =>
+  const blocks = wanted.map((name) =>
     asEntries(name === COMMON ? readList(name) : [`# ${name}`, ...readList(name)]),
   );
 

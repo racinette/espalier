@@ -1,0 +1,11 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": ["src/clients"],
+    "report": [
+      { "kind": "written", "path": "espalier/src/clients/[client]/README.MD.mjs" },
+      { "kind": "written", "path": "espalier/src/clients/[client]/{client}.ts.mjs" },
+      { "kind": "narrowed", "path": "espalier.config.yaml" }
+    ]
+  }
+}

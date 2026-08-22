@@ -397,6 +397,34 @@ Taken while writing the `explain` fixtures:
      time — but `.cache/` is gitignored, so `git status` showed nothing and only
      `init-bare`'s byte-for-byte golden comparison caught it.
 
+14. ~~Two gaps dogfooding found by being asked about.~~ **Done.**
+
+   **`adopt` never wrote a back-reference.** Given `clients/stripe/stripe.ts`,
+   `clients/twilio/twilio.ts`, `clients/sendgrid/sendgrid.ts` it produced three
+   *optional* leaves, because each name is held by one sibling out of three.
+   That espalier is wrong rather than loose: it says a client may hold any of
+   those three files, so `mailgun/mailgun.ts` is `unexpected_path` the day it is
+   written — the over-specific failure the command exists to avoid, reached
+   through the rule that exists to avoid the opposite one. There is now a third
+   signal, and `{client}.ts` is what it writes.
+
+   Its threshold is **every instance**, not two, unlike the other two signals.
+   Their asymmetry is rename-versus-forbid; this one's is
+   `missing_required_file` against a directory that never had the file,
+   reported the first time the espalier runs. Two siblings following a
+   convention and a third ignoring it is not a convention, and the optional
+   leaves are the right answer for it. Pinned by `adopt-named-after-directory`
+   and a unit test for the negative.
+
+   **`--no-common-ignore`.** `--lang` was opt-in and the common block was
+   unconditional, which is defensible for `.git/` and not for the licence
+   group. The flag declines the whole block; there is no config key because
+   nothing is applied at run time, so after `init` the way to drop an entry is
+   to delete the line. What it costs is stated rather than warned about: no
+   `.gitignore` names `.git/`, so a config without either walks the version
+   control directory. Loud, immediate, one line to fix. Pinned by
+   `init-no-common-ignore`.
+
 ## Open questions
 
 - ~~The double-catch shape.~~ **Settled.** Two open sets get two sentences and

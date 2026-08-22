@@ -194,7 +194,39 @@ function infer(
     else bucket.push(entry);
   }
 
-  for (const [extension, group] of byExtension) {
+  // Several real directories collapsed into this node, so `name` is the
+  // placeholder they are matched by and a back-reference to it can be written.
+  const capture = listings.length >= 2 ? name : null;
+
+  for (const [extension, remaining] of byExtension) {
+    let group = remaining;
+
+    // A file named after the directory holding it — `stripe/stripe.ts` — is
+    // that directory's own, and `{client}.ts` is the only statement here that
+    // is true of all of them. Read as ordinary members they are one name per
+    // sibling, which becomes a set of optional leaves that forbids the next
+    // client rather than describing the convention.
+    // docs/cli/adopt/README.MD "A file named after its directory".
+    if (capture !== null && extension !== "") {
+      const named = group.filter((entry) =>
+        entry.holders.every((holder) => stemOf(entry.name) === path.basename(path.dirname(holder))),
+      );
+      // Every instance, not two of them. Being wrong here costs a
+      // `missing_required_file` on a directory that never had one, reported the
+      // moment the espalier is written — so a convention two siblings follow
+      // and a third does not is not a convention.
+      if (named.length >= 2 && named.length === listings.length) {
+        out.leaves.push({
+          at: under(at, `{${capture}}.${extension}`),
+          description: `the ${capture} itself`,
+          optional: false,
+        });
+        const collapsed = new Set(named.map((entry) => entry.name));
+        group = group.filter((entry) => !collapsed.has(entry.name));
+        if (group.length === 0) continue;
+      }
+    }
+
     // Inside a family, the shared filenames are the evidence that made it a
     // family. Collapsing `client.ts` and `requestModels.ts` into `[ts].ts`
     // because they share an extension would throw away the stronger finding

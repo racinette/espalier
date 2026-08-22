@@ -12,16 +12,19 @@ espalier init --lang javascript
 
 ```text
 espalier init [--config <path>] [--root <dir>] [--lang <name>]...
-              [--ignore-file <path>]... [--no-ignore-file] [--ignore-all]
+              [--ignore-file <path>]... [--no-ignore-file]
+              [--no-common-ignore] [--ignore-all]
 
-  --root <dir>       espalier source directory (default: espalier)
-  -l, --lang <n>     also write the ignore entries for this language;
-                     repeat for a polyglot repository
-  -i, --ignore-file  a file holding ignore patterns (default: .gitignore);
-                     repeat to name several, read in the order given
-  --no-ignore-file   write no `ignoreFiles` entry at all
-  --ignore-all       also write an ignore entry for every top-level path,
-                     putting the existing tree out of scope
+  --root <dir>         espalier source directory (default: espalier)
+  -l, --lang <n>       also write the ignore entries for this language;
+                       repeat for a polyglot repository
+  -i, --ignore-file    a file holding ignore patterns (default: .gitignore);
+                       repeat to name several, read in the order given
+  --no-ignore-file     write no `ignoreFiles` entry at all
+  --no-common-ignore   write no common ignore entries either; the `ignore`
+                       list is then yours alone
+  --ignore-all         also write an ignore entry for every top-level path,
+                       putting the existing tree out of scope
   --config <path>    write the config here instead of ./espalier.config.yaml
   --format <fmt>     human or jsonl (default: human)
   --out <dest>       stdout, stderr, or a file path (default: stdout)
@@ -96,6 +99,29 @@ espalier init --no-ignore-file
 `-i` writes exactly the paths given, in the order given, and each must exist for the same reason `.gitignore` must. `--no-ignore-file` writes `ignoreFiles: []` — recorded rather than omitted, so the config says a decision was made rather than leaving the next reader to wonder. The two together are a contradiction and are refused as `contradictory_flags` rather than resolved by precedence.
 
 After `init`, the rule still holds: a file named in `ignoreFiles` that is not there fails any command that loads the config. See [CONFIG.MD](../../CONFIG.MD#ignorefiles).
+
+## `--no-common-ignore`
+
+Writes none of the common block. The `ignore` list is then whatever `--lang` and `--ignore-all` put there, and nothing else:
+
+```bash
+espalier init --no-common-ignore
+```
+
+```yaml
+version: 1
+
+root: espalier
+
+ignoreFiles:
+  - .gitignore
+```
+
+Use it when the common list is wrong for this repository — a project that genuinely governs its CI definitions, or one whose exclusions are all in `.gitignore` already and wants no second copy.
+
+**The consequence to know before reaching for it.** `.git/` is in that block, and no `.gitignore` names it, so a config without either walks several tens of thousands of objects and reports every one of them. That is loud and immediate rather than subtle, and one `ignore` line fixes it — but it is yours to write.
+
+There is no matching config key. Nothing here is applied at run time: the block is copied into `ignore` and then belongs to you, so the way to remove an entry after the fact is to delete the line. This flag exists for the case where you did not want it written in the first place.
 
 ## `--lang`
 

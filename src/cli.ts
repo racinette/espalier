@@ -29,6 +29,7 @@ const USAGE = `espalier <command> [options]
   -l, --lang <name>     write a shipped ignore list; repeat for a polyglot repo
   -i, --ignore-file     a file holding ignore patterns (default: .gitignore)
   --no-ignore-file      write no ignoreFiles entry at all
+  --no-common-ignore    write no common ignore entries either
   --ignore-all          put every top-level path out of scope
 
   build only:
@@ -77,6 +78,7 @@ async function main(): Promise<number> {
         lang: { type: "string", short: "l", multiple: true },
         "ignore-file": { type: "string", short: "i", multiple: true },
         "no-ignore-file": { type: "boolean" },
+        "no-common-ignore": { type: "boolean" },
         inline: { type: "boolean" },
         "dry-run": { type: "boolean" },
         rule: { type: "string" },
@@ -109,6 +111,7 @@ async function main(): Promise<number> {
           languages: (values["lang"] as string[] | undefined) ?? [],
           ignoreFiles: values["ignore-file"] as string[] | undefined,
           noIgnoreFile: values["no-ignore-file"] === true,
+          noCommonIgnore: values["no-common-ignore"] === true,
           ignoreAll: values["ignore-all"] === true,
         },
         reporter,

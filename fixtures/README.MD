@@ -182,6 +182,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `init-bare` | the config, the espalier root, and the warning about a missing .gitignore |
 | `init-ignore-all` | the opt-in backlog, and the three routes that keep paths out of it |
 | `init-existing-config` | refusing to overwrite, without touching the tree |
+| `init-no-common-ignore` | declining the common block; `--lang` still writes its own |
 | `addons-shared-resource` | one setup, one shared object, one disposal |
 | `addons-disposed-on-failure` | disposal runs even when a rule throws |
 | `invalid-example` | an example that does not match its own rule's pattern |
@@ -202,6 +203,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `adopt-skips-espalier-root` | a target containing the espalier root does not infer from it |
 | `adopt-root-target` | the root has no name to singularise, and no empty path segment |
 | `adopt-into-child` | a target inside a child is adopted by the child's espalier |
+| `adopt-named-after-directory` | a file named for its directory becomes `{client}.ts`, not three optional leaves |
 | `lint-cache-replay` | an unchanged file is not linted again |
 | `lint-cache-read-dependency` | a rule reruns when a file it read changed, and only that rule |
 | `lint-cache-glob-dependency` | a listing that gained a file reruns the rules that listed it |

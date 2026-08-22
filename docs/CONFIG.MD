@@ -105,7 +105,7 @@ Every repository already maintains a list of paths that are not source: build ou
 
 **It is read as `espalier`'s syntax, not as git's.** No compatibility is claimed and none should be relied on. Concretely: nested `.gitignore` files in subdirectories are not read, only the paths you list; character classes (`[a-z]`) and backslash escapes are unsupported. `espalier` is not a git client and a second, silently different implementation of gitignore is exactly what this was meant to avoid. What it reads is a list of patterns in a well-known shape.
 
-`espalier init --no-ignore-file` writes an empty list for a repository that genuinely has none. See [cli/init/README.MD](cli/init/README.MD#--ignore-file-and---no-ignore-file).
+`espalier init --no-ignore-file` writes an empty list for a repository that genuinely has none, and `--no-common-ignore` declines the entries `init` would otherwise put in `ignore`. See [cli/init/README.MD](cli/init/README.MD#--ignore-file-and---no-ignore-file).
 
 **It does not cover files that are tracked on purpose.** `package.json`, `Cargo.toml`, `pnpm-lock.yaml` and `tsconfig.json` appear in no `.gitignore` anywhere, because they are meant to be committed — and they are also not architecture, so no rule should have to declare them. That list has no upstream to defer to; it is `espalier`'s own opinion, and `espalier init --lang` writes it into `ignore` where you can read it. See [cli/init/README.MD](cli/init/README.MD#--lang).
 

@@ -277,3 +277,40 @@ test("explain and lint agree about a path under a pruned directory", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("a back-reference needs every instance, not two of them", () => {
+  const root = bare();
+  try {
+    mkdirSync(path.join(root, "espalier"));
+    writeFileSync(path.join(root, ".gitignore"), "");
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nignoreFiles:\n  - .gitignore\nignore:\n  - main.ts\n  - .gitignore\n  - src/**\n",
+    );
+
+    // Two clients name a file after themselves; the third does not. That is
+    // not a convention, so the honest answer is the optional leaves — a
+    // back-reference here would report `missing_required_file` against `plain/`
+    // the first time the espalier ran.
+    const clients: [string, string][] = [
+      ["stripe", "stripe.ts"],
+      ["twilio", "twilio.ts"],
+      ["plain", "index.ts"],
+    ];
+    for (const [directory, file] of clients) {
+      mkdirSync(path.join(root, "src", "clients", directory), { recursive: true });
+      writeFileSync(path.join(root, "src", "clients", directory, file), "");
+      writeFileSync(path.join(root, "src", "clients", directory, "README.MD"), "");
+    }
+
+    assert.equal(espalier(root, ["adopt", "src/clients"]).status, 0);
+    const written = readdirSync(path.join(root, "espalier", "src", "clients", "[client]")).sort();
+    assert.deepEqual(written, ["README.MD.mjs", "index.ts.mjs", "stripe.ts.mjs", "twilio.ts.mjs"]);
+    assert.match(
+      readFileSync(path.join(root, "espalier", "src", "clients", "[client]", "stripe.ts.mjs"), "utf8"),
+      /export const optional = true;/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

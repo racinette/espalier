@@ -85,15 +85,45 @@ A directory holding an `espalier.config.yaml` of its own is a child espalier, an
 
 ## Inference
 
-Two signals, both conservative, and **two of a thing is a pattern**. That threshold comes from the failure being asymmetric rather than from confidence: two directories that happen to look alike cost you a placeholder to rename, while an espalier that declared them separately forbids the third one.
+Three signals, all conservative, and **two of a thing is a pattern**. That threshold comes from the failure being asymmetric rather than from confidence: two directories that happen to look alike cost you a placeholder to rename, while an espalier that declared them separately forbids the third one.
 
 **Sibling directories with matching contents** become a dynamic directory. `stripe/` and `twilio/` holding the same filenames is a strong signal that a provider is a repeating unit rather than two unrelated directories.
 
 **Repeated filename shapes** become a dynamic leaf. Two or more files sharing an extension in one directory become `[tsx].tsx` rather than one node each.
 
+**A file named after the directory holding it** becomes a [back-reference](../../TYPES.MD#back-references). Where every instance of a dynamic directory holds a file whose name is the instance's own, that is `{client}.ts` — one file per client, named for it, required.
+
 **The first signal wins where they meet.** Inside a dynamic directory, the shared filenames are the evidence that made it a family — `stripe/` and `twilio/` are a repeating unit *because* both hold a `client.ts` and a `requestModels.ts`. Collapsing those into `[ts].ts` because they share an extension would discard the stronger finding and declare something nobody observed. So the intersection is declared exactly as it is, and the extension rule applies only to a directory that is not part of a family.
 
 When in doubt, `adopt` generalises. An over-general espalier is a working one that you tighten later; an over-specific espalier declares today's files and forbids tomorrow's, so every file anyone adds is a violation. Collapsing a dynamic leaf back into two exact nodes is a two-minute edit. Discovering that your espalier has frozen the repository is a bad afternoon.
+
+### A file named after its directory
+
+Some layouts name the entry point after the thing it implements:
+
+```text
+src/clients/stripe/stripe.ts
+src/clients/twilio/twilio.ts
+src/clients/sendgrid/sendgrid.ts
+```
+
+There is nothing in common between those three filenames, so the other two signals have nothing to work with. Read as ordinary members they are three names, each held by one sibling out of three, and the honest reading of that is three optional leaves:
+
+```text
+espalier/src/clients/[client]/sendgrid.ts.mjs  (optional)
+espalier/src/clients/[client]/stripe.ts.mjs    (optional)
+espalier/src/clients/[client]/twilio.ts.mjs    (optional)
+```
+
+That espalier is wrong rather than loose. It says a client directory may hold any of those three files, so `mailgun/mailgun.ts` is `unexpected_path` on the day it is written — the over-specific failure this document warns about, reached by a route the optional rule was never meant to cover.
+
+`{client}.ts` is the statement that is actually true, and the language already has it. `adopt` writes it when **every** instance holds a file named after itself:
+
+```text
+written   espalier/src/clients/[client]/{client}.ts.mjs
+```
+
+Every instance, not two of three. The other thresholds are two because a placeholder costs a rename and being wrong costs a forbidden file; here being wrong costs `missing_required_file` on a directory that never had one, reported the moment the espalier is written. Two clients following a convention and a third not following it is not a convention, and the optional leaves are the right answer for it.
 
 ### Siblings that only partly match
 

@@ -1,0 +1,16 @@
+version: 1
+
+root: espalier
+
+ignoreFiles:
+  - .gitignore.fixture
+
+ignore:
+  # go
+  # Manifests and lockfiles.
+  - go.mod
+  - go.sum
+
+  # Tool configuration.
+  - .golangci.yml
+  - .golangci.yaml
