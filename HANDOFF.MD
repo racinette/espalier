@@ -407,11 +407,14 @@ Open, both raised by dogfooding:
 
 ## Known gaps
 
-Carrying `TODO`s in the code:
-
-- `src/ignore.ts` evaluates every ancestor level and lets the last match win.
-  Git additionally refuses to re-include a path whose parent directory is
-  excluded. Ours is more permissive and covers the documented cases.
+Carrying `TODO`s in the code: none. The last one — `src/ignore.ts` being more
+permissive than git about re-including under an excluded directory — stopped
+being a preference the moment the walk started pruning. `collectCandidates`
+never opens an excluded directory, so a negation that appeared to win named a
+path no run had looked at, and `explain` answered "not declared" about a file
+`lint` could not see. Two commands disagreeing about one path is the failure
+this tool exists to prevent. `excludedBy` now stops at the first ancestor that
+excludes, which is git's rule and, here, the only self-consistent one.
 
 One thing stands here again: **the specificity tier in `ordered()` is not
 observably pinned.** `{` and `[` both sort after every letter, so for any
@@ -499,6 +502,11 @@ Fixtures that need an ignore source name it `.gitignore.fixture`, never
 `.gitignore`: git honours the real name, so every path such a file excluded
 would be a path `git add -A` silently skips and the next clone never receives.
 `-i` exists partly so that choice is available.
+
+Pruning had one consequence worth recording: it made a matcher difference into
+a correctness bug. See **Known gaps** — the permissive ancestor handling in
+`src/ignore.ts` was harmless while candidacy enumerated everything, and wrong
+the moment it stopped.
 
 Copied rather than applied is the whole of the change in kind. An upgrade can no
 longer alter what a repository governs, and `explain` answers with a line in a

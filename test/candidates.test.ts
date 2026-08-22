@@ -254,3 +254,26 @@ test("a file ignoreFiles names is invisible, not merely ignored", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("explain and lint agree about a path under a pruned directory", () => {
+  const root = bare();
+  try {
+    mkdirSync(path.join(root, "espalier"));
+    mkdirSync(path.join(root, "vendor", "deep"), { recursive: true });
+    writeFileSync(path.join(root, "vendor", "deep", "lib.ts"), "");
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nignore:\n  - main.ts\n  - vendor/\n  - \"!vendor/deep/lib.ts\"\n",
+    );
+
+    // The negation cannot win: `collectCandidates` never opens `vendor/`, so a
+    // path it appeared to re-include would be one no run had looked at. Before
+    // this, `explain` said "not declared" about a file `lint` could not see.
+    const shown = espalier(root, ["explain", "vendor/deep/lib.ts", "--format", "jsonl"]);
+    assert.equal(shown.status, 1);
+    assert.match(shown.stdout, /"ignoredBy":"ignore"/);
+    assert.equal(espalier(root, ["lint"]).status, 0, "lint reported a pruned path");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

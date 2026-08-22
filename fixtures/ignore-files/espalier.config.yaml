@@ -11,3 +11,4 @@ ignore:
   - .gitignore.fixture
   - .espalierignore
   - "!src/kept.ts"
+  - "!build/nested/out.js"

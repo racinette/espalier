@@ -79,10 +79,11 @@ export function compileIgnore(patterns: string[], origin = "ignore"): IgnoreRule
  * Later patterns win, and a rule matching an ancestor directory carries down to
  * everything beneath it.
  *
- * TODO: git additionally refuses to re-include a path whose parent directory is
- * excluded. We evaluate every level and let the last match win, which is more
- * permissive and covers the documented cases; revisit if a real espalier trips
- * over the difference.
+ * An excluded directory is final: nothing beneath it can be re-included. Git
+ * has the same rule, and here it is not a choice — `collectCandidates` never
+ * enters such a directory, so a negation that appeared to win would name a file
+ * no run had looked at. Evaluating every level and letting the last match win
+ * made `explain` answer "not declared" for a path `lint` could not see.
  */
 export function excludedBy(
   rules: IgnoreRule[],
@@ -103,6 +104,10 @@ export function excludedBy(
       if (rule.dirOnly && !isDirectory) continue;
       if (rule.matcher.test(partial)) winner = rule.negated ? null : rule;
     }
+
+    // An ancestor settled it. Deeper patterns describe paths inside a directory
+    // the walk never opened.
+    if (winner !== null && depth < segments.length) return winner;
   }
 
   return winner;
