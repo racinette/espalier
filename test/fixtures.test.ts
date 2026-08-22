@@ -279,8 +279,8 @@ function checkOwnership(dir: string, expected: Record<string, string | null>): v
   );
 }
 
-function checkLint(dir: string, expected: Expected): void {
-  const lint = run(dir, ["lint", "--format", "jsonl"]);
+function lintIn(dir: string, scratch: string, expected: Expected): void {
+  const lint = run(scratch, ["lint", "--format", "jsonl"]);
   const lines = parseLines(lint.stdout, "lint");
 
   assert.equal(
@@ -311,7 +311,7 @@ function checkLint(dir: string, expected: Expected): void {
   // What a person reads is a separate surface from what a machine parses, and a
   // format nobody pins is a format that drifts.
   if (expected.human !== undefined) {
-    const shown = run(dir, ["lint"]);
+    const shown = run(scratch, ["lint"]);
     assert.equal(
       shown.stdout,
       readFileSync(path.join(dir, expected.human), "utf8"),
@@ -330,7 +330,7 @@ function checkLint(dir: string, expected: Expected): void {
   }
 
   for (const [target, want] of Object.entries(expected.explain ?? {})) {
-    const explain = run(dir, ["explain", target, "--format", "jsonl"]);
+    const explain = run(scratch, ["explain", target, "--format", "jsonl"]);
     const objects = parseLines(explain.stdout, `explain ${target}`);
     assert.equal(
       objects.length,
@@ -349,13 +349,32 @@ function checkLint(dir: string, expected: Expected): void {
     // same way build's documents are: byte for byte, against a file a reader
     // can diff.
     if (want.human !== undefined) {
-      const human = run(dir, ["explain", target]);
+      const human = run(scratch, ["explain", target]);
       assert.equal(
         human.stdout,
         readFileSync(path.join(dir, want.human), "utf8"),
         `explain ${target} --format human differs from ${want.human}`,
       );
     }
+  }
+}
+
+/**
+ * Runs `lint` against a throwaway copy, for the reason `build` does: fixtures
+ * are inputs and are never written into. The copy is verbatim rather than
+ * scaffolding-filtered, because every fixture config ignores its own
+ * scaffolding and removing it would change the file set under test.
+ *
+ * Goldens are still read from the fixture itself — they are what the run is
+ * compared against, not part of the repository it runs on.
+ */
+function checkLint(dir: string, expected: Expected): void {
+  const scratch = mkdtempSync(path.join(os.tmpdir(), "espalier-lint-"));
+  try {
+    cpSync(dir, scratch, { recursive: true });
+    lintIn(dir, scratch, expected);
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
   }
 }
 
