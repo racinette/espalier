@@ -45,11 +45,19 @@ ignore:
   - AUTHORS
   - CONTRIBUTORS
 
-  # Editor and operating system droppings.
+  # Editor, agent and operating system droppings. The agent directories are here
+  # for the same reason as the editor ones: dot-prefixed, so no rule could declare
+  # them even if a project wanted to.
   - .vscode/
   - .idea/
   - .fleet/
   - .zed/
+  - .claude/
+  - .cursor/
+  - .windsurf/
+  - .continue/
+  - .codeium/
+  - .aider*
   - "*.swp"
   - .DS_Store
   - Thumbs.db
