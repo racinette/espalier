@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+// Argument parsing and dispatch. Every command's own page is under docs/cli/,
+// and the flags below are the same list each of those pages carries.
+
 import { parseArgs } from "node:util";
 import { adopt } from "./adopt.js";
 import { build } from "./build.js";

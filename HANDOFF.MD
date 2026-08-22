@@ -357,6 +357,46 @@ Taken while writing the `explain` fixtures:
    answers are not — so there was nothing to keep warm. What the reason was
    actually describing is the cache.
 
+12. ~~Candidacy without git.~~ **Done.** One walk that prunes with `ignore`,
+   `ignoreFiles` reading `.gitignore`, and the shipped lists under `ignores/`
+   copied into the config by `init --lang`. `WALK_EXCLUSIONS` and
+   `DEFAULT_IGNORE` are gone, and so is every hardcoded path but none of the
+   exclusions. See **Candidacy and the ignore lists**.
+
+13. ~~`espalier` governs itself.~~ **Done.** There is an `espalier/` at the root
+   of this repository now, and `espalier lint` over it is clean. Both earlier
+   dogfooding passes ran in scratch copies and were discarded, which is why
+   nothing was holding the tool to its own claim between sessions.
+
+   The espalier is deliberately thin on style and heavy on the two rules that
+   catch drift: a `src/*.ts` header naming a `docs/…MD` that must exist, and a
+   `docs/cli/<command>/README.MD` whose command `src/<command>.ts` must
+   implement. Both are `read`/`files` rules, so they also keep the dependency
+   cache exercised on a real tree. Verified against five deliberate breaks —
+   a header pointing at a renamed document, a page for a command nobody wrote,
+   a shipped list with no explanation, a test file with no header, and a file
+   with nowhere legal to go — each reported and nothing else.
+
+   Four findings, all now fixed:
+
+   - **`fixtures/` recursed as sixty child espaliers**, several deliberately
+     invalid, producing twelve operational failures. `docs/CONFIG.MD`
+     "Suppressing discovery" predicted this exactly; the fix is the `ignore`
+     line that document already recommends.
+   - **The common profile knew about editors and not about agents.** `.vscode/`
+     and `.idea/` were on it; `.claude/`, `.cursor/`, `.windsurf/`, `.continue/`
+     and `.codeium/` were not, in a tool whose subject is agent-driven
+     development. All are dot-prefixed, so no rule could ever declare them.
+     `AGENTS.MD` stays off the list — `build` finds its own output by
+     provenance, and ignoring it would stop the orphan sweep.
+   - **`src/cli.ts` was the one module of twenty-two without a header
+     comment**, hidden behind its shebang. The rule allows a shebang first; the
+     file now carries the header the other twenty-one do.
+   - **The first root run left a cache inside sixty fixture espaliers**, one of
+     them inside a golden tree. Correct behaviour — they were children at the
+     time — but `.cache/` is gitignored, so `git status` showed nothing and only
+     `init-bare`'s byte-for-byte golden comparison caught it.
+
 ## Open questions
 
 - ~~The double-catch shape.~~ **Settled.** Two open sets get two sentences and
