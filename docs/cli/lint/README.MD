@@ -20,6 +20,7 @@ espalier lint [paths...]
   --rule <module>       run one rule module only
   --config <path>       use this config file instead of discovering one
   --no-rule-text        omit rule bodies from output
+  --no-cache            re-run every rule, and write no cache
 ```
 
 ## What it does
@@ -34,7 +35,7 @@ Rules execute independently and in unspecified order. A rule may read any file i
 
 ## Scoping
 
-A path argument restricts the file set. This makes `lint` fast enough for a pre-commit hook or an agent stop hook, at the cost of completeness:
+A path argument restricts the file set, at the cost of completeness:
 
 - `unexpected_path` is reported for files in scope
 - `missing_required_file` is reported only for required leaves inside the scope
@@ -42,7 +43,49 @@ A path argument restricts the file set. This makes `lint` fast enough for a pre-
 
 A scoped run cannot tell you the repository conforms — only that the part you asked about does. The human summary says so explicitly. **CI runs unscoped.**
 
-There is no `--staged`. A pre-commit hook already knows which files it is about to commit, and passing them as arguments is one shell substitution — `espalier lint $(git diff --name-only --cached)`. Building that into the tool would have meant a git-index dependency, a flag whose behaviour nobody could pin without making fixtures into git repositories, and a second spelling of scoping that already exists.
+Speed is not a reason to reach for this. An unscoped run is incremental — see [Incremental runs](#incremental-runs) — and it answers the question a scoped one cannot.
+
+There is no `--staged`. A hook that genuinely wants a narrow run already knows which files it is about to commit, and passing them as arguments is one shell substitution — `espalier lint $(git diff --name-only --cached)`. Building that into the tool would have meant a git-index dependency, a flag whose behaviour nobody could pin without making fixtures into git repositories, and a second spelling of scoping that already exists.
+
+## Incremental runs
+
+`lint` remembers what each rule read and what it found, and skips the rules whose inputs have not changed. A warm run over an unchanged repository does no rule work at all and reports exactly what the cold run reported.
+
+This is what makes running `lint` whole affordable. A hook does not need to work out which files changed and pass them along: scoping trades completeness for speed, and an incremental full run does not.
+
+### What is remembered
+
+The unit is one rule invocation — a module, the pattern that matched, and the path it ran against. For each, the cache holds the paths it read, the globs it listed, and the issues it emitted. An invocation is replayed when all three still hold:
+
+- every path it read has the same size and modification time
+- every `files` glob still returns the same list
+- the espalier is unchanged
+
+**Nothing is hashed.** Size and modification time come from the file's inode, so a warm run opens no source file at all — its whole I/O is listing the repository, reading the cache, and one `stat` per path some rule depended on. What this leaves open is a file edited within the same second to the same length. Closing it would mean reading every file in the repository on every run, which is the cost being avoided.
+
+**The espalier is all-or-nothing.** Any change under `root`, or to the config, discards the cache entirely. One comparison covers a rule edit, a module the rules import, a renamed node and a changed setting, where tracking them apart would mean walking the module graph. The architect changes the espalier far less often than the repository changes under it.
+
+**Structural findings are never cached.** Ownership resolution reads no file contents and runs in full every time, so `unexpected_path` and `missing_required_file` are always fresh. Only rule bodies are skipped.
+
+**A `files` glob depends on which paths exist, not on what is in them.** Editing a sibling does not invalidate a peer comparison; adding or deleting one does.
+
+### What this asks of a rule
+
+A `lint` function must be a function of what it is handed: `path`, `pattern`, `captures`, and whatever `read` and `files` return. One that consults the clock, the network, or the environment will be replayed with an answer it would no longer give, and the failure is silent — a stale pass, not an error. See [TYPES.MD](../../TYPES.MD#execution).
+
+`addons` are held to the same standard, with one addition: **an addon must not read the repository itself.** A parser handed a path opens a file the run never saw, and that dependency goes unrecorded. Hand it contents, or `read` the path first and throw the string away.
+
+### The cache
+
+`<root>/.cache/lint.jsonl`, inside the espalier. That directory is already invisible to matching and already skipped when the tree is compiled, so the cache needs no rule of its own to stay out of the way. Each espalier writes its own, since a child shares nothing with its parent here either. Add it to `.gitignore`.
+
+**A cache that cannot be used is not an error.** Missing, unreadable, unwritable, corrupt, or written by a version that no longer applies: the run discards it, does the work, and says nothing. A linter that fails over its own bookkeeping is worse than a slow one.
+
+**Entries are merged, never pruned.** A run narrowed by `--rule` or by path arguments leaves invocations unvisited, and an unvisited invocation cannot be told from one that no longer exists. Only a run that is neither drops what it no longer sees.
+
+**`--no-cache`** does the work regardless and writes nothing. There is no config key for it. A project that permanently distrusts the cache is a project whose rules are not pure, and that is something to fix rather than to settle into.
+
+**Nothing in the output says whether an issue was replayed.** Both formats are identical warm and cold, because a hook that behaves differently on a warm cache is a hook nobody can trust.
 
 ## Nested espaliers
 
@@ -198,13 +241,5 @@ An operational failure means `espalier` could not do its job. It exits `2`, repo
 A rule that throws is a bug in the rule, not a finding about the repository. Degrading it to a warning would let a broken espalier report a clean repository, which is the one outcome this tool exists to prevent.
 
 The failures above the run are caught before any file is read, and nothing precedes them. A rule that throws is caught during it, so issues already emitted have already been written. The exit code is the authority on whether the run means anything: a `2` says the output is partial, however much of it arrived.
-
-## Watch mode
-
-**Planned.** `--watch` will keep the runner alive between checks.
-
-Compiling the espalier and starting `addons` is the expensive part of a run, and both are stable while the repository changes. Where a rule depends on a language server or an out-of-process parser, paying that startup on every agent stop is the friction that gets a tool switched off. A persistent runner also makes incremental linting practical, since ownership only needs recomputing for paths that changed.
-
-See [README.MD](../../../README.MD#planned).
 
 Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).

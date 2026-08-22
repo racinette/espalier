@@ -31,10 +31,13 @@ test("the repository conforms", async () => {
 | `config` | discovered | an explicit config file path |
 | `paths` | every visible file | limit the run to a subtree |
 | `rule` | every rule | run one rule module only, by espalier-relative path |
+| `cache` | `true` | `false` is `--no-cache`: re-run every rule, and write nothing |
 
 Returns `Promise<Issue[]>` — every issue, in the order the runner produced them, deduplicated no more than the CLI deduplicates them, which is not at all.
 
 Child espaliers are visited exactly as the CLI visits them, and their issues arrive in the same array with paths re-rooted to `cwd` and `espalier` naming the one that reported them. A failure inside a child raises, like any other, once the runs that could still complete have — the first in path order, with the child's directory on the front of the message.
+
+The cache is read and written exactly as the CLI reads and writes it, in the same place. A caller that wants a cold run for its own reasons passes `cache: false`.
 
 There is no exit code and no partial-run warning. Both are ways of saying something to a person through a stream; a caller holding the issues can decide for itself. Everything else is identical, including `addons` setup and disposal: `check` is the runner with a collecting reporter, not a second implementation.
 

@@ -313,7 +313,26 @@ Taken while writing the `explain` fixtures:
    `fixtures/build-inline/FIXTURE.MD` argued the other way and now argues this
    way, with the reversal on the record. Verified to guard.
 
-`--watch` is explicitly planned rather than pending.
+11. **Incremental lint.** Specified, not built. `lint` caches what each rule
+   invocation read, listed and emitted, and replays the ones whose inputs are
+   unchanged, so an unscoped run is affordable and scoping stops being the way
+   to get speed. Keyed on size and mtime, never hashes; any change under the
+   espalier root voids the whole cache; structural findings are always fresh.
+   `docs/cli/lint/README.MD` "Incremental runs" is the specification, with the
+   purity obligation in `docs/TYPES.MD` "Execution" and `docs/CONFIG.MD`
+   "`addons`".
+
+   Tests are the hard part, because the feature is deliberately unobservable —
+   output is byte-identical warm and cold. A skip is made visible by a rule
+   that lies: emit `process.env.SOMETHING`, change it between runs, and a warm
+   run still reporting the old value proves the replay. That needs the fixture
+   harness to learn a second run with mutations between; `checkLint` running
+   against a throwaway copy is the first step and is already in.
+
+   `--watch` was dropped. Its stated reason was keeping `addons` warm between
+   checks, and addons are pure by contract — the process is stateful, its
+   answers are not — so there is nothing to keep warm. What the reason was
+   actually describing is the cache.
 
 ## Open questions
 

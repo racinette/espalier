@@ -274,6 +274,11 @@ Captures name values. They never constrain the relationship between them: both `
 
 Rules execute independently, in unspecified order, with no shared state. A rule may read any visible file, but must not assume another rule has or has not run.
 
+**A `lint` function must be pure.** Its answer must follow from what it is handed — `path`, `pattern`, `captures`, and whatever `read` and `files` return — and from nothing else. The clock, the network and the environment are not inputs the runner can see, so a rule that consults one will be replayed from cache with an answer it would no longer give. The failure is silent: a stale pass, not an error. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
+
+`addons` are held to the same standard and carry one obligation of their own: **an addon must not read the repository.** A parser handed a path opens a file the run never saw, and that dependency goes unrecorded. Hand it contents, or `read` the path first and throw the string away. The process behind an addon may hold state; its answers must not depend on any.
+
+
 A `lint` function that throws is a bug in the rule, not a finding about the repository: the run fails with exit `2` and reports `rule_threw`. See [cli/lint/README.MD](cli/lint/README.MD) and [ERRORS.MD](ERRORS.MD).
 
 A `lint` function is ordinary code and can be called from an ordinary test. [API.MD](API.MD) describes `runRule`, which builds this context from values you supply and returns the issues rather than printing them.

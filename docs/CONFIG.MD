@@ -161,6 +161,8 @@ Addons exist for **expensive out-of-process resources**: a language server, an A
 
 The object must be safe for concurrent use by many rules in unspecified order. Internal state is fine — a parser is stateful — but nothing a rule does through an addon may change what another rule sees.
 
+**An addon must not read the repository.** A parser handed a path opens a file the run never saw, and `lint` caches what each rule depended on: an unrecorded read becomes a stale pass. Hand it contents, as the example does. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
+
 ## `build`
 
 | Key | Default | |

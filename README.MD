@@ -290,10 +290,6 @@ const issues = await runRule(rule, {
 
 There is no `espalier test` command. Fixtures, assertions, reporting and watch mode are what a test framework already does, and a linter reimplementing them would ship a worse `node:test` with none of the tooling around it. The lint context is the only part nobody else can supply, so that is the part `espalier` exposes. See [docs/API.MD](docs/API.MD).
 
-## Planned
-
-**`espalier lint --watch`** keeps the runner alive between checks. This matters most where rules depend on `addons`: a language server or an out-of-process AST parser can take seconds to start, and paying that on every agent stop is the kind of friction that gets a tool switched off. A persistent runner is also what makes incremental linting practical on a large repository.
-
 ## What `espalier` is not
 
 - **Not a replacement for general-purpose linters.** ESLint, ruff, golangci-lint, and their peers do excellent work on language-specific code quality. `espalier` is about _architectural_ enforcement: where code lives, what shape it takes, how modules relate. The two are complementary.
