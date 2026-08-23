@@ -11,11 +11,11 @@ up a command should not have to read the parser.
 
 ## Structure
 
-    [command]/
-      README.MD  the page for one command
+    └─ [command]/    any number, any name
 
-Zero or more `[command]/` directories may exist. For each one that does,
-README.MD is required. Nothing else may exist under docs/cli/.
+       └─ README.MD  the page for one command, required
+
+Nothing else may exist under docs/cli/.
 
 ## Not described here
 

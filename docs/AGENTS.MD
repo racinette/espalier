@@ -29,14 +29,15 @@ this project; these pages are read by whoever is using it.
 
 ## Structure
 
-    cli/           one page per command
-      [command]/
-        README.MD  the page for one command
-    [doc].MD       a specification document
+    ├─ cli/             one page per command
+    │
+    │  └─ [command]/    any number, any name
+    │
+    │     └─ README.MD  the page for one command, required
+    │
+    └─ [doc].MD         a specification document, any number, any name
 
-Zero or more `cli/[command]/` directories may exist. For each one that does,
-README.MD is required. Zero or more files matching `[doc].MD` may exist. Nothing
-else may exist under docs/.
+Nothing else may exist under docs/.
 
 ## Not described here
 

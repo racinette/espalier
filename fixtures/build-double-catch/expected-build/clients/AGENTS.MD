@@ -2,12 +2,12 @@
 
 ## Structure
 
-    [provider]/
-      client.ts   an integration with an external API
-    [summary].ts  a one-file summary of a provider
+    ├─ [provider]/   any number, any name
+    │
+    │  └─ client.ts  an integration with an external API, required
+    │
+    └─ [summary].ts  a one-file summary of a provider, any number, any name
 
-Zero or more `[provider]/` directories may exist. For each one that does,
-client.ts is required. Zero or more files matching `[summary].ts` may exist.
 Nothing else may exist under clients/.
 
 ## Not described here

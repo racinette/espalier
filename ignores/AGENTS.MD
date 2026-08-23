@@ -15,10 +15,9 @@ underscore is what keeps it out of the `--lang` names.
 
 ## Structure
 
-    [language].gitignore  a shipped ignore list
+    └─ [language].gitignore  a shipped ignore list, any number, any name
 
-Zero or more files matching `[language].gitignore` may exist. Nothing else may
-exist under ignores/.
+Nothing else may exist under ignores/.
 
 ## Not described here
 

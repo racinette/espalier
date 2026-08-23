@@ -2,9 +2,9 @@
 
 ## Structure
 
-    main.ts  the application entry point
+    └─ main.ts  the application entry point, required
 
-main.ts is required. Nothing else may exist under this directory.
+Nothing else may exist under this directory.
 
 ## Not described here
 

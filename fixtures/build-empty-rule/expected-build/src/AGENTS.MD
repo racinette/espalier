@@ -2,10 +2,10 @@
 
 ## Structure
 
-    registry.ts  the module registry
-    [module].ts  a module
+    ├─ registry.ts  the module registry, required
+    │
+    └─ [module].ts  a module, any number, any name
 
-registry.ts is required. Zero or more files matching `[module].ts` may exist.
 Nothing else may exist under src/.
 
 ## Not described here

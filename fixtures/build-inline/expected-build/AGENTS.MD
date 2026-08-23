@@ -5,14 +5,14 @@ the repository root.
 
 ## Structure
 
-    components/
-      buttons/
-        [button].tsx  a button component
-    main.ts           the application entry point
+    ├─ components/
+    │  └─ buttons/
+    │
+    │     └─ [button].tsx  a button component, any number, any name
+    │
+    └─ main.ts             the application entry point, required
 
-main.ts is required. Zero or more files matching
-`components/buttons/[button].tsx` may exist. Nothing else may exist under this
-directory.
+Nothing else may exist under this directory.
 
 ## Not described here
 

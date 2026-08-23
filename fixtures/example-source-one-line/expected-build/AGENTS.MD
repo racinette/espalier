@@ -2,12 +2,12 @@
 
 ## Structure
 
-    components/
-      buttons/
-        [button].tsx  a button component
+    └─ components/
+       └─ buttons/
 
-Zero or more files matching `components/buttons/[button].tsx` may exist. Nothing
-else may exist under this directory.
+          └─ [button].tsx  a button component, any number, any name
+
+Nothing else may exist under this directory.
 
 ## Not described here
 

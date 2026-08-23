@@ -19,10 +19,9 @@ passed with the fix reverted.
 
 ## Structure
 
-    [name].test.ts  a test module
+    └─ [name].test.ts  a test module, any number, any name
 
-Zero or more files matching `[name].test.ts` may exist. Nothing else may exist
-under test/.
+Nothing else may exist under test/.
 
 ## Not described here
 

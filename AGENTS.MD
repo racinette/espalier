@@ -9,26 +9,33 @@ the two still point at each other, rather than checking style.
 
 ## Structure
 
-    docs/                   the specification
-      cli/                  one page per command
-        [command]/
-          README.MD         the page for one command
-      [doc].MD              a specification document
-    ignores/                the ignore lists espalier ships
-      [language].gitignore  a shipped ignore list
-    src/                    the implementation
-      [name].ts             an implementation module
-    test/                   the argument that the tool works
-      [name].test.ts        a test module
-    HANDOFF.MD              the record of what was decided and why
-    README.MD               the front page
+    ├─ docs/                    the specification
+    │  │
+    │  ├─ cli/                  one page per command
+    │  │
+    │  │  └─ [command]/         any number, any name
+    │  │
+    │  │     └─ README.MD       the page for one command, required
+    │  │
+    │  └─ [doc].MD              a specification document, any number, any name
+    │
+    ├─ ignores/                 the ignore lists espalier ships
+    │
+    │  └─ [language].gitignore  a shipped ignore list, any number, any name
+    │
+    ├─ src/                     the implementation
+    │
+    │  └─ [name].ts             an implementation module, any number, any name
+    │
+    ├─ test/                    the argument that the tool works
+    │
+    │  └─ [name].test.ts        a test module, any number, any name
+    │
+    ├─ HANDOFF.MD               the record of what was decided and why, required
+    │
+    └─ README.MD                the front page, required
 
-HANDOFF.MD and README.MD are required. Zero or more `docs/cli/[command]/`
-directories may exist. For each one that does, README.MD is required. Zero or
-more files matching `docs/[doc].MD` may exist. Zero or more files matching
-`ignores/[language].gitignore` may exist. Zero or more files matching
-`src/[name].ts` may exist. Zero or more files matching `test/[name].test.ts` may
-exist. Nothing else may exist under this directory.
+Nothing else may exist under this directory.
 
 ## Not described here
 

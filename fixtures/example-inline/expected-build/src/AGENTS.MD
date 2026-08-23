@@ -2,10 +2,10 @@
 
 ## Structure
 
-    schema.sql       the canonical schema
-    [migration].sql  a migration
+    ├─ schema.sql       the canonical schema, required
+    │
+    └─ [migration].sql  a migration, any number, any name
 
-schema.sql is required. Zero or more files matching `[migration].sql` may exist.
 Nothing else may exist under src/.
 
 ## Not described here

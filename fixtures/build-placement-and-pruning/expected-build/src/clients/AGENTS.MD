@@ -5,15 +5,18 @@ Every upstream provider gets its own directory. Nothing outside
 
 ## Structure
 
-    [provider]/         one directory per upstream provider
-      handlers/
-        webhook.ts      an inbound webhook handler
-      client.ts         an integration with an external API
-      requestModels.ts  request payload types
+    └─ [provider]/          one directory per upstream provider, any number, any
+                            name
+       │
+       ├─ handlers/
+       │
+       │  └─ webhook.ts     an inbound webhook handler, required
+       │
+       ├─ client.ts         an integration with an external API, required
+       │
+       └─ requestModels.ts  request payload types, required
 
-Zero or more `[provider]/` directories may exist. For each one that does,
-handlers/webhook.ts, client.ts and requestModels.ts are required. Nothing else
-may exist under src/clients/.
+Nothing else may exist under src/clients/.
 
 ## Not described here
 

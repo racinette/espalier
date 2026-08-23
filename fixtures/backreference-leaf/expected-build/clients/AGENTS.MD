@@ -2,13 +2,14 @@
 
 ## Structure
 
-    [provider]/
-      {provider}.ts  the provider's entry point
-      [helper].ts    a helper
+    └─ [provider]/       any number, any name
+       │
+       ├─ {provider}.ts  the provider's entry point, required, {provider}
+       │                 repeats what [provider] matched
+       │
+       └─ [helper].ts    a helper, any number, any name
 
-Zero or more `[provider]/` directories may exist. For each one that does,
-{provider}.ts is required. Zero or more files matching `[provider]/[helper].ts`
-may exist. Nothing else may exist under clients/.
+Nothing else may exist under clients/.
 
 ## Not described here
 

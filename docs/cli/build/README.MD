@@ -73,7 +73,7 @@ The root file additionally carries the project preamble, the map of the entire r
 4. Render each surviving point.
 5. Write with a provenance header, in deterministic order. A file whose rendered bytes match what is already on disk is left alone rather than rewritten, so a second run touches nothing and reports nothing.
 
-Everywhere siblings are listed — in a map, in a cardinality sentence, in the order files are written — the order is: directories before files, then by specificity (static, then resolved, then dynamic), then lexicographic by authored name. Every tier does work, and together they are total, so output is byte-comparable between runs.
+Everywhere siblings are listed — in the map, in the order files are written — the order is: directories before files, then by specificity (static, then resolved, then dynamic), then lexicographic by authored name. Every tier does work, and together they are total, so output is byte-comparable between runs.
 
 The specificity tier is rarely what decides, because `{` and `[` both sort after every letter, so an authored name usually lands in the same place either way. It is stated because it is the order the matcher uses, and a document listing siblings in one order while ownership resolves them in another would be describing a different espalier.
 
@@ -84,7 +84,7 @@ The document is assembled in a fixed order. A section with nothing to say is omi
 ```text
 provenance marker
 node prose                    the ESPALIER.MD body, verbatim
-## Structure                  the map, then the cardinality paragraph
+## Structure                  the tree, then the closed-set sentence
 ## Governed elsewhere         child espaliers below this point, when any
 ## Not described here         excluded paths in this directory, when any
 ## <rule> — <description>     one per structural rule placed here
@@ -93,37 +93,62 @@ node prose                    the ESPALIER.MD body, verbatim
 ## Amending this structure    fixed text, every file
 ```
 
-Text `espalier` composes — the cardinality paragraph — is greedily wrapped at 80 columns. Text an author wrote — node prose, rule bodies — is copied verbatim and never re-wrapped, because reflowing someone's markdown is how a tool mangles a table. Map lines are never wrapped either; an alignment column that survived a wrap would not be one.
+Text `espalier` composes — the map's own text and the closed-set sentence — is greedily wrapped at 80 columns. Text an author wrote — node prose, rule bodies — is copied verbatim and never re-wrapped, because reflowing someone's markdown is how a tool mangles a table.
 
 ### The map
 
-An indented code block, one line per structural node in the subtree, depth-first in sibling order. Directories carry a trailing `/`. Names are authored form, so a dynamic node appears as `[provider]/` or `[button].tsx`.
+An indented code block drawn as a tree, one line per structural node in the subtree, depth-first in sibling order. Directories carry a trailing `/`. Names are authored form, so a dynamic node appears as `[provider]/` or `[button].tsx`.
 
-Each line is its name, then its description. Descriptions align to one column across the whole map: two spaces after the longest rendered name, including its tree indentation but not the four spaces of the code block, which are added to every line afterwards and so cannot change the alignment. A file's description is the rule module's `description`; a directory's is the `description` in its `ESPALIER.MD` frontmatter, and a directory without one gets no description rather than a blank column.
+Branches are drawn with box-drawing characters: `├─ ` for an entry with siblings still to come, `└─ ` for the last one, and, under each of those, `│  ` and three spaces respectively for everything nested inside.
+
+```text
+    ├─ clients/                external API providers
+    │
+    │  └─ [provider]/          any number, any name
+    │     │
+    │     ├─ requestModels.ts  request shapes, required
+    │     │
+    │     └─ {provider}.ts     the client, required, {provider} repeats what
+    │                          [provider] matched
+    │
+    ├─ main.ts                 the entry point, required
+    │
+    └─ notes.md                developer notes, optional
+```
+
+Indentation alone would say the same thing in less space, and say it less well: text long enough to wrap leaves a reader deciding whether the next line continues the entry above or begins a new one, and a branch answers that before the question is asked.
+
+**A guide row separates two entries whenever either carries text.** It holds the branch characters and nothing else: the bars the entry above it carried, then a `│` at that entry's own depth when a sibling still follows it, and, when that entry is a directory, one more at its children's depth on the same rule. Trailing spaces are trimmed, so no guide row reaches the text column. Two entries that both carry no text sit adjacent, there being no thread there to lose.
+
+**Text starts at one column across the whole map:** two spaces after the longest rendered line, counting the branch characters and not the four spaces of the code block, which are added to every line afterwards and so cannot change the alignment. Text too long for the remaining width wraps into that column and hangs there, under the branch characters of its own line.
+
+A line's text is the node's description, then its suffixes, joined with commas. A file's description is the rule module's `description`; a directory's is the `description` in its `ESPALIER.MD` frontmatter. A node with neither a description nor a suffix gets no text rather than a blank column.
 
 Constraints do not appear. They declare no file and permit none, so a map that listed them would be answering a question nobody asked of it. Their bodies render below, under `## Constraints`.
 
-### The cardinality paragraph
+### Suffixes
 
-One paragraph, covering **the same subtree the map covers**. A closed-set statement that stopped at the next placement point would not be closed, and an agent reading the root file to find out where a new file may go is asking about the repository, not about the root directory.
+There are three kinds, and each is true of the line it sits on and of nothing else. That is the rule they are written to: a suffix whose subject the reader has to locate — which directory, how far up the tree — has spent more attention than it saved.
 
-Walking that subtree in map order produces, in this order:
+**`required` and `optional`** mark every leaf the espalier names — every static and resolved one — and neither is a default. A named file carrying no such suffix is not a file whose requiredness is left to inference; there is no such file. Both read against the line's own position, so `requestModels.ts` drawn inside `[provider]/` is required in a `[provider]/` directory, which is where the reader is looking.
 
-1. **Required here.** `<a>, <b> and <c> are required.` — every static leaf reachable from this point through static directories only, as paths relative to it.
-2. **Optional here.** `<a>, <b> and <c> are optional.` — every leaf reachable the same way whose module exports `optional`. A separate sentence rather than a qualifier inside the first, because the two say opposite things to the reader they are written for: one is what an agent must produce, the other what it may.
-3. **Per dynamic directory.** ``Zero or more `<path>/` directories may exist.`` When instantiating it requires files: `For each one that does, <a>, <b> and <c> are required.`, those paths relative to the instance. Optional descendants take a further `Each one may also have <a> and <b>.`, for the same reason the second sentence exists at the top level.
-4. **Per dynamic leaf.** ``Zero or more files matching `<path>` may exist.``
-5. **The closed set.** `Nothing else may exist under <path>/.` At a placement point that is the espalier's own root there is no path to print — it would be `under .` — so the sentence anchors on the file's location instead: `Nothing else may exist under this directory.` A document has no way to know where it sits in an outer tree, by design, and claiming to be a repository or a root is wrong in a package on both counts.
+A dynamic leaf carries neither. `any number, any name` already says zero or more, and there is no named file there to require.
 
-    Absolute, with nothing appended to it. Everything a reader can see that this sentence does not cover is named further down the file — a child espalier under [Governed elsewhere](#governed-elsewhere), everything else under [Not described here](#not-described-here) — so the sentence stays terminal and the exceptions are enumerated rather than gestured at. A closed set that ends in *apart from* is not closed, and a reader who can see `package.json` sitting beside it reads the whole paragraph as approximate.
+Directories carry neither. A directory exists exactly when the files described inside it do, so marking one required would either restate its contents or claim that an empty directory satisfies something, and the second is false.
 
-A resolved leaf appears in the required list of the instance it belongs to, written as authored: `For each one that does, {provider}.ts is required.` Rendering it as the shape it resolves to would need an instance to resolve against, and the paragraph describes the rule rather than any one directory.
+**`any number, any name`** marks every node whose own name holds a `[name]` placeholder, wherever the placeholder sits — `[provider]/`, `[button].tsx`, `test-[name].ts`. It teaches the bracket by example on the line the bracket is on, rather than relying on a syntax rule stated once at the top of a file the reader may have entered halfway down.
 
-Sentences 3 and 4 name the node by its authored path relative to the placement point, in backticks — `[provider]/` for an immediate child, `src/clients/[provider]/` for one further down. Both the brackets and the path are load-bearing: an agent is being told a shape it has to reproduce and a place to reproduce it, and "zero or more provider directories" tells it neither.
+**`{provider} repeats what [provider] matched`** marks every node whose name holds a back-reference, one clause per placeholder, comma-joined. It describes what the capture holds rather than what the segment was, which is the only phrasing that survives an affix: under `[provider]-provider/`, a `{provider}Impl.ts` in the directory named `stripe-provider` is `stripeImpl.ts`, and a suffix promising "the same name as the directory" would be wrong three times out of four.
 
-A directory holding both a dynamic directory and a dynamic leaf simply gets both sentences, in that order, and one closing sentence covering them together. That shape is legal — see [MATCHING.MD](../../MATCHING.MD#ambiguity-is-rejected) — and two open sets are describable as long as each is described.
+### The closed set
 
-Lists join with commas and a final `and`. A single item takes neither.
+One sentence, following the map, covering **the same subtree the map covers**. A closed-set statement that stopped at the next placement point would not be closed, and an agent reading the root file to find out where a new file may go is asking about the repository, not about the root directory.
+
+At a placement point below the espalier's root the sentence names it: `Nothing else may exist under src/clients/.` At the root there is no path to print — it would be `under .` — so the sentence anchors on the file's location instead: `Nothing else may exist under this directory.` A document has no way to know where it sits in an outer tree, by design, and claiming to be a repository or a root is wrong in a package on both counts.
+
+Absolute, with nothing appended to it. Everything a reader can see that this sentence does not cover is named further down the file — a child espalier under [Governed elsewhere](#governed-elsewhere), everything else under [Not described here](#not-described-here) — so the sentence stays terminal and the exceptions are enumerated rather than gestured at. A closed set that ends in *apart from* is not closed, and a reader who can see `package.json` sitting beside it reads the whole document as approximate.
+
+It is the only prose the structure gets. What must exist, what may, and what repeats what are marked on the lines they belong to; a paragraph restating them under the map would be a second description of one subtree, and the two would disagree the first time either was edited.
 
 ### Governed elsewhere
 
@@ -168,7 +193,7 @@ file with nowhere legal to go is a gap to report, not one to route around.
 
 **The reason comes from `.espalierignore`**, verbatim, from the comment block introducing that entry — see [CONFIG.MD](../../CONFIG.MD#espalierignore). An entry with no comment above it gets no reason, and the line is the path alone. `espalier` never invents one: it has patterns, not intent, and the difference between *will never have a rule* and *does not have one yet* is exactly what it cannot see.
 
-Entries are ordered by reason and then by name, with the unexplained ones last, and only the first of a group carries the text. Ordering by name alone would scatter a group across the section and leave its one shared line landing wherever the alphabet happened to put it. A reason too long for the column wraps into it — unlike a map line, where an alignment column that survived a wrap would not be one; here the column is what the continuation hangs from.
+Entries are ordered by reason and then by name, with the unexplained ones last, and only the first of a group carries the text. Ordering by name alone would scatter a group across the section and leave its one shared line landing wherever the alphabet happened to put it. A reason too long for the column wraps into it, hanging there, as a map line's text does.
 
 **A directory counts when everything inside it is excluded**, not only when the directory itself is named. `dist/` and `dist/**` exclude the same files and differ over whether the walk enters — a difference invisible here, where a reader can see the directory either way.
 
@@ -281,15 +306,18 @@ nothing outside src/clients/ performs HTTP requests directly.
 
 ## Structure
 
-    [provider]/         one directory per upstream provider
-      handlers/
-        webhook.ts      an inbound webhook handler
-      client.ts         an integration with an external API
-      requestModels.ts  request payload types
+    └─ [provider]/          one directory per upstream provider, any number, any
+                            name
+       │
+       ├─ handlers/
+       │
+       │  └─ webhook.ts     an inbound webhook handler, required
+       │
+       ├─ client.ts         an integration with an external API, required
+       │
+       └─ requestModels.ts  request payload types, required
 
-Zero or more `[provider]/` directories may exist. For each one that does,
-handlers/webhook.ts, client.ts and requestModels.ts are required. Nothing
-else may exist under src/clients/.
+Nothing else may exist under src/clients/.
 
 ## src/clients/[provider]/handlers/webhook.ts — an inbound webhook handler
 
@@ -318,7 +346,7 @@ Deciding the shape of this project is the architect's job, and a task that
 appears to require changing that shape is a task to hand back, not to unblock.
 ```
 
-`handlers/` sorts ahead of its file siblings because directories come first, and the cardinality sentence lists the same three leaves in the same order — a reader comparing the sentence against the map should not have to re-sort it in their head. `no-as-any` is a constraint on `[...path]`, whose longest static prefix is the root, so it renders in the root file and not here.
+`handlers/` sorts ahead of its file siblings because directories come first, and `handlers/` itself carries no text because no `ESPALIER.MD` describes it — a blank column would say the same nothing at greater length. `no-as-any` is a constraint on `[...path]`, whose longest static prefix is the root, so it renders in the root file and not here.
 
 ## Nested espaliers
 
@@ -402,7 +430,7 @@ nothing outside src/clients/ performs HTTP requests directly.
 
 **A folded point contributes its prose and its rule sections, and nothing else.** Everything shifts one heading level down, and the rule bodies are the same bytes they would have been distributed.
 
-There is no second map and no second cardinality paragraph, because the root's are the whole repository already and the paragraph is that map restated in prose. Both are written relative to the point that produced them, so folded in they would state one rule several times over in words that differ every time — `[provider]/` here, `clients/[provider]/` a section up, `src/clients/[provider]/` at the root — leaving the reader to work out that the three are one. The distributed form repeats itself because each of its files is read alone, which is exactly what this mode is not.
+There is no second map and no second closed-set sentence, because the root's cover the whole repository already. Both are written relative to the point that produced them, so folded in they would state one rule several times over in words that differ every time — `[provider]/` here, `clients/[provider]/` a section up, `src/clients/[provider]/` at the root — leaving the reader to work out that the three are one. The distributed form repeats itself because each of its files is read alone, which is exactly what this mode is not.
 
 A point exists because it has a document or rules of its own, so this leaves it with something to say. One whose document has a description and an empty body would be left with a bare heading, and loses the heading too, under the ordinary rule that a section with nothing in it is not written.
 

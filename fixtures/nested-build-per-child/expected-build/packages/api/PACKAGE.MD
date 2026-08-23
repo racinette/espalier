@@ -2,9 +2,9 @@
 
 ## Structure
 
-    index.ts  the package entry point
+    └─ index.ts  the package entry point, required
 
-index.ts is required. Nothing else may exist under this directory.
+Nothing else may exist under this directory.
 
 ## Not described here
 

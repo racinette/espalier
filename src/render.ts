@@ -7,7 +7,7 @@
 
 import type { Constraint, Espalier, NodeDoc, StructuralRule, TrieNode } from "./compile.js";
 import { PROVENANCE } from "./files.js";
-import type { Segment } from "./pattern.js";
+import { backrefNames, type Segment } from "./pattern.js";
 
 export const AMENDING = `## Amending this structure
 
@@ -253,30 +253,113 @@ export function plan(espalier: Espalier): Placement[] {
   return kept.sort((left, right) => (left.at < right.at ? -1 : left.at > right.at ? 1 : 0));
 }
 
+/**
+ * What one map line says after its name. Each suffix is true of the line it
+ * sits on and of nothing else, so a reader never has to work out which
+ * directory or which depth is being talked about.
+ * docs/cli/build/README.MD "Suffixes".
+ */
+function suffixes(node: TrieNode): string[] {
+  const marks: string[] = [];
+
+  // Named leaves only. A dynamic leaf has no name to require, and `any number,
+  // any name` already says zero or more; a directory exists exactly when the
+  // files inside it do, so requiring one would restate them or claim an empty
+  // directory satisfies something.
+  if (!isDirectory(node) && !node.segment.dynamic) {
+    marks.push(node.rule?.module.optional === true ? "optional" : "required");
+  }
+
+  if (node.segment.dynamic) marks.push("any number, any name");
+
+  // What the capture holds, not what the segment was: under
+  // `[provider]-provider/`, `{provider}Impl.ts` is `stripeImpl.ts`, and "the
+  // same name as the directory" would be wrong.
+  for (const name of backrefNames(node.segment)) {
+    marks.push(`{${name}} repeats what [${name}] matched`);
+  }
+
+  return marks;
+}
+
+interface MapRow {
+  /** Branch characters and name. */
+  line: string;
+  /** What a continuation line hangs under: the branches, no name. */
+  under: string;
+  /** The branches a guide row below this line carries, already trimmed. */
+  guide: string;
+  text: string | null;
+}
+
 function renderMap(espalier: Espalier, point: Placement): string | null {
   if (point.node === null) return null;
 
-  const rows: { name: string; description: string | null }[] = [];
+  const rows: MapRow[] = [];
 
-  for (const { node, depth, at } of subtree(point.node)) {
-    const directory = isDirectory(node);
-    rows.push({
-      name: "  ".repeat(depth) + node.display + (directory ? "/" : ""),
-      description: directory
-        ? (espalier.nodes.get(under(point.at, at))?.description ?? null)
-        : (node.rule?.module.description ?? null),
+  const walk = (node: TrieNode, at: string, bars: string): void => {
+    const children = ordered(node);
+
+    children.forEach((child, index) => {
+      const last = index === children.length - 1;
+      const path = under(at, child.display);
+      const directory = isDirectory(child);
+      const inside = directory ? ordered(child) : [];
+
+      // Where a continuation of this line hangs: the branch this entry sits on
+      // stays open only while a sibling is still to come.
+      const beneath = bars + (last ? "   " : "│  ");
+
+      const description = directory
+        ? (espalier.nodes.get(under(point.at, path))?.description ?? null)
+        : (child.rule?.module.description ?? null);
+      const marks = suffixes(child);
+      const text = [description, ...marks].filter((entry) => entry !== null).join(", ");
+
+      rows.push({
+        line: bars + (last ? "└─ " : "├─ ") + child.display + (directory ? "/" : ""),
+        under: beneath,
+        // A directory's guide row descends one level, to the branch its own
+        // children hang from. docs/cli/build/README.MD "The map".
+        guide: (directory ? beneath + (inside.length > 1 ? "│" : "") : beneath).trimEnd(),
+        text: text === "" ? null : text,
+      });
+
+      if (directory) walk(child, path, beneath);
     });
-  }
+  };
+
+  walk(point.node, "", "");
 
   if (rows.length === 0) return null;
 
-  // Two spaces after the longest rendered name, including its tree indentation
-  // but not the four spaces of the code block, which are added afterwards.
-  const column = Math.max(...rows.map((row) => row.name.length)) + 2;
+  // Two spaces after the longest rendered line, counting the branch characters
+  // and not the four spaces of the code block, which are added to every line
+  // afterwards and so cannot change the alignment.
+  const column = Math.max(...rows.map((row) => row.line.length)) + 2;
+  const width = WIDTH - 4 - column;
 
-  return rows
-    .map((row) => `    ${row.description === null ? row.name : row.name.padEnd(column) + row.description}`)
-    .join("\n");
+  const lines: string[] = [];
+
+  rows.forEach((row, index) => {
+    if (row.text === null) {
+      lines.push(`    ${row.line}`);
+    } else {
+      const [first, ...rest] = wrap(row.text, width).split("\n");
+      lines.push(`    ${row.line.padEnd(column)}${first}`);
+      for (const piece of rest) lines.push(`    ${row.under.padEnd(column)}${piece}`);
+    }
+
+    // A guide row wherever text is involved: a wrapped description otherwise
+    // leaves a reader deciding whether the line below continues it or begins a
+    // new entry. Two silent entries have no thread to lose.
+    const next = rows[index + 1];
+    if (next !== undefined && (row.text !== null || next.text !== null)) {
+      lines.push(`    ${row.guide}`.trimEnd());
+    }
+  });
+
+  return lines.join("\n");
 }
 
 /**
@@ -399,10 +482,11 @@ function renderExcluded(entries: Excluded[], level: number): string[] {
 }
 
 /**
- * The closed-set statement, as one unwrapped string. `build` wraps it; explain
- * reports it as it is. Sharing this is what keeps `espalier explain` and the
- * documentation in the repository from drifting apart — there is nothing
- * between them to drift.
+ * What `explain` answers a directory prefix with, as one unwrapped string: the
+ * same subtree the generated map covers, said in prose, because a terminal
+ * answering one query is not the place for a drawing of the whole subtree. It
+ * ends on `closedSet`, which is the sentence `build` writes — so the one claim
+ * both make is made once. docs/cli/explain/README.MD "A prefix".
  */
 export function cardinality(node: TrieNode, at: string, defers = false): string {
   const sentences: string[] = [];
@@ -413,7 +497,7 @@ export function cardinality(node: TrieNode, at: string, defers = false): string 
   // Its own sentence rather than a qualifier inside the first: the two are
   // addressed to the same reader for opposite purposes, one being what an
   // agent must produce and the other what it may.
-  // docs/cli/build/README.MD "The cardinality paragraph".
+  // docs/cli/explain/README.MD "A prefix".
   if (optional.length > 0) {
     sentences.push(`${list(optional)} ${optional.length === 1 ? "is" : "are"} optional.`);
   }
@@ -437,10 +521,22 @@ export function cardinality(node: TrieNode, at: string, defers = false): string 
     }
   }
 
+  sentences.push(closedSet(at, defers));
+
+  return sentences.join(" ");
+}
+
+/**
+ * The sentence the map ends on, and the whole of what `build` writes under it.
+ * What must exist, what may, and what repeats what are marked on the lines
+ * they belong to; a paragraph restating them below would be a second
+ * description of one subtree. docs/cli/build/README.MD "The closed set".
+ */
+export function closedSet(at: string, defers: boolean): string {
   // No path to print at an espalier's own root — it would be `under .` — so the
   // sentence anchors on the file's location instead. A document cannot know
   // where it sits in an outer tree, and in a package "the repository root" is
-  // wrong on both counts. docs/cli/build/README.MD "The cardinality paragraph".
+  // wrong on both counts.
   const where = at === "" ? "this directory" : `${at}/`;
   // Where a child espalier falls inside the closed set, it defers rather than
   // stating something the reader can see is untrue — listing them after an
@@ -450,14 +546,12 @@ export function cardinality(node: TrieNode, at: string, defers = false): string 
   // this is an exception for the directories that have one, not a licence to
   // create another.
   const except = defers ? ", apart from the directories that already have an espalier of their own" : "";
-  sentences.push(`Nothing else may exist under ${where}${except}.`);
-
-  return sentences.join(" ");
+  return `Nothing else may exist under ${where}${except}.`;
 }
 
-function renderCardinality(point: Placement, covered: boolean): string | null {
+function renderClosedSet(point: Placement, covered: boolean): string | null {
   if (point.node === null) return null;
-  return wrap(cardinality(point.node, point.at, covered));
+  return wrap(closedSet(point.at, covered));
 }
 
 /** `**​/*.ts` and `**​/*.tsx` → "applies to TypeScript files throughout the project". */
@@ -591,11 +685,11 @@ function core(
   if (point.doc !== null && point.doc.body !== "") blocks.push(point.doc.body);
 
   const map = renderMap(espalier, point);
-  const cardinality = renderCardinality(point, covers(point.at, all));
+  const closed = renderClosedSet(point, covers(point.at, all));
 
   if (map !== null) {
     blocks.push(`${"#".repeat(level)} Structure`, map);
-    if (cardinality !== null) blocks.push(cardinality);
+    if (closed !== null) blocks.push(closed);
   }
 
   blocks.push(...renderChildren(point.at, named, level));
@@ -620,7 +714,7 @@ export function renderDistributed(
 
 /**
  * One document at the root, with every other placement point folded into it a
- * heading level down. There is one map and one cardinality paragraph, because
+ * heading level down. There is one map and one closed-set sentence, because
  * the root's were always the whole repository, and one amendment instruction,
  * because there is one file.
  */
@@ -640,7 +734,7 @@ export function renderInline(
 
   for (const point of points) {
     if (point.at === "") continue;
-    // Prose and rule sections only. The root's map and cardinality paragraph
+    // Prose and rule sections only. The root's map and closed-set sentence
     // cover the whole repository already, and both are written relative to the
     // point that produced them — folded in, they would state one rule several
     // times over in words that differ every time.

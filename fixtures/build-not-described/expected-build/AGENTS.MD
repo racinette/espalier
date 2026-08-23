@@ -4,9 +4,9 @@ One rule, and rather more that no rule reaches.
 
 ## Structure
 
-    main.ts  the entry point
+    └─ main.ts  the entry point, required
 
-main.ts is required. Nothing else may exist under this directory.
+Nothing else may exist under this directory.
 
 ## Not described here
 

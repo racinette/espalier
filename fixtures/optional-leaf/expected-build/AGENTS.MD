@@ -2,15 +2,17 @@
 
 ## Structure
 
-    [client]/
-      client.ts   a client
-      webhook.ts  a webhook
-    main.ts       the entry point
-    notes.md      developer notes
+    ├─ [client]/      any number, any name
+    │  │
+    │  ├─ client.ts   a client, required
+    │  │
+    │  └─ webhook.ts  a webhook, optional
+    │
+    ├─ main.ts        the entry point, required
+    │
+    └─ notes.md       developer notes, optional
 
-main.ts is required. notes.md is optional. Zero or more `[client]/` directories
-may exist. For each one that does, client.ts is required. Each one may also have
-webhook.ts. Nothing else may exist under this directory.
+Nothing else may exist under this directory.
 
 ## Not described here
 

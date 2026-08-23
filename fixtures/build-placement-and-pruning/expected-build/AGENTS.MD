@@ -5,23 +5,29 @@ renders.
 
 ## Structure
 
-    components/
-      buttons/
-        [button].tsx        a button component
-    src/
-      clients/              outbound API integrations
-        [provider]/         one directory per upstream provider
-          handlers/
-            webhook.ts      an inbound webhook handler
-          client.ts         an integration with an external API
-          requestModels.ts  request payload types
-    main.ts                 the application entry point
+    ├─ components/
+    │  └─ buttons/
+    │
+    │     └─ [button].tsx         a button component, any number, any name
+    │
+    ├─ src/
+    │
+    │  └─ clients/                outbound API integrations
+    │
+    │     └─ [provider]/          one directory per upstream provider, any
+    │                             number, any name
+    │        │
+    │        ├─ handlers/
+    │        │
+    │        │  └─ webhook.ts     an inbound webhook handler, required
+    │        │
+    │        ├─ client.ts         an integration with an external API, required
+    │        │
+    │        └─ requestModels.ts  request payload types, required
+    │
+    └─ main.ts                    the application entry point, required
 
-main.ts is required. Zero or more files matching
-`components/buttons/[button].tsx` may exist. Zero or more
-`src/clients/[provider]/` directories may exist. For each one that does,
-handlers/webhook.ts, client.ts and requestModels.ts are required. Nothing else
-may exist under this directory.
+Nothing else may exist under this directory.
 
 ## Not described here
 

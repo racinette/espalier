@@ -2,12 +2,13 @@
 
 ## Structure
 
-    src/
-      registry.ts  the module registry
-      [module].ts  a module
+    └─ src/
+       │
+       ├─ registry.ts  the module registry, required
+       │
+       └─ [module].ts  a module, any number, any name
 
-src/registry.ts is required. Zero or more files matching `src/[module].ts` may
-exist. Nothing else may exist under this directory.
+Nothing else may exist under this directory.
 
 ## Not described here
 
