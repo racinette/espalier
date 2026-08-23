@@ -1,0 +1,22 @@
+{
+  "exit": 0,
+  "issues": [
+    {
+      "path": "src/a.ts",
+      "code": "through-the-link",
+      "severity": "info",
+      "message": "src/a.ts src/linked.ts :: export const shared = true;"
+    }
+  ],
+  "explain": {
+    "src/linked.ts": {
+      "exit": 0,
+      "object": {
+        "path": "src/linked.ts",
+        "rule": "src/[name].ts.mjs",
+        "pattern": "src/*.ts",
+        "captures": { "name": "linked" }
+      }
+    }
+  }
+}

@@ -9,6 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONFIG_FILENAME } from "./config.js";
 import { fail } from "./errors.js";
+import { probe } from "./files.js";
 import { compileIgnore, ignores } from "./ignore.js";
 import type { Reporter } from "./output.js";
 
@@ -85,12 +86,17 @@ function topLevelIgnores(root: string, espalierRoot: string, written: string[]):
     if (entry.name === espalierRoot) continue;
     if (entry.name === CONFIG_FILENAME) continue;
 
-    if (entry.isDirectory()) {
+    // A link counts as what it points at, and one pointing nowhere is passed
+    // over: this list is a proposal, and `lint` is where an unreadable path
+    // becomes a verdict. docs/CONFIG.MD "Symlinks".
+    const kind = probe(entry, path.join(root, entry.name));
+
+    if (kind === "directory") {
       // A directory is covered only if the list excludes the directory itself;
       // `package.json` says nothing about `src/`.
       if (ignores(covered, entry.name, true)) continue;
       directories.push(`${entry.name}/**`);
-    } else if (entry.isFile()) {
+    } else if (kind === "file") {
       if (ignores(covered, entry.name)) continue;
       files.push(entry.name);
     }

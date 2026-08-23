@@ -19,6 +19,8 @@ They were written from the specification, before the implementation. That order 
   human/                golden --format human output, byte for byte
 ```
 
+A fixture may contain a symlink; git stores one, and the harness copies verbatim so a relative link still means what it was written to mean. An absolute link would be a link to the machine it was written on, so fixtures use relative ones.
+
 The fixture directory *is* the repository root — config discovery finds `espalier.config.yaml` there (except for init fixtures, which are testing it being written) and every path resolves relative to it. Fixtures are not git repositories, so the runner uses the filesystem walk described in [CONFIG.MD](../docs/CONFIG.MD#what-counts-as-a-file).
 
 `FIXTURE.MD` and `expected.json` are ignored by every fixture config. They are scaffolding for the harness, not part of the repository under test, and strict enforcement would otherwise report them as `unexpected_path` in every case. `espalier.config.yaml` needs no such entry — it is invisible unconditionally.
@@ -221,6 +223,9 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `lint-cache-espalier-changed` | an edited espalier discards every entry, not the edited rule's |
 | `lint-cache-not-trusted` | a cache written against another espalier is discarded unread |
 | `read-ungoverned` | `read` refuses an ignored file, though it exists and is readable |
+| `symlink-governed` | a link is the file it points at: owned, listed by `files`, opened by `read` |
+| `symlink-cycle` | a link onto an ancestor is not followed, and nothing is reported twice |
+| `symlink-broken` | a link pointing nowhere fails the run rather than being stepped over |
 | `ignore-files` | two named ignore files, and `ignore` layered after both |
 | `shipped-ignore-lists` | what `--lang` writes covers, and what it deliberately does not |
 

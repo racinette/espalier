@@ -208,6 +208,12 @@ const fixtures = readdirSync(fixturesDir, { withFileTypes: true })
  * Runs `build` against a throwaway copy — fixtures are inputs and are never
  * written into — and compares what it left behind.
  *
+ * Every copy here is `verbatimSymlinks`. Node otherwise resolves a relative
+ * link against the destination and writes an absolute one, which would point a
+ * fixture's link back at the fixture it was copied from: a symlink fixture
+ * would then pass while testing the original tree, and a cycle would leave the
+ * copy entirely.
+ *
  * With an `expected-build/`, the comparison is byte-for-byte and both ways:
  * every golden file must exist with exactly those bytes, and every generated
  * file the run produced must be one of them. Without one, the assertion is
@@ -221,6 +227,7 @@ function checkWrites(dir: string, command: string, expected: WriteRun): void {
   try {
     cpSync(dir, scratch, {
       recursive: true,
+      verbatimSymlinks: true,
       filter: (source) => !SCAFFOLDING.has(path.relative(dir, source)),
     });
 
@@ -230,7 +237,7 @@ function checkWrites(dir: string, command: string, expected: WriteRun): void {
     if (expected.human !== undefined) {
       const spare = mkdtempSync(path.join(os.tmpdir(), "espalier-human-"));
       try {
-        cpSync(scratch, spare, { recursive: true });
+        cpSync(scratch, spare, { recursive: true, verbatimSymlinks: true });
         const shown = run(spare, [command, ...(expected.args ?? [])]);
         assert.equal(
           shown.stdout,
@@ -427,7 +434,7 @@ function lintIn(dir: string, scratch: string, expected: Expected): void {
  */
 function rerun(dir: string, scratch: string, again: Rerun, scoped: string[]): void {
   if (again.apply !== undefined) {
-    cpSync(path.join(dir, again.apply), scratch, { recursive: true });
+    cpSync(path.join(dir, again.apply), scratch, { recursive: true, verbatimSymlinks: true });
   }
   for (const target of again.delete ?? []) {
     rmSync(path.join(scratch, target), { recursive: true, force: true });
@@ -459,7 +466,7 @@ function rerun(dir: string, scratch: string, again: Rerun, scoped: string[]): vo
 function checkLint(dir: string, expected: Expected): void {
   const scratch = mkdtempSync(path.join(os.tmpdir(), "espalier-lint-"));
   try {
-    cpSync(dir, scratch, { recursive: true });
+    cpSync(dir, scratch, { recursive: true, verbatimSymlinks: true });
     lintIn(dir, scratch, expected);
   } finally {
     rmSync(scratch, { recursive: true, force: true });

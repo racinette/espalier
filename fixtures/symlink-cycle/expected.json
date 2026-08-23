@@ -1,0 +1,10 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "path": "stray.txt",
+      "code": "unexpected_path",
+      "severity": "error"
+    }
+  ]
+}

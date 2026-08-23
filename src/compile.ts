@@ -1,11 +1,12 @@
 // Reading the espalier tree into a matcher. docs/MATCHING.MD "Node kinds",
 // "Classification", "Ambiguity is rejected".
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { fail } from "./errors.js";
+import { inspect, readEntries } from "./files.js";
 import {
   backrefNames,
   captureNames,
@@ -98,9 +99,16 @@ function emptyNode(display: string, segment: Segment): TrieNode {
   return { display, segment, captures: captureNames(segment), children: new Map(), rule: null };
 }
 
-export function listEntries(absolute: string, prefix: string): string[] {
+export function listEntries(absolute: string, prefix: string, ancestors?: Set<string>): string[] {
   const found: string[] = [];
-  for (const entry of readdirSync(absolute, { withFileTypes: true }).sort((a, b) =>
+  // The espalier tree follows links for the same reason the repository does —
+  // docs/CONFIG.MD "Symlinks" — which is what lets two espaliers share a rule
+  // module by linking it rather than copying it. Nothing here is subject to
+  // `ignore`, so a link that will not resolve has no way to be excused: it is a
+  // rule the run cannot read, and the run stops.
+  const seen = ancestors ?? new Set<string>([identify(absolute)]);
+
+  for (const entry of readEntries(absolute, prefix).sort((a, b) =>
     a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
   )) {
     // Dotfiles are skipped entirely: a `.gitkeep` holding an otherwise-empty
@@ -108,13 +116,30 @@ export function listEntries(absolute: string, prefix: string): string[] {
     // rule module, and failing the whole run over one is a bad trade.
     if (entry.name.startsWith(".")) continue;
     const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
-    if (entry.isDirectory()) {
-      found.push(...listEntries(path.join(absolute, entry.name), relative));
-    } else if (entry.isFile()) {
+    const at = path.join(absolute, entry.name);
+    const resolved = inspect(entry, at, relative);
+
+    if (resolved.kind === "directory") {
+      // A link onto an ancestor, which is the only arrangement that would not
+      // terminate. Two links onto one directory are two rule paths, and an
+      // espalier declaring the same rule twice is caught where every other
+      // duplicate is — `duplicate_structural_rule`, with both paths named.
+      if (seen.has(resolved.id!)) continue;
+      seen.add(resolved.id!);
+      found.push(...listEntries(at, relative, seen));
+      seen.delete(resolved.id!);
+    } else if (resolved.kind === "file") {
       found.push(relative);
     }
   }
+
   return found;
+}
+
+/** The identity of a directory already known to open — the tree root. */
+function identify(absolute: string): string {
+  const stats = statSync(absolute);
+  return `${stats.dev}:${stats.ino}`;
 }
 
 async function loadModule(absolute: string, modulePath: string, kind: ModuleKind): Promise<LoadedModule> {

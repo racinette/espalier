@@ -298,6 +298,8 @@ The VCS directory is **not** among them. `.git/` is an `ignore` entry that `espa
 
 Everything else in the repository is governed. Files you do not want governed are listed in `ignore` — see [CONFIG.MD](CONFIG.MD).
 
+Symlinks are not a fifth thing. A link is followed, and what it points at is governed under the path the link occupies — see [CONFIG.MD](CONFIG.MD#symlinks).
+
 Ignoring is not declaring. If a path is both required by a static leaf and ignored, the configuration contradicts itself and espalier fails at startup rather than silently passing. An ignored *optional* leaf is not a contradiction — nothing was promised, so hiding it breaks no promise — but the rule is then unreachable, which is worth knowing before you write one.
 
 ## The deepest recognized node

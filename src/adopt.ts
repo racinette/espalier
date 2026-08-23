@@ -8,6 +8,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fail } from "./errors.js";
+import { probe } from "./files.js";
 import { compileIgnore, ignores } from "./ignore.js";
 import type { Reporter } from "./output.js";
 import { delegated } from "./nested.js";
@@ -69,7 +70,12 @@ interface Entry {
 function entries(absolute: string): Entry[] {
   return readdirSync(absolute, { withFileTypes: true })
     .filter((entry) => !entry.name.startsWith("."))
-    .map((entry) => ({ name: entry.name, directory: entry.isDirectory() }))
+    // A link counts as what it points at; one pointing nowhere is nothing to
+    // infer a rule from, and the espalier this writes is a draft its author
+    // edits. docs/CONFIG.MD "Symlinks".
+    .map((entry) => ({ name: entry.name, kind: probe(entry, path.join(absolute, entry.name)) }))
+    .filter((entry) => entry.kind !== null && entry.kind !== "other")
+    .map((entry) => ({ name: entry.name, directory: entry.kind === "directory" }))
     .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 }
 

@@ -143,6 +143,20 @@ Untracked files are candidates. The file an agent created ten seconds ago and ha
 
 Nothing here consults git. Earlier releases ran `git ls-files --cached --others --exclude-standard` in a git-backed root and walked the filesystem otherwise, which meant two definitions of candidacy that agreed most of the time. The two disagreed in ways nobody would find on purpose — a committed `node_modules` is tracked, so git listed it and the walk did not — and the tool never promised git compliance in the first place. One walk, in one language, is what a linter can explain.
 
+### Symlinks
+
+**A symlink is followed.** A link to a file is a file, a link to a directory is walked, and neither is a category of its own.
+
+Skipping them would make a fifth thing invisible unconditionally, and it would be the only one invisible without anybody having decided so. `espalier` never writes to the files it governs, so a link is nothing more than a second path to something it reads. A link you do not want governed is an `ignore` entry, like everything else you do not want governed.
+
+The consequence is worth stating plainly: **a link pointing outside the repository brings what it points at into the governed set.** Its content is linted under the path the link occupies, and a rule can `read` it there. That is the link's doing rather than `espalier`'s, and it is undone the way any other unwanted path is.
+
+**A link onto a directory containing it is not followed.** A link to an ancestor otherwise re-enters everything above it, and again, until the kernel refuses at around forty levels of indirection — the walk terminates either way, but a single file under such a link is reported forty-one times before it does. Nothing is lost by cutting it: the directory it points at is one the walk is already inside.
+
+**Two links onto the same directory are two directories**, and everything under them is governed twice, under both paths. Deduplicating would mean reporting a file under whichever path the walk happened to reach it by first, and directory listings are not returned in an order anything promises — the same repository would answer differently on two machines. Both paths exist; a repository that does not want both says so in `ignore`.
+
+**A link pointing nowhere is a failure**, and so is a file or directory this process may not read. `espalier` exits `2` with `unreadable_path` and lints nothing. Something that could not be read cannot be pronounced correct, and a run that quietly stepped over it would report a clean repository it never finished inspecting — the same reasoning as [Errors](#errors) below. An ignored path is never read in the first place, so it never fails this way; that is the point of consulting the rules on the way down.
+
 ## `addons`
 
 A path to a module providing shared resources to every `lint` function, exposed as `context.addons`.

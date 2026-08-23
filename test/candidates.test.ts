@@ -8,9 +8,19 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { OperationalError } from "../src/errors.js";
 import { collectCandidates } from "../src/files.js";
 import { compileIgnore } from "../src/ignore.js";
 
@@ -72,6 +82,78 @@ test("an ignored file is still a candidate", () => {
     // from — pruning it here would leave nothing to explain.
     assert.deepEqual(collectCandidates(root, compileIgnore(["top.ts"])), [
       "src/a.ts",
+      "top.ts",
+      "vendor/deep/b.ts",
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// Symlinks. docs/CONFIG.MD "Symlinks". The fixtures cover what a run reports
+// about a link; what they cannot show is a link the rules excused before it was
+// resolved, or a directory that will not open at all — neither of which survives
+// being committed to git.
+
+test("a link the rules exclude is never resolved", () => {
+  const root = tree();
+  try {
+    symlinkSync("./nowhere.ts", path.join(root, "dangling.ts"));
+
+    // Resolving it would fail the run, and an ignored path is never read. Both
+    // interpretations are consulted, because which one applies is exactly what
+    // resolving would have answered: a link nobody can fix must stay
+    // excludable, and `init` cannot write the entry that excuses it if the
+    // walk refuses first.
+    assert.deepEqual(collectCandidates(root, compileIgnore(["dangling.ts"])), [
+      "src/a.ts",
+      "top.ts",
+      "vendor/deep/b.ts",
+    ]);
+
+    assert.throws(
+      () => collectCandidates(root, []),
+      (error: unknown) =>
+        error instanceof OperationalError && error.code === "unreadable_path",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a directory that will not open is a failure, not a bug report", () => {
+  const root = tree();
+  const closed = path.join(root, "vendor");
+  try {
+    chmodSync(closed, 0o000);
+
+    // Before, this escaped as whatever `readdir` threw and was classified
+    // `internal_error` — "please open an issue" — about a condition an `ignore`
+    // entry fixes. The exit code was right and the guidance was not.
+    assert.throws(
+      () => collectCandidates(root, []),
+      (error: unknown) =>
+        error instanceof OperationalError && error.code === "unreadable_path",
+    );
+  } finally {
+    chmodSync(closed, 0o700);
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a linked directory is walked, and a cycle is not", () => {
+  const root = tree();
+  try {
+    symlinkSync("../vendor", path.join(root, "src", "vendored"));
+    // Two paths reach one file, and both of them exist: the link is reported
+    // under the link, the original under the original. Deduplicating to
+    // whichever the walk arrived by first would make the answer depend on the
+    // order a `readdir` returned, which is not an order anything promises.
+    symlinkSync("..", path.join(root, "src", "up"));
+
+    assert.deepEqual(collectCandidates(root, []), [
+      "src/a.ts",
+      "src/vendored/deep/b.ts",
       "top.ts",
       "vendor/deep/b.ts",
     ]);
