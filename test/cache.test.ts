@@ -346,8 +346,9 @@ test("files never lists a path the espalier does not govern", () => {
     writeFileSync(path.join(root, "notes.txt"), "not governed\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignore:\n  - notes.txt\n",
+      "version: 1\nroot: espalier\n",
     );
+    writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
 
     // The glob matches `notes.txt` outright. What keeps it out of the listing
     // is the governed set, which is also the set the cache stamps.
@@ -367,8 +368,9 @@ test("read refuses a path the espalier does not govern", () => {
     writeFileSync(path.join(root, "notes.txt"), "not governed\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignore:\n  - notes.txt\n",
+      "version: 1\nroot: espalier\n",
     );
+    writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
 
     // The file is there and readable. Being ungoverned is the whole objection:
     // nothing stamps it, so a rule that depended on it could never be replayed
@@ -391,8 +393,9 @@ test("an edited config discards the cache", () => {
     // under the old one describes a run that no longer exists.
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignore:\n  - notes.txt\n",
+      "version: 1\nroot: espalier\n",
     );
+    writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
 
     assert.deepEqual(
       lint(root, "second"),
@@ -472,8 +475,9 @@ test("an edited addons module discards the cache", () => {
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\naddons: espalier.addons.mjs\nignore:\n  - espalier.addons.mjs\n",
+      "version: 1\nroot: espalier\naddons: espalier.addons.mjs\n",
     );
+    writeFileSync(path.join(root, ".espalierignore"), "espalier.addons.mjs\n");
     writeFileSync(
       path.join(root, "espalier.addons.mjs"),
       "export async function setup() { return { limit: 1 }; }\n",
@@ -726,8 +730,9 @@ test("an edit to an ungoverned file leaves every entry replayed", () => {
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignore:\n  - notes.txt\n",
+      "version: 1\nroot: espalier\n",
     );
+    writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
     writeFileSync(path.join(root, "notes.txt"), "one\n");
     assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
 
@@ -828,8 +833,9 @@ test("a glob never sees an ignored path, so one appearing changes nothing", () =
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignore:\n  - vendor/\n",
+      "version: 1\nroot: espalier\n",
     );
+    writeFileSync(path.join(root, ".espalierignore"), "vendor/\n");
     assert.equal(lint(root, "first")["a.ts"], "a.ts,b.ts:first");
 
     // "`files` never returns one — an ignored or invisible path is one nothing

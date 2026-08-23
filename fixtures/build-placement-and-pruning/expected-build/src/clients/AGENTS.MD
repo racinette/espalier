@@ -15,6 +15,12 @@ Zero or more `[provider]/` directories may exist. For each one that does,
 handlers/webhook.ts, client.ts and requestModels.ts are required. Nothing else
 may exist under src/clients/.
 
+## Not described here
+
+    AGENTS.MD  Written by `espalier build` from the rules above.
+
+Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
+
 ## src/clients/[provider]/ — one directory per upstream provider
 
 Name the directory after the provider as they spell it: `stripe`, not

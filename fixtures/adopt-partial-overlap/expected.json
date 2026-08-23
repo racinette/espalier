@@ -1,13 +1,28 @@
 {
   "adopt": {
     "exit": 0,
-    "args": ["src/clients"],
+    "args": [
+      "src/clients"
+    ],
     "human": "human/adopt.txt",
     "report": [
-      { "kind": "written", "path": "espalier/src/clients/[client]/client.ts.mjs" },
-      { "kind": "written", "path": "espalier/src/clients/[client]/requestModels.ts.mjs" },
-      { "kind": "written", "path": "espalier/src/clients/[client]/webhook.ts.mjs", "optional": true },
-      { "kind": "narrowed", "path": "espalier.config.yaml" }
+      {
+        "kind": "written",
+        "path": "espalier/src/clients/[client]/client.ts.mjs"
+      },
+      {
+        "kind": "written",
+        "path": "espalier/src/clients/[client]/requestModels.ts.mjs"
+      },
+      {
+        "kind": "written",
+        "path": "espalier/src/clients/[client]/webhook.ts.mjs",
+        "optional": true
+      },
+      {
+        "kind": "narrowed",
+        "path": ".espalierignore"
+      }
     ]
   }
 }

@@ -6,6 +6,15 @@
 
 index.ts is required. Nothing else may exist under this directory.
 
+## Not described here
+
+    espalier.config.yaml  Configuration. Read by `espalier`, not by this
+                          project.
+    espalier/
+    PACKAGE.MD            Written by `espalier build` from the rules above.
+
+Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
+
 ## index.ts — the package entry point
 
 Re-export the handlers and nothing else.

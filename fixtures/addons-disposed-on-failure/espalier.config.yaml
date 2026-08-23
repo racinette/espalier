@@ -2,8 +2,3 @@ version: 1
 root: espalier
 
 addons: ./espalier.addons.mjs
-
-ignore:
-  - FIXTURE.MD
-  - expected.json
-  - espalier.addons.mjs

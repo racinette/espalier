@@ -221,13 +221,13 @@ export function renderExplanation(answer: Explanation): string {
   if ("ignoredBy" in answer) {
     const reason =
       {
-        ignore: "Ignored by the `ignore` list in espalier.config.yaml.",
+        ".espalierignore": "Excluded by a pattern in .espalierignore.",
         espalier: "Invisible unconditionally: espalier does not report on its own machinery.",
         child: "Inside an espalier of its own, which is what answers for this path.",
       }[answer.ignoredBy] ??
       // Anything else is the path of the `ignoreFiles` entry that held the
       // winning pattern — a file the reader can open and edit.
-      `Ignored by a pattern from ${answer.ignoredBy}, read because \`ignoreFiles\` names it.`;
+      `Excluded by a pattern from ${answer.ignoredBy}, read because \`ignoreFiles\` names it.`;
     const whose = answeredBy === null ? "" : `${answeredBy}\n\n`;
     return `${answer.path} is not governed by espalier.\n\n${whose}  ${reason}\n`;
   }

@@ -8,11 +8,21 @@ export interface IgnoreRule {
   /** The pattern as written, for reporting. */
   pattern: string;
   /**
-   * Where the pattern came from: `"ignore"`, or the repo-relative path of the
-   * `ignoreFiles` entry that held it. `explain` reports this, which is the
+   * Where the pattern came from, as a repo-relative path: `.espalierignore`, or
+   * the `ignoreFiles` entry that held it. `explain` reports this, which is the
    * whole point of reading these lists from files a user can open.
    */
   origin: string;
+  /**
+   * The comment block introducing this entry, or null when none does.
+   *
+   * `espalier build` writes it into the documentation for the directory the
+   * entry excludes — docs/cli/build/README.MD "Not described here" — which is
+   * the reason the list is a file rather than a key. The tool never supplies
+   * one of its own: it has patterns, not intent, and cannot tell an exclusion
+   * that will never have a rule from one that does not have a rule yet.
+   */
+  comment: string | null;
 }
 
 function escape(char: string): string {
@@ -49,12 +59,23 @@ function toMatcher(glob: string, anchored: boolean): RegExp {
   return new RegExp(`^${anchored ? body : `(?:.*/)?${body}`}$`);
 }
 
-export function compileIgnore(patterns: string[], origin = "ignore"): IgnoreRule[] {
+export function compileIgnore(patterns: string[], origin = ".espalierignore"): IgnoreRule[] {
   const rules: IgnoreRule[] = [];
+  // A comment introduces the entries beneath it and is closed by a blank line,
+  // which is how a group written as one thought stays one thought. Lines
+  // accumulate so a reason may run to several.
+  let comment: string[] = [];
 
   for (const pattern of patterns) {
     const trimmed = pattern.trim();
-    if (trimmed === "" || trimmed.startsWith("#")) continue;
+    if (trimmed === "") {
+      comment = [];
+      continue;
+    }
+    if (trimmed.startsWith("#")) {
+      comment.push(trimmed.slice(1).trim());
+      continue;
+    }
 
     const negated = trimmed.startsWith("!");
     let glob = negated ? trimmed.slice(1) : trimmed;
@@ -69,7 +90,14 @@ export function compileIgnore(patterns: string[], origin = "ignore"): IgnoreRule
     // a bare name matches at any depth.
     const anchored = rooted || glob.includes("/");
 
-    rules.push({ matcher: toMatcher(glob, anchored), negated, dirOnly, pattern, origin });
+    rules.push({
+      matcher: toMatcher(glob, anchored),
+      negated,
+      dirOnly,
+      pattern,
+      origin,
+      comment: comment.length === 0 ? null : comment.join(" "),
+    });
   }
 
   return rules;

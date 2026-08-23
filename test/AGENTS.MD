@@ -24,6 +24,12 @@ passed with the fix reverted.
 Zero or more files matching `[name].test.ts` may exist. Nothing else may exist
 under test/.
 
+## Not described here
+
+    AGENTS.MD  Written by `espalier build` from the rules above.
+
+Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
+
 ## test/[name].test.ts — a test module
 
 Opens with a comment saying what this file covers and why

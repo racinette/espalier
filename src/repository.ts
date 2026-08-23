@@ -5,7 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { findChildren } from "./children.js";
 import { compile, type Espalier } from "./compile.js";
-import { loadConfig, type Config } from "./config.js";
+import { IGNORE_FILENAME, loadConfig, type Config } from "./config.js";
 import { fail } from "./errors.js";
 import { collectCandidates, isGenerated, matchGlob } from "./files.js";
 import { compileIgnore, excludedBy, ignores, type IgnoreRule } from "./ignore.js";
@@ -97,10 +97,17 @@ export async function open(configOption: string | undefined, cwd: string): Promi
   const espalier = await compile(config.root, config.espalierRoot);
   validateExamples(config.root, espalier);
 
-  // Patterns from `ignoreFiles` first, `ignore` last: later rules win, so the
-  // config is what settles a disagreement with another tool's file.
+  // Patterns from `ignoreFiles` first, `.espalierignore` last: later rules win,
+  // so your own list settles a disagreement with another tool's file. Their
+  // comments are read as comments and go no further — only `.espalierignore`
+  // supplies the reasons `build` writes down.
   const ignoreRules = [
-    ...config.ignoreFiles.flatMap((entry) => compileIgnore(readIgnoreFile(config.root, entry), entry)),
+    ...config.ignoreFiles.flatMap((entry) =>
+      compileIgnore(readIgnoreFile(config.root, entry), entry).map((rule) => ({
+        ...rule,
+        comment: null,
+      })),
+    ),
     ...compileIgnore(config.ignore),
   ];
 
@@ -126,6 +133,10 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     // bug rather than a finding. The VCS directory is not among these — it is
     // an `ignore` entry like any other, which is how a user can see it.
     if (candidate === configRelative) return "espalier";
+    // Configuration, like the file above it — and dot-prefixed, so no rule
+    // could declare it even if a project wanted to. A file that cannot be
+    // declared and is not invisible is one every run reports forever.
+    if (candidate === IGNORE_FILENAME) return "espalier";
     // A file `ignoreFiles` names is configuration this run read, the same as
     // the config itself. Reporting it would be espalier reporting on its own
     // input — and `_common` covering `.gitignore` only ever hid that for the

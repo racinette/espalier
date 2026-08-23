@@ -1,3 +1,3 @@
 package.json is not governed by espalier.
 
-  Ignored by the `ignore` list in espalier.config.yaml.
+  Excluded by a pattern in .espalierignore.

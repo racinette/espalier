@@ -11,6 +11,10 @@
     "report": [
       {
         "kind": "written",
+        "path": ".espalierignore"
+      },
+      {
+        "kind": "written",
         "path": "espalier.config.yaml"
       },
       {

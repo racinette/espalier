@@ -7,6 +7,7 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { IGNORE_FILENAME } from "./config.js";
 import { fail } from "./errors.js";
 import { probe } from "./files.js";
 import { compileIgnore, ignores } from "./ignore.js";
@@ -258,7 +259,7 @@ function infer(
 }
 
 /**
- * Whether an `ignore` entry keeps anything inside this area out of scope.
+ * Whether an exclusion keeps anything inside this area out of scope.
  *
  * Not the same question as "is this directory ignored". A `components/**`
  * entry does not match `components` itself — only paths under it — so the test
@@ -271,25 +272,26 @@ function covers(pattern: string, target: string): boolean {
 }
 
 /**
- * Replaces the `ignore` entry covering the adopted path with one per sibling it
- * also covered. Adopting an area that stays ignored would do nothing, which is
- * the only reason `adopt` touches configuration at all.
+ * Replaces the `.espalierignore` entry covering the adopted path with one per
+ * sibling it also covered. Adopting an area that stays excluded would do
+ * nothing, which is the only reason `adopt` touches configuration at all.
+ *
+ * A line at a time rather than a parse and a re-render: the comments are what
+ * make this file worth having, and rewriting it from its patterns would drop
+ * every one of them. The comment above a narrowed entry introduced a group and
+ * still does — rewriting somebody's sentence because its list got shorter is
+ * not `adopt`'s call.
  */
-function narrow(root: string, configPath: string, target: string): boolean {
-  const original = readFileSync(configPath, "utf8");
-  const lines = original.split("\n");
+function narrow(root: string, ignorePath: string, target: string): boolean {
+  if (!existsSync(ignorePath)) return false;
+
+  const lines = readFileSync(ignorePath, "utf8").split("\n");
   let changed = false;
 
   const replaced: string[] = [];
   for (const line of lines) {
-    const listed = /^(\s*-\s+)(.*)$/.exec(line);
-    if (listed === null) {
-      replaced.push(line);
-      continue;
-    }
-
-    const pattern = listed[2]!.trim().replace(/^["']|["']$/g, "");
-    if (!covers(pattern, target)) {
+    const pattern = line.trim();
+    if (pattern === "" || pattern.startsWith("#") || !covers(pattern, target)) {
       replaced.push(line);
       continue;
     }
@@ -302,21 +304,13 @@ function narrow(root: string, configPath: string, target: string): boolean {
     for (const entry of entries(path.join(root, base))) {
       if (entry.name === inside) continue;
       const at = base === "" ? entry.name : `${base}/${entry.name}`;
-      replaced.push(`${listed[1]!}${entry.directory ? `${at}/**` : at}`);
+      replaced.push(entry.directory ? `${at}/**` : at);
     }
   }
 
   if (!changed) return false;
 
-  // An `ignore:` key with nothing left under it is invalid YAML for a list, so
-  // the key goes with its last entry.
-  const kept: string[] = [];
-  for (const [index, line] of replaced.entries()) {
-    if (/^ignore:\s*$/.test(line) && !/^\s*-\s+/.test(replaced[index + 1] ?? "")) continue;
-    kept.push(line);
-  }
-
-  writeFileSync(configPath, kept.join("\n").replace(/\n{3,}/g, "\n\n"), "utf8");
+  writeFileSync(ignorePath, `${replaced.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd()}\n`, "utf8");
   return true;
 }
 
@@ -357,7 +351,7 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
   if (target.split("/").some((segment) => segment.startsWith("."))) {
     fail(
       "invalid_adopt_target",
-      `${options.target} has a dot-prefixed segment and cannot be declared; use \`ignore\``,
+      `${options.target} has a dot-prefixed segment and cannot be declared; use \`.espalierignore\``,
     );
   }
 
@@ -400,11 +394,10 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
   for (const at of skipped) reporter.record({ kind: "skipped", path: at });
 
   if (written.length > 0) {
-    const relative = path.relative(root, configPath).split(path.sep).join("/");
     const wouldNarrow = options.dryRun
-      ? repository.config.ignore.some((pattern) => covers(pattern, target))
-      : narrow(root, configPath, target);
-    if (wouldNarrow) reporter.record({ kind: "narrowed", path: relative });
+      ? repository.config.ignore.some((pattern) => covers(pattern.trim(), target))
+      : narrow(root, path.join(root, IGNORE_FILENAME), target);
+    if (wouldNarrow) reporter.record({ kind: "narrowed", path: IGNORE_FILENAME });
   }
 
   return 0;

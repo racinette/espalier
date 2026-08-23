@@ -17,6 +17,12 @@ up a command should not have to read the parser.
 Zero or more `[command]/` directories may exist. For each one that does,
 README.MD is required. Nothing else may exist under docs/cli/.
 
+## Not described here
+
+    AGENTS.MD  Written by `espalier build` from the rules above.
+
+Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
+
 ## docs/cli/[command]/README.MD — the page for one command
 
 One directory per command, named for the command, holding

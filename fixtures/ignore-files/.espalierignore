@@ -1,2 +1,6 @@
-src/kept.ts
-vendor/
+FIXTURE.MD
+expected.json
+.gitignore.fixture
+.customignore
+!src/kept.ts
+!build/nested/out.js

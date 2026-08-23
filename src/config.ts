@@ -6,6 +6,7 @@ import { parse as parseYaml } from "yaml";
 import { fail } from "./errors.js";
 
 export const CONFIG_FILENAME = "espalier.config.yaml";
+export const IGNORE_FILENAME = ".espalierignore";
 
 export interface Config {
   /** Absolute path of the directory containing the config file. */
@@ -16,13 +17,14 @@ export interface Config {
   espalierRoot: string;
   /** Repo-relative paths holding further ignore patterns, in order. */
   ignoreFiles: string[];
+  /** Lines of `.espalierignore`, or none when the file is not there. */
   ignore: string[];
   /** Repo-relative path to the addons module, or null. */
   addons: string | null;
   build: { filename: string; inline: boolean };
 }
 
-const KNOWN = new Set(["version", "root", "ignoreFiles", "ignore", "addons", "build"]);
+const KNOWN = new Set(["version", "root", "ignoreFiles", "addons", "build"]);
 const KNOWN_BUILD = new Set(["filename", "inline"]);
 
 function findConfig(from: string): string {
@@ -135,13 +137,15 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     ignoreFiles = listed as string[];
   }
 
+  // docs/CONFIG.MD "`.espalierignore`". Beside the config rather than inside
+  // it, because entries carry comments and `build` reads those into the
+  // documentation. Optional: a repository excluding nothing writes no file, and
+  // an absent one is an empty list rather than a failure — unlike `ignoreFiles`,
+  // which fails on a missing entry because the config claimed it exists.
   let ignore: string[] = [];
-  if ("ignore" in values) {
-    const listed = values["ignore"];
-    if (!Array.isArray(listed) || listed.some((entry) => typeof entry !== "string")) {
-      fail("config_invalid_value", "ignore must be a list of strings");
-    }
-    ignore = listed as string[];
+  const ignorePath = path.join(root, IGNORE_FILENAME);
+  if (existsSync(ignorePath)) {
+    ignore = readFileSync(ignorePath, "utf8").split("\n");
   }
 
   let addons: string | null = null;

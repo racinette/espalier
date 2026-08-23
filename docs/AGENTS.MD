@@ -38,6 +38,12 @@ Zero or more `cli/[command]/` directories may exist. For each one that does,
 README.MD is required. Zero or more files matching `[doc].MD` may exist. Nothing
 else may exist under docs/.
 
+## Not described here
+
+    AGENTS.MD  Written by `espalier build` from the rules above.
+
+Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
+
 ## docs/[doc].MD — a specification document
 
 Named in upper case, one document per subject, opening with

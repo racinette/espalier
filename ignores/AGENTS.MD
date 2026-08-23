@@ -20,6 +20,12 @@ underscore is what keeps it out of the `--lang` names.
 Zero or more files matching `[language].gitignore` may exist. Nothing else may
 exist under ignores/.
 
+## Not described here
+
+    AGENTS.MD  Written by `espalier build` from the rules above.
+
+Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
+
 ## ignores/[language].gitignore — a shipped ignore list
 
 One file per language, named for the language in lower

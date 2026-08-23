@@ -1,7 +1,2 @@
 version: 1
 root: tools/espalier
-
-ignore:
-  - FIXTURE.MD
-  - expected.json
-  - expected-adopt/**

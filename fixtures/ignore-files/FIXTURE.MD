@@ -1,14 +1,15 @@
 # ignoreFiles: patterns from files the config names
 
-`ignoreFiles` reads other files as `ignore` entries. This fixture names two and
-uses each of the four routes a path can take through the layering.
+`ignoreFiles` reads other files the same way `.espalierignore` is read. This
+fixture names two and uses each of the four routes a path can take through the
+layering.
 
 | Path | Outcome | Decided by |
 |---|---|---|
 | `build/nested/out.js` | ignored | `.gitignore.fixture` says `build/` |
-| `vendor/lib.ts` | ignored | `.espalierignore` says `vendor/` |
+| `vendor/lib.ts` | ignored | `.customignore` says `vendor/` |
 | `src/generated.ts` | governed | `.gitignore.fixture` excludes it, then re-includes it |
-| `src/kept.ts` | governed | `.espalierignore` excludes it, `ignore` re-includes it |
+| `src/kept.ts` | governed | `.customignore` excludes it, `.espalierignore` re-includes it |
 
 `src/kept.ts` is the one that pins the layering order. Patterns from
 `ignoreFiles` are placed **before** anything in `ignore`, and later patterns

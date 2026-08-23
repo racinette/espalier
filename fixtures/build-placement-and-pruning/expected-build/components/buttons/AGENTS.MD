@@ -7,6 +7,12 @@
 Zero or more files matching `[button].tsx` may exist. Nothing else may exist
 under components/buttons/.
 
+## Not described here
+
+    AGENTS.MD  Written by `espalier build` from the rules above.
+
+Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
+
 ## components/buttons/[button].tsx — a button component
 
 Default-export a single component named after the file.

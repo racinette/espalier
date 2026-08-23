@@ -153,10 +153,10 @@ The other half of what makes the closed-set sentence true. `Governed elsewhere` 
 ```markdown
 ## Not described here
 
-    node_modules/  Installed, not written. Nothing here is ours to shape.
     dist/          Build output. Regenerated; never edited by hand.
-    package.json   Not this project's architecture. Their shape is
-    tsconfig.json    dictated by the tools that read them.
+    package.json   Not this project's architecture. Their shape is dictated by
+    tsconfig.json  the tools that read them.
+    node_modules/
     AGENTS.MD      Written by `espalier build` from the rules above.
 
 Nothing above describes these, so nothing here tells you how to write them.
@@ -166,7 +166,11 @@ file with nowhere legal to go is a gap to report, not one to route around.
 
 **Direct children only, and only the ones that are there.** A reader is holding a directory listing; the section answers that listing and nothing else. What is inside an excluded directory never appears — `node_modules/` is one line whether it holds four packages or four thousand — and an exclusion that matches nothing here is not mentioned, because a reader cannot see it to be confused by it.
 
-**The reason comes from `.espalierignore`**, verbatim, from the comment block introducing that entry — see [CONFIG.MD](../../CONFIG.MD#espalierignore). Entries sharing a comment share the line, indented under the first, so a group written as one thought reads as one. An entry with no comment above it gets no reason, and the line is the path alone. `espalier` never invents one: it has patterns, not intent, and the difference between *will never have a rule* and *does not have one yet* is exactly what it cannot see.
+**The reason comes from `.espalierignore`**, verbatim, from the comment block introducing that entry — see [CONFIG.MD](../../CONFIG.MD#espalierignore). An entry with no comment above it gets no reason, and the line is the path alone. `espalier` never invents one: it has patterns, not intent, and the difference between *will never have a rule* and *does not have one yet* is exactly what it cannot see.
+
+Entries are ordered by reason and then by name, with the unexplained ones last, and only the first of a group carries the text. Ordering by name alone would scatter a group across the section and leave its one shared line landing wherever the alphabet happened to put it. A reason too long for the column wraps into it — unlike a map line, where an alignment column that survived a wrap would not be one; here the column is what the continuation hangs from.
+
+**A directory counts when everything inside it is excluded**, not only when the directory itself is named. `dist/` and `dist/**` exclude the same files and differ over whether the walk enters — a difference invisible here, where a reader can see the directory either way.
 
 The unconditionally invisible five are described rather than quoted, since no comment introduces them: the generated file says `Written by \`espalier build\` from the rules above.`, and `espalier.config.yaml`, `.espalierignore` and the espalier root say `Configuration. Read by \`espalier\`, not by this project.`
 

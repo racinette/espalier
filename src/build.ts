@@ -10,14 +10,22 @@
 // run, what `build` writes outlives it — and a root document sending readers
 // into a directory with nothing in it says nothing about why.
 
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fail } from "./errors.js";
-import { collectCandidates, PROVENANCE } from "./files.js";
-import { ignores } from "./ignore.js";
+import { IGNORE_FILENAME } from "./config.js";
+import { collectCandidates, probe, PROVENANCE } from "./files.js";
+import { excludedBy, ignores } from "./ignore.js";
 import type { Reporter } from "./output.js";
 import { eachChild } from "./nested.js";
-import { assignChildren, plan, renderDistributed, renderInline } from "./render.js";
+import {
+  assignChildren,
+  plan,
+  renderDistributed,
+  renderInline,
+  type Excluded,
+  type Placement,
+} from "./render.js";
 import { open, type Repository } from "./repository.js";
 
 export interface BuildOptions {
@@ -107,6 +115,90 @@ export async function build(options: BuildOptions, reporter: Reporter): Promise<
   return 0;
 }
 
+/**
+ * The excluded entries a reader would see in each directory a document sits in.
+ *
+ * Computed here rather than in `render.ts`, which reads no files and takes no
+ * paths on purpose: a renderer that could open one could produce output
+ * depending on something other than the espalier. Direct children only — the
+ * section answers a directory listing, so what is *inside* an excluded
+ * directory never appears, and `node_modules/` is one line whether it holds
+ * four packages or four thousand.
+ * docs/cli/build/README.MD "Not described here".
+ */
+function excludedAt(
+  repository: Repository,
+  points: Placement[],
+  filename: string,
+  inline: boolean,
+): Map<string, Excluded[]> {
+  const { root, espalierRoot, configPath } = repository.config;
+  const configRelative = path.relative(root, configPath).split(path.sep).join("/");
+  // Nothing introduces these with a comment, so they are described rather than
+  // quoted. The tool may say what its own machinery is; it may not say what a
+  // project's exclusions are for.
+  const MACHINERY = "Configuration. Read by `espalier`, not by this project.";
+  const machinery = new Map<string, string>([
+    [configRelative, MACHINERY],
+    [IGNORE_FILENAME, MACHINERY],
+    [espalierRoot, MACHINERY],
+  ]);
+
+  const found = new Map<string, Excluded[]>();
+  for (const point of points) {
+    const absolute = point.at === "" ? root : path.join(root, point.at);
+    let listing;
+    try {
+      listing = readdirSync(absolute, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    const entries: Excluded[] = [];
+    for (const entry of listing) {
+      const relative = point.at === "" ? entry.name : `${point.at}/${entry.name}`;
+      // A child espalier is named by `Governed elsewhere`, which says more.
+      if (repository.children.includes(relative)) continue;
+
+      const directory = probe(entry, path.join(absolute, entry.name)) === "directory";
+      // `ungoverned` answers about a path, and a directory is not a path it can
+      // be asked about — a `.claude/` entry never matches unless the question
+      // says so. A directory also counts when it is `dist/**` rather than
+      // `dist/`: the walk enters it, finds every file excluded, and a reader
+      // still sees the directory sitting there unaccounted for.
+      // The document this run is about to write is added below rather than
+      // observed here: on a first build it is not there yet, and a section that
+      // appeared on the second run would make `build --check` report drift
+      // against a tree nobody touched.
+      if (!directory && entry.name === filename) continue;
+
+      const excluded = directory
+        ? excludedBy(repository.ignoreRules, relative, true) !== null ||
+          ignores(repository.ignoreRules, `${relative}/probe`) ||
+          relative === espalierRoot
+        : repository.ungoverned(relative) !== null;
+      if (!excluded) continue;
+
+      const reason =
+        machinery.get(relative) ??
+        excludedBy(repository.ignoreRules, relative, directory)?.comment ??
+        excludedBy(repository.ignoreRules, `${relative}/probe`)?.comment ??
+        null;
+      entries.push({ name: directory ? `${entry.name}/` : entry.name, reason });
+    }
+
+    // Distributed mode puts a document at every placement point; inline puts
+    // one at the root, and the root's paragraph is the whole repository anyway.
+    if (!inline || point.at === "") {
+      entries.push({ name: filename, reason: "Written by `espalier build` from the rules above." });
+    }
+
+    if (entries.length > 0) found.set(point.at, entries);
+  }
+
+  return found;
+}
+
 function planFor(
   repository: Repository,
   options: BuildOptions,
@@ -118,12 +210,19 @@ function planFor(
   const points = plan(repository.espalier);
 
   const assigned = assignChildren(points, repository.children);
+  const excluded = excludedAt(repository, points, settings.filename, inline);
 
   const planned = new Map<string, string>();
   if (inline) {
     planned.set(
       settings.filename,
-      renderInline(repository.espalier, points, repository.config.espalierRoot, repository.children),
+      renderInline(
+        repository.espalier,
+        points,
+        repository.config.espalierRoot,
+        repository.children,
+        excluded,
+      ),
     );
   } else {
     for (const point of points) {
@@ -136,6 +235,7 @@ function planFor(
           repository.config.espalierRoot,
           assigned.get(point.at) ?? [],
           repository.children,
+          excluded.get(point.at) ?? [],
         ),
       );
     }

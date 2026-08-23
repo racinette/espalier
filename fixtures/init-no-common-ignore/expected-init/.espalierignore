@@ -1,0 +1,9 @@
+# go
+
+# Manifests and lockfiles.
+go.mod
+go.sum
+
+# Tool configuration.
+.golangci.yml
+.golangci.yaml

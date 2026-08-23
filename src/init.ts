@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CONFIG_FILENAME } from "./config.js";
+import { CONFIG_FILENAME, IGNORE_FILENAME } from "./config.js";
 import { fail } from "./errors.js";
 import { probe } from "./files.js";
 import { compileIgnore, ignores } from "./ignore.js";
@@ -116,20 +116,17 @@ function topLevelIgnores(root: string, espalierRoot: string, written: string[]):
 /**
  * A pattern that YAML would read as something other than a string. `*.swp`
  * opens an alias, `!foo` a tag, and a bare `:` or `#` ends the scalar early.
+ *
+ * Only `ignoreFiles` entries reach this now. The exclusion list is its own
+ * file, where a pattern is a line and nothing needs escaping at all — see
+ * docs/CONFIG.MD "`.espalierignore`".
  */
 function quoted(pattern: string): string {
   const plain = /^[A-Za-z0-9._/]/.test(pattern) && !/[:#]/.test(pattern);
   return plain ? pattern : `"${pattern.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-/** A shipped list's own comments survive; its patterns become YAML entries. */
-function asEntries(lines: string[]): string[] {
-  return lines.map((line) =>
-    line === "" || line.startsWith("#") ? `  ${line}`.trimEnd() : `  - ${quoted(line)}`,
-  );
-}
-
-function render(espalierRoot: string, ignoreFiles: string[], blocks: string[][]): string {
+function render(espalierRoot: string, ignoreFiles: string[]): string {
   const lines = ["version: 1", "", `root: ${espalierRoot}`, ""];
   // Written even when empty. `--no-ignore-file` is a decision, and a config
   // that omitted the key would leave the next reader to wonder whether one was
@@ -138,15 +135,6 @@ function render(espalierRoot: string, ignoreFiles: string[], blocks: string[][])
     ignoreFiles.length === 0 ? "ignoreFiles: []" : "ignoreFiles:",
     ...ignoreFiles.map((entry) => `  - ${quoted(entry)}`),
   );
-
-  const written = blocks.filter((block) => block.length > 0);
-  if (written.length > 0) {
-    lines.push("", "ignore:");
-    written.forEach((block, index) => {
-      if (index > 0) lines.push("");
-      lines.push(...block);
-    });
-  }
 
   return `${lines.join("\n")}\n`;
 }
@@ -207,23 +195,41 @@ export function init(options: InitOptions, reporter: Reporter): number {
     ...ignoreFiles,
     ...ignoreFiles.flatMap((entry) => readIgnoreFile(root, entry)),
   ];
-  const blocks = wanted.map((name) =>
-    asEntries(name === COMMON ? readList(name) : [`# ${name}`, ...readList(name)]),
+  // Copied verbatim, comments and all: `build` reads each comment into the
+  // documentation for the directory that entry excludes, so a shipped list is
+  // also the wording an agent is given for why a path is not described.
+  // The language marker is its own block, so a blank line separates it from the
+  // shipped list's first comment. Run together they would read as one sentence
+  // — "javascript Manifests and lockfiles." — in the documentation `build`
+  // writes from it. A comment introducing no entries contributes nothing to
+  // matching and stays where a person can see it.
+  const blocks = wanted.flatMap((name) =>
+    name === COMMON ? [readList(name)] : [[`# ${name}`], readList(name)],
   );
 
   if (options.ignoreAll) {
     const backlog = topLevelIgnores(root, espalierRoot, covered);
     if (backlog.length > 0) {
       blocks.push([
-        "  # espalier governs nothing yet.",
-        "  # Remove entries as you bring each area under the espalier — see `espalier adopt`.",
-        ...backlog.map((entry) => `  - ${quoted(entry)}`),
+        "# espalier governs nothing yet.",
+        "# Remove entries as you bring each area under the espalier — see `espalier adopt`.",
+        ...backlog,
       ]);
     }
   }
 
-  writeFileSync(configPath, render(espalierRoot, ignoreFiles, blocks), "utf8");
+  writeFileSync(configPath, render(espalierRoot, ignoreFiles), "utf8");
   reporter.record({ kind: "written", path: path.relative(root, configPath) });
+
+  const listed = blocks.filter((block) => block.length > 0);
+  if (listed.length > 0) {
+    writeFileSync(
+      path.join(root, IGNORE_FILENAME),
+      `${listed.map((block) => block.join("\n")).join("\n\n")}\n`,
+      "utf8",
+    );
+    reporter.record({ kind: "written", path: IGNORE_FILENAME });
+  }
 
   // Git does not track empty directories, so without this the espalier root
   // vanishes on the first commit and the next clone fails before anyone has

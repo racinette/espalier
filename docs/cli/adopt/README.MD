@@ -53,7 +53,7 @@ export async function lint() {}
 and narrows `.espalierignore`:
 
 ```diff
- # espalier governs nothing here yet.
+ # espalier governs nothing yet.
 -src/**
 +src/api/**
 +src/components/**

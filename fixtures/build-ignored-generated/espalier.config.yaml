@@ -1,8 +1,2 @@
 version: 1
 root: espalier
-
-ignore:
-  - FIXTURE.MD
-  - expected.json
-  - expected-build/**
-  - vendor/**

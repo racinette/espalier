@@ -133,9 +133,9 @@ test("init passes over a link it cannot follow", () => {
     const written = espalier(root, ["init", "--no-ignore-file", "--ignore-all"]);
     assert.equal(written.status, 0);
 
-    const config = readFileSync(path.join(root, "espalier.config.yaml"), "utf8");
-    assert.ok(config.includes("main.ts"), "the real file was not listed");
-    assert.ok(!config.includes("dangling"), "a link to nowhere was listed as a path");
+    const excluded = readFileSync(path.join(root, ".espalierignore"), "utf8");
+    assert.ok(excluded.includes("main.ts"), "the real file was not listed");
+    assert.ok(!excluded.includes("dangling"), "a link to nowhere was listed as a path");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -233,11 +233,13 @@ test("init --lang writes the shipped list, and refuses an unknown one", () => {
     assert.match(bad.stdout, /javascript/);
 
     assert.equal(espalier(root, ["init", "--no-ignore-file", "-l", "go", "-l", "python"]).status, 0);
-    const written = readFileSync(path.join(root, "espalier.config.yaml"), "utf8");
-    for (const entry of ["- .git/", "- go.mod", "- pyproject.toml", "ignoreFiles:"]) {
-      assert.ok(written.includes(entry), `init -l go -l python did not write "${entry}"`);
+    const config = readFileSync(path.join(root, "espalier.config.yaml"), "utf8");
+    assert.ok(config.includes("ignoreFiles:"), "init wrote no ignoreFiles decision");
+    const excluded = readFileSync(path.join(root, ".espalierignore"), "utf8");
+    for (const entry of [".git/", "go.mod", "pyproject.toml"]) {
+      assert.ok(excluded.includes(entry), `init -l go -l python did not write "${entry}"`);
     }
-    assert.ok(!written.includes("package.json"), "init wrote a list nobody asked for");
+    assert.ok(!excluded.includes("package.json"), "init wrote a list nobody asked for");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -304,9 +306,10 @@ test("init records the ignore-file decision either way", () => {
       /^ignoreFiles:\n {2}- \.gitignore$/m,
     );
 
-    // The common block lands in both: `.gitignore` never names `.git/`.
+    // The common block lands in both, in the file beside the config:
+    // `.gitignore` never names `.git/`.
     for (const at of [declined, named]) {
-      assert.ok(readFileSync(path.join(at, "espalier.config.yaml"), "utf8").includes("- .git/"));
+      assert.ok(readFileSync(path.join(at, ".espalierignore"), "utf8").includes(".git/"));
     }
   } finally {
     rmSync(declined, { recursive: true, force: true });
@@ -342,8 +345,9 @@ test("a file ignoreFiles names is invisible, not merely ignored", () => {
     writeFileSync(path.join(root, ".customignore"), "dist/\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignoreFiles:\n  - .customignore\nignore:\n  - main.ts\n",
+      "version: 1\nroot: espalier\nignoreFiles:\n  - .customignore\n",
     );
+    writeFileSync(path.join(root, ".espalierignore"), "main.ts\n");
 
     // It is configuration this run read, so it answers `espalier` rather than
     // `ignore`, and a project naming a custom file does not have to ignore it
@@ -365,7 +369,11 @@ test("explain and lint agree about a path under a pruned directory", () => {
     writeFileSync(path.join(root, "vendor", "deep", "lib.ts"), "");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignore:\n  - main.ts\n  - vendor/\n  - \"!vendor/deep/lib.ts\"\n",
+      "version: 1\nroot: espalier\n",
+    );
+    writeFileSync(
+      path.join(root, ".espalierignore"),
+      "main.ts\nvendor/\n!vendor/deep/lib.ts\n",
     );
 
     // The negation cannot win: `collectCandidates` never opens `vendor/`, so a
@@ -373,7 +381,7 @@ test("explain and lint agree about a path under a pruned directory", () => {
     // this, `explain` said "not declared" about a file `lint` could not see.
     const shown = espalier(root, ["explain", "vendor/deep/lib.ts", "--format", "jsonl"]);
     assert.equal(shown.status, 1);
-    assert.match(shown.stdout, /"ignoredBy":"ignore"/);
+    assert.match(shown.stdout, /"ignoredBy":"\.espalierignore"/);
     assert.equal(espalier(root, ["lint"]).status, 0, "lint reported a pruned path");
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -387,8 +395,9 @@ test("a back-reference needs every instance, not two of them", () => {
     writeFileSync(path.join(root, ".gitignore"), "");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignoreFiles:\n  - .gitignore\nignore:\n  - main.ts\n  - .gitignore\n  - src/**\n",
+      "version: 1\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
     );
+    writeFileSync(path.join(root, ".espalierignore"), "main.ts\n.gitignore\nsrc/**\n");
 
     // Two clients name a file after themselves; the third does not. That is
     // not a convention, so the honest answer is the optional leaves — a

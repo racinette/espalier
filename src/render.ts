@@ -334,6 +334,70 @@ function renderChildren(at: string, children: string[], level: number): string[]
   ];
 }
 
+/** One excluded entry in a directory, and why it is excluded. */
+export interface Excluded {
+  /** Name as the directory lists it, with a trailing `/` for a directory. */
+  name: string;
+  /** The comment introducing the entry that excluded it, or null when none did. */
+  reason: string | null;
+}
+
+/**
+ * The other half of what makes the closed-set sentence true.
+ *
+ * `Governed elsewhere` names the directories another espalier describes; this
+ * names the paths no espalier describes at all, so that between them every
+ * entry a reader can see is accounted for by name. A closed set that ends in
+ * *apart from* is not closed, and a reader who can see `package.json` sitting
+ * beside one reads the whole paragraph as approximate.
+ *
+ * Reasons are quoted from `.espalierignore` and never invented: `espalier` has
+ * patterns, not intent, and cannot tell an exclusion that will never have a
+ * rule from one that does not have a rule yet.
+ * docs/cli/build/README.MD "Not described here".
+ */
+function renderExcluded(entries: Excluded[], level: number): string[] {
+  if (entries.length === 0) return [];
+
+  // Grouped by reason, then by name within a group, and the entries nobody gave
+  // a reason last. Sorting by name alone would scatter a group across the
+  // section and leave the shared line landing wherever the alphabet put it.
+  const sorted = [...entries].sort((left, right) => {
+    const first = left.reason ?? "\uffff";
+    const second = right.reason ?? "\uffff";
+    if (first !== second) return first < second ? -1 : 1;
+    return left.name < right.name ? -1 : left.name > right.name ? 1 : 0;
+  });
+  const column = Math.max(...sorted.map((entry) => entry.name.length)) + 2;
+
+  const rows: string[] = [];
+  for (const [index, entry] of sorted.entries()) {
+    // Entries sharing a comment share it, carried on the first of them, so a
+    // group written as one thought reads as one rather than as a refrain.
+    const repeated = index > 0 && entry.reason !== null && entry.reason === sorted[index - 1]!.reason;
+    const reason = repeated ? "" : (entry.reason ?? "");
+    if (reason === "") {
+      rows.push(`    ${entry.name}`);
+      continue;
+    }
+    // Wrapped into the column rather than left to run past it. A map line is
+    // never wrapped because an alignment column that survived a wrap would not
+    // be one; here the alignment is what the continuation lines hang from.
+    const indent = " ".repeat(4 + column);
+    const [first, ...rest] = wrap(reason, WIDTH - indent.length).split("\n");
+    rows.push(`    ${entry.name.padEnd(column)}${first}`);
+    for (const line of rest) rows.push(`${indent}${line}`);
+  }
+
+  return [
+    `${"#".repeat(level)} Not described here`,
+    rows.join("\n"),
+    "Nothing above describes these, so nothing here tells you how to write them. " +
+      "That makes them a poor place to put work that belongs in the list above: a file " +
+      "with nowhere legal to go is a gap to report, not one to route around.",
+  ];
+}
+
 /**
  * The closed-set statement, as one unwrapped string. `build` wraps it; explain
  * reports it as it is. Sharing this is what keeps `espalier explain` and the
@@ -520,6 +584,7 @@ function core(
   level: number,
   named: string[],
   all: string[],
+  excluded: Excluded[],
 ): string[] {
   const blocks: string[] = [];
 
@@ -534,6 +599,7 @@ function core(
   }
 
   blocks.push(...renderChildren(point.at, named, level));
+  blocks.push(...renderExcluded(excluded, level));
   blocks.push(...renderSections(espalier, point, level));
   return blocks;
 }
@@ -544,8 +610,9 @@ export function renderDistributed(
   espalierRoot: string,
   named: string[] = [],
   all: string[] = named,
+  excluded: Excluded[] = [],
 ): string {
-  const blocks = [marker(espalierRoot, point.at), ...core(espalier, point, 2, named, all)];
+  const blocks = [marker(espalierRoot, point.at), ...core(espalier, point, 2, named, all, excluded)];
   if (point.at === "") blocks.push(CHECKING);
   blocks.push(AMENDING);
   return `${blocks.join("\n\n")}\n`;
@@ -562,10 +629,14 @@ export function renderInline(
   points: Placement[],
   espalierRoot: string,
   children: string[] = [],
+  excluded: Map<string, Excluded[]> = new Map(),
 ): string {
   const root = points.find((point) => point.at === "")!;
   const assigned = assignChildren(points, children);
-  const blocks = [marker(espalierRoot, ""), ...core(espalier, root, 2, assigned.get("") ?? [], children)];
+  const blocks = [
+    marker(espalierRoot, ""),
+    ...core(espalier, root, 2, assigned.get("") ?? [], children, excluded.get("") ?? []),
+  ];
 
   for (const point of points) {
     if (point.at === "") continue;

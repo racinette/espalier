@@ -379,7 +379,14 @@ function subject(dir: string): string[] {
 
   return walkFollowing(dir).filter((at) => {
     const top = at.split("/")[0]!;
-    return !SCAFFOLDING.has(top) && top !== "espalier.config.yaml" && top !== espalierRoot;
+    // The two configuration files and the espalier root are invisible
+    // unconditionally, so listing them would be a column of nulls.
+    return (
+      !SCAFFOLDING.has(top) &&
+      top !== "espalier.config.yaml" &&
+      top !== ".espalierignore" &&
+      top !== espalierRoot
+    );
   });
 }
 

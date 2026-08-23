@@ -87,10 +87,36 @@ test("a negation cannot re-include under an excluded ancestor", () => {
   assert.equal(matches(["dist/", "!dist/", "dist/**", "!dist/index.js"], "dist/other.js"), true);
 });
 
-test("comments and blank lines contribute nothing", () => {
+test("comments and blank lines contribute no patterns", () => {
   const rules = compileIgnore(["# a comment", "", "   ", "notes.txt"]);
-    assert.equal(rules.length, 1);
+  assert.equal(rules.length, 1);
   assert.equal(rules[0]!.pattern, "notes.txt");
+});
+
+test("a comment introduces the entries beneath it, until a blank line", () => {
+  // The reason the list is a file. `build` writes these into the documentation
+  // for the directory the entry excludes, so the grouping is what a reader ends
+  // up with — one thought over the entries it was written about.
+  const rules = compileIgnore([
+    "# Not this project's architecture.",
+    "# Their shape is dictated by the tools that read them.",
+    "package.json",
+    "tsconfig.json",
+    "",
+    "dist/",
+    "# Installed, not written.",
+    "node_modules/",
+  ]);
+
+  const reason = Object.fromEntries(rules.map((rule) => [rule.pattern, rule.comment]));
+  const both = "Not this project's architecture. Their shape is dictated by the tools that read them.";
+  assert.deepEqual(reason, {
+    "package.json": both,
+    "tsconfig.json": both,
+    // A blank line closes the block, so this entry inherits nothing.
+    "dist/": null,
+    "node_modules/": "Installed, not written.",
+  });
 });
 
 test("surrounding whitespace is not part of the pattern", () => {
@@ -120,7 +146,7 @@ test("excludedBy names the pattern and where it came from", () => {
   // from files a user can open rather than from a table inside the tool.
   assert.equal(excludedBy(rules, "dist/a.js")?.origin, ".gitignore");
   assert.equal(excludedBy(rules, "dist/a.js")?.pattern, "dist/");
-  assert.equal(excludedBy(rules, "debug.log")?.origin, "ignore");
+  assert.equal(excludedBy(rules, "debug.log")?.origin, ".espalierignore");
   assert.equal(excludedBy(rules, "src/a.ts"), null);
 });
 

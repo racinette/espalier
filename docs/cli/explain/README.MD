@@ -138,7 +138,7 @@ The three cases read:
 
 ```text
   Excluded by a pattern in .espalierignore.
-  Ignored by a pattern from .gitignore, read because `ignoreFiles` names it.
+  Excluded by a pattern from .gitignore, read because `ignoreFiles` names it.
   Invisible unconditionally: espalier does not report on its own machinery.
 ```
 

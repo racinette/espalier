@@ -13,7 +13,7 @@
       "exit": 1,
       "object": {
         "path": "vendor/lib.ts",
-        "ignoredBy": ".espalierignore"
+        "ignoredBy": ".customignore"
       }
     },
     "src/generated.ts": {
@@ -32,7 +32,7 @@
     }
   },
   "ownership": {
-    ".espalierignore": null,
+    ".customignore": null,
     ".gitignore.fixture": null,
     "build/nested/out.js": null,
     "src/a.ts": "src/[file].ts.mjs",

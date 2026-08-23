@@ -30,6 +30,34 @@ more files matching `docs/[doc].MD` may exist. Zero or more files matching
 `src/[name].ts` may exist. Zero or more files matching `test/[name].test.ts` may
 exist. Nothing else may exist under this directory.
 
+## Not described here
+
+    .espalierignore       Configuration. Read by `espalier`, not by this
+                          project.
+    espalier.config.yaml
+    espalier/
+    .claude/              Editor and operating system droppings.
+    .cursor/
+    LICENSE               Licence and legal.
+    package-lock.json     Manifests and lockfiles.
+    package.json
+    .gitignore            Repository metadata. Tracked on purpose, and dictated
+                          by the tool that reads them rather than by this
+                          project's architecture.
+    tsconfig.json         Tool configuration. The tool decides the filename; the
+                          project only decides the contents.
+    .git/                 Version control metadata. `.gitignore` never lists
+                          `.git/` — git has no need to ignore itself — so this
+                          is the one exclusion no other file supplies.
+    AGENTS.MD             Written by `espalier build` from the rules above.
+    fixtures/             espalier's own fixtures are data: sixty configs,
+                          several deliberately invalid, and a root run executing
+                          all sixty is not what anyone means by it.
+    dist/
+    node_modules/
+
+Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
+
 ## HANDOFF.MD — the record of what was decided and why
 
 Every decision that cost an argument is written down here,

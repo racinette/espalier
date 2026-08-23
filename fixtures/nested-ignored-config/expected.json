@@ -19,7 +19,7 @@
     },
     "templates/espalier.config.yaml": {
       "exit": 1,
-      "object": { "ignoredBy": "ignore", "rule": null }
+      "object": { "ignoredBy": ".espalierignore", "rule": null }
     }
   }
 }

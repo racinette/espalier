@@ -12,6 +12,16 @@ main.ts is required. notes.md is optional. Zero or more `[client]/` directories
 may exist. For each one that does, client.ts is required. Each one may also have
 webhook.ts. Nothing else may exist under this directory.
 
+## Not described here
+
+    .espalierignore       Configuration. Read by `espalier`, not by this
+                          project.
+    espalier.config.yaml
+    espalier/
+    AGENTS.MD             Written by `espalier build` from the rules above.
+
+Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
+
 ## [client]/client.ts — a client
 
 Export a single factory named after the directory.

@@ -1,10 +1,26 @@
 {
   "init": {
     "exit": 0,
-    "args": ["--no-common-ignore", "-i", ".gitignore.fixture", "-l", "go"],
+    "args": [
+      "--no-common-ignore",
+      "-i",
+      ".gitignore.fixture",
+      "-l",
+      "go"
+    ],
     "report": [
-      { "kind": "written", "path": "espalier.config.yaml" },
-      { "kind": "written", "path": "espalier/.gitkeep" }
+      {
+        "kind": "written",
+        "path": ".espalierignore"
+      },
+      {
+        "kind": "written",
+        "path": "espalier.config.yaml"
+      },
+      {
+        "kind": "written",
+        "path": "espalier/.gitkeep"
+      }
     ]
   }
 }
