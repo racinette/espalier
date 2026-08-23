@@ -1,0 +1,13 @@
+{
+  "exit": 1,
+  "issues": [
+    { "path": "src/client.ts", "code": "unexpected_path", "severity": "error" },
+    { "path": "docs/guide-intro.md", "code": "unexpected_path", "severity": "error" },
+    { "path": "src/Client.ts", "code": "missing_required_file", "severity": "error" }
+  ],
+  "ownership": {
+    "src/client.ts": null,
+    "docs/guide-intro.md": null,
+    "docs/Guide-setup.md": "docs/Guide-[topic].md.mjs"
+  }
+}

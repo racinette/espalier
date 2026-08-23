@@ -1,0 +1,12 @@
+{
+  "exit": 0,
+  "issues": [
+    { "path": "src/a.ts", "code": "ran", "severity": "info", "message": "ran on src/a.ts" },
+    { "path": "src/b.tsx", "code": "ran", "severity": "info", "message": "ran on src/b.tsx" }
+  ],
+  "ownership": {
+    "src/a.ts": "src/[name].ts.mjs",
+    "src/b.tsx": "src/[name].tsx.mjs",
+    "src/c.js": "src/[name].js.mjs"
+  }
+}

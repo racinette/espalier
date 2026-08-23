@@ -1,0 +1,21 @@
+{
+  "exit": 0,
+  "issues": [],
+  "ownership": {
+    "bin/release": "bin/release.mjs",
+    "docs/getting started.md": "docs/[title].md.mjs",
+    "docs/mise-à-jour.md": "docs/[title].md.mjs",
+    "docs/日本語.md": "docs/[title].md.mjs",
+    ".cursor/rules.mdc": null
+  },
+  "explain": {
+    "docs/getting started.md": {
+      "exit": 0,
+      "object": { "rule": "docs/[title].md.mjs", "captures": { "title": "getting started" } }
+    },
+    ".cursor/rules.mdc": {
+      "exit": 1,
+      "object": { "ignoredBy": "ignore", "rule": null }
+    }
+  }
+}

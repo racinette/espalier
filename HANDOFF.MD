@@ -33,11 +33,16 @@ src/output.ts       human and jsonl formatters, --out destinations
 src/cli.ts          argument parsing and exit codes
 ```
 
-`npm test` builds and runs everything: 151 tests, of which 67 are conformance
-fixtures and the rest cover what a fixture cannot reach — the programmatic API,
-config discovery from a subdirectory, the ignore walk's pruning, the cache, the
-sibling-overlap decision procedure, and every operational failure code
-(`test/failures.test.ts`). All green. `npm run coverage` adds Node's own
+`npm test` builds and runs everything: 200 tests, of which 72 are conformance
+fixtures and the rest cover what a fixture cannot reach — a repository is not
+the right shape for every claim. The programmatic API, config discovery from a
+subdirectory, the ignore walk's pruning, the cache, the sibling-overlap decision
+procedure, every operational failure code (`test/failures.test.ts`), argument
+parsing and output destinations (`test/cli.test.ts`, where "invoked wrongly" has
+no tree to describe it), gitignore semantics one pattern at a time
+(`test/ignore.test.ts`), and the glob `context.files` matches with
+(`test/glob.test.ts`), which is a different language from the one `ignore` uses
+and is worth pinning as such. All green. `npm run coverage` adds Node's own
 instrumentation, which merges the subprocess runs the fixtures spawn; without
 that merge the CLI would read as untested.
 

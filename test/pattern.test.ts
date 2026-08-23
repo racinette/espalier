@@ -4,7 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { intersects, matchSegment, parseSegment } from "../src/pattern.js";
+import { intersects, matchSegment, parseSegment, resolveSegment } from "../src/pattern.js";
 
 const shapeOf = (source: string): string => parseSegment(source, "test").shape;
 
@@ -53,4 +53,58 @@ test("shapes normalize placeholders to a star", () => {
   assert.equal(shapeOf("[provider]"), "*");
   assert.equal(shapeOf("test-[name].ts"), "test-*.ts");
   assert.equal(shapeOf("[...path]"), "**");
+});
+
+// Classification and captures. docs/MATCHING.MD "Classification", "Captures",
+// "Back-references". A fixture can only observe these through the answers they
+// produce; the tiers themselves are what ownership resolves by, so they are
+// worth stating where they are decided.
+
+test("a back-reference is resolved, and one sharing a segment with a capture is not", () => {
+  // A resolved segment becomes a literal once the captures above it are bound,
+  // which is what earns it the middle tier. Adding a placeholder to the same
+  // segment takes that away: the result still has to be matched, so it is
+  // dynamic and sorts last.
+  const resolved = parseSegment("{provider}", "test");
+  assert.equal(resolved.resolved, true);
+  assert.equal(resolved.dynamic, false);
+
+  const both = parseSegment("{provider}-[kind].ts", "test");
+  assert.equal(both.resolved, false);
+  assert.equal(both.dynamic, true);
+
+  const plain = parseSegment("client.ts", "test");
+  assert.equal(plain.resolved, false);
+  assert.equal(plain.dynamic, false);
+});
+
+test("a resolved segment is a literal only once its capture is bound", () => {
+  const segment = parseSegment("{provider}.ts", "test");
+  // Nothing bound yet: the walk has not reached the placeholder it refers to.
+  assert.equal(resolveSegment(segment, {}), null);
+  assert.equal(resolveSegment(segment, { provider: "stripe" }), "stripe.ts");
+  // An array capture cannot stand in for a segment of text.
+  assert.equal(resolveSegment(segment, { provider: ["a", "b"] }), null);
+});
+
+test("a back-reference matches the text its placeholder bound, and nothing else", () => {
+  const segment = parseSegment("{provider}-client.ts", "test");
+  assert.deepEqual(matchSegment(segment, "stripe-client.ts", { provider: "stripe" }), {});
+  assert.equal(matchSegment(segment, "twilio-client.ts", { provider: "stripe" }), null);
+});
+
+test("captures are text, arrays, or nothing at all", () => {
+  // `[name]` produces a string, `[...name]` an array possibly empty, and a
+  // segment with no placeholders an empty object rather than null — "matched,
+  // captured nothing" is not the same answer as "did not match".
+  assert.deepEqual(matchSegment(parseSegment("[a]-[b].ts", "test"), "x-y.ts"), { a: "x", b: "y" });
+  assert.deepEqual(matchSegment(parseSegment("client.ts", "test"), "client.ts"), {});
+  assert.equal(matchSegment(parseSegment("client.ts", "test"), "Client.ts"), null, "case matters");
+  // A static segment is compared as a string, so its case-sensitivity is
+  // structural. The literal parts of a *dynamic* segment go through a regular
+  // expression, which is where the claim could quietly stop being true.
+  assert.equal(matchSegment(parseSegment("Guide-[topic].md", "test"), "guide-intro.md"), null);
+  assert.deepEqual(matchSegment(parseSegment("Guide-[topic].md", "test"), "Guide-intro.md"), {
+    topic: "intro",
+  });
 });

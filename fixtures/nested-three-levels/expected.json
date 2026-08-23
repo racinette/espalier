@@ -1,0 +1,20 @@
+{
+  "exit": 0,
+  "issues": [
+    { "path": "README.md", "code": "root", "severity": "info", "espalier": null },
+    {
+      "path": "packages/api/src/handler.ts",
+      "code": "api",
+      "severity": "info",
+      "espalier": "packages/api",
+      "message": "api saw src/handler.ts"
+    },
+    {
+      "path": "packages/api/plugins/auth/src/token.ts",
+      "code": "auth",
+      "severity": "info",
+      "espalier": "packages/api/plugins/auth",
+      "message": "auth saw src/token.ts"
+    }
+  ]
+}

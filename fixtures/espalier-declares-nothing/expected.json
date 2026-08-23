@@ -1,0 +1,13 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "path": "package.json",
+      "code": "unexpected_path",
+      "severity": "error",
+      "metadata": {}
+    },
+    { "path": "src/a.ts", "code": "unexpected_path", "severity": "error" }
+  ],
+  "ownership": { "package.json": null, "src/a.ts": null }
+}

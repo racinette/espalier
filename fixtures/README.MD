@@ -180,9 +180,13 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `ownership-static-beats-dynamic` | precedence between a static and a dynamic leaf; captures on the winner |
 | `ownership-dynamic-directory-and-leaf` | overlapping dynamic siblings that compete for different roles |
 | `requiredness-dynamic-directory` | static descendants become required per instantiated dynamic directory |
+| `case-sensitive-matching` | names compared case-sensitively, static and dynamic alike |
+| `unusual-filenames` | spaces, accents, other scripts, no extension, and a dot-prefixed path |
+| `espalier-declares-nothing` | an espalier with no rules: every path is a violation |
 | `unexpected-path-recognized-node` | the deepest recognized node, in all three degradation cases |
 | `constraints-require-owner` | constraints do not run on files no structural rule owns |
 | `constraint-scope` | subtree and extension scoping; recursive captures as arrays |
+| `constraint-extension-list` | a constraint leaf listing two extensions, and the file it must not visit |
 | `constraint-after-recursive` | a constraint with segments after `[...path]`, matched from the end and not captured |
 | `emit-path-override` | an issue attached to a file other than the one being linted |
 | `invalid-overlapping-siblings` | two dynamic siblings that can match the same filename |
@@ -198,6 +202,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `nested-ignored-config` | a config `ignore` matches is data, not a child |
 | `nested-child-failure` | one child that will not compile, and a sibling reported anyway |
 | `nested-build-per-child` | each child builds in its own frame, and the outer run sweeps none of it |
+| `nested-three-levels` | a child of a child: delegation is a rule, not a first-hop special case |
 | `nested-build-child-failure` | one espalier that will not compile, and nothing written anywhere |
 | `build-check-drift` | `--check` reports `missing`, `changed` and `stale`, and writes nothing |
 | `build-inline` | one document at the root, and the distributed run's files removed |
