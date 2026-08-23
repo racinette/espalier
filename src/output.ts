@@ -84,7 +84,6 @@ export interface Reporter {
     detail?: Record<string, unknown>,
     espalier?: string | null,
   ): void;
-  object(payload: Record<string, unknown>): void;
   explanation(answer: Explanation): void;
   record(entry: BuildEntry): void;
   finish(): void;
@@ -149,10 +148,6 @@ class JsonlReporter implements Reporter {
     );
   }
 
-  object(payload: Record<string, unknown>): void {
-    this.destination.write(`${JSON.stringify(payload)}\n`);
-  }
-
   explanation(answer: Explanation): void {
     this.destination.write(`${JSON.stringify(answer)}\n`);
   }
@@ -204,10 +199,6 @@ class HumanReporter implements Reporter {
     // built; the path in the message is relative to that package, not to here.
     const whose = espalier === null ? "" : `${espalier}: `;
     this.destination.write(`espalier: ${whose}${message}  (${code})\n`);
-  }
-
-  object(payload: Record<string, unknown>): void {
-    this.destination.write(`${JSON.stringify(payload, null, 2)}\n`);
   }
 
   explanation(answer: Explanation): void {

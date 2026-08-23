@@ -36,9 +36,6 @@ export function delegated(reporter: Reporter, at: string): Reporter {
     failure(code, message, detail, espalier): void {
       reporter.failure(code, message, detail, origin(espalier));
     },
-    object(payload): void {
-      reporter.object(payload);
-    },
     explanation(answer): void {
       const where =
         "prefix" in answer

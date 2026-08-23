@@ -99,6 +99,9 @@ export function resolve(espalier: Espalier, filePath: string): Ownership | Recog
     }
   }
 
+  // Unreachable: `split` yields at least one segment, and the last iteration
+  // always returns. Present because the compiler cannot see that, and left
+  // consistent with the in-loop answer so it stays harmless if that changes.
   return stopped(node, walked, captures);
 }
 

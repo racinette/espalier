@@ -45,7 +45,6 @@ function collector(into: Issue[], failures: OperationalError[]): Reporter {
       void failures.push(
         new OperationalError(code, espalier == null ? message : `${espalier}: ${message}`, detail),
       ),
-    object: () => {},
     explanation: () => {},
     record: () => {},
     finish: () => {},

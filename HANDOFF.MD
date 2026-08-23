@@ -513,6 +513,19 @@ path no run had looked at, and `explain` answered "not declared" about a file
 this tool exists to prevent. `excludedBy` now stops at the first ancestor that
 excludes, which is git's rule and, here, the only self-consistent one.
 
+**Four things in `src/` cannot currently be reached**, found by sweeping the
+uncovered lines and checking each by hand. They are annotated where they sit, so
+nobody re-derives them: the `readIfPresent` fallback in `cache.ts` and
+`readIgnoreFile`'s empty return in `init.ts` (both preceded by the validation
+that refuses a named-but-missing ignore file), the trailing `return` in
+`match.ts` (the compiler cannot see that the loop always returns), and
+`duplicate_structural_rule`. All four are guards rather than branches, and cost
+nothing. `internal_error` in `cli.ts` is a fifth by design.
+
+`Reporter.object` was the one thing that was simply dead — an interface method
+with three implementations and no caller, unused since the commit that
+introduced it. Removed.
+
 **`duplicate_structural_rule` cannot currently be reached.** A leaf's trie node
 is keyed by its shape and separated by its capture names, and both are derived
 from the filename — so two rules landing on one node are two files with one name

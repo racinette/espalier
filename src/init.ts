@@ -68,7 +68,14 @@ export interface InitOptions {
  * root. Listing either would be writing down something that was never going to
  * be reported, which is how a backlog turns into a junk drawer.
  */
-/** One `ignoreFiles` entry's patterns, or nothing when it is not there. */
+/**
+ * One `ignoreFiles` entry's patterns, or nothing when it is not there.
+ *
+ * The empty case is unreachable today — `init` refuses to name a file it cannot
+ * find, and that refusal happens first — so this is a guard rather than a
+ * branch anyone takes. Said out loud because an untaken branch reads as an
+ * oversight otherwise.
+ */
 function readIgnoreFile(root: string, entry: string): string[] {
   try {
     return readFileSync(path.join(root, entry), "utf8").split("\n");
