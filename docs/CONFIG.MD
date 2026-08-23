@@ -149,6 +149,8 @@ The consequence to keep in mind is that **an empty `ignore` means a total walk.*
 
 Untracked files are candidates. The file an agent created ten seconds ago and has not committed is linted, because it is there.
 
+Every candidate is a file to be read, and reading means UTF-8. There is no binary detection and no extension list: a PNG handed to a rule arrives as the characters UTF-8 decoding produces, replacement characters and all. Rules match on paths, so a rule only sees what its own pattern claimed — and a directory of binaries is a directory to `ignore`, which is the same answer as for anything else nothing declares.
+
 Nothing here consults git. Earlier releases ran `git ls-files --cached --others --exclude-standard` in a git-backed root and walked the filesystem otherwise, which meant two definitions of candidacy that agreed most of the time. The two disagreed in ways nobody would find on purpose — a committed `node_modules` is tracked, so git listed it and the walk did not — and the tool never promised git compliance in the first place. One walk, in one language, is what a linter can explain.
 
 ### Symlinks

@@ -484,6 +484,15 @@ path no run had looked at, and `explain` answered "not declared" about a file
 this tool exists to prevent. `excludedBy` now stops at the first ancestor that
 excludes, which is git's rule and, here, the only self-consistent one.
 
+**`duplicate_structural_rule` cannot currently be reached.** A leaf's trie node
+is keyed by its shape and separated by its capture names, and both are derived
+from the filename — so two rules landing on one node are two files with one name
+in one directory. Every near miss is caught earlier by something else. The guard
+stays, because normalization is exactly the kind of thing a later change breaks
+quietly, and `test/failures.test.ts` records the reasoning where the next reader
+will meet it. Every other documented code except `internal_error` is now
+observed firing there.
+
 One thing stands here again: **the specificity tier in `ordered()` is not
 observably pinned.** `{` and `[` both sort after every letter, so for any
 realistic name the lexicographic tiebreak lands a resolved sibling in the same

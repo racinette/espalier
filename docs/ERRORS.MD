@@ -12,7 +12,9 @@ Codes emitted by rule modules are free-form strings chosen by their authors. `es
 
 These codes were deliberately **not** designed up front. They were chosen at the throw site as each failure turned out to be real, on the reasoning that a registry written in advance would be a guess at which failures matter, and that tailoring the implementation to a table is the wrong direction of fit.
 
-That worked, and this document is the harvest. It is checked by a test that scans `src/` for every `fail()` call: a code that exists in the code and not here fails the suite. Deciding late is fine; letting the record drift afterwards is not.
+That worked, and this document is the harvest. It is checked by a test that scans `src/` for every `fail()` call, in both directions: a code in the source and not here fails the suite, and so does a code here that the source cannot throw. Deciding late is fine; letting the record drift afterwards is not.
+
+Neither direction proves a code is *reachable*. A validation whose predicate was inverted would satisfy both — the code exists, this table lists it, and nothing ever throws it — so `test/failures.test.ts` drives a real run into each condition and asserts the code that comes out. Every code here is observed firing except `internal_error`, which is by definition a bug rather than an input, and `duplicate_structural_rule`, which nothing can currently reach; that test says why.
 
 ## Configuration
 
