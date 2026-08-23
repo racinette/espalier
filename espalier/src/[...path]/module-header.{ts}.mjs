@@ -1,14 +1,17 @@
-export const description = "an implementation module";
+export const description = "every implementation module opens with a header";
 
-export const rule = `Opens with a comment naming what the module is and, where
-one exists, the document that specifies it — \`// What counts as a file.
-docs/CONFIG.MD "What counts as a file".\` A shebang may come first.
+export const rule = `Opens with a comment naming what the module is and, where one
+exists, the document that specifies it:
+
+    // What counts as a file. docs/CONFIG.MD "What counts as a file".
+
+A shebang may come first.
 
 A document named in that header must exist. The documents are the
 specification, so a header pointing at a file nobody kept is a module whose
 authority has quietly evaporated.`;
 
-export async function lint({ path, read, files, emit }) {
+export async function lint({ read, files, emit }) {
   const text = await read();
   const lines = text.split("\n");
   const head = lines[0]?.startsWith("#!") ? lines.slice(1) : lines;

@@ -41,8 +41,55 @@ the two still point at each other, rather than checking style.
     │  └─ [language].gitignore  a shipped ignore list, zero or more, any name
     │
     ├─ src/                     the implementation
-    │
-    │  └─ [name].ts             an implementation module, zero or more, any name
+    │  │
+    │  ├─ adopt.ts              the adopt command, required
+    │  │
+    │  ├─ api.ts                the programmatic surface, required
+    │  │
+    │  ├─ build.ts              the build command, required
+    │  │
+    │  ├─ cache.ts              the incremental lint cache, required
+    │  │
+    │  ├─ children.ts           finding where one espalier's authority ends,
+    │  │                        required
+    │  │
+    │  ├─ cli.ts                argument parsing and dispatch, required
+    │  │
+    │  ├─ compile.ts            reading the espalier tree into a matcher,
+    │  │                        required
+    │  │
+    │  ├─ config.ts             finding and validating the configuration,
+    │  │                        required
+    │  │
+    │  ├─ context.ts            the lint context handed to rules, required
+    │  │
+    │  ├─ errors.ts             operational failures, required
+    │  │
+    │  ├─ explain.ts            the explain command, required
+    │  │
+    │  ├─ explainText.ts        the human layout for explain, required
+    │  │
+    │  ├─ files.ts              walking the repository, required
+    │  │
+    │  ├─ ignore.ts             gitignore-syntax matching, required
+    │  │
+    │  ├─ init.ts               the init command, required
+    │  │
+    │  ├─ lint.ts               the lint command, required
+    │  │
+    │  ├─ match.ts              ownership, requiredness, and the deepest
+    │  │                        recognized node, required
+    │  │
+    │  ├─ nested.ts             running the espaliers below this one, required
+    │  │
+    │  ├─ output.ts             formats and destinations, required
+    │  │
+    │  ├─ pattern.ts            path segments and what they match, required
+    │  │
+    │  ├─ render.ts             turning the espalier into documentation,
+    │  │                        required
+    │  │
+    │  └─ repository.ts         what lint and explain both work from, required
     │
     ├─ test/                    the argument that the tool works
     │
