@@ -1,0 +1,25 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "path": "clients/twilio-provider/stripe-providerImpl.ts",
+      "code": "unexpected_path",
+      "severity": "error"
+    },
+    {
+      "path": "clients/twilio-provider/twilioImpl.ts",
+      "code": "missing_required_file",
+      "severity": "error"
+    },
+    {
+      "path": "clients/stripe-provider/stripeImpl.ts",
+      "code": "captured",
+      "message": "{\"provider\":\"stripe\"}",
+      "captures": { "provider": "stripe" }
+    }
+  ],
+  "ownership": {
+    "clients/stripe-provider/stripeImpl.ts": "clients/[provider]-provider/{provider}Impl.ts.mjs",
+    "clients/twilio-provider/stripe-providerImpl.ts": null
+  }
+}

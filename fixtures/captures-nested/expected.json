@@ -1,0 +1,29 @@
+{
+  "exit": 1,
+  "issues": [
+    { "path": "billing/ledger/billing-invoices.ts", "code": "unexpected_path", "severity": "error" },
+    { "path": "billing/ledger/billing-ledger.ts", "code": "missing_required_file", "severity": "error" },
+    {
+      "path": "billing/invoices/billing-invoices.ts",
+      "code": "captured",
+      "message": "{\"area\":\"billing\",\"module\":\"invoices\"}",
+      "captures": { "area": "billing", "module": "invoices" }
+    },
+    { "path": "billing/invoices/index.ts", "code": "captured", "message": "{\"area\":\"billing\",\"module\":\"invoices\"}" },
+    { "path": "billing/ledger/index.ts", "code": "captured", "message": "{\"area\":\"billing\",\"module\":\"ledger\"}" },
+    { "path": "shipping/labels/index.ts", "code": "captured", "message": "{\"area\":\"shipping\",\"module\":\"labels\"}" },
+    {
+      "path": "shipping/labels/shipping-labels.ts",
+      "code": "captured",
+      "message": "{\"area\":\"shipping\",\"module\":\"labels\"}"
+    }
+  ],
+  "ownership": {
+    "billing/invoices/billing-invoices.ts": "[area]/[module]/{area}-{module}.ts.mjs",
+    "billing/invoices/index.ts": "[area]/[module]/index.ts.mjs",
+    "billing/ledger/billing-invoices.ts": null,
+    "billing/ledger/index.ts": "[area]/[module]/index.ts.mjs",
+    "shipping/labels/index.ts": "[area]/[module]/index.ts.mjs",
+    "shipping/labels/shipping-labels.ts": "[area]/[module]/{area}-{module}.ts.mjs"
+  }
+}

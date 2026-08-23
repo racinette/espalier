@@ -187,6 +187,8 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `constraints-require-owner` | constraints do not run on files no structural rule owns |
 | `constraint-scope` | subtree and extension scoping; recursive captures as arrays |
 | `constraint-extension-list` | a constraint leaf listing two extensions, and the file it must not visit |
+| `captures-nested` | dynamic directories nest; every capture bound on the way down reaches the leaf |
+| `captures-literal-affix` | a capture is the text it matched, not the segment it sits in |
 | `constraint-after-recursive` | a constraint with segments after `[...path]`, matched from the end and not captured |
 | `emit-path-override` | an issue attached to a file other than the one being linted |
 | `invalid-overlapping-siblings` | two dynamic siblings that can match the same filename |
