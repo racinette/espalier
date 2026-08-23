@@ -115,38 +115,44 @@ Nothing else may exist under this directory.
 
 ## Not described here
 
-    .espalierignore       Configuration. Read by `espalier`, not by this
-                          project.
-    espalier.config.yaml
-    espalier/
+    Configuration. Read by `espalier`, not by this project.
+      .espalierignore
+      espalier.config.yaml
+      espalier/
 
-    .claude/              Editor and operating system droppings.
-    .cursor/
+    Editor and operating system droppings.
+      .claude/
+      .cursor/
 
-    LICENSE               Licence and legal.
+    Licence and legal.
+      LICENSE
 
-    package-lock.json     Manifests and lockfiles.
-    package.json
+    Manifests and lockfiles.
+      package-lock.json
+      package.json
 
-    .gitignore            Repository metadata. Tracked on purpose, and dictated
-                          by the tool that reads them rather than by this
-                          project's architecture.
+    Repository metadata. Tracked on purpose, and dictated by the tool that reads
+    them rather than by this project's architecture.
+      .gitignore
 
-    tsconfig.json         Tool configuration. The tool decides the filename; the
-                          project only decides the contents.
+    Tool configuration. The tool decides the filename; the project only decides
+    the contents.
+      tsconfig.json
 
-    .git/                 Version control metadata. `.gitignore` never lists
-                          `.git/` — git has no need to ignore itself — so this
-                          is the one exclusion no other file supplies.
+    Version control metadata. `.gitignore` never lists `.git/` — git has no need
+    to ignore itself — so this is the one exclusion no other file supplies.
+      .git/
 
-    AGENTS.MD             Written by `espalier build` from the rules above.
+    Written by `espalier build` from the rules above.
+      AGENTS.MD
 
-    fixtures/             espalier's own fixtures are data: sixty configs,
-                          several deliberately invalid, and a root run executing
-                          all sixty is not what anyone means by it.
+    espalier's own fixtures are data: sixty configs, several deliberately
+    invalid, and a root run executing all sixty is not what anyone means by it.
+      fixtures/
 
-    dist/
-    node_modules/
+    No reason was recorded for these.
+      dist/
+      node_modules/
 
 Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
 

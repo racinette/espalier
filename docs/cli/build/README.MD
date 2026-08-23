@@ -186,14 +186,19 @@ The other half of what makes the closed-set sentence true. `Governed elsewhere` 
 ```markdown
 ## Not described here
 
-    dist/          Build output. Regenerated; never edited by hand.
+    Build output. Regenerated; never edited by hand.
+      dist/
 
-    package.json   Not this project's architecture. Their shape is dictated by
-    tsconfig.json  the tools that read them.
+    Not this project's architecture. Their shape is dictated by the tools that
+    read them.
+      package.json
+      tsconfig.json
 
-    AGENTS.MD      Written by `espalier build` from the rules above.
+    Written by `espalier build` from the rules above.
+      AGENTS.MD
 
-    node_modules/
+    No reason was recorded for these.
+      node_modules/
 
 Nothing above describes these, so nothing here tells you how to write them.
 That makes them a poor place to put work that belongs in the list above: a
@@ -202,11 +207,13 @@ file with nowhere legal to go is a gap to report, not one to route around.
 
 **Direct children only, and only the ones that are there.** A reader is holding a directory listing; the section answers that listing and nothing else. What is inside an excluded directory never appears — `node_modules/` is one line whether it holds four packages or four thousand — and an exclusion that matches nothing here is not mentioned, because a reader cannot see it to be confused by it.
 
-**The reason comes from `.espalierignore`**, verbatim, from the comment block introducing that entry — see [CONFIG.MD](../../CONFIG.MD#espalierignore). An entry with no comment above it gets no reason, and the line is the path alone. `espalier` never invents one: it has patterns, not intent, and the difference between *will never have a rule* and *does not have one yet* is exactly what it cannot see.
+**The reason comes from `.espalierignore`**, verbatim, from the comment block introducing that entry — see [CONFIG.MD](../../CONFIG.MD#espalierignore). An entry with no comment above it has no reason, and joins the group that says so. `espalier` never invents one: it has patterns, not intent, and the difference between *will never have a rule* and *does not have one yet* is exactly what it cannot see.
 
-Entries are ordered by reason and then by name, with the unexplained ones last, and only the first of a group carries the text. Ordering by name alone would scatter a group across the section and leave its one shared line landing wherever the alphabet happened to put it. A reason too long for the column wraps into it, hanging there, as a map line's text does.
+**The reason heads its group; the paths sit under it.** Entries are ordered by reason and then by name, with the unexplained ones last, and a blank line goes wherever the reason changes hands. Ordering by name alone would scatter a group across the section and leave its one shared line landing wherever the alphabet happened to put it.
 
-**A blank line goes wherever the reason changes hands**, for the reason a map has guide rows: a wrapped reason and a fresh entry are the same shape, and without the break the entry below one is read as covered by it. The entries nobody explained are one group and stay together, which matters most — they are last, under the longest reason in the section, and are exactly the entries a reader must not attribute to it.
+A reason set beside the first path of its group instead reads as that path's, and one long enough to wrap detaches that path from the rest of the group — the break the eye finds is the wrap, and no arrangement of blank lines moves it. Heading the group is what makes it one: the reason belongs to all of them, so it sits above all of them, and it wraps across the full width because there is no column left to squeeze it into.
+
+**The entries nobody explained are one group**, headed by `No reason was recorded for these.` That reports the absence and stops there. It is not a reason and does not pretend to be one — but it does keep the group from reading as the tail of whichever reason sorted last, and an architect who does not want to see it in every generated document has one comment to write.
 
 **A directory counts when everything inside it is excluded**, not only when the directory itself is named. `dist/` and `dist/**` exclude the same files and differ over whether the walk enters — a difference invisible here, where a reader can see the directory either way.
 

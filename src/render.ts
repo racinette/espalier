@@ -492,6 +492,9 @@ export interface Excluded {
  * rule from one that does not have a rule yet.
  * docs/cli/build/README.MD "Not described here".
  */
+/** What heads the entries no comment introduced. */
+const NO_REASON = "No reason was recorded for these.";
+
 function renderExcluded(entries: Excluded[], level: number): string[] {
   if (entries.length === 0) return [];
 
@@ -504,32 +507,26 @@ function renderExcluded(entries: Excluded[], level: number): string[] {
     if (first !== second) return first < second ? -1 : 1;
     return left.name < right.name ? -1 : left.name > right.name ? 1 : 0;
   });
-  const column = Math.max(...sorted.map((entry) => entry.name.length)) + 2;
 
+  // The reason heads its group rather than sitting beside the first entry in
+  // it. Beside one, it reads as that entry's, and a reason long enough to wrap
+  // detaches that entry from the rest of the group it belongs to — the break
+  // the eye finds is the wrap, and no amount of spacing moves it.
+  // docs/cli/build/README.MD "Not described here".
   const rows: string[] = [];
   for (const [index, entry] of sorted.entries()) {
-    // Entries sharing a comment share it, carried on the first of them, so a
-    // group written as one thought reads as one rather than as a refrain.
-    // Null counts as a reason for this: the entries nobody explained are one
-    // group, not one group each.
-    const repeated = index > 0 && entry.reason === sorted[index - 1]!.reason;
-    // A blank line wherever the reason changes hands. Without it an entry with
-    // no reason of its own, sitting under a wrapped one, is read as covered by
-    // it — and the entries with no reason are all at the end, under the longest
-    // one there is. docs/cli/build/README.MD "Not described here".
-    if (index > 0 && !repeated) rows.push("");
-    const reason = repeated ? "" : (entry.reason ?? "");
-    if (reason === "") {
-      rows.push(`    ${entry.name}`);
-      continue;
+    const opens = index === 0 || entry.reason !== sorted[index - 1]!.reason;
+    if (opens) {
+      if (index > 0) rows.push("");
+      // Null counts as a reason for grouping: the entries nobody explained are
+      // one group, not one group each. Their heading reports the absence and
+      // stops there — `espalier` has patterns and not intent, and the
+      // difference between *will never have a rule* and *does not have one
+      // yet* is exactly what it cannot see.
+      const reason = entry.reason ?? NO_REASON;
+      rows.push(`    ${wrap(reason, WIDTH - 4).split("\n").join("\n    ")}`);
     }
-    // Wrapped into the column rather than left to run past it. A map line is
-    // never wrapped because an alignment column that survived a wrap would not
-    // be one; here the alignment is what the continuation lines hang from.
-    const indent = " ".repeat(4 + column);
-    const [first, ...rest] = wrap(reason, WIDTH - indent.length).split("\n");
-    rows.push(`    ${entry.name.padEnd(column)}${first}`);
-    for (const line of rest) rows.push(`${indent}${line}`);
+    rows.push(`      ${entry.name}`);
   }
 
   return [

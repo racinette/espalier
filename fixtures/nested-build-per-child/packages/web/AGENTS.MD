@@ -8,11 +8,12 @@ Nothing else may exist under this directory.
 
 ## Not described here
 
-    espalier.config.yaml  Configuration. Read by `espalier`, not by this
-                          project.
-    espalier/
+    Configuration. Read by `espalier`, not by this project.
+      espalier.config.yaml
+      espalier/
 
-    AGENTS.MD             Written by `espalier build` from the rules above.
+    Written by `espalier build` from the rules above.
+      AGENTS.MD
 
 Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
 
