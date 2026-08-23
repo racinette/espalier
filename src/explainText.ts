@@ -99,8 +99,20 @@ export function isPrefixAnswer(answer: Explanation): answer is PrefixAnswer {
   return "prefix" in answer;
 }
 
+/**
+ * `name` in a fixed column, followed by whatever comes after it.
+ *
+ * `padEnd` does nothing once the name is already at the column width, which
+ * runs the two together with no separator at all — and a path deep enough to
+ * overflow the column is exactly the path a reader most needs told apart from
+ * its description. Two spaces is the minimum the rest of the layout uses.
+ */
+function column(name: string, width: number): string {
+  return name.length >= width ? `${name}  ` : name.padEnd(width);
+}
+
 function head(name: string, description: string | null): string {
-  return description === null ? name : name.padEnd(COLUMN) + description;
+  return description === null ? name : column(name, COLUMN) + description;
 }
 
 function section(title: string): string {
@@ -159,7 +171,7 @@ function constraintBlocks(constraints: ConstraintAnswer[], applying: string): st
     // them.
     blocks.push(
       [
-        `  ${constraint.name.padEnd(COLUMN - 2)}${constraint.patterns.join(", ")}`,
+        `  ${column(constraint.name, COLUMN - 2)}${constraint.patterns.join(", ")}`,
         ...constraint.ruleText.split("\n").map((line) => `    ${line}`),
       ].join("\n"),
     );
@@ -189,7 +201,7 @@ export function renderExplanation(answer: Explanation): string {
       blocks.push(
         [
           "  Declared here:",
-          ...answer.rules.map((rule) => `    ${rule.path.padEnd(COLUMN - 4)}${rule.description ?? ""}`.trimEnd()),
+          ...answer.rules.map((rule) => `    ${column(rule.path, COLUMN - 4)}${rule.description ?? ""}`.trimEnd()),
         ].join("\n"),
       );
     }

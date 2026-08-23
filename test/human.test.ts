@@ -184,6 +184,27 @@ export async function lint(context) {
   });
 });
 
+test("a name too long for its column is still told apart from what follows", () => {
+  scratch((root) => {
+    // Deep enough to overflow the fixed column `explain` lays out against.
+    // `padEnd` is a no-op there, so the path ran straight into its description:
+    // `...leaf.tsa source file`. The one path a reader most needs separated is
+    // the one long enough to have caused this.
+    const deep = Array.from({ length: 40 }, (_, i) => `d${i}`).join("/");
+    write(root, `espalier/${deep}/leaf.ts.mjs`, RULE);
+    write(root, `${deep}/leaf.ts`, "export const a = 1;\n");
+
+    const shown = run(root, ["explain", `${deep}/leaf.ts`]);
+    assert.equal(shown.status, 0);
+    assert.match(shown.stdout, /leaf\.ts {2}a client\n/);
+
+    // The prefix form lays out the same way, from a different call site.
+    const prefix = run(root, ["explain", `${deep}/`]);
+    assert.match(prefix.stdout, /leaf\.ts {2}a client\n/);
+    assert.equal(prefix.status, 0);
+  });
+});
+
 test("rule text is indented beneath the issue that cited it", () => {
   scratch((root) => {
     write(

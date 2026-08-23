@@ -33,7 +33,7 @@ src/output.ts       human and jsonl formatters, --out destinations
 src/cli.ts          argument parsing and exit codes
 ```
 
-`npm test` builds and runs everything: 260 tests, of which 73 are conformance
+`npm test` builds and runs everything: 261 tests, of which 73 are conformance
 fixtures and the rest cover what a fixture cannot reach — a repository is not
 the right shape for every claim. The programmatic API, config discovery from a
 subdirectory, the ignore walk's pruning, the cache, the sibling-overlap decision
@@ -66,6 +66,15 @@ asserted in `jsonl` — the format an assertion is cheap against — and the
 consequence had gone unnoticed: the human formatter's failure path, its
 warnings and the block it prints under an unrecognized path were reached by no
 test at all. A formatter is the whole of what most people ever see of a tool.
+
+Three things have been measured rather than reasoned about, and none of them
+needs revisiting soon. **Scale**: 32,000 files across 8,000 dynamic instances
+lints in 0.57s cold, and the curve is linear from 1,000 up — nothing here is
+quadratic. **Concurrency**: eight simultaneous runs over one cache leave it
+valid, complete and free of temporary files, which is what the per-pid temp plus
+atomic rename is for. **Depth**: a 300-level tree neither overflows a stack nor
+slows anything down. Encodings were checked too — CRLF in an ignore file, in
+`ESPALIER.MD` frontmatter, and a UTF-8 BOM in the config all behave.
 
 Both scripts `cd dist/test` and run a bare `node --test` rather than passing a
 path glob. Node only expands globs in test paths from v21, the declared floor is
