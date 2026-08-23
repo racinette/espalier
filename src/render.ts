@@ -367,9 +367,14 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
     // Where a continuation of this line hangs: the branch this entry sits on
     // stays open only while a sibling is still to come.
     const beneath = bars + (last[index] ? "   " : "│  ");
-    const text = [entry.description, ...suffixes(entry)]
+    // Parenthesized, and separately from the description: one is the author's
+    // sentence and the other is the espalier's annotation of it, and a comma
+    // between them would read as one clause.
+    // docs/cli/build/README.MD "Suffixes".
+    const marks = suffixes(entry);
+    const text = [entry.description, marks.length > 0 ? `(${marks.join(", ")})` : null]
       .filter((piece) => piece !== null)
-      .join(", ");
+      .join(" ");
 
     rows.push({
       line: bars + (last[index] ? "└─ " : "├─ ") + name.slice(name.lastIndexOf("/") + 1) + (entry.path.endsWith("/") ? "/" : ""),

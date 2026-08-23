@@ -2,7 +2,7 @@
 
 ## Structure
 
-    └─ index.ts  the report entry point, required
+    └─ index.ts  the report entry point (required)
 
 Nothing else may exist under this directory.
 

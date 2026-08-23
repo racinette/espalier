@@ -4,12 +4,12 @@
 
     └─ clients/
 
-       └─ [provider]/       zero or more, any name
+       └─ [provider]/       (zero or more, any name)
           │
-          ├─ {provider}.ts  the provider's entry point, required, {provider}
-          │                 repeats what [provider] matched
+          ├─ {provider}.ts  the provider's entry point (required, {provider}
+          │                 repeats what [provider] matched)
           │
-          └─ [helper].ts    a helper, zero or more, any name
+          └─ [helper].ts    a helper (zero or more, any name)
 
 Nothing else may exist under this directory.
 

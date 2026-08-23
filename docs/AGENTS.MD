@@ -33,33 +33,33 @@ this project; these pages are read by whoever is using it.
     │  │
     │  ├─ adopt/        bringing an existing directory under the espalier
     │  │
-    │  │  └─ README.MD  the reference page, required
+    │  │  └─ README.MD  the reference page (required)
     │  │
     │  ├─ build/        generating the agent-facing documentation
     │  │
-    │  │  └─ README.MD  the reference page, required
+    │  │  └─ README.MD  the reference page (required)
     │  │
     │  ├─ explain/      answering what the espalier says about a path
     │  │
-    │  │  └─ README.MD  the reference page, required
+    │  │  └─ README.MD  the reference page (required)
     │  │
     │  ├─ init/         bootstrapping a repository
     │  │
-    │  │  └─ README.MD  the reference page, required
+    │  │  └─ README.MD  the reference page (required)
     │  │
     │  └─ lint/         validating the repository against the espalier
     │
-    │     └─ README.MD  the reference page, required
+    │     └─ README.MD  the reference page (required)
     │
-    ├─ API.MD           using espalier as a library, required
+    ├─ API.MD           using espalier as a library (required)
     │
-    ├─ CONFIG.MD        the configuration file and the ignore list, required
+    ├─ CONFIG.MD        the configuration file and the ignore list (required)
     │
-    ├─ ERRORS.MD        every operational failure and what it means, required
+    ├─ ERRORS.MD        every operational failure and what it means (required)
     │
-    ├─ MATCHING.MD      how a rule module claims a file, required
+    ├─ MATCHING.MD      how a rule module claims a file (required)
     │
-    └─ TYPES.MD         what a rule module exports and receives, required
+    └─ TYPES.MD         what a rule module exports and receives (required)
 
 Nothing else may exist under docs/.
 

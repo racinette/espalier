@@ -202,7 +202,7 @@ test("a name too long for its column is still told apart from what follows", () 
     // The prefix form draws the map instead, which aligns against its own
     // longest line — so depth cannot run a name into its text there at all.
     const prefix = run(root, ["explain", `${deep}/`]);
-    assert.match(prefix.stdout, /└─ leaf\.ts {2}a client, required\n/);
+    assert.match(prefix.stdout, /└─ leaf\.ts {2}a client \(required\)\n/);
     assert.equal(prefix.status, 0);
   });
 });

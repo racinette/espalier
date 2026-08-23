@@ -104,16 +104,16 @@ Branches are drawn with box-drawing characters: `├─ ` for an entry with sibl
 ```text
     ├─ clients/                external API providers
     │
-    │  └─ [provider]/          zero or more, any name
+    │  └─ [provider]/          (zero or more, any name)
     │     │
-    │     ├─ requestModels.ts  request shapes, required
+    │     ├─ requestModels.ts  request shapes (required)
     │     │
-    │     └─ {provider}.ts     the client, required, {provider} repeats what
-    │                          [provider] matched
+    │     └─ {provider}.ts     the client (required, {provider} repeats what
+    │                          [provider] matched)
     │
-    ├─ main.ts                 the entry point, required
+    ├─ main.ts                 the entry point (required)
     │
-    └─ notes.md                developer notes, optional
+    └─ notes.md                developer notes (optional)
 ```
 
 Indentation alone would say the same thing in less space, and say it less well: text long enough to wrap leaves a reader deciding whether the next line continues the entry above or begins a new one, and a branch answers that before the question is asked.
@@ -122,7 +122,9 @@ Indentation alone would say the same thing in less space, and say it less well: 
 
 **Text starts at one column across the whole map:** two spaces after the longest rendered line, counting the branch characters and not the four spaces of the code block, which are added to every line afterwards and so cannot change the alignment. Text too long for the remaining width wraps into that column and hangs there, under the branch characters of its own line.
 
-A line's text is the node's description, then its suffixes, joined with commas. A file's description is the rule module's `description`; a directory's is the `description` in its `ESPALIER.MD` frontmatter. A node with neither a description nor a suffix gets no text rather than a blank column.
+A line's text is the node's description, then its suffixes in parentheses. A file's description is the rule module's `description`; a directory's is the `description` in its `ESPALIER.MD` frontmatter. A node with neither a description nor a suffix gets no text rather than a blank column.
+
+**The parentheses are what separate the two voices.** The description is a sentence somebody wrote; the suffixes are the espalier's annotation of it. Joined by a comma they read as one clause, and a description that already contains commas — `ownership, requiredness, and the deepest recognized node` — swallows the annotation entirely. They are parenthesized on a line that carries no description too, since a bare `zero or more, any name` reads as prose an author chose.
 
 Constraints do not appear. They declare no file and permit none, so a map that listed them would be answering a question nobody asked of it. Their bodies render below, under `## Constraints`.
 
@@ -140,7 +142,7 @@ Directories carry neither. A directory exists exactly when the files described i
 
 Both halves are load-bearing and neither stands alone. `any name` without a count leaves *how many* unanswered, and a count without `any name` leaves the brackets unexplained. The count is named rather than implied: a line reading `a domain model, any number` gives the number no subject, and characters in the filename read as well as files in the directory.
 
-**`{provider} repeats what [provider] matched`** marks every node whose name holds a back-reference, one clause per placeholder, comma-joined. It describes what the capture holds rather than what the segment was, which is the only phrasing that survives an affix: under `[provider]-provider/`, a `{provider}Impl.ts` in the directory named `stripe-provider` is `stripeImpl.ts`, and a suffix promising "the same name as the directory" would be wrong three times out of four.
+**`{provider} repeats what [provider] matched`** marks every node whose name holds a back-reference, one clause per placeholder, comma-joined inside the parentheses. It describes what the capture holds rather than what the segment was, which is the only phrasing that survives an affix: under `[provider]-provider/`, a `{provider}Impl.ts` in the directory named `stripe-provider` is `stripeImpl.ts`, and a suffix promising "the same name as the directory" would be wrong three times out of four.
 
 ### The closed set
 
@@ -310,16 +312,16 @@ nothing outside src/clients/ performs HTTP requests directly.
 
 ## Structure
 
-    └─ [provider]/          one directory per upstream provider, zero or more,
-                            any name
+    └─ [provider]/          one directory per upstream provider (zero or more,
+                            any name)
        │
        ├─ handlers/
        │
-       │  └─ webhook.ts     an inbound webhook handler, required
+       │  └─ webhook.ts     an inbound webhook handler (required)
        │
-       ├─ client.ts         an integration with an external API, required
+       ├─ client.ts         an integration with an external API (required)
        │
-       └─ requestModels.ts  request payload types, required
+       └─ requestModels.ts  request payload types (required)
 
 Nothing else may exist under src/clients/.
 

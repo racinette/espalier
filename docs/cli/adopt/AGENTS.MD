@@ -2,7 +2,7 @@
 
 ## Structure
 
-    └─ README.MD  the reference page, required
+    └─ README.MD  the reference page (required)
 
 Nothing else may exist under docs/cli/adopt/.
 

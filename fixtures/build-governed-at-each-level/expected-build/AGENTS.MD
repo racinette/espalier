@@ -4,9 +4,9 @@
 
     ├─ tools/        developer tooling
     │
-    │  └─ [tool].ts  a developer tool, zero or more, any name
+    │  └─ [tool].ts  a developer tool (zero or more, any name)
     │
-    └─ main.ts       the application entry point, required
+    └─ main.ts       the application entry point (required)
 
 Nothing else may exist under this directory.
 

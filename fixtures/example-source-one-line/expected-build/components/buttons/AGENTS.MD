@@ -2,7 +2,7 @@
 
 ## Structure
 
-    └─ [button].tsx  a button component, zero or more, any name
+    └─ [button].tsx  a button component (zero or more, any name)
 
 Nothing else may exist under components/buttons/.
 

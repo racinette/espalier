@@ -6,14 +6,14 @@ satisfies both shapes — and are legal, because a directory never owns a file.
 fixture answers the question that shape left open: whether `build` can say
 what may exist there.
 
-It can, and the answer is unremarkable: two lines, each saying `zero or more,
-any name` for itself, under one sentence covering both.
+It can, and the answer is unremarkable: two lines, each saying `(zero or more,
+any name)` for itself, under one sentence covering both.
 
-    ├─ [provider]/   zero or more, any name
+    ├─ [provider]/   (zero or more, any name)
     │
-    │  └─ client.ts  an integration with an external API, required
+    │  └─ client.ts  an integration with an external API (required)
     │
-    └─ [summary].ts  a one-file summary of a provider, zero or more, any name
+    └─ [summary].ts  a one-file summary of a provider (zero or more, any name)
 
     Nothing else may exist under clients/.
 

@@ -7,11 +7,11 @@ A component used by exactly one screen belongs beside that screen instead.
   Declared here:
     ├─ buttons/
     │
-    │  └─ [button].tsx  a button component, zero or more, any name
+    │  └─ [button].tsx  a button component (zero or more, any name)
     │
     └─ layouts/
 
-       └─ [layout].tsx  a layout component, zero or more, any name
+       └─ [layout].tsx  a layout component (zero or more, any name)
 
   Nothing else may exist under components/.
 

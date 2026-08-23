@@ -4,7 +4,7 @@ One rule, and rather more that no rule reaches.
 
 ## Structure
 
-    └─ main.ts  the entry point, required
+    └─ main.ts  the entry point (required)
 
 Nothing else may exist under this directory.
 

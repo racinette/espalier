@@ -2,15 +2,15 @@
 
 ## Structure
 
-    ├─ [client]/      zero or more, any name
+    ├─ [client]/      (zero or more, any name)
     │  │
-    │  ├─ client.ts   a client, required
+    │  ├─ client.ts   a client (required)
     │  │
-    │  └─ webhook.ts  a webhook, optional
+    │  └─ webhook.ts  a webhook (optional)
     │
-    ├─ main.ts        the entry point, required
+    ├─ main.ts        the entry point (required)
     │
-    └─ notes.md       developer notes, optional
+    └─ notes.md       developer notes (optional)
 
 Nothing else may exist under this directory.
 

@@ -22,23 +22,23 @@ up a command should not have to read the parser.
 
     ├─ adopt/        bringing an existing directory under the espalier
     │
-    │  └─ README.MD  the reference page, required
+    │  └─ README.MD  the reference page (required)
     │
     ├─ build/        generating the agent-facing documentation
     │
-    │  └─ README.MD  the reference page, required
+    │  └─ README.MD  the reference page (required)
     │
     ├─ explain/      answering what the espalier says about a path
     │
-    │  └─ README.MD  the reference page, required
+    │  └─ README.MD  the reference page (required)
     │
     ├─ init/         bootstrapping a repository
     │
-    │  └─ README.MD  the reference page, required
+    │  └─ README.MD  the reference page (required)
     │
     └─ lint/         validating the repository against the espalier
 
-       └─ README.MD  the reference page, required
+       └─ README.MD  the reference page (required)
 
 Nothing else may exist under docs/cli/.
 

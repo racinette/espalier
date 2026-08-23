@@ -552,8 +552,11 @@ The paragraph had to name each node again to say anything about it, and naming
 it again meant naming it from somewhere — `required in every [command]`,
 `below is where?` — so every sentence carried a bearing the reader had to take
 before they could use it. The suffixes carry the same facts with no bearing at
-all: the line is the subject. `required`, `optional`, `zero or more, any name`,
-`{provider} repeats what [provider] matched`.
+all: the line is the subject. `(required)`, `(optional)`, `(zero or more, any
+name)`, `({provider} repeats what [provider] matched)`. Parenthesized, because the
+description is a sentence somebody wrote and the suffix is the espalier
+annotating it — a comma between them reads as one clause, and a description
+holding commas of its own swallows the annotation whole.
 
 `zero or more` rather than `any number`, which was the first phrasing: on a line
 reading `[domain].ts  a domain model, any number`, the number has no subject,

@@ -16,99 +16,100 @@ the two still point at each other, rather than checking style.
     │  │  ├─ adopt/             bringing an existing directory under the
     │  │  │                     espalier
     │  │  │
-    │  │  │  └─ README.MD       the reference page, required
+    │  │  │  └─ README.MD       the reference page (required)
     │  │  │
     │  │  ├─ build/             generating the agent-facing documentation
     │  │  │
-    │  │  │  └─ README.MD       the reference page, required
+    │  │  │  └─ README.MD       the reference page (required)
     │  │  │
     │  │  ├─ explain/           answering what the espalier says about a path
     │  │  │
-    │  │  │  └─ README.MD       the reference page, required
+    │  │  │  └─ README.MD       the reference page (required)
     │  │  │
     │  │  ├─ init/              bootstrapping a repository
     │  │  │
-    │  │  │  └─ README.MD       the reference page, required
+    │  │  │  └─ README.MD       the reference page (required)
     │  │  │
     │  │  └─ lint/              validating the repository against the espalier
     │  │
-    │  │     └─ README.MD       the reference page, required
+    │  │     └─ README.MD       the reference page (required)
     │  │
-    │  ├─ API.MD                using espalier as a library, required
+    │  ├─ API.MD                using espalier as a library (required)
     │  │
-    │  ├─ CONFIG.MD             the configuration file and the ignore list,
-    │  │                        required
+    │  ├─ CONFIG.MD             the configuration file and the ignore list
+    │  │                        (required)
     │  │
-    │  ├─ ERRORS.MD             every operational failure and what it means,
-    │  │                        required
+    │  ├─ ERRORS.MD             every operational failure and what it means
+    │  │                        (required)
     │  │
-    │  ├─ MATCHING.MD           how a rule module claims a file, required
+    │  ├─ MATCHING.MD           how a rule module claims a file (required)
     │  │
-    │  └─ TYPES.MD              what a rule module exports and receives,
-    │                           required
+    │  └─ TYPES.MD              what a rule module exports and receives
+    │                           (required)
     │
     ├─ ignores/                 the ignore lists espalier ships
     │
-    │  └─ [language].gitignore  a shipped ignore list, zero or more, any name
+    │  └─ [language].gitignore  a shipped ignore list (zero or more, any name)
     │
     ├─ src/                     the implementation
     │  │
-    │  ├─ adopt.ts              the adopt command, required
+    │  ├─ adopt.ts              the adopt command (required)
     │  │
-    │  ├─ api.ts                the programmatic surface, required
+    │  ├─ api.ts                the programmatic surface (required)
     │  │
-    │  ├─ build.ts              the build command, required
+    │  ├─ build.ts              the build command (required)
     │  │
-    │  ├─ cache.ts              the incremental lint cache, required
+    │  ├─ cache.ts              the incremental lint cache (required)
     │  │
-    │  ├─ children.ts           finding where one espalier's authority ends,
-    │  │                        required
+    │  ├─ children.ts           finding where one espalier's authority ends
+    │  │                        (required)
     │  │
-    │  ├─ cli.ts                argument parsing and dispatch, required
+    │  ├─ cli.ts                argument parsing and dispatch (required)
     │  │
-    │  ├─ compile.ts            reading the espalier tree into a matcher,
-    │  │                        required
+    │  ├─ compile.ts            reading the espalier tree into a matcher
+    │  │                        (required)
     │  │
-    │  ├─ config.ts             finding and validating the configuration,
-    │  │                        required
+    │  ├─ config.ts             finding and validating the configuration
+    │  │                        (required)
     │  │
-    │  ├─ context.ts            the lint context handed to rules, required
+    │  ├─ context.ts            the lint context handed to rules (required)
     │  │
-    │  ├─ errors.ts             operational failures, required
+    │  ├─ errors.ts             operational failures (required)
     │  │
-    │  ├─ explain.ts            the explain command, required
+    │  ├─ explain.ts            the explain command (required)
     │  │
-    │  ├─ explainText.ts        the human layout for explain, required
+    │  ├─ explainText.ts        the human layout for explain (required)
     │  │
-    │  ├─ files.ts              walking the repository, required
+    │  ├─ files.ts              walking the repository (required)
     │  │
-    │  ├─ ignore.ts             gitignore-syntax matching, required
+    │  ├─ ignore.ts             gitignore-syntax matching (required)
     │  │
-    │  ├─ init.ts               the init command, required
+    │  ├─ init.ts               the init command (required)
     │  │
-    │  ├─ lint.ts               the lint command, required
+    │  ├─ lint.ts               the lint command (required)
     │  │
     │  ├─ match.ts              ownership, requiredness, and the deepest
-    │  │                        recognized node, required
+    │  │                        recognized node (required)
     │  │
-    │  ├─ nested.ts             running the espaliers below this one, required
+    │  ├─ nested.ts             running the espaliers below this one (required)
     │  │
-    │  ├─ output.ts             formats and destinations, required
+    │  ├─ output.ts             formats and destinations (required)
     │  │
-    │  ├─ pattern.ts            path segments and what they match, required
+    │  ├─ pattern.ts            path segments and what they match (required)
     │  │
-    │  ├─ render.ts             turning the espalier into documentation,
-    │  │                        required
+    │  ├─ render.ts             turning the espalier into documentation
+    │  │                        (required)
     │  │
-    │  └─ repository.ts         what lint and explain both work from, required
+    │  └─ repository.ts         what lint and explain both work from (required)
     │
     ├─ test/                    the argument that the tool works
     │
-    │  └─ [name].test.ts        a test module, zero or more, any name
+    │  └─ [name].test.ts        a test module (zero or more, any name)
     │
-    ├─ HANDOFF.MD               the record of what was decided and why, required
+    ├─ HANDOFF.MD               the record of what was decided and why
+    │                           (required)
     │
-    └─ README.MD                the front page, required
+    └─ README.MD                the front page (required)
 
 Nothing else may exist under this directory.
 
