@@ -114,6 +114,15 @@ const cases: Case[] = [
     code: "espalier_root_missing",
     config: "version: 1\nroot: absent\n",
   },
+  {
+    // Normalized, not rejected — `./espalier/` is `espalier`, and
+    // `config-root-spelling` pins that. What normalizes away to nothing is a
+    // different matter: an espalier root equal to the repository root would
+    // make every path invisible, which is not a configuration with a meaning.
+    what: "a root that names the repository itself",
+    code: "config_invalid_value",
+    config: "version: 1\nroot: .\n",
+  },
 
   // The espalier tree. docs/MATCHING.MD.
   {

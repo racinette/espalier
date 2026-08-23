@@ -371,7 +371,11 @@ function directoriesOf(paths: string[]): string[] {
  */
 function subject(dir: string): string[] {
   const config = readFileSync(path.join(dir, "espalier.config.yaml"), "utf8");
-  const espalierRoot = /^root:\s*(\S+)/m.exec(config)?.[1] ?? "espalier";
+  // Normalized for the same reason the loader normalizes it: `./espalier/` and
+  // `espalier` are one directory, and this is compared against a
+  // repository-relative segment that carries neither decoration.
+  const written = /^root:\s*(\S+)/m.exec(config)?.[1] ?? "espalier";
+  const espalierRoot = path.posix.normalize(written).replace(/\/+$/, "");
 
   return walkFollowing(dir).filter((at) => {
     const top = at.split("/")[0]!;

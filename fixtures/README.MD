@@ -246,6 +246,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `symlink-governed` | a link is the file it points at: owned, listed by `files`, opened by `read` |
 | `symlink-cycle` | a link onto an ancestor is not followed, and nothing is reported twice |
 | `symlink-broken` | a link pointing nowhere fails the run rather than being stepped over |
+| `config-root-spelling` | `root` normalized: a trailing slash decided whether the tool could see itself |
 | `ignore-files` | two named ignore files, and `ignore` layered after both |
 | `ignore-reinclude` | un-pruning a directory to re-include one committed file out of it |
 | `shipped-ignore-lists` | what `--lang` writes covers, and what it deliberately does not |

@@ -100,9 +100,22 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     );
   }
 
-  const espalierRoot = "root" in values ? asString(values["root"], "root") : "espalier";
-  if (path.isAbsolute(espalierRoot) || espalierRoot.split(/[\\/]/).includes("..")) {
+  const written = "root" in values ? asString(values["root"], "root") : "espalier";
+  if (path.isAbsolute(written) || written.split(/[\\/]/).includes("..")) {
     fail("config_invalid_value", "root must be a relative path inside the repository");
+  }
+
+  // `espalier/` and `./espalier` are the same directory, and the rest of the
+  // file invites both spellings — `ignore` uses a trailing slash to *mean* a
+  // directory. Every other use of this value compares it against a
+  // repository-relative path, which carries neither, so a run configured with
+  // one reported every rule module as `unexpected_path`: the espalier root is
+  // invisible to matching, and a spelling was deciding whether it was.
+  const espalierRoot = path.posix
+    .normalize(written.split(path.sep).join("/"))
+    .replace(/\/+$/, "");
+  if (espalierRoot === "" || espalierRoot === ".") {
+    fail("config_invalid_value", "root must name a directory inside the repository");
   }
 
   // Empty rather than `[".gitignore"]`: an entry here must exist, and a default

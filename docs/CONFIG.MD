@@ -68,6 +68,8 @@ The directory containing the espalier tree. Defaults to `espalier`.
 
 The espalier root is invisible to matching. Rule modules are not themselves governed by the rules they define.
 
+The value is a directory path, and is read as one: `espalier`, `./espalier` and `espalier/` all name the same place. A path naming the repository root itself is refused — every path would then be invisible, which is not a configuration with a meaning.
+
 ## `ignore`
 
 Paths `espalier` does not govern. Gitignore syntax — leading `!` negates, later patterns win, a trailing `/` matches directories only.
