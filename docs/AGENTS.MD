@@ -30,10 +30,27 @@ this project; these pages are read by whoever is using it.
 ## Structure
 
     ├─ cli/             one page per command
+    │  │
+    │  ├─ adopt/
+    │  │
+    │  │  └─ README.MD  bringing an existing directory under the espalier,
+    │  │                required
+    │  │
+    │  ├─ build/
+    │  │
+    │  │  └─ README.MD  generating the agent-facing documentation, required
+    │  │
+    │  ├─ explain/
+    │  │
+    │  │  └─ README.MD  answering what the espalier says about a path, required
+    │  │
+    │  ├─ init/
+    │  │
+    │  │  └─ README.MD  bootstrapping a repository, required
+    │  │
+    │  └─ lint/
     │
-    │  └─ [command]/    zero or more, any name
-    │
-    │     └─ README.MD  the page for one command, required
+    │     └─ README.MD  validating the repository against the espalier, required
     │
     └─ [doc].MD         a specification document, zero or more, any name
 
