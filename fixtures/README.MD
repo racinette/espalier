@@ -179,6 +179,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 |---|---|
 | `ownership-static-beats-dynamic` | precedence between a static and a dynamic leaf; captures on the winner |
 | `ownership-dynamic-directory-and-leaf` | overlapping dynamic siblings that compete for different roles |
+| `requiredness-specificity` | a directory a static or resolved sibling describes is not a dynamic instance |
 | `requiredness-dynamic-directory` | static descendants become required per instantiated dynamic directory |
 | `case-sensitive-matching` | names compared case-sensitively, static and dynamic alike |
 | `unusual-filenames` | spaces, accents, other scripts, no extension, and a dot-prefixed path |

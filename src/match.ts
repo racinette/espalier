@@ -150,6 +150,33 @@ export function requiredFiles(espalier: Espalier, visible: Set<string>): Require
         continue;
       }
 
+      /**
+       * Whether a more specific sibling already describes this directory.
+       *
+       * The same tier order ownership resolves by — static > resolved >
+       * dynamic — applied where the requirements are worked out. Without it a
+       * dynamic directory instantiates for names a static sibling owns, and
+       * the espalier asks for files inside a directory another rule describes:
+       * `clients/[provider]/` beside `[area]/[module]/` would report every
+       * directory under `clients` missing an `index.ts` it never declared.
+       */
+      const claimed = (name: string): boolean => {
+        const exact = node.children.get(name);
+        if (
+          exact !== undefined &&
+          !exact.segment.dynamic &&
+          !exact.segment.resolved &&
+          exact.children.size > 0
+        ) {
+          return true;
+        }
+        for (const sibling of node.children.values()) {
+          if (!sibling.segment.resolved || sibling.children.size === 0) continue;
+          if (resolveSegment(sibling.segment, captures) === name) return true;
+        }
+        return false;
+      };
+
       // Any visible file beneath an instance instantiates it.
       const instances = new Map<string, Record<string, string>>();
       const root = prefix === "" ? "" : `${prefix}/`;
@@ -159,7 +186,7 @@ export function requiredFiles(espalier: Espalier, visible: Set<string>): Require
         const cut = rest.indexOf("/");
         if (cut === -1) continue;
         const name = rest.slice(0, cut);
-        if (instances.has(name)) continue;
+        if (instances.has(name) || claimed(name)) continue;
         const bound = matchSegment(child.segment, name);
         if (bound !== null) instances.set(name, bound);
       }

@@ -33,7 +33,7 @@ src/output.ts       human and jsonl formatters, --out destinations
 src/cli.ts          argument parsing and exit codes
 ```
 
-`npm test` builds and runs everything: 265 tests, of which 76 are conformance
+`npm test` builds and runs everything: 266 tests, of which 77 are conformance
 fixtures and the rest cover what a fixture cannot reach — a repository is not
 the right shape for every claim. The programmatic API, config discovery from a
 subdirectory, the ignore walk's pruning, the cache, the sibling-overlap decision
@@ -552,6 +552,14 @@ path no run had looked at, and `explain` answered "not declared" about a file
 `lint` could not see. Two commands disagreeing about one path is the failure
 this tool exists to prevent. `excludedBy` now stops at the first ancestor that
 excludes, which is git's rule and, here, the only self-consistent one.
+
+**Requiredness resolves by specificity, as ownership does.** It did not: a
+dynamic directory instantiated for every name at its depth, so
+`[area]/[module]/index.ts` beside `clients/[provider]/client.ts` reported every
+provider missing an `index.ts` no rule had placed there. Ownership and
+requiredness are two questions answered from one tree, and answering them in
+different orders is how a repository gets told to create a file nothing
+declares. `requiredness-specificity` pins both tiers.
 
 **Everything still uncovered in `src/` is a guard that cannot currently fire**,
 and each is annotated where it sits so nobody re-derives it: `readIfPresent` in

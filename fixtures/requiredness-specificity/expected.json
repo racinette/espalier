@@ -1,0 +1,12 @@
+{
+  "exit": 0,
+  "issues": [],
+  "ownership": {
+    "billing/invoices/index.ts": "[area]/[module]/index.ts.mjs",
+    "clients/stripe/client.ts": "clients/[provider]/client.ts.mjs",
+    "clients/stripe/prod/config.ts": "clients/[provider]/[env]/config.ts.mjs",
+    "clients/stripe/stripe/notes.md": "clients/[provider]/{provider}/notes.md.mjs",
+    "clients/twilio/client.ts": "clients/[provider]/client.ts.mjs",
+    "clients/twilio/twilio/notes.md": "clients/[provider]/{provider}/notes.md.mjs"
+  }
+}
