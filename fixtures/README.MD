@@ -43,7 +43,13 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 **`human`** — a file holding the exact `--format human` stdout of the same lint run, compared byte for byte.
 
-**`warnings`** — on an `init`, `build` or `adopt` block: the warning messages the run must emit, in order, and no others. A warning is advice about what was written rather than part of the record of it, so it is compared separately from `report`. `init` uses this to say a repository has no `.gitignore`.
+**`warnings`** — the warning messages a run must emit, in order, and no others. At the top level it describes the `lint` run; inside an `init`, `build` or `adopt` block it describes that one. A warning is advice about the run rather than part of the record of it, so it is compared separately from `issues` and from `report`. `init` uses this to say a repository has no `.gitignore`; a scoped `lint` uses it to say how much of the repository it actually checked, which for a run spanning child espaliers is one line per espalier and the only place a child that was visited and found nothing differs from one that was never visited at all.
+
+**`args`** — extra arguments for the `lint` run, and for its `again` rerun. Scoping is the one thing about `lint` that cannot be expressed by the tree alone: a fixture pinning what a path argument does has to be able to pass one. Everything else the harness runs — `explain`, the ownership sweep — is unscoped regardless, because those answer questions about the espalier rather than about a run.
+
+```json
+"args": ["packages/api"]
+```
 
 **`env`** — environment the lint run is given, on top of the harness's own. Only an impure rule has any use for it, and only one fixture family has a use for an impure rule: warm and cold output are identical by design, so a token the runner cannot see is the only way a skipped rule becomes visible.
 
@@ -160,6 +166,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `unexpected-path-recognized-node` | the deepest recognized node, in all three degradation cases |
 | `constraints-require-owner` | constraints do not run on files no structural rule owns |
 | `constraint-scope` | subtree and extension scoping; recursive captures as arrays |
+| `constraint-after-recursive` | a constraint with segments after `[...path]`, matched from the end and not captured |
 | `emit-path-override` | an issue attached to a file other than the one being linted |
 | `invalid-overlapping-siblings` | two dynamic siblings that can match the same filename |
 | `invalid-capture-names` | one dynamic directory described under two names |
@@ -170,6 +177,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `build-orphan-deletion` | orphans deleted, unchanged files left alone |
 | `build-ignored-generated` | an ignored path is not swept, and a real orphan still is |
 | `nested-lint-recursion` | a child is found and run, root rules stop at the boundary, paths are re-rooted |
+| `lint-scoped-child` | a path argument decides which children run at all, and the outer espalier is scoped too |
 | `nested-ignored-config` | a config `ignore` matches is data, not a child |
 | `nested-child-failure` | one child that will not compile, and a sibling reported anyway |
 | `nested-build-per-child` | each child builds in its own frame, and the outer run sweeps none of it |
@@ -193,10 +201,12 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `invalid-optional` | `optional` on a dynamic leaf is rejected, not ignored |
 | `backreference-leaf` | `{name}` resolves, is required per instance, and coexists with a dynamic sibling |
 | `backreference-directory` | `{name}` as a directory: a constraint below one still runs, and `explain` still declares it |
+| `backreference-with-capture` | a segment holding a back-reference and a placeholder: bound per instance, dynamic tier |
 | `invalid-backreference` | a `{name}` with no `[name]` above it never compiles |
 | `constraint-only-placement` | a placement point with no trie node, and a generated description |
 | `adopt-sibling-directories` | matching siblings become a dynamic directory, and the ignore entry narrows |
 | `adopt-partial-overlap` | the shared files are required and the odd one out is declared optional |
+| `adopt-optional-directory` | a directory only some siblings have keeps its name, and everything inside it is optional |
 | `adopt-repeated-filenames` | files sharing an extension collapse, but not inside a family |
 | `adopt-skips-existing` | a second run does not overwrite a written rule body |
 | `adopt-dotted-target` | a dot-prefixed target is refused, because no module there would load |

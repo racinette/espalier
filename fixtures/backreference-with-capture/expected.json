@@ -1,0 +1,40 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "path": "clients/stripe/twilio-charges.ts",
+      "code": "unexpected_path",
+      "severity": "error",
+      "rule": null,
+      "metadata": {
+        "recognized": "clients/[provider]",
+        "captures": { "provider": "stripe" },
+        "declared": ["[note].md", "{provider}-[kind].ts"]
+      }
+    }
+  ],
+  "ownership": {
+    "clients/stripe/stripe-charges.ts": "clients/[provider]/{provider}-[kind].ts.mjs",
+    "clients/stripe/stripe-refunds.ts": "clients/[provider]/{provider}-[kind].ts.mjs",
+    "clients/stripe/twilio-charges.ts": null,
+    "clients/twilio/setup.md": "clients/[provider]/[note].md.mjs",
+    "clients/twilio/twilio-messages.ts": "clients/[provider]/{provider}-[kind].ts.mjs"
+  },
+  "explain": {
+    "clients/stripe/stripe-charges.ts": {
+      "exit": 0,
+      "object": {
+        "rule": "clients/[provider]/{provider}-[kind].ts.mjs",
+        "pattern": "clients/*/*-*.ts",
+        "captures": { "provider": "stripe", "kind": "charges" }
+      }
+    },
+    "clients/twilio/twilio-messages.ts": {
+      "exit": 0,
+      "object": {
+        "rule": "clients/[provider]/{provider}-[kind].ts.mjs",
+        "captures": { "provider": "twilio", "kind": "messages" }
+      }
+    }
+  }
+}

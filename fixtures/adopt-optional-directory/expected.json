@@ -1,0 +1,10 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": ["src/clients"],
+    "report": [
+      { "kind": "written", "path": "espalier/src/clients/[client]/client.ts.mjs" },
+      { "kind": "written", "path": "espalier/src/clients/[client]/handlers/webhook.ts.mjs", "optional": true }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "exit": 0,
+  "issues": [
+    {
+      "path": "backend/orders/handlers/create.ts",
+      "code": "ran_no_fetch",
+      "severity": "info",
+      "rule": "backend/[...path]/handlers/no-fetch.ts.mjs",
+      "pattern": "backend/**/handlers/*.ts",
+      "captures": { "path": ["orders"] }
+    },
+    {
+      "path": "backend/orders/handlers/cancel.ts",
+      "code": "ran_no_fetch",
+      "severity": "info",
+      "captures": { "path": ["orders"] }
+    },
+    {
+      "path": "backend/billing/handlers/charge.ts",
+      "code": "ran_no_fetch",
+      "severity": "info",
+      "captures": { "path": ["billing"] }
+    }
+  ],
+  "ownership": {
+    "backend/billing/handlers/charge.ts": "backend/[area]/handlers/[handler].ts.mjs",
+    "backend/orders/handlers/cancel.ts": "backend/[area]/handlers/[handler].ts.mjs",
+    "backend/orders/handlers/create.ts": "backend/[area]/handlers/[handler].ts.mjs",
+    "backend/orders/queries/list.ts": "backend/[area]/queries/[query].ts.mjs"
+  },
+  "explain": {
+    "backend/orders/queries/list.ts": {
+      "exit": 0,
+      "object": {
+        "rule": "backend/[area]/queries/[query].ts.mjs",
+        "constraints": []
+      }
+    }
+  }
+}

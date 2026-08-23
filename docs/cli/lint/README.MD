@@ -206,7 +206,7 @@ Every line carries a `kind` — `issue`, `warning`, or `failure`. A reader dispa
 ```json
 {"kind":"issue","path":"clients/acme/random.ts","code":"unexpected_path","message":"…","severity":"error","espalier":null,"rule":null,"pattern":null,"captures":{},"line":null,"column":null,"metadata":{"recognized":"clients/[provider]","captures":{"provider":"acme"},"declared":["client.ts","requestModels.ts"]},"ruleText":null}
 {"kind":"issue","path":"clients/stripe/client.ts","code":"missing_factory","message":"…","severity":"error","espalier":null,"rule":"clients/[provider]/client.ts.mjs","pattern":"clients/*/client.ts","captures":{"provider":"stripe"},"line":12,"column":3,"metadata":{},"ruleText":"…"}
-{"kind":"warning","message":"scoped run — 3 of 214 files checked"}
+{"kind":"warning","message":"partial run: 3 of 214 files checked. A scoped run cannot tell you the repository conforms."}
 {"kind":"failure","code":"ambiguous_siblings","message":"…"}
 ```
 

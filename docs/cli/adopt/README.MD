@@ -151,6 +151,8 @@ Declaring the extras as a dynamic leaf was a third wrong answer, quieter than ei
 
 An optional declaration is still a guess, and it is the one worth reviewing first: `adopt` has seen one client with a webhook and cannot know whether that makes webhooks a client-shaped thing or makes stripe unusual. The stub says so, and renaming or deleting it is the same two-minute edit as any other.
 
+**A directory only some siblings have is declared where it stands, and everything inside it is optional too.** It never joins a family: the shape it would be claiming to share is one nobody observed twice, so it keeps its own name rather than becoming a placeholder. Optionality is inherited, because a file inside a directory that only sometimes exists only sometimes exists.
+
 ### Placeholder names
 
 Mechanical, and meant to be renamed:

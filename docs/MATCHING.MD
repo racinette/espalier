@@ -72,6 +72,8 @@ Square brackets mark variable parts of a path.
 
 `[...name]` matches zero or more complete path segments and captures them as an array of strings. It must occupy an entire segment — `foo[...bar]` is invalid — and it is legal only in constraint paths.
 
+Segments may follow it. `backend/[...path]/handlers/no-fetch.ts` applies to `backend/**/handlers/*.ts`, and captures only the segments the placeholder itself spanned — `backend/orders/handlers/create.ts` gives `path: ["orders"]`, not `["orders", "handlers"]`.
+
 `{name}` matches the text a `[name]` earlier in the same path already captured. It is a back-reference, not a placeholder: it captures nothing and introduces no name of its own. See [Back-references](#back-references).
 
 Placeholder names must be unique within a single path. `[provider]/[provider].ts` is rejected — the second one is either a mistake or a back-reference, and `[provider]/{provider}.ts` says which.
@@ -134,6 +136,8 @@ clients/[provider]/{provider}.ts.mjs
 It must refer to a `[name]` **earlier in the same path**. `{provider}` with no `[provider]` above it is `unbound_backreference`, reported at compile time. This also means a back-reference always sits beneath a placeholder, so it is always a per-instance requirement and never an unconditional one.
 
 It carries literal text like any other segment part: `[provider]/{provider}.test.ts`, `[provider]/test-{provider}.ts`. Nothing stops it appearing in a directory segment either — `[provider]/{provider}-config/settings.ts` — though the leaf is where it earns its keep.
+
+A segment may hold a back-reference **and** a placeholder: `[provider]/{provider}-[kind].ts` names one file per provider per kind. Such a segment is dynamic rather than resolved, because it still matches many — the tier is decided by how many files a segment can name, not by whether a back-reference appears in it. It therefore competes with dynamic siblings and is checked against them for ambiguity.
 
 What it replaces is a rule body asking politely. Before, `[provider]/[implementation].ts` matched every filename in the directory and the module's `rule` had to say "name this after the directory" and its `lint` had to check. That is prose an agent may or may not follow, checked by code someone has to write, for a fact the espalier could simply state. Stating it also puts it in the generated documentation and the project map, where an agent reads it before writing the file rather than after.
 

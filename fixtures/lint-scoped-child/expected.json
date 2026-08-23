@@ -1,0 +1,32 @@
+{
+  "exit": 0,
+  "args": [
+    "packages/api"
+  ],
+  "issues": [
+    {
+      "path": "packages/api/handler.ts",
+      "espalier": "packages/api",
+      "code": "ran_api",
+      "severity": "info",
+      "rule": "[name].ts.mjs",
+      "pattern": "*.ts",
+      "captures": {
+        "name": "handler"
+      }
+    }
+  ],
+  "warnings": [
+    "partial run: 0 of 1 file checked. A scoped run cannot tell you the repository conforms.",
+    "partial run: 1 of 1 file checked. A scoped run cannot tell you the repository conforms."
+  ],
+  "ownership": {
+    "main.ts": "main.ts.mjs",
+    "packages/api/espalier.config.yaml": null,
+    "packages/api/espalier/[name].ts.mjs": null,
+    "packages/api/handler.ts": "[name].ts.mjs",
+    "packages/web/espalier.config.yaml": null,
+    "packages/web/espalier/[name].ts.mjs": null,
+    "packages/web/index.ts": "[name].ts.mjs"
+  }
+}

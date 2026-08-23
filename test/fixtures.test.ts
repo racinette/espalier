@@ -26,6 +26,14 @@ interface Expected {
   exit?: number;
   error?: string | Record<string, unknown>;
   issues?: unknown[];
+  /** Extra arguments for the lint run — scoping is the case that needs them. */
+  args?: string[];
+  /**
+   * Warnings the lint run must emit, in order. The partial-run line is the only
+   * place a child espalier that was visited and found nothing differs from one
+   * that was never visited, so a fixture about scoping has to assert it.
+   */
+  warnings?: string[];
   explain?: Record<string, { exit: number; object: unknown; human?: string }>;
   ownership?: Record<string, string | null>;
   stderr?: string[];
@@ -319,7 +327,8 @@ function checkOwnership(dir: string, expected: Record<string, string | null>): v
 }
 
 function lintIn(dir: string, scratch: string, expected: Expected): void {
-  const lint = run(scratch, ["lint", "--format", "jsonl"], expected.env);
+  const scoped = expected.args ?? [];
+  const lint = run(scratch, ["lint", "--format", "jsonl", ...scoped], expected.env);
   const lines = parseLines(lint.stdout, "lint");
 
   assert.equal(
@@ -347,10 +356,18 @@ function lintIn(dir: string, scratch: string, expected: Expected): void {
   );
   assert.ok(problems.length === 0, problems.join("\n"));
 
+  if (expected.warnings !== undefined) {
+    assert.deepEqual(
+      lines.filter((line) => line.kind === "warning").map((line) => line["message"]),
+      expected.warnings,
+      "lint warnings",
+    );
+  }
+
   // What a person reads is a separate surface from what a machine parses, and a
   // format nobody pins is a format that drifts.
   if (expected.human !== undefined) {
-    const shown = run(scratch, ["lint"], expected.env);
+    const shown = run(scratch, ["lint", ...scoped], expected.env);
     assert.equal(
       shown.stdout,
       readFileSync(path.join(dir, expected.human), "utf8"),
@@ -397,7 +414,7 @@ function lintIn(dir: string, scratch: string, expected: Expected): void {
     }
   }
 
-  if (expected.again !== undefined) rerun(dir, scratch, expected.again);
+  if (expected.again !== undefined) rerun(dir, scratch, expected.again, scoped);
 }
 
 /**
@@ -408,7 +425,7 @@ function lintIn(dir: string, scratch: string, expected: Expected): void {
  * see — which is exactly what makes a skip visible in output that is
  * otherwise identical warm and cold.
  */
-function rerun(dir: string, scratch: string, again: Rerun): void {
+function rerun(dir: string, scratch: string, again: Rerun, scoped: string[]): void {
   if (again.apply !== undefined) {
     cpSync(path.join(dir, again.apply), scratch, { recursive: true });
   }
@@ -416,7 +433,7 @@ function rerun(dir: string, scratch: string, again: Rerun): void {
     rmSync(path.join(scratch, target), { recursive: true, force: true });
   }
 
-  const lint = run(scratch, ["lint", "--format", "jsonl"], again.env);
+  const lint = run(scratch, ["lint", "--format", "jsonl", ...scoped], again.env);
   assert.equal(
     lint.status,
     again.exit,
