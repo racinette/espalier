@@ -18,6 +18,8 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  statSync,
+  utimesSync,
   writeFileSync,
 } from "node:fs";
 import os from "node:os";
@@ -421,6 +423,180 @@ test("an edited ignore file discards the cache", () => {
       lint(root, "second"),
       { "a.ts": "second", "b.ts": "second" },
       "an entry recorded under a different .gitignore was replayed",
+    );
+  } finally {
+    discard(root);
+  }
+});
+
+// The rest of the contract in cli/lint/README.MD "Incremental runs". Corruption
+// here is expensive in a way a wrong answer elsewhere is not: a stale pass is
+// silent, survives every subsequent run, and looks exactly like a clean
+// repository. These are the clauses nothing else reaches.
+
+test("an unreadable cache directory is not an error", () => {
+  const root = repository();
+  const directory = path.join(root, "espalier", ".cache");
+  try {
+    assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
+
+    // "A cache that cannot be used is not an error." The file being unreadable
+    // is caught where the cache is read; the *directory* is not, because the
+    // repository walk reaches it first — and every path it cannot read now
+    // fails the run. The espalier root is not walked at all, which is what
+    // keeps that rule and this one from colliding.
+    chmodSync(directory, 0o000);
+    assert.deepEqual(lint(root, "second"), { "a.ts": "second", "b.ts": "second" });
+  } finally {
+    chmodSync(directory, 0o700);
+    discard(root);
+  }
+});
+
+test("an unreadable cache file is not an error either", () => {
+  const root = repository();
+  const file = path.join(root, CACHE);
+  try {
+    lint(root, "first");
+    chmodSync(file, 0o000);
+    // Discarded and redone, silently: the token is fresh, so no rule replayed.
+    assert.deepEqual(lint(root, "second"), { "a.ts": "second", "b.ts": "second" });
+  } finally {
+    chmodSync(file, 0o600);
+    discard(root);
+  }
+});
+
+test("an edited addons module discards the cache", () => {
+  const root = repository();
+  try {
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\naddons: espalier.addons.mjs\nignore:\n  - espalier.addons.mjs\n",
+    );
+    writeFileSync(
+      path.join(root, "espalier.addons.mjs"),
+      "export async function setup() { return { limit: 1 }; }\n",
+    );
+
+    assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
+    assert.deepEqual(lint(root, "second"), { "a.ts": "first", "b.ts": "first" }, "replayed");
+
+    // What the addons module returns decides what every rule is told, so it
+    // counts as part of the espalier even though it lives outside the root.
+    writeFileSync(
+      path.join(root, "espalier.addons.mjs"),
+      "export async function setup() { return { limit: 2 }; }\n",
+    );
+    assert.deepEqual(lint(root, "third"), { "a.ts": "third", "b.ts": "third" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("a deleted sibling invalidates a glob, as an added one does", () => {
+  const root = repository(
+    module(`  const seen = await context.files("*.ts");
+  emit({ code: "peers", message: \`\${seen.length}:\${${token}}\`, severity: "warning" });`),
+  );
+  try {
+    assert.deepEqual(lint(root, "first"), { "a.ts": "2:first", "b.ts": "2:first" });
+    assert.deepEqual(lint(root, "second"), { "a.ts": "2:first", "b.ts": "2:first" }, "replayed");
+
+    // "A `files` glob depends on which paths exist, not on what is in them.
+    // Editing a sibling does not invalidate a peer comparison; adding or
+    // deleting one does." Addition is pinned by `lint-cache-glob-dependency`;
+    // deletion is the half that is easy to leave to a set that only grows.
+    rmSync(path.join(root, "b.ts"));
+    assert.deepEqual(lint(root, "third"), { "a.ts": "1:third" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("a read is invalidated by size, not only by modification time", () => {
+  const root = repository(
+    module(`  const body = await context.read("shared.ts");
+  emit({ code: "read", message: \`\${body.trim().length}:\${${token}}\`, severity: "warning" });`),
+  );
+  try {
+    const at = path.join(root, "shared.ts");
+    // One timestamp, pinned before either run so both writes carry it exactly.
+    // Restoring afterwards is not enough: `utimes` keeps whole milliseconds and
+    // a fresh write does not, so putting the clock back would itself change the
+    // stamp and the test would prove nothing about size.
+    const frozen = new Date(1_700_000_000_000);
+
+    writeFileSync(at, "export const s = 1;\n");
+    utimesSync(at, frozen, frozen);
+    // The rule reads it, so it must be governed; declare it rather than ignore
+    // it, since `read` refuses an ungoverned path.
+    writeFileSync(path.join(root, "espalier", "shared.ts.mjs"), EMITS);
+
+    assert.equal(lint(root, "first")["a.ts"], "19:first");
+    assert.equal(lint(root, "second")["a.ts"], "19:first", "replayed");
+
+    // Rewritten to a different length under the same modification time. The
+    // documented hole is a same-second edit to the *same* length, so a
+    // different length has to be caught by size alone.
+    writeFileSync(at, "export const s = 1234567;\n");
+    utimesSync(at, frozen, frozen);
+    assert.equal(statSync(at).mtimeMs, frozen.getTime(), "the test did not pin the timestamp");
+
+    assert.equal(lint(root, "third")["a.ts"], "25:third");
+  } finally {
+    discard(root);
+  }
+});
+
+test("a read is invalidated by modification time, not only by size", () => {
+  const root = repository(
+    module(`  const body = await context.read("shared.ts");
+  emit({ code: "read", message: \`\${body.trim()}:\${${token}}\`, severity: "warning" });`),
+  );
+  try {
+    const at = path.join(root, "shared.ts");
+    writeFileSync(at, "export const s = 1;\n");
+    writeFileSync(path.join(root, "espalier", "shared.ts.mjs"), EMITS);
+
+    assert.equal(lint(root, "first")["a.ts"], "export const s = 1;:first");
+    assert.equal(lint(root, "second")["a.ts"], "export const s = 1;:first", "replayed");
+
+    // The mirror of the test above: same length, different content, so only the
+    // modification time separates the two. Dropping size from the stamp fails
+    // that one; dropping the time fails this one. Neither half is redundant,
+    // and the documented hole — a same-second edit to the same length — is
+    // exactly where both of them stop.
+    writeFileSync(at, "export const s = 2;\n");
+    utimesSync(at, new Date(1_700_000_000_000), new Date(1_700_000_000_000));
+
+    assert.equal(lint(root, "third")["a.ts"], "export const s = 2;:third");
+  } finally {
+    discard(root);
+  }
+});
+
+test("structural findings are fresh on a warm run", () => {
+  const root = repository();
+  try {
+    assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
+
+    // A file no rule reads and no glob lists: nothing in the cache depends on
+    // it, so a run that trusted the cache for everything would not report it.
+    // "Ownership resolution reads no file contents and runs in full every
+    // time" is what makes that impossible.
+    writeFileSync(path.join(root, "notes.txt"), "loose\n");
+
+    const second = run(root, "second");
+    assert.equal(second.status, 1);
+    assert.deepEqual(
+      second.issues.filter((issue) => issue["code"] === "unexpected_path").map((i) => i["path"]),
+      ["notes.txt"],
+    );
+    // And the rules that did not change were still replayed.
+    assert.deepEqual(
+      second.issues.filter((issue) => issue["code"] === "token").map((i) => i["message"]),
+      ["first", "first"],
     );
   } finally {
     discard(root);

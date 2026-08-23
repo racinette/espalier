@@ -102,8 +102,14 @@ function identify(absolute: string): string {
  * only reason candidacy takes the rules at all, and it carries git's own
  * limitation with it: a negation cannot re-include something under a directory
  * that was never entered.
+ *
+ * `skip` is the espalier root, which is not entered for the same reason and a
+ * stronger one. Everything inside it is invisible unconditionally, so walking it
+ * could only produce paths to discard — and the cache lives there. "A cache that
+ * cannot be used is not an error" (cli/lint/README.MD) has to survive a cache
+ * directory this process cannot open, which it does not if the walk goes looking.
  */
-export function collectCandidates(root: string, rules: IgnoreRule[]): string[] {
+export function collectCandidates(root: string, rules: IgnoreRule[], skip?: string): string[] {
   const found: string[] = [];
   // The directories on the way down from the root, by `dev:ino`. A link is a
   // cycle exactly when it lands on one of them, and seeding the root is what
@@ -113,6 +119,7 @@ export function collectCandidates(root: string, rules: IgnoreRule[]): string[] {
   const descend = (absolute: string, prefix: string): void => {
     for (const entry of readEntries(absolute, prefix)) {
       const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
+      if (relative === skip) continue;
       const at = path.join(absolute, entry.name);
 
       // An ignored path is never read, and resolving a link is a read that can

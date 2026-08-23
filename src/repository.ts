@@ -107,7 +107,7 @@ export async function open(configOption: string | undefined, cwd: string): Promi
   const espalierPrefix = `${config.espalierRoot}/`;
   const configRelative = path.relative(config.root, config.configPath).split(path.sep).join("/");
 
-  const candidates = collectCandidates(config.root, ignoreRules);
+  const candidates = collectCandidates(config.root, ignoreRules, config.espalierRoot);
   const children = findChildren(candidates, configRelative, ignoreRules);
   const childPrefixes = children.map((child) => `${child}/`);
 
