@@ -10,30 +10,15 @@ Nothing else may exist under this directory.
 
 ## Not described here
 
-    Configuration. Read by `espalier`, not by this project.
-      .espalierignore
-      espalier.config.yaml
-      espalier/
-
-    Not this project's architecture. Their shape is dictated by the tools that
-    read them, and changing one is a conversation with that tool rather than
-    with this repository.
-      package.json
-      tsconfig.json
-
-    Third-party source. Not ours to shape.
-      vendor/
-
-    Written by `espalier build` from the rules above.
-      AGENTS.MD
-
-    Written by the code generator.
-      generated/
-
-    No reason was recorded for these.
-      .gitignore.fixture
-      logs/
-      notes.txt
+- `.espalierignore`, `espalier.config.yaml`, `espalier/` — Configuration. Read
+  by `espalier`, not by this project.
+- `AGENTS.MD` — Written by `espalier build` from the rules above.
+- `generated/` — Written by the code generator.
+- `package.json`, `tsconfig.json` — Not this project's architecture. Their shape
+  is dictated by the tools that read them, and changing one is a conversation
+  with that tool rather than with this repository.
+- `vendor/` — Third-party source. Not ours to shape.
+- `.gitignore.fixture`, `logs/`, `notes.txt`
 
 Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
 

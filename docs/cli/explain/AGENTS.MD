@@ -8,8 +8,7 @@ Nothing else may exist under docs/cli/explain/.
 
 ## Not described here
 
-    Written by `espalier build` from the rules above.
-      AGENTS.MD
+- `AGENTS.MD` — Written by `espalier build` from the rules above.
 
 Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
 

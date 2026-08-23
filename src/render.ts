@@ -492,46 +492,43 @@ export interface Excluded {
  * rule from one that does not have a rule yet.
  * docs/cli/build/README.MD "Not described here".
  */
-/** What heads the entries no comment introduced. */
-const NO_REASON = "No reason was recorded for these.";
-
 function renderExcluded(entries: Excluded[], level: number): string[] {
   if (entries.length === 0) return [];
 
-  // Grouped by reason, then by name within a group, and the entries nobody gave
-  // a reason last. Sorting by name alone would scatter a group across the
-  // section and leave the shared line landing wherever the alphabet put it.
-  const sorted = [...entries].sort((left, right) => {
-    const first = left.reason ?? "\uffff";
-    const second = right.reason ?? "\uffff";
-    if (first !== second) return first < second ? -1 : 1;
-    return left.name < right.name ? -1 : left.name > right.name ? 1 : 0;
-  });
-
-  // The reason heads its group rather than sitting beside the first entry in
-  // it. Beside one, it reads as that entry's, and a reason long enough to wrap
-  // detaches that entry from the rest of the group it belongs to — the break
-  // the eye finds is the wrap, and no amount of spacing moves it.
-  // docs/cli/build/README.MD "Not described here".
-  const rows: string[] = [];
-  for (const [index, entry] of sorted.entries()) {
-    const opens = index === 0 || entry.reason !== sorted[index - 1]!.reason;
-    if (opens) {
-      if (index > 0) rows.push("");
-      // Null counts as a reason for grouping: the entries nobody explained are
-      // one group, not one group each. Their heading reports the absence and
-      // stops there — `espalier` has patterns and not intent, and the
-      // difference between *will never have a rule* and *does not have one
-      // yet* is exactly what it cannot see.
-      const reason = entry.reason ?? NO_REASON;
-      rows.push(`    ${wrap(reason, WIDTH - 4).split("\n").join("\n    ")}`);
-    }
-    rows.push(`      ${entry.name}`);
+  // One bullet per reason, its paths at the front. A reason set beside one path
+  // of a group reads as that path's, and one long enough to wrap detaches that
+  // path from the rest — the break the eye finds is the wrap, and no
+  // arrangement of blank lines moves it. Naming them together is what makes
+  // them one group. docs/cli/build/README.MD "Not described here".
+  const groups = new Map<string, { reason: string | null; names: string[] }>();
+  for (const entry of entries) {
+    const id = entry.reason ?? "\uffff";
+    const found = groups.get(id);
+    if (found === undefined) groups.set(id, { reason: entry.reason, names: [entry.name] });
+    else found.names.push(entry.name);
   }
+
+  const bullets = [...groups.values()]
+    .map((group) => ({
+      ...group,
+      names: [...group.names].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0)),
+    }))
+    // By the first path in each, so a reader holding a directory listing reads
+    // down the names. The entries nobody explained come last, being the ones
+    // there is nothing to read.
+    .sort((left, right) => {
+      if ((left.reason === null) !== (right.reason === null)) return left.reason === null ? 1 : -1;
+      return left.names[0]! < right.names[0]! ? -1 : left.names[0]! > right.names[0]! ? 1 : 0;
+    })
+    .map((group) => {
+      const named = group.names.map((name) => `\`${name}\``).join(", ");
+      const text = group.reason === null ? named : `${named} — ${group.reason}`;
+      return `- ${wrap(text, WIDTH - 2).split("\n").join("\n  ")}`;
+    });
 
   return [
     `${"#".repeat(level)} Not described here`,
-    rows.join("\n"),
+    bullets.join("\n"),
     "Nothing above describes these, so nothing here tells you how to write them. " +
       "That makes them a poor place to put work that belongs in the list above: a file " +
       "with nowhere legal to go is a gap to report, not one to route around.",

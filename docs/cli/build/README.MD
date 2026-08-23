@@ -186,19 +186,11 @@ The other half of what makes the closed-set sentence true. `Governed elsewhere` 
 ```markdown
 ## Not described here
 
-    Build output. Regenerated; never edited by hand.
-      dist/
-
-    Not this project's architecture. Their shape is dictated by the tools that
-    read them.
-      package.json
-      tsconfig.json
-
-    Written by `espalier build` from the rules above.
-      AGENTS.MD
-
-    No reason was recorded for these.
-      node_modules/
+- `dist/` — Build output. Regenerated; never edited by hand.
+- `package.json`, `tsconfig.json` — Not this project's architecture. Their
+  shape is dictated by the tools that read them.
+- `AGENTS.MD` — Written by `espalier build` from the rules above.
+- `node_modules/`
 
 Nothing above describes these, so nothing here tells you how to write them.
 That makes them a poor place to put work that belongs in the list above: a
@@ -207,13 +199,13 @@ file with nowhere legal to go is a gap to report, not one to route around.
 
 **Direct children only, and only the ones that are there.** A reader is holding a directory listing; the section answers that listing and nothing else. What is inside an excluded directory never appears — `node_modules/` is one line whether it holds four packages or four thousand — and an exclusion that matches nothing here is not mentioned, because a reader cannot see it to be confused by it.
 
-**The reason comes from `.espalierignore`**, verbatim, from the comment block introducing that entry — see [CONFIG.MD](../../CONFIG.MD#espalierignore). An entry with no comment above it has no reason, and joins the group that says so. `espalier` never invents one: it has patterns, not intent, and the difference between *will never have a rule* and *does not have one yet* is exactly what it cannot see.
+**The reason comes from `.espalierignore`**, verbatim, from the comment block introducing that entry — see [CONFIG.MD](../../CONFIG.MD#espalierignore). An entry with no comment above it has no reason, and joins the bullet that carries none. `espalier` never invents one: it has patterns, not intent, and the difference between *will never have a rule* and *does not have one yet* is exactly what it cannot see.
 
-**The reason heads its group; the paths sit under it.** Entries are ordered by reason and then by name, with the unexplained ones last, and a blank line goes wherever the reason changes hands. Ordering by name alone would scatter a group across the section and leave its one shared line landing wherever the alphabet happened to put it.
+**One bullet per reason, its paths at the front.** Paths within a bullet sort by name, bullets sort by their first path, and the paths nobody explained come last as a bullet with no reason at all.
 
-A reason set beside the first path of its group instead reads as that path's, and one long enough to wrap detaches that path from the rest of the group — the break the eye finds is the wrap, and no arrangement of blank lines moves it. Heading the group is what makes it one: the reason belongs to all of them, so it sits above all of them, and it wraps across the full width because there is no column left to squeeze it into.
+Naming them together is what makes them one group. A reason set beside a single path reads as that path's, and one long enough to wrap detaches that path from the others sharing it — the break a reader's eye finds is the wrap, and no arrangement of blank lines or indents moves it. A list also needs no alignment column, so the reason wraps across the full width rather than into whatever space the longest path left, and an author's sentence is rendered as the prose it is rather than as a column of a table it never joined.
 
-**The entries nobody explained are one group**, headed by `No reason was recorded for these.` That reports the absence and stops there. It is not a reason and does not pretend to be one — but it does keep the group from reading as the tail of whichever reason sorted last, and an architect who does not want to see it in every generated document has one comment to write.
+**Nothing is invented for the paths with no reason.** They are a bullet of names, and the closing sentence below covers them as it covers the rest. `espalier` has patterns and not intent, and the difference between *will never have a rule* and *does not have one yet* is exactly what it cannot see.
 
 **A directory counts when everything inside it is excluded**, not only when the directory itself is named. `dist/` and `dist/**` exclude the same files and differ over whether the walk enters — a difference invisible here, where a reader can see the directory either way.
 

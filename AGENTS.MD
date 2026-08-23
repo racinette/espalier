@@ -115,44 +115,23 @@ Nothing else may exist under this directory.
 
 ## Not described here
 
-    Configuration. Read by `espalier`, not by this project.
-      .espalierignore
-      espalier.config.yaml
-      espalier/
-
-    Editor and operating system droppings.
-      .claude/
-      .cursor/
-
-    Licence and legal.
-      LICENSE
-
-    Manifests and lockfiles.
-      package-lock.json
-      package.json
-
-    Repository metadata. Tracked on purpose, and dictated by the tool that reads
-    them rather than by this project's architecture.
-      .gitignore
-
-    Tool configuration. The tool decides the filename; the project only decides
-    the contents.
-      tsconfig.json
-
-    Version control metadata. `.gitignore` never lists `.git/` — git has no need
-    to ignore itself — so this is the one exclusion no other file supplies.
-      .git/
-
-    Written by `espalier build` from the rules above.
-      AGENTS.MD
-
-    espalier's own fixtures are data: sixty configs, several deliberately
-    invalid, and a root run executing all sixty is not what anyone means by it.
-      fixtures/
-
-    No reason was recorded for these.
-      dist/
-      node_modules/
+- `.claude/`, `.cursor/` — Editor and operating system droppings.
+- `.espalierignore`, `espalier.config.yaml`, `espalier/` — Configuration. Read
+  by `espalier`, not by this project.
+- `.git/` — Version control metadata. `.gitignore` never lists `.git/` — git has
+  no need to ignore itself — so this is the one exclusion no other file
+  supplies.
+- `.gitignore` — Repository metadata. Tracked on purpose, and dictated by the
+  tool that reads them rather than by this project's architecture.
+- `AGENTS.MD` — Written by `espalier build` from the rules above.
+- `LICENSE` — Licence and legal.
+- `fixtures/` — espalier's own fixtures are data: sixty configs, several
+  deliberately invalid, and a root run executing all sixty is not what anyone
+  means by it.
+- `package-lock.json`, `package.json` — Manifests and lockfiles.
+- `tsconfig.json` — Tool configuration. The tool decides the filename; the
+  project only decides the contents.
+- `dist/`, `node_modules/`
 
 Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
 
