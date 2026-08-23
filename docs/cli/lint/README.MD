@@ -67,6 +67,8 @@ The unit is one rule invocation — a module, the pattern that matched, and the 
 
 **The espalier is all-or-nothing.** Any change under `root`, or to the config, discards the cache entirely. One comparison covers a rule edit, a module the rules import, a renamed node and a changed setting, where tracking them apart would mean walking the module graph. The architect changes the espalier far less often than the repository changes under it. The `addons` module counts as well, since what it returns decides what rules are told. A module *it* imports does not: it lives outside the espalier, where there is no directory to hash and no bound on what could be reached. Editing one is the one change that needs a `--no-cache` run to take effect.
 
+**A constraint is an invocation like any other.** A file with a structural owner and two constraints reaching it carries three entries, one per module, each with its own reads and globs — so a constraint that listed something notices when that listing changes, and a rule that listed nothing does not re-run because a constraint beside it did.
+
 **Structural findings are never cached.** Ownership resolution reads no file contents and runs in full every time, so `unexpected_path` and `missing_required_file` are always fresh. Only rule bodies are skipped.
 
 **A `files` glob depends on which paths exist, not on what is in them.** Editing a sibling does not invalidate a peer comparison; adding or deleting one does.

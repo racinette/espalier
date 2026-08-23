@@ -811,6 +811,111 @@ test("a glob that matched nothing notices when it starts matching", () => {
   }
 });
 
+// Constraints. A constraint is invoked through the same path a structural rule
+// is, and is cached under its own module and pattern — so a file carries one
+// entry per rule that ran on it, not one entry. Nothing above reaches a
+// constraint, because every module those tests install is structural.
+
+/** A constraint over every `.ts` file, beside whatever rule owns the file. */
+function constraint(body: string): string {
+  return `export const rule = \`Nothing this test cares about.\`;
+
+export async function lint(context) {
+  const { emit } = context;
+${body}
+}
+`;
+}
+
+/** The two-file repository, with a constraint reaching both files. */
+function constrained(rule: string, applies: string): string {
+  const root = repository(rule);
+  mkdirSync(path.join(root, "espalier", "[...path]"));
+  writeFileSync(path.join(root, "espalier", "[...path]", "pinned.{ts}.mjs"), applies);
+  return root;
+}
+
+/** Every issue on one path, as `rule` to message. */
+function byRule(result: Run, target: string): Record<string, string> {
+  const found: Record<string, string> = {};
+  for (const issue of result.issues) {
+    if (issue["path"] === target) found[issue["rule"] as string] = issue["message"] as string;
+  }
+  return found;
+}
+
+test("a constraint replays, under its own key", () => {
+  const root = constrained(
+    EMITS,
+    constraint(`  emit({ code: "held", message: ${token}, severity: "warning" });`),
+  );
+  try {
+    const first = run(root, "first");
+    assert.deepEqual(byRule(first, "a.ts"), {
+      "[file].ts.mjs": "first",
+      "[...path]/pinned.{ts}.mjs": "first",
+    });
+
+    // Two invocations on one file, cached apart. A cache keyed by path alone
+    // would replay one of them and drop the other.
+    assert.deepEqual(byRule(run(root, "second"), "a.ts"), {
+      "[file].ts.mjs": "first",
+      "[...path]/pinned.{ts}.mjs": "first",
+    });
+    assert.deepEqual(entries(root), ["a.ts", "a.ts", "b.ts", "b.ts"]);
+  } finally {
+    discard(root);
+  }
+});
+
+test("an edited file re-runs the constraints on it, not only its own rule", () => {
+  const root = constrained(
+    EMITS,
+    constraint(`  emit({ code: "held", message: ${token}, severity: "warning" });`),
+  );
+  try {
+    run(root, "first");
+    writeFileSync(path.join(root, "a.ts"), "export const a = 999;\n");
+
+    const second = run(root, "second");
+    assert.deepEqual(
+      byRule(second, "a.ts"),
+      { "[file].ts.mjs": "second", "[...path]/pinned.{ts}.mjs": "second" },
+      "the constraint replayed against a file that had changed under it",
+    );
+    assert.deepEqual(byRule(second, "b.ts"), {
+      "[file].ts.mjs": "first",
+      "[...path]/pinned.{ts}.mjs": "first",
+    });
+  } finally {
+    discard(root);
+  }
+});
+
+test("a constraint's own listing is a dependency", () => {
+  const root = constrained(
+    EMITS,
+    constraint(`  const seen = await context.files("*.md");
+  emit({ code: "held", message: \`\${seen.length}:\${${token}}\`, severity: "warning" });`),
+  );
+  try {
+    writeFileSync(path.join(root, "espalier", "[note].md.mjs"), EMITS);
+    assert.equal(byRule(run(root, "first"), "a.ts")["[...path]/pinned.{ts}.mjs"], "0:first");
+
+    // Nothing about `a.ts` changed. What the constraint looked at did, and it
+    // is the constraint's entry that has to notice.
+    writeFileSync(path.join(root, "notes.md"), "# notes\n");
+    assert.equal(byRule(run(root, "second"), "a.ts")["[...path]/pinned.{ts}.mjs"], "1:second");
+    assert.equal(
+      byRule(run(root, "third"), "a.ts")["[file].ts.mjs"],
+      "first",
+      "the file's own rule re-ran over a listing it never made",
+    );
+  } finally {
+    discard(root);
+  }
+});
+
 test("one changed glob re-runs an invocation that listed two", () => {
   const root = repository(
     module(`  const ts = await context.files("*.ts");
