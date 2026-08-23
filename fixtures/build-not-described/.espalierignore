@@ -1,0 +1,17 @@
+FIXTURE.MD
+expected.json
+.gitignore.fixture
+
+# Third-party source. Not ours to shape.
+vendor/
+
+# Not this project's architecture. Their shape is dictated by the tools that
+# read them, and changing one is a conversation with that tool rather than with
+# this repository.
+package.json
+tsconfig.json
+
+# Written by the code generator.
+generated/**
+
+notes.txt

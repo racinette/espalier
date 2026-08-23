@@ -33,7 +33,7 @@ src/output.ts       human and jsonl formatters, --out destinations
 src/cli.ts          argument parsing and exit codes
 ```
 
-`npm test` builds and runs everything: 262 tests, of which 73 are conformance
+`npm test` builds and runs everything: 263 tests, of which 74 are conformance
 fixtures and the rest cover what a fixture cannot reach — a repository is not
 the right shape for every claim. The programmatic API, config discovery from a
 subdirectory, the ignore walk's pruning, the cache, the sibling-overlap decision
@@ -75,6 +75,12 @@ valid, complete and free of temporary files, which is what the per-pid temp plus
 atomic rename is for. **Depth**: a 300-level tree neither overflows a stack nor
 slows anything down. Encodings were checked too — CRLF in an ignore file, in
 `ESPALIER.MD` frontmatter, and a UTF-8 BOM in the config all behave.
+
+A generated document is a pure function of the espalier **and the repository
+tree**: `Not described here` lists the excluded paths that are actually present,
+so adding an ignored file changes a document and `build --check` says so. That
+is the price of a section a reader can check against `ls` rather than against a
+glob. `build-not-described` is where the whole of that rendering is pinned.
 
 Both scripts `cd dist/test` and run a bare `node --test` rather than passing a
 path glob. Node only expands globs in test paths from v21, the declared floor is

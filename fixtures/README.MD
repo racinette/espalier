@@ -193,6 +193,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `invalid-capture-names` | one dynamic directory described under two names |
 | `invalid-ignored-required-file` | a required static leaf that `.espalierignore` also matches |
 | `build-placement-and-pruning` | placement, pruning, ordering, and every part of the rendered document |
+| `build-not-described` | every branch of the excluded-paths section: quoted reasons, groups, wrapping, order |
 | `build-double-catch` | two open sets described in one closed-set statement; the root is never pruned |
 | `build-unmarked-documentation` | a hand-written documentation file halts the run before anything is written |
 | `build-orphan-deletion` | orphans deleted, unchanged files left alone |

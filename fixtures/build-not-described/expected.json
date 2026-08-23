@@ -1,0 +1,23 @@
+{
+  "exit": 0,
+  "issues": [],
+  "ownership": {
+    ".gitignore.fixture": null,
+    "generated/out.ts": null,
+    "logs/debug.log": null,
+    "main.ts": "main.ts.mjs",
+    "notes.txt": null,
+    "package.json": null,
+    "tsconfig.json": null,
+    "vendor/lib.ts": null
+  },
+  "build": {
+    "exit": 0,
+    "report": [
+      {
+        "kind": "written",
+        "path": "AGENTS.MD"
+      }
+    ]
+  }
+}
