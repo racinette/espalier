@@ -80,7 +80,9 @@ Ignored files are invisible, not exempt. No structural rule owns them, no constr
 
 `ignore` also decides what is *not* a child espalier. See [Nested espaliers](#nested-espaliers).
 
-**An ignored directory is never entered.** The patterns are consulted during the filesystem walk, not after it, so `node_modules/` costs one `readdir` rather than forty thousand. This is the same behaviour git has, and it carries git's limitation with it: a negation cannot re-include something under a directory that was pruned. `!node_modules/keep/**` matches nothing, because nothing under `node_modules/` is ever looked at. Ignore the parent more narrowly instead.
+**An ignored directory is never entered.** The patterns are consulted during the filesystem walk, not after it, so `node_modules/` costs one `readdir` rather than forty thousand. This is the same behaviour git has, and it carries git's limitation with it: a negation cannot re-include something under a directory that was pruned. `!node_modules/keep/**` matches nothing, because nothing under `node_modules/` is ever looked at. Un-prune the parent first — see [the recipe below](#ignorefiles).
+
+**Only a pattern naming the directory prunes it.** `dist/` and `dist` do; `dist/**` does not, because it says what is inside is ignored rather than that the directory is. Both report the same paths and the difference is otherwise invisible, which is why it is worth stating: `dist/**` is the form a negation can reach into, and `dist/` is the form that costs nothing to skip. A path that cannot be read is the other place it shows — see [Symlinks](#symlinks).
 
 Most of this list arrives written — from `ignoreFiles`, and from what `espalier init` put there. What you add by hand should be specific to this project, and a long list of those is a signal that the espalier describes less of the repository than it claims to. Better for that to be visibly annoying in the config than filed away in a document of its own.
 
@@ -109,14 +111,20 @@ Every repository already maintains a list of paths that are not source: build ou
 
 **It does not cover files that are tracked on purpose.** `package.json`, `Cargo.toml`, `pnpm-lock.yaml` and `tsconfig.json` appear in no `.gitignore` anywhere, because they are meant to be committed — and they are also not architecture, so no rule should have to declare them. That list has no upstream to defer to; it is `espalier`'s own opinion, and `espalier init --lang` writes it into `ignore` where you can read it. See [cli/init/README.MD](cli/init/README.MD#--lang).
 
-One consequence worth knowing. A path your `.gitignore` names and your espalier declares is a contradiction, and contradictions are `ignored_required_path` — an error, not a silent winner. A repository that commits something out of `dist/` and wants it governed re-includes it, which works because `ignore` is layered after `ignoreFiles`:
+One consequence worth knowing. A path your `.gitignore` names and your espalier declares is a contradiction, and contradictions are `ignored_required_path` — an error, not a silent winner. A repository that commits something out of `dist/` and wants it governed re-includes it, which is possible because `ignore` is layered after `ignoreFiles`:
 
 ```yaml
 ignoreFiles:
   - .gitignore
 ignore:
-  - "!dist/index.js"
+  - "!dist/"          # stop pruning the directory
+  - "dist/**"         # ignore what is inside it, without pruning
+  - "!dist/index.js"  # except this
 ```
+
+**All three lines are needed**, and the first is the one that is easy to miss. A `.gitignore` almost always spells this `dist/`, which excludes the directory itself — and a directory that is excluded is never entered, so nothing under it is ever looked at and `!dist/index.js` alone matches nothing. That is git's rule as much as this one's, and it is why the negation has to un-prune the directory before it can say anything about a file inside.
+
+The failure when you skip it is `ignored_required_path`, which names the leaf rather than the parent that shadowed it. Read it as: something above this path is pruned.
 
 ### What is ignored without being configured
 
@@ -155,7 +163,9 @@ The consequence is worth stating plainly: **a link pointing outside the reposito
 
 **Two links onto the same directory are two directories**, and everything under them is governed twice, under both paths. Deduplicating would mean reporting a file under whichever path the walk happened to reach it by first, and directory listings are not returned in an order anything promises — the same repository would answer differently on two machines. Both paths exist; a repository that does not want both says so in `ignore`.
 
-**A link pointing nowhere is a failure**, and so is a file or directory this process may not read. `espalier` exits `2` with `unreadable_path` and lints nothing. Something that could not be read cannot be pronounced correct, and a run that quietly stepped over it would report a clean repository it never finished inspecting — the same reasoning as [Errors](#errors) below. An ignored path is never read in the first place, so it never fails this way; that is the point of consulting the rules on the way down.
+**A link pointing nowhere is a failure**, and so is a file or directory this process may not read. `espalier` exits `2` with `unreadable_path` and lints nothing. Something that could not be read cannot be pronounced correct, and a run that quietly stepped over it would report a clean repository it never finished inspecting — the same reasoning as [Errors](#errors) below.
+
+A path the rules exclude is never read, so it never fails this way. For a directory that means the *pruning* form: `vendor/` skips it unopened, while `vendor/**` ignores what is inside and still opens it to find out what that is. A directory you cannot read at all is excluded with `vendor/`.
 
 ## `addons`
 

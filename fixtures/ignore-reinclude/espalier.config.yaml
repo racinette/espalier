@@ -1,0 +1,12 @@
+version: 1
+root: espalier
+
+ignoreFiles:
+  - .gitignore.fixture
+
+ignore:
+  - FIXTURE.MD
+  - expected.json
+  - "!bundle/"
+  - "bundle/**"
+  - "!bundle/index.js"

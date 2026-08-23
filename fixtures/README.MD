@@ -227,6 +227,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `symlink-cycle` | a link onto an ancestor is not followed, and nothing is reported twice |
 | `symlink-broken` | a link pointing nowhere fails the run rather than being stepped over |
 | `ignore-files` | two named ignore files, and `ignore` layered after both |
+| `ignore-reinclude` | un-pruning a directory to re-include one committed file out of it |
 | `shipped-ignore-lists` | what `--lang` writes covers, and what it deliberately does not |
 
 ## Adding one

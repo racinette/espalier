@@ -1,0 +1,22 @@
+{
+  "exit": 0,
+  "issues": [],
+  "explain": {
+    "bundle/index.js": {
+      "exit": 0,
+      "object": {
+        "path": "bundle/index.js",
+        "rule": "bundle/index.js.mjs",
+        "pattern": "bundle/index.js"
+      }
+    },
+    "bundle/other.js": {
+      "exit": 1,
+      "object": {
+        "path": "bundle/other.js",
+        "ignoredBy": "ignore",
+        "rule": null
+      }
+    }
+  }
+}
