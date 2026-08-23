@@ -669,6 +669,18 @@ function marker(espalierRoot: string, at: string): string {
   return `${PROVENANCE} — do not edit — source: ${source} -->`;
 }
 
+/**
+ * What the document opens with. The name says which project this directory
+ * belongs to and the path says which directory's rules these are, and a reader
+ * who arrived in that directory rather than navigating down from the root
+ * needs both. A project that has not named itself gets neither, rather than a
+ * heading built out of the path alone. docs/cli/build/README.MD "The heading".
+ */
+function heading(name: string | null, at: string): string[] {
+  if (name === null) return [];
+  return [at === "" ? `# ${name}` : `# ${name} — ${at}/`];
+}
+
 /** The body every document shares: prose, structure, sections. */
 /** Whether any child espalier falls inside this placement point's closed set. */
 function core(
@@ -700,10 +712,15 @@ export function renderDistributed(
   espalier: Espalier,
   point: Placement,
   espalierRoot: string,
+  name: string | null,
   named: string[] = [],
   excluded: Excluded[] = [],
 ): string {
-  const blocks = [marker(espalierRoot, point.at), ...core(espalier, point, 2, named, excluded)];
+  const blocks = [
+    marker(espalierRoot, point.at),
+    ...heading(name, point.at),
+    ...core(espalier, point, 2, named, excluded),
+  ];
   if (point.at === "") blocks.push(CHECKING);
   blocks.push(AMENDING);
   return `${blocks.join("\n\n")}\n`;
@@ -719,6 +736,7 @@ export function renderInline(
   espalier: Espalier,
   points: Placement[],
   espalierRoot: string,
+  name: string | null,
   children: string[] = [],
   excluded: Map<string, Excluded[]> = new Map(),
 ): string {
@@ -726,6 +744,7 @@ export function renderInline(
   const assigned = assignChildren(points, children);
   const blocks = [
     marker(espalierRoot, ""),
+    ...heading(name, ""),
     ...core(espalier, root, 2, assigned.get("") ?? [], excluded.get("") ?? []),
   ];
 

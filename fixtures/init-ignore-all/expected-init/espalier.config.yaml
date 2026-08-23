@@ -1,5 +1,7 @@
 version: 1
 
+name: init-ignore-all
+
 root: espalier
 
 ignoreFiles:

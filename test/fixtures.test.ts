@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -263,7 +264,11 @@ const fixtures = readdirSync(fixturesDir, { withFileTypes: true })
  */
 function checkWrites(dir: string, command: string, expected: WriteRun): void {
   const golden = path.join(dir, `expected-${command}`);
-  const scratch = mkdtempSync(path.join(os.tmpdir(), "espalier-fixture-"));
+  // Copied into a directory named for the fixture, not into the temporary
+  // directory itself. `init` writes the directory's own name into the config,
+  // and a random one would be a golden nothing could pin.
+  const scratch = path.join(mkdtempSync(path.join(os.tmpdir(), "espalier-fixture-")), path.basename(dir));
+  mkdirSync(scratch);
 
   try {
     cpSync(dir, scratch, {
@@ -276,7 +281,7 @@ function checkWrites(dir: string, command: string, expected: WriteRun): void {
     // the command's page. Run it on its own copy first: the jsonl run below
     // needs the tree as it started.
     if (expected.human !== undefined) {
-      const spare = mkdtempSync(path.join(os.tmpdir(), "espalier-human-"));
+      const spare = path.join(mkdtempSync(path.join(os.tmpdir(), "espalier-human-")), path.basename(dir));
       try {
         cpSync(scratch, spare, { recursive: true, verbatimSymlinks: true });
         const shown = run(spare, [command, ...(expected.args ?? [])]);
@@ -286,7 +291,7 @@ function checkWrites(dir: string, command: string, expected: WriteRun): void {
           `${command} --format human differs from ${expected.human}`,
         );
       } finally {
-        rmSync(spare, { recursive: true, force: true });
+        rmSync(path.dirname(spare), { recursive: true, force: true });
       }
     }
     const before = new Map(
@@ -337,7 +342,7 @@ function checkWrites(dir: string, command: string, expected: WriteRun): void {
       }
     }
   } finally {
-    rmSync(scratch, { recursive: true, force: true });
+    rmSync(path.dirname(scratch), { recursive: true, force: true });
   }
 }
 

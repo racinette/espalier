@@ -5,6 +5,8 @@
 ```yaml
 version: 1
 
+name: acme-web
+
 root: espalier
 
 ignoreFiles:
@@ -69,6 +71,16 @@ Patterns from `ignoreFiles` count here too, which is worth knowing before it sur
 ## `version`
 
 Required. Currently `1`. An unrecognized version is an error rather than a warning — a config written for a future release will mean something different than what this release would do with it.
+
+## `name`
+
+What the project is called. It heads every document `espalier build` writes — see [cli/build/README.MD](cli/build/README.MD#the-heading).
+
+One line, and a name rather than a description: it is read by someone who already has the repository open, so `acme-web` earns its place and *the Acme customer-facing web application* does not. The prose under the heading is where a description belongs, and the root `ESPALIER.MD` is where that prose is written.
+
+Optional, and a project that has not named itself gets no heading rather than a guessed one. `espalier init` writes the directory's own name, which is a guess an author can see and correct rather than one buried in the tool.
+
+In a monorepo each espalier names itself, and each names something different: the package, not the workspace. A document is read in the directory it was written into, and the name is what tells a reader which project that directory belongs to.
 
 ## `root`
 

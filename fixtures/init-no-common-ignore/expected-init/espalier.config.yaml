@@ -1,5 +1,7 @@
 version: 1
 
+name: init-no-common-ignore
+
 root: espalier
 
 ignoreFiles:

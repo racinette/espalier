@@ -1,5 +1,7 @@
 version: 1
 
+name: espalier
+
 root: espalier
 
 ignoreFiles:

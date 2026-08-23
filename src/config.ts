@@ -13,6 +13,8 @@ export interface Config {
   root: string;
   /** Absolute path of the config file itself. */
   configPath: string;
+  /** What the project is called, and what heads every generated document. */
+  name: string | null;
   /** Repo-relative directory holding the espalier tree. */
   espalierRoot: string;
   /** Repo-relative paths holding further ignore patterns, in order. */
@@ -24,7 +26,7 @@ export interface Config {
   build: { filename: string; inline: boolean };
 }
 
-const KNOWN = new Set(["version", "root", "ignoreFiles", "addons", "build"]);
+const KNOWN = new Set(["version", "name", "root", "ignoreFiles", "addons", "build"]);
 const KNOWN_BUILD = new Set(["filename", "inline"]);
 
 function findConfig(from: string): string {
@@ -100,6 +102,16 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
       "config_unsupported_version",
       `unsupported version ${JSON.stringify(values["version"])}; this release understands version 1`,
     );
+  }
+
+  // A name rather than a description, so it is not re-wrapped, and one line
+  // because a heading is one line. docs/CONFIG.MD "`name`".
+  let name: string | null = null;
+  if ("name" in values) {
+    name = asString(values["name"], "name").trim();
+    if (name === "" || name.includes("\n")) {
+      fail("config_invalid_value", "name must be a single non-empty line");
+    }
   }
 
   const written = "root" in values ? asString(values["root"], "root") : "espalier";
@@ -178,6 +190,7 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
   return {
     root,
     configPath,
+    name,
     espalierRoot,
     ignoreFiles,
     ignore,

@@ -1,5 +1,7 @@
 version: 1
 
+name: init-bare
+
 root: espalier
 
 ignoreFiles: []

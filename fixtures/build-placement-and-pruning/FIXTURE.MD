@@ -40,7 +40,10 @@ mode this case exists to make loud.
 
 ## What the golden tree pins
 
-Byte for byte: the provenance marker and its `source:`, the alignment column
+Byte for byte: the provenance marker and its `source:`, both forms of the
+heading — `# demo-app` at the root and `# demo-app — src/clients/` below it,
+this being the only fixture whose config sets a `name` and so the only one
+where a heading is written at all — the alignment column
 (longest map-internal line plus two, before the code block's own indent), the
 80-column greedy wrap of a map line's text, section headings carrying
 the full path from the repository root, the `Example:` line appearing only

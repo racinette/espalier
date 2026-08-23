@@ -37,11 +37,15 @@ espalier init [--config <path>] [--root <dir>] [--lang <name>]...
 ```yaml
 version: 1
 
+name: acme-web
+
 root: espalier
 
 ignoreFiles:
   - .gitignore
 ```
+
+`name` is the repository directory's own name. It heads every document `build` writes, so a project that never sets it has documents with no heading — and a guess written into the config where an author can see it is better than that, and better than a guess the tool keeps to itself. Rename it or delete it; both are one line.
 
 And a `.espalierignore` beside it:
 

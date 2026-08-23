@@ -1,2 +1,3 @@
 version: 1
+name: demo-app
 root: espalier

@@ -126,8 +126,11 @@ function quoted(pattern: string): string {
   return plain ? pattern : `"${pattern.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-function render(espalierRoot: string, ignoreFiles: string[]): string {
-  const lines = ["version: 1", "", `root: ${espalierRoot}`, ""];
+function render(name: string, espalierRoot: string, ignoreFiles: string[]): string {
+  // The directory's own name, which is a guess an author can see and correct
+  // rather than one buried in the tool. Without it every document `build`
+  // writes would open with no heading. docs/cli/init/README.MD "`name`".
+  const lines = ["version: 1", "", `name: ${quoted(name)}`, "", `root: ${espalierRoot}`, ""];
   // Written even when empty. `--no-ignore-file` is a decision, and a config
   // that omitted the key would leave the next reader to wonder whether one was
   // made at all.
@@ -218,7 +221,7 @@ export function init(options: InitOptions, reporter: Reporter): number {
     }
   }
 
-  writeFileSync(configPath, render(espalierRoot, ignoreFiles), "utf8");
+  writeFileSync(configPath, render(path.basename(root), espalierRoot, ignoreFiles), "utf8");
   reporter.record({ kind: "written", path: path.relative(root, configPath) });
 
   const listed = blocks.filter((block) => block.length > 0);

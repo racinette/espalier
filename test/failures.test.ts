@@ -110,6 +110,18 @@ const cases: Case[] = [
     config: "version: 1\nroot: ../elsewhere\n",
   },
   {
+    // A heading is one line, so a name is one line. An empty one would head
+    // every document with a bare `#`.
+    what: "a name that is not a single line",
+    code: "config_invalid_value",
+    config: 'version: 1\nname: "a\\nb"\nroot: espalier\n',
+  },
+  {
+    what: "a name that is empty",
+    code: "config_invalid_value",
+    config: 'version: 1\nname: "   "\nroot: espalier\n',
+  },
+  {
     what: "a root that is not there",
     code: "espalier_root_missing",
     config: "version: 1\nroot: absent\n",
