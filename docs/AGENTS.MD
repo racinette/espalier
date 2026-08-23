@@ -51,7 +51,15 @@ this project; these pages are read by whoever is using it.
     │
     │     └─ README.MD  the reference page, required
     │
-    └─ [doc].MD         a specification document, zero or more, any name
+    ├─ API.MD           using espalier as a library, required
+    │
+    ├─ CONFIG.MD        the configuration file and the ignore list, required
+    │
+    ├─ ERRORS.MD        every operational failure and what it means, required
+    │
+    ├─ MATCHING.MD      how a rule module claims a file, required
+    │
+    └─ TYPES.MD         what a rule module exports and receives, required
 
 Nothing else may exist under docs/.
 
@@ -61,12 +69,45 @@ Nothing else may exist under docs/.
 
 Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
 
-## docs/[doc].MD — a specification document
+## docs/API.MD — using espalier as a library
 
-Named in upper case, one document per subject, opening with
-a level-one heading. These are the specification: where the code and one of
-these disagree, the document is right, and a code change that contradicts one
-is a change to the document first.
+Covers the package: what it exports, what those functions return, and what a
+caller must build to test a rule. A rule module's own contract is TYPES.MD;
+this is the other side of that boundary.
+
+## docs/CONFIG.MD — the configuration file and the ignore list
+
+Covers `espalier.config.yaml` and `.espalierignore`: every key, how the root is
+discovered, where a child espalier's authority begins, and what is excluded
+from the walk. How a declared path claims a file is MATCHING.MD.
+
+## docs/ERRORS.MD — every operational failure and what it means
+
+One table, every code reported with `kind: "failure"`. A code `fail()` raises
+that this does not list fails the suite, and so does a code listed here that
+nothing raises — the table is checked in both directions on purpose.
+
+## docs/MATCHING.MD — how a rule module claims a file
+
+Covers the espalier tree: how a path inside it becomes a pattern, which pattern
+owns a file when several could, and what must exist. What a module exports is
+TYPES.MD; what a command does with the answer is its page under `docs/cli/`.
+
+## docs/TYPES.MD — what a rule module exports and receives
+
+Covers the contract between a rule module and the runner: every export a module
+may declare, and every field of the context its `lint` is handed. Where such a
+file may sit, and which files it claims, is MATCHING.MD.
+
+## Constraints
+
+### document-heading — every document opens with a level-one heading
+
+Applies to: `docs/**/*.MD`
+
+Opens with a level-one heading naming its subject. A
+document a reader lands in the middle of should say what it is before it says
+anything else.
 
 ## Amending this structure
 

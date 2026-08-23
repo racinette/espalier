@@ -34,7 +34,18 @@ the two still point at each other, rather than checking style.
     │  │
     │  │     └─ README.MD       the reference page, required
     │  │
-    │  └─ [doc].MD              a specification document, zero or more, any name
+    │  ├─ API.MD                using espalier as a library, required
+    │  │
+    │  ├─ CONFIG.MD             the configuration file and the ignore list,
+    │  │                        required
+    │  │
+    │  ├─ ERRORS.MD             every operational failure and what it means,
+    │  │                        required
+    │  │
+    │  ├─ MATCHING.MD           how a rule module claims a file, required
+    │  │
+    │  └─ TYPES.MD              what a rule module exports and receives,
+    │                           required
     │
     ├─ ignores/                 the ignore lists espalier ships
     │
