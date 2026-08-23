@@ -78,7 +78,7 @@ A component used by exactly one screen belongs beside that screen instead.
 
 That matters more than it looks. The tempting alternative is to phrase it a second way here — "`[button]` matches one filename segment. Zero or more may exist." — which is the same fact in different words from a different code path, and two code paths stating one fact is a promise to drift. `explain` is the direct query and `build` is the written form of the same answer; if they can disagree, the tool has lost the property it exists to provide.
 
-A child espalier inside the subtree is named, for the reason the generated document names it: the closed-set sentence is absolute, and a boundary a reader can see has to be one the answer accounts for. See [build](../build/README.MD#governed-elsewhere).
+A child espalier inside the subtree is named, for the reason the generated document names it: the closed-set sentence is absolute, and a boundary a reader can see has to be one the answer accounts for. Names and nothing else, and the same closing sentence — see [build](../build/README.MD#governed-elsewhere).
 
 ### A prefix the espalier does not recognize
 

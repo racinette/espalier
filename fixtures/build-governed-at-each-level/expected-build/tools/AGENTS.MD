@@ -10,7 +10,7 @@ Nothing else may exist under tools/.
 
 ## Governed elsewhere
 
-    reports/  has an espalier of its own
+- `reports/`
 
 Read the documentation inside it.
 

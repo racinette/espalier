@@ -457,14 +457,16 @@ function renderChildren(at: string, children: string[], level: number): string[]
     .map((child) => `${child.slice(prefix.length)}/`)
     .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
 
-  const column = Math.max(...names.map((name) => name.length)) + 2;
-  const rows = names.map((name) => `    ${name.padEnd(column)}${OWNED}`);
-
-  return [`${"#".repeat(level)} Governed elsewhere`, rows.join("\n"), readInside(names.length)];
+  // Names and nothing else. The heading says what they have in common and the
+  // sentence below says what to do about it, so a line repeating either on
+  // every child would be a refrain rather than an answer.
+  // docs/cli/build/README.MD "Governed elsewhere".
+  return [
+    `${"#".repeat(level)} Governed elsewhere`,
+    names.map((name) => `- \`${name}\``).join("\n"),
+    readInside(names.length),
+  ];
 }
-
-/** What a child espalier's line says, wherever the list is drawn. */
-export const OWNED = "has an espalier of its own";
 
 export function readInside(count: number): string {
   return count === 1 ? "Read the documentation inside it." : "Read the documentation inside each one.";

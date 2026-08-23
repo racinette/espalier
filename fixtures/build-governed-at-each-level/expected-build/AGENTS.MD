@@ -12,7 +12,7 @@ Nothing else may exist under this directory.
 
 ## Governed elsewhere
 
-    tools/reports/  has an espalier of its own
+- `tools/reports/`
 
 Read the documentation inside it.
 

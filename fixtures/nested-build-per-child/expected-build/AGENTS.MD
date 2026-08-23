@@ -8,8 +8,8 @@ Nothing else may exist under this directory.
 
 ## Governed elsewhere
 
-    packages/api/  has an espalier of its own
-    packages/web/  has an espalier of its own
+- `packages/api/`
+- `packages/web/`
 
 Read the documentation inside each one.
 

@@ -44,7 +44,8 @@
         "espalier": null,
         "closedSet": "Nothing else may exist under this directory.",
         "governed": ["packages/web/"]
-      }
+      },
+      "human": "human/root-prefix.txt"
     }
   }
 }

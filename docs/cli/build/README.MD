@@ -165,13 +165,15 @@ Nothing else may exist under this directory.
 
 ## Governed elsewhere
 
-    packages/api/  has an espalier of its own
-    packages/web/  has an espalier of its own
+- `packages/api/`
+- `packages/web/`
 
 Read the documentation inside each one.
 ```
 
-An indented block, one line per child, sorted by path, aligned by the same rule as the map. Names are relative to the placement point and carry a trailing `/`. The closing sentence takes its singular form — `Read the documentation inside it.` — when there is one child.
+A list, one bullet per child, sorted by path. Names are relative to the placement point and carry a trailing `/`. The closing sentence takes its singular form — `Read the documentation inside it.` — when there is one child.
+
+**Names and nothing else.** Every child here is a child for the same reason, so a line saying so on each of them is a refrain: the heading already says what they have in common, and the sentence below says what to do about it. Nothing is left for a per-child note to add that is not the child's own document's to say.
 
 **Every document whose closed set covers a child names it.** A child sits inside the subtree of every placement point above it, and each of those files ends on the same absolute sentence, so each of them has to say what it defers to — at its own path: `packages/api/` in the root file, `api/` in `packages/AGENTS.MD`. Naming it only in the deepest one would leave the others claiming a directory a reader can see they do not govern, and the alternative — appending an exception to the closed set — is a sentence that has stopped being terminal.
 

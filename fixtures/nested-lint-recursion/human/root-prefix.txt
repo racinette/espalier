@@ -1,0 +1,36 @@
+./
+
+  Declared here:
+    ├─ packages/
+    │  │
+    │  └─ [package]/   (zero or more, any name)
+    │     │
+    │     └─ index.ts  a package entry point (required)
+    │
+    └─ main.ts         the application entry point (required)
+
+  Nothing else may exist under this directory.
+
+  Governed elsewhere:
+    packages/web/
+
+  Read the documentation inside it.
+
+── packages/[package]/index.ts ───────────────────────────────────────
+
+  a package entry point
+
+  Rule
+    placeholder
+
+── main.ts ───────────────────────────────────────────────────────────
+
+  the application entry point
+
+  Rule
+    placeholder
+
+── Constraints applying under ./ ─────────────────────────────────────
+
+  no-reach                               **/*.ts
+    A root constraint, live and scoped to the whole repository.

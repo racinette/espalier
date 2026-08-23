@@ -6,7 +6,7 @@
 // the other does not get.
 
 import type { CaptureValue } from "./match.js";
-import { drawMap, type MapEntry, OWNED, readInside } from "./render.js";
+import { drawMap, type MapEntry, readInside } from "./render.js";
 
 /** Descriptions align here, on every line that has one. */
 const COLUMN = 41;
@@ -216,11 +216,10 @@ export function renderExplanation(answer: Explanation): string {
     if (answer.closedSet !== null) blocks.push(wrap(answer.closedSet));
 
     if (answer.governed.length > 0) {
-      const width = Math.max(...answer.governed.map((name) => name.length)) + 2;
       blocks.push(
         [
           "  Governed elsewhere:",
-          ...answer.governed.map((name) => `    ${column(name, width)}${OWNED}`),
+          ...answer.governed.map((name) => `    ${name}`),
           "",
           `  ${readInside(answer.governed.length)}`,
         ].join("\n"),
