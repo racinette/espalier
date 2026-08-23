@@ -1,4 +1,4 @@
-export const description = "bringing an existing directory under the espalier";
+export const description = "the reference page";
 
 export const rule = `Opens with the invocation as its level-one heading, then a
 \`## Usage\` block listing every flag \`espalier adopt\` accepts. A reader

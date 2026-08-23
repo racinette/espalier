@@ -2,7 +2,7 @@
 
 ## Structure
 
-    └─ README.MD  bringing an existing directory under the espalier, required
+    └─ README.MD  the reference page, required
 
 Nothing else may exist under docs/cli/adopt/.
 
@@ -12,7 +12,7 @@ Nothing else may exist under docs/cli/adopt/.
 
 Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
 
-## docs/cli/adopt/README.MD — bringing an existing directory under the espalier
+## docs/cli/adopt/README.MD — the reference page
 
 Opens with the invocation as its level-one heading, then a
 `## Usage` block listing every flag `espalier adopt` accepts. A reader

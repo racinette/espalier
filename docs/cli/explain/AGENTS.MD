@@ -2,7 +2,7 @@
 
 ## Structure
 
-    └─ README.MD  answering what the espalier says about a path, required
+    └─ README.MD  the reference page, required
 
 Nothing else may exist under docs/cli/explain/.
 
@@ -12,7 +12,7 @@ Nothing else may exist under docs/cli/explain/.
 
 Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
 
-## docs/cli/explain/README.MD — answering what the espalier says about a path
+## docs/cli/explain/README.MD — the reference page
 
 Opens with the invocation as its level-one heading, then a
 `## Usage` block listing every flag `espalier explain` accepts. A reader

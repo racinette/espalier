@@ -1,4 +1,4 @@
-export const description = "bootstrapping a repository";
+export const description = "the reference page";
 
 export const rule = `Opens with the invocation as its level-one heading, then a
 \`## Usage\` block listing every flag \`espalier init\` accepts. A reader

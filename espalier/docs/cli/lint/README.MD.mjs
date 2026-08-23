@@ -1,4 +1,4 @@
-export const description = "validating the repository against the espalier";
+export const description = "the reference page";
 
 export const rule = `Opens with the invocation as its level-one heading, then a
 \`## Usage\` block listing every flag \`espalier lint\` accepts. A reader

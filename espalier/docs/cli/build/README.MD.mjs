@@ -1,4 +1,4 @@
-export const description = "generating the agent-facing documentation";
+export const description = "the reference page";
 
 export const rule = `Opens with the invocation as its level-one heading, then a
 \`## Usage\` block listing every flag \`espalier build\` accepts. A reader
