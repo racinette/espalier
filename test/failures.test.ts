@@ -33,7 +33,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -164,6 +164,81 @@ const cases: Case[] = [
     espalier: { "src/[name].ts.mjs": 'throw new Error("from the top level");\n' },
   },
 
+  // What a rule module must export. docs/MATCHING.MD "Node kinds", TYPES.MD.
+  // One code each was observed before; these are the individual checks behind
+  // them, and an inverted predicate in any one would accept a module that then
+  // misbehaves at run time rather than at load time.
+  {
+    what: "a module with no `rule`",
+    code: "module_missing_export",
+    espalier: {
+      "src/[name].ts.mjs": 'export const description = "a file";\nexport async function lint() {}\n',
+    },
+  },
+  {
+    what: "a module with no `lint`",
+    code: "module_missing_export",
+    espalier: {
+      "src/[name].ts.mjs": 'export const description = "a file";\nexport const rule = `R`;\n',
+    },
+  },
+  {
+    what: "a module with no `description`",
+    code: "module_missing_export",
+    espalier: {
+      "src/[name].ts.mjs": "export const rule = `R`;\nexport async function lint() {}\n",
+    },
+  },
+  {
+    // On a constraint, where `description` is optional. A structural module
+    // missing one is `module_missing_export`, and that check runs first — so
+    // this branch is reachable only through the kind that does not require it.
+    what: "a `description` that is present and not a string",
+    code: "module_invalid_export",
+    espalier: {
+      "src/[name].ts.mjs": INERT,
+      "[...path]/no-x.ts.mjs":
+        "export const description = 42;\nexport const rule = `R`;\nexport async function lint() {}\n",
+    },
+  },
+  {
+    what: "an `example` that is not a string",
+    code: "module_invalid_export",
+    espalier: {
+      "src/[name].ts.mjs":
+        'export const description = "a file";\nexport const example = 1;\nexport const rule = `R`;\nexport async function lint() {}\n',
+    },
+  },
+  {
+    what: "an `exampleSource` that is not a string",
+    code: "module_invalid_export",
+    espalier: {
+      "src/[name].ts.mjs":
+        'export const description = "a file";\nexport const exampleSource = 1;\nexport const rule = `R`;\nexport async function lint() {}\n',
+    },
+  },
+  {
+    what: "an `optional` that is not a boolean",
+    code: "module_invalid_export",
+    espalier: {
+      "src/client.ts.mjs":
+        'export const description = "a file";\nexport const optional = "yes";\nexport const rule = `R`;\nexport async function lint() {}\n',
+    },
+  },
+  {
+    what: "a node description that parses but is not a string",
+    code: "malformed_node_description",
+    espalier: {
+      "src/ESPALIER.MD": "---\ndescription:\n  - a list\n---\n\nProse.\n",
+      "src/[name].ts.mjs": INERT,
+    },
+  },
+  {
+    what: "a config boolean that is not a boolean",
+    code: "config_invalid_value",
+    config: "version: 1\nroot: espalier\nbuild:\n  inline: yes please\n",
+  },
+
   // Addons. docs/CONFIG.MD "addons".
   {
     what: "an addons module that is not there",
@@ -197,6 +272,36 @@ const cases: Case[] = [
     args: ["adopt", "../elsewhere"],
   },
   {
+    what: "adopt, given a file rather than a directory",
+    code: "invalid_adopt_target",
+    files: { "notes.txt": "not a directory\n" },
+    args: ["adopt", "notes.txt"],
+  },
+  {
+    what: "adopt, given the espalier root",
+    code: "invalid_adopt_target",
+    args: ["adopt", "espalier"],
+  },
+  {
+    what: "init, given a root outside the repository",
+    code: "config_invalid_value",
+    config: null,
+    args: ["init", "--no-ignore-file", "--root", "../elsewhere"],
+  },
+  {
+    what: "a rule emitting an issue whose path is not a string",
+    code: "invalid_issue_path",
+    espalier: {
+      "src/[name].ts.mjs": `export const description = "a file";
+export const rule = \`R\`;
+export async function lint(context) {
+  context.emit({ code: "bad", message: "m", path: 42 });
+}
+`,
+    },
+    files: { "src/a.ts": "export const a = 1;\n" },
+  },
+  {
     what: "adopt, given nothing to adopt",
     code: "missing_argument",
     args: ["adopt"],
@@ -222,6 +327,43 @@ const cases: Case[] = [
     args: ["build"],
   },
 ];
+
+// `read_failed` needs a file that is a candidate and still will not open, which
+// no tree written by the table above can be: the walk has to see it, and then
+// the read has to fail. A mode change between the two is the only way in.
+test("read_failed: a governed file the process may not open", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "espalier-failure-"));
+  const at = path.join(root, "src", "a.ts");
+  try {
+    writeFileSync(path.join(root, "espalier.config.yaml"), VALID_CONFIG, "utf8");
+    write(
+      root,
+      path.join("espalier", "src", "[name].ts.mjs"),
+      `export const description = "a file";
+export const rule = \`R\`;
+export async function lint(context) {
+  await context.read();
+}
+`,
+    );
+    write(root, path.join("src", "a.ts"), "export const a = 1;\n");
+    chmodSync(at, 0o000);
+
+    const result = spawnSync(process.execPath, [cli, "lint", "--format", "jsonl"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    assert.match(result.stdout, /"code":"read_failed"/);
+    // Distinct from `read_ungoverned`, and the distinction is the useful part:
+    // one says the espalier will not let you, the other that the filesystem
+    // would not. The message names the path either way.
+    assert.match(result.stdout, /src\/a\.ts/);
+    assert.equal(result.status, 2);
+  } finally {
+    chmodSync(at, 0o600);
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 for (const example of cases) {
   test(`${example.code}: ${example.what}`, () => {

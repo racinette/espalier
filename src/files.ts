@@ -153,6 +153,14 @@ export function collectCandidates(root: string, rules: IgnoreRule[], skip?: stri
   return [...new Set(found)].sort();
 }
 
+/**
+ * Whether `build` wrote this file. Provenance rather than path, because `build`
+ * distributes documents through the tree.
+ *
+ * A file that will not open is not one this run wrote, which is the safe answer
+ * and an unreachable one: the walk that produced this path opened its directory
+ * a moment ago. Guarding the gap costs a branch.
+ */
 export function isGenerated(root: string, relativePath: string): boolean {
   try {
     const contents = readFileSync(path.join(root, relativePath), "utf8");

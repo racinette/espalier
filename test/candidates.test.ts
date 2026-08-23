@@ -121,6 +121,26 @@ test("a link the rules exclude is never resolved", () => {
   }
 });
 
+test("init passes over a link it cannot follow", () => {
+  const root = bare();
+  try {
+    symlinkSync("./gone.ts", path.join(root, "dangling.ts"));
+
+    // `init` proposes rather than pronounces, so a link nothing can follow is
+    // not something to infer an entry from — and refusing to run would be
+    // refusing to write the `ignore` entry that excuses it. docs/CONFIG.MD
+    // "Symlinks".
+    const written = espalier(root, ["init", "--no-ignore-file", "--ignore-all"]);
+    assert.equal(written.status, 0);
+
+    const config = readFileSync(path.join(root, "espalier.config.yaml"), "utf8");
+    assert.ok(config.includes("main.ts"), "the real file was not listed");
+    assert.ok(!config.includes("dangling"), "a link to nowhere was listed as a path");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a directory that will not open is a failure, not a bug report", () => {
   const root = tree();
   const closed = path.join(root, "vendor");

@@ -192,6 +192,11 @@ export function plan(espalier: Espalier): Placement[] {
       found = { at, node, doc: espalier.nodes.get(at) ?? null, sections: [], constraints: [] };
       points.set(at, found);
     } else if (found.node === null) {
+      // Unreachable today: the only placements created with a null node are a
+      // constraint's, and those are made after the walk, so nothing follows to
+      // supply one. Kept because "first mention wins, later mention fills in"
+      // is the rule this function is expressing, and losing it would make the
+      // order of two calls matter silently.
       found.node = node;
     }
     return found;

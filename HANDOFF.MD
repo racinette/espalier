@@ -33,7 +33,7 @@ src/output.ts       human and jsonl formatters, --out destinations
 src/cli.ts          argument parsing and exit codes
 ```
 
-`npm test` builds and runs everything: 235 tests, of which 73 are conformance
+`npm test` builds and runs everything: 260 tests, of which 73 are conformance
 fixtures and the rest cover what a fixture cannot reach — a repository is not
 the right shape for every claim. The programmatic API, config discovery from a
 subdirectory, the ignore walk's pruning, the cache, the sibling-overlap decision
@@ -60,6 +60,12 @@ component, both halves of the read stamp, the glob dependencies, pruning in
 both directions, and header validation. A stale pass is silent, survives every
 later run, and looks exactly like a clean repository, so a test that passes for
 the wrong reason is worth less here than anywhere else.
+
+`test/human.test.ts` exists because every operational failure in this suite was
+asserted in `jsonl` — the format an assertion is cheap against — and the
+consequence had gone unnoticed: the human formatter's failure path, its
+warnings and the block it prints under an unrecognized path were reached by no
+test at all. A formatter is the whole of what most people ever see of a tool.
 
 Both scripts `cd dist/test` and run a bare `node --test` rather than passing a
 path glob. Node only expands globs in test paths from v21, the declared floor is
@@ -513,14 +519,17 @@ path no run had looked at, and `explain` answered "not declared" about a file
 this tool exists to prevent. `excludedBy` now stops at the first ancestor that
 excludes, which is git's rule and, here, the only self-consistent one.
 
-**Four things in `src/` cannot currently be reached**, found by sweeping the
-uncovered lines and checking each by hand. They are annotated where they sit, so
-nobody re-derives them: the `readIfPresent` fallback in `cache.ts` and
-`readIgnoreFile`'s empty return in `init.ts` (both preceded by the validation
-that refuses a named-but-missing ignore file), the trailing `return` in
-`match.ts` (the compiler cannot see that the loop always returns), and
-`duplicate_structural_rule`. All four are guards rather than branches, and cost
-nothing. `internal_error` in `cli.ts` is a fifth by design.
+**Everything still uncovered in `src/` is a guard that cannot currently fire**,
+and each is annotated where it sits so nobody re-derives it: `readIfPresent` in
+`cache.ts` and `readIgnoreFile`'s empty return in `init.ts` (both preceded by
+the validation that refuses a named-but-missing ignore file), `version`'s catch
+in `cache.ts` (compilation read the same tree first), the trailing `return` in
+`match.ts` and `plan`'s fill-in branch in `render.ts` (neither reachable, both
+expressing a rule worth keeping), `read` in `build.ts` and `isGenerated` in
+`files.ts` (the gap between finding a path and opening it, which only another
+process can widen), and `duplicate_structural_rule`. `internal_error` in
+`cli.ts` is the last, by design. Coverage is 99.4% of lines; what is left is
+that list and nothing else.
 
 `Reporter.object` was the one thing that was simply dead — an interface method
 with three implementations and no caller, unused since the commit that

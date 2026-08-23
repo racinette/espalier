@@ -27,6 +27,14 @@ export interface BuildOptions {
   inline: boolean;
 }
 
+/**
+ * A documentation file's contents, or null when it will not open.
+ *
+ * Unreachable in a single run: the walk found the path a moment ago. It guards
+ * the gap between finding and reading, which is a gap only another process can
+ * widen — and a `build` that threw there would be a build that failed over a
+ * file it was about to overwrite anyway.
+ */
 function read(absolute: string): string | null {
   try {
     return readFileSync(absolute, "utf8");

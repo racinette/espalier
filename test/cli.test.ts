@@ -243,6 +243,34 @@ test("--dry-run prints what a real adopt prints, and writes nothing", () => {
   });
 });
 
+test("build.inline in the config means what --inline means", () => {
+  scratch((root) => {
+    writeFileSync(
+      path.join(root, "espalier", "ESPALIER.MD"),
+      "---\ndescription: the repository\n---\n\nProse.\n",
+    );
+    writeFileSync(
+      path.join(root, "espalier", "src", "ESPALIER.MD"),
+      "---\ndescription: the source\n---\n\nMore prose.\n",
+    );
+
+    // The flag is the tested spelling everywhere else, and the config key is
+    // the one a project actually commits — so the key is the one worth
+    // knowing still parses.
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nbuild:\n  inline: true\n",
+    );
+    assert.equal(run(root, ["build"]).status, 0);
+    assert.ok(existsSync(path.join(root, "AGENTS.MD")));
+    assert.equal(
+      existsSync(path.join(root, "src", "AGENTS.MD")),
+      false,
+      "inline still distributed a document",
+    );
+  });
+});
+
 test("build --check writes nothing and reports the drift", () => {
   scratch((root) => {
     writeFileSync(

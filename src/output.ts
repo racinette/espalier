@@ -242,9 +242,11 @@ class HumanReporter implements Reporter {
 
     if (this.mode === "build" || this.mode === "init" || this.mode === "adopt") {
       this.summarizeBuild();
-      // Warnings outlive the tally here as they do for `lint`. `init` uses this
-      // to say there is no `.gitignore`, which is advice about the config it
-      // just wrote rather than something wrong with the run.
+      // Warnings outlive the tally here as they do for `lint`: advice about
+      // what was written rather than part of the record of it. No writing
+      // command emits one today; the branch is here because the summary and
+      // the advice are separate things, and putting the tally last is the
+      // decision, not which commands happen to have advice to give.
       for (const warning of this.warnings) this.destination.write(`\n${warning}\n`);
       this.destination.close();
       return;
