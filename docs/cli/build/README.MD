@@ -86,6 +86,7 @@ provenance marker
 node prose                    the ESPALIER.MD body, verbatim
 ## Structure                  the map, then the cardinality paragraph
 ## Governed elsewhere         child espaliers below this point, when any
+## Not described here         excluded paths in this directory, when any
 ## <rule> — <description>     one per structural rule placed here
 ## Constraints                one ### per constraint placed here
 ## Checking your work         root file only
@@ -112,7 +113,9 @@ Walking that subtree in map order produces, in this order:
 2. **Optional here.** `<a>, <b> and <c> are optional.` — every leaf reachable the same way whose module exports `optional`. A separate sentence rather than a qualifier inside the first, because the two say opposite things to the reader they are written for: one is what an agent must produce, the other what it may.
 3. **Per dynamic directory.** ``Zero or more `<path>/` directories may exist.`` When instantiating it requires files: `For each one that does, <a>, <b> and <c> are required.`, those paths relative to the instance. Optional descendants take a further `Each one may also have <a> and <b>.`, for the same reason the second sentence exists at the top level.
 4. **Per dynamic leaf.** ``Zero or more files matching `<path>` may exist.``
-5. **The closed set.** `Nothing else may exist under <path>/.` At a placement point that is the espalier's own root there is no path to print — it would be `under .` — so the sentence anchors on the file's location instead: `Nothing else may exist under this directory.` A document has no way to know where it sits in an outer tree, by design, and claiming to be a repository or a root is wrong in a package on both counts. Where a child espalier falls inside the closed set, the sentence defers: `, apart from the directories that already have an espalier of their own.` Stated in general rather than by name, because **every** document whose subtree covers a child has to defer while only one names them — see [Governed elsewhere](#governed-elsewhere) — and an ancestor promising a list it does not carry would be a second lie in place of the first. `already` is load-bearing: this is an exception for the directories that have one, not a licence to create another.
+5. **The closed set.** `Nothing else may exist under <path>/.` At a placement point that is the espalier's own root there is no path to print — it would be `under .` — so the sentence anchors on the file's location instead: `Nothing else may exist under this directory.` A document has no way to know where it sits in an outer tree, by design, and claiming to be a repository or a root is wrong in a package on both counts.
+
+    Absolute, with nothing appended to it. Everything a reader can see that this sentence does not cover is named further down the file — a child espalier under [Governed elsewhere](#governed-elsewhere), everything else under [Not described here](#not-described-here) — so the sentence stays terminal and the exceptions are enumerated rather than gestured at. A closed set that ends in *apart from* is not closed, and a reader who can see `package.json` sitting beside it reads the whole paragraph as approximate.
 
 A resolved leaf appears in the required list of the instance it belongs to, written as authored: `For each one that does, {provider}.ts is required.` Rendering it as the shape it resolves to would need an instance to resolve against, and the paragraph describes the rule rather than any one directory.
 
@@ -124,11 +127,10 @@ Lists join with commas and a final `and`. A single item takes neither.
 
 ### Governed elsewhere
 
-A directory holding an espalier of its own is not described by this one, and the closed-set sentence above would otherwise have said nothing else may exist here — which a reader who can see the directory reads as a lie, not as a subtlety. Listing the children after an absolute sentence does not retract it, so the sentence defers instead and this section is what it defers to.
+A directory holding an espalier of its own is not described by this one, and the closed-set sentence above would otherwise have said nothing else may exist here — which a reader who can see the directory reads as a lie, not as a subtlety. Naming them here is what makes the sentence true: the closed set is closed over what this espalier governs, and a directory listed in this section is visibly not that.
 
 ```markdown
-main.ts is required. Nothing else may exist under this directory, apart from
-the directories that already have an espalier of their own.
+main.ts is required. Nothing else may exist under this directory.
 
 ## Governed elsewhere
 
@@ -143,6 +145,34 @@ An indented block, one line per child, sorted by path, aligned by the same rule 
 **Each child is named in exactly one document:** the one at the deepest placement point above it. A child two levels below the nearest placement point is still named there, as `tools/reports/`, because that is the document whose closed set would otherwise have covered it.
 
 The section names the children and stops. It does not say what they contain, which document to open, or what the child's `build.filename` is, because the outer espalier does not know and must not appear to: a summary of somebody else's rules is a second source of truth that goes stale silently. The reader is sent to the directory, where the child's own document is.
+
+### Not described here
+
+The other half of what makes the closed-set sentence true. `Governed elsewhere` names the directories another espalier describes; this names the paths no espalier describes at all, so that between them every entry a reader can see is accounted for by name.
+
+```markdown
+## Not described here
+
+    node_modules/  Installed, not written. Nothing here is ours to shape.
+    dist/          Build output. Regenerated; never edited by hand.
+    package.json   Not this project's architecture. Their shape is
+    tsconfig.json    dictated by the tools that read them.
+    AGENTS.MD      Written by `espalier build` from the rules above.
+
+Nothing above describes these, so nothing here tells you how to write them.
+That makes them a poor place to put work that belongs in the list above: a
+file with nowhere legal to go is a gap to report, not one to route around.
+```
+
+**Direct children only, and only the ones that are there.** A reader is holding a directory listing; the section answers that listing and nothing else. What is inside an excluded directory never appears — `node_modules/` is one line whether it holds four packages or four thousand — and an exclusion that matches nothing here is not mentioned, because a reader cannot see it to be confused by it.
+
+**The reason comes from `.espalierignore`**, verbatim, from the comment block introducing that entry — see [CONFIG.MD](../../CONFIG.MD#espalierignore). Entries sharing a comment share the line, indented under the first, so a group written as one thought reads as one. An entry with no comment above it gets no reason, and the line is the path alone. `espalier` never invents one: it has patterns, not intent, and the difference between *will never have a rule* and *does not have one yet* is exactly what it cannot see.
+
+The unconditionally invisible five are described rather than quoted, since no comment introduces them: the generated file says `Written by \`espalier build\` from the rules above.`, and `espalier.config.yaml`, `.espalierignore` and the espalier root say `Configuration. Read by \`espalier\`, not by this project.`
+
+**The closing sentence is fixed**, and says the only thing true of every entry: there are no instructions here. It does not say the paths are off limits, because they are not — `espalier` does not claim to describe every file, and a repository adopting it one directory at a time is the documented case rather than a failure. Saying otherwise would be a rule the tool cannot enforce and the architect did not write. What it does say is that an undescribed directory is a bad destination for work that belongs in a described one, which is the loophole an agent under pressure would otherwise find: *the rules are strict over there and silent over here.*
+
+**Omitted entirely when the directory has no excluded children**, like `Governed elsewhere`. Most directories are in that case, and they get the closed-set sentence with nothing after it — which is the point of the whole arrangement.
 
 ### Rule sections
 
@@ -313,13 +343,13 @@ That one line does three jobs: it tells `build` which files it may delete, it te
 `source:` names the espalier directory the file was rendered from — the configured `root` for the root document, `root` plus the placement point below it otherwise. It is there for a human reading the generated file who wants to know where to go and edit; nothing reads it back, and orphan detection uses the marker's presence rather than its contents.
 
 - Files bearing the marker are rewritten each run. Any that this run did not produce — because the espalier node was renamed or removed — are deleted, since a document that keeps steering agents after its rule is gone is worse than no document.
-- **The sweep is confined to what the configuration governs.** A marked file matched by `ignore` is never a candidate for deletion. The marker says a file is generated documentation; it does not say it is *this* run's. A repository holding a copy of `espalier`'s output — a golden fixture, a vendored copy of another repository — would otherwise lose it on the first build, with nothing to warn it.
+- **The sweep is confined to what the configuration governs.** A marked file that is excluded is never a candidate for deletion. The marker says a file is generated documentation; it does not say it is *this* run's. A repository holding a copy of `espalier`'s output — a golden fixture, a vendored copy of another repository — would otherwise lose it on the first build, with nothing to warn it.
 - A documentation file **without** the marker halts the build. Move its content into the corresponding `ESPALIER.MD` and run again; `build` will not eat a hand-written file.
 - Generated files are invisible to matching, so espalier's own output is never reported as `unexpected_path`.
 
 Only files are deleted. A directory left empty by an orphan deletion stays, because git does not track it and because a tool that removes directories it did not create is one bad path away from removing something it should not have.
 
-No record of past runs is kept. Finding orphans is a scan of the candidate files, less anything `ignore` matched, for those matching the configured filename and carrying the marker — a manifest would be a second source of truth with nothing to add.
+No record of past runs is kept. Finding orphans is a scan of the candidate files, less anything excluded, for those matching the configured filename and carrying the marker — a manifest would be a second source of truth with nothing to add.
 
 ## Output
 

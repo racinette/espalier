@@ -73,7 +73,7 @@ A component used by exactly one screen belongs beside that screen instead.
 
 The cardinality paragraph is the same text `espalier build` writes into `components/AGENTS.MD`, from the same function, wrapped to the same width less its indent.
 
-That matters more than it looks. An earlier draft of this document phrased it a second way here — "`[button]` matches one filename segment. Zero or more may exist." — which is the same fact in different words from a different code path, and two code paths stating one fact is a promise to drift. `explain` is the direct query and `build` is the written form of the same answer; if they can disagree, the tool has lost the property it exists to provide.
+That matters more than it looks. The tempting alternative is to phrase it a second way here — "`[button]` matches one filename segment. Zero or more may exist." — which is the same fact in different words from a different code path, and two code paths stating one fact is a promise to drift. `explain` is the direct query and `build` is the written form of the same answer; if they can disagree, the tool has lost the property it exists to provide.
 
 ## A path
 
@@ -131,13 +131,13 @@ $ espalier explain package.json
 
 package.json is not governed by espalier.
 
-  Ignored by the `ignore` list in espalier.config.yaml.
+  Excluded by a pattern in .espalierignore.
 ```
 
 The three cases read:
 
 ```text
-  Ignored by the `ignore` list in espalier.config.yaml.
+  Excluded by a pattern in .espalierignore.
   Ignored by a pattern from .gitignore, read because `ignoreFiles` names it.
   Invisible unconditionally: espalier does not report on its own machinery.
 ```
@@ -200,10 +200,10 @@ Carries the owning rule, the normalized pattern that matched, the captures, and 
 
 ### A path espalier does not govern
 
-`ignoredBy` names what excluded it — `ignore`, the path of the `ignoreFiles` entry the pattern came from, or `espalier` for the four things that are invisible unconditionally:
+`ignoredBy` names what excluded it — the path of the file the winning pattern came from, `.espalierignore` or an `ignoreFiles` entry alike, or `espalier` for the five things that are invisible unconditionally. Every pattern now reports a file a reader can open, which is what reading these lists from files rather than from a key inside the tool was for:
 
 ```json
-{"kind":"explanation","path":"package.json","ignoredBy":"ignore","rule":null,"pattern":null,"captures":{},"constraints":[]}
+{"kind":"explanation","path":"package.json","ignoredBy":".espalierignore","rule":null,"pattern":null,"captures":{},"constraints":[]}
 ```
 
 ### A prefix

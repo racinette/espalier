@@ -191,7 +191,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `emit-path-override` | an issue attached to a file other than the one being linted |
 | `invalid-overlapping-siblings` | two dynamic siblings that can match the same filename |
 | `invalid-capture-names` | one dynamic directory described under two names |
-| `invalid-ignored-required-file` | a required static leaf that `ignore` also matches |
+| `invalid-ignored-required-file` | a required static leaf that `.espalierignore` also matches |
 | `build-placement-and-pruning` | placement, pruning, ordering, and every part of the rendered document |
 | `build-double-catch` | two open sets described in one closed-set statement; the root is never pruned |
 | `build-unmarked-documentation` | a hand-written documentation file halts the run before anything is written |
@@ -199,7 +199,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `build-ignored-generated` | an ignored path is not swept, and a real orphan still is |
 | `nested-lint-recursion` | a child is found and run, root rules stop at the boundary, paths are re-rooted |
 | `lint-scoped-child` | a path argument decides which children run at all, and the outer espalier is scoped too |
-| `nested-ignored-config` | a config `ignore` matches is data, not a child |
+| `nested-ignored-config` | a config `.espalierignore` matches is data, not a child |
 | `nested-child-failure` | one child that will not compile, and a sibling reported anyway |
 | `nested-build-per-child` | each child builds in its own frame, and the outer run sweeps none of it |
 | `nested-three-levels` | a child of a child: delegation is a rule, not a first-hop special case |
@@ -247,7 +247,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `symlink-cycle` | a link onto an ancestor is not followed, and nothing is reported twice |
 | `symlink-broken` | a link pointing nowhere fails the run rather than being stepped over |
 | `config-root-spelling` | `root` normalized: a trailing slash decided whether the tool could see itself |
-| `ignore-files` | two named ignore files, and `ignore` layered after both |
+| `ignore-files` | two named ignore files, and `.espalierignore` layered after both |
 | `ignore-reinclude` | un-pruning a directory to re-include one committed file out of it |
 | `shipped-ignore-lists` | what `--lang` writes covers, and what it deliberately does not |
 

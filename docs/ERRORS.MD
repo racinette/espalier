@@ -8,11 +8,11 @@ Two codes are **issues** rather than failures and are not listed here: `unexpect
 
 Codes emitted by rule modules are free-form strings chosen by their authors. `espalier` neither validates nor namespaces them. Everything below is `espalier`'s own.
 
-## How this list came to exist
+## How a code gets here
 
-These codes were deliberately **not** designed up front. They were chosen at the throw site as each failure turned out to be real, on the reasoning that a registry written in advance would be a guess at which failures matter, and that tailoring the implementation to a table is the wrong direction of fit.
+Codes are chosen at the throw site, as each failure turns out to be real, and this table is the harvest. A registry written in advance would be a guess at which failures matter, and tailoring the implementation to a table is the wrong direction of fit.
 
-That worked, and this document is the harvest. It is checked by a test that scans `src/` for every `fail()` call, in both directions: a code in the source and not here fails the suite, and so does a code here that the source cannot throw. Deciding late is fine; letting the record drift afterwards is not.
+Deciding late is fine; letting the record drift afterwards is not. A test scans `src/` for every `fail()` call and holds the two to each other in both directions: a code in the source and not here fails the suite, and so does a code here that the source cannot throw.
 
 Neither direction proves a code is *reachable*. A validation whose predicate was inverted would satisfy both — the code exists, this table lists it, and nothing ever throws it — so `test/failures.test.ts` drives a real run into each condition and asserts the code that comes out. Every code here is observed firing except `internal_error`, which is by definition a bug rather than an input, and `duplicate_structural_rule`, which nothing can currently reach; that test says why.
 
@@ -67,7 +67,7 @@ See [TYPES.MD](TYPES.MD).
 
 | Code | |
 |---|---|
-| `ignored_required_path` | a static leaf that `ignore` also matches — the configuration asks for both and gets neither |
+| `ignored_required_path` | a static leaf that `.espalierignore` also matches — the configuration asks for both and gets neither |
 
 ## During a run
 

@@ -1,6 +1,6 @@
 # Configuration
 
-`espalier` is configured by a single `espalier.config.yaml` at the repository root.
+`espalier` is configured by an `espalier.config.yaml` at the repository root, and by a `.espalierignore` beside it.
 
 ```yaml
 version: 1
@@ -10,17 +10,25 @@ root: espalier
 ignoreFiles:
   - .gitignore
 
-ignore:
-  - src/api/*.generated.ts
-  - vendor/**
-  - db/migrations/**
-
 addons: ./espalier.addons.mjs
 
 build:
   filename: AGENTS.MD
   inline: false
 ```
+
+```
+# .espalierignore — generated output, checked in so the build stays honest.
+src/api/*.generated.ts
+
+# Third-party source. Not ours to shape.
+vendor/**
+
+# Written by the migration tool, in the order it decides.
+db/migrations/**
+```
+
+Two files rather than one because they answer to different readers. The config is settings, read once by whoever set the project up. `.espalierignore` is a list that grows and shrinks as the espalier does, it is line-oriented rather than nested, and its comments are read back out into the documentation `build` writes — a YAML key can hold the patterns but not the reasons.
 
 Every key except `version` is optional. Unknown keys are errors — a typo in a config file is not something to discover three weeks later when the rule it disabled turns out never to have run.
 
@@ -38,7 +46,7 @@ A package in a monorepo may hold an `espalier.config.yaml` of its own. Finding o
 
 **A directory holding a config is a child espalier, and its subtree leaves the outer one.** Nothing under it is matched or owned, no constraint reaches in — a root `[...path]` rule stops at the boundary — nothing there is `unexpected_path`, and `build` neither places a document there nor sweeps one away.
 
-**Every command then runs it.** `lint` and `build` at the root visit each child once the outer run is finished, and a visit is a complete separate run: its own config, its own espalier, its own `ignore`, `addons` and `build` settings, and its own children beneath it. Nothing is inherited and nothing crosses.
+**Every command then runs it.** `lint` and `build` at the root visit each child once the outer run is finished, and a visit is a complete separate run: its own config, its own espalier, its own `.espalierignore`, `addons` and `build` settings, and its own children beneath it. Nothing is inherited and nothing crosses.
 
 Those two halves are one feature. A subtree that left the outer espalier and were never visited would be ungoverned, which is the failure this tool exists to prevent. A subtree visited from inside the outer run would answer to two espaliers at once, and a path with two answers is worse than either. Together they say: **every file is governed by exactly one espalier, and one command still checks them all.**
 
@@ -48,7 +56,7 @@ The trade is explicit. The root can require nothing of a child, because it canno
 
 ### Suppressing discovery
 
-`ignore` still wins. A config the outer `ignore` matches is not a child at all: the subtree is ignored the ordinary way and nothing recurses into it.
+Exclusion still wins. A config the outer `.espalierignore` matches is not a child at all: the subtree is ignored the ordinary way and nothing recurses into it.
 
 That is what a repository storing configs as data needs. `espalier`'s own `fixtures/` holds sixty of them, several deliberately invalid, and `espalier lint` at the root running all sixty is not what anyone means by it. Ignoring the config file alone is enough to demote a child to plain content, though ignoring the directory is usually what is wanted.
 
@@ -70,34 +78,55 @@ The espalier root is invisible to matching. Rule modules are not themselves gove
 
 The value is a directory path, and is read as one: `espalier`, `./espalier` and `espalier/` all name the same place. A path naming the repository root itself is refused — every path would then be invisible, which is not a configuration with a meaning.
 
-## `ignore`
+## `.espalierignore`
 
-Paths `espalier` does not govern. Gitignore syntax — leading `!` negates, later patterns win, a trailing `/` matches directories only.
+Paths `espalier` does not govern, one per line, in a file beside `espalier.config.yaml`. Gitignore syntax — leading `!` negates, later patterns win, a trailing `/` matches directories only, and `#` at the start of a line opens a comment.
 
 This is the only escape from strict structural enforcement. Everything else in the repository must be owned by a structural rule or it is reported as `unexpected_path`.
 
-Ignored files are invisible, not exempt. No structural rule owns them, no constraint runs against them, and they cannot satisfy a required leaf. If a path is both required by a static leaf in the espalier and matched by `ignore`, the configuration contradicts itself and `espalier` exits `2` rather than quietly passing.
+**A repository is not expected to end up fully described**, and that is worth saying plainly because everything else here reads as though it were. Partial adoption is the normal state: `espalier adopt` exists to move one directory at a time, `espalier init --ignore-all` exists to put a whole tree out of scope while you start, and both would be incoherent if the tool claimed every file. What an exclusion means is *no rules are written for this*, not *this is off limits* — and the difference matters most to the agent reading the documentation, which must not conclude that an undescribed directory is a place to put work that belongs in a described one. See [cli/build/README.MD](cli/build/README.MD#not-described-here) for how that is worded where it is read.
 
-`build` does not delete under an ignored path either. Generated documentation is identified by its provenance header rather than by its location, so a repository that keeps a copy of `espalier`'s output — a golden fixture, a vendored copy of another repository — holds files a run cannot tell from its own by looking. `ignore` is where you say they are not this run's to sweep.
+**The comments are the reason this is a file.** An exclusion without a reason is a decision nobody can review, and the two kinds are indistinguishable once written: `node_modules/` will never have a rule, while `src/legacy/` does not have one *yet*. Only the person excluding it knows which, and only a file with room to say so lets them.
 
-`ignore` also decides what is *not* a child espalier. See [Nested espaliers](#nested-espaliers).
+```
+# Not this project's architecture. Their shape is dictated by the tools
+# that read them.
+package.json
+tsconfig.json
+
+# Not described yet. Adopt one directory at a time; this list shrinking
+# is what progress looks like.
+src/legacy/
+```
+
+A comment introduces the entries beneath it, up to the next blank line. There are no trailing comments: `dist/ # build output` is a pattern containing a hash, matching a file nobody has, which is git's rule and a good one — a reason worth writing is a reason worth a line.
+
+**`espalier build` reads those comments into the documentation it generates.** That is what makes the list reviewable: an agent opening a directory sees what is not described there and why, in the same file that tells it what is. See [cli/build/README.MD](cli/build/README.MD#not-described-here). Nothing else in the repository is read this way — a comment in a `.gitignore` was written for git, by someone answering a different question, and quoting it into your architecture would put words in their mouth.
+
+Ignored files are invisible, not exempt. No structural rule owns them, no constraint runs against them, and they cannot satisfy a required leaf. If a path is both required by a static leaf in the espalier and excluded, the configuration contradicts itself and `espalier` exits `2` rather than quietly passing.
+
+`build` does not delete under an ignored path either. Generated documentation is identified by its provenance header rather than by its location, so a repository that keeps a copy of `espalier`'s output — a golden fixture, a vendored copy of another repository — holds files a run cannot tell from its own by looking. This file is where you say they are not this run's to sweep.
+
+It also decides what is *not* a child espalier. See [Nested espaliers](#nested-espaliers).
 
 **An ignored directory is never entered.** The patterns are consulted during the filesystem walk, not after it, so `node_modules/` costs one `readdir` rather than forty thousand. This is the same behaviour git has, and it carries git's limitation with it: a negation cannot re-include something under a directory that was pruned. `!node_modules/keep/**` matches nothing, because nothing under `node_modules/` is ever looked at. Un-prune the parent first — see [the recipe below](#ignorefiles).
 
 **Only a pattern naming the directory prunes it.** `dist/` and `dist` do; `dist/**` does not, because it says what is inside is ignored rather than that the directory is. Both report the same paths and the difference is otherwise invisible, which is why it is worth stating: `dist/**` is the form a negation can reach into, and `dist/` is the form that costs nothing to skip. A path that cannot be read is the other place it shows — see [Symlinks](#symlinks).
 
-Most of this list arrives written — from `ignoreFiles`, and from what `espalier init` put there. What you add by hand should be specific to this project, and a long list of those is a signal that the espalier describes less of the repository than it claims to. Better for that to be visibly annoying in the config than filed away in a document of its own.
+Most of this arrives written — from `ignoreFiles`, and from what `espalier init` put here. What you add by hand should be specific to this project, and a long list of those is a signal that the espalier describes less of the repository than it claims to.
+
+A list this long is easy to let grow, and a growing one means the espalier describes less of the repository than it claims to. The comments are what keep that reviewable: each entry says why it is there, `build` puts those reasons in front of whoever reads the documentation, and an entry nobody can justify is one somebody can delete.
 
 ## `ignoreFiles`
 
-Other files holding ignore patterns, read and prepended to `ignore`. Empty by default; `espalier init` writes `.gitignore` into it.
+Other files holding ignore patterns, read and prepended to `.espalierignore`. Empty by default; `espalier init` writes `.gitignore` into it.
 
 ```yaml
 ignoreFiles:
   - .gitignore
 ```
 
-Paths are relative to the repository root. Each is read in order, its contents parsed as `ignore` entries, and the result placed **before** anything in `ignore` — so your own list is what wins a disagreement.
+Paths are relative to the repository root. Each is read in order, its contents parsed the same way, and the result placed **before** `.espalierignore` — so your own list is what wins a disagreement. Their comments are read as comments and go no further: only `.espalierignore` supplies the reasons `build` writes down.
 
 **A file named here must exist.** A missing one is `ignore_file_missing` and the run stops. The alternative — contributing nothing and carrying on — turns a typo or a deleted file into a repository that governs everything and reports thousands of paths, with the cause several steps removed from the symptom. A configuration that names a file is a configuration that depends on it.
 
@@ -105,23 +134,31 @@ That is also why the key is empty rather than defaulting to `.gitignore`. A defa
 
 Every repository already maintains a list of paths that are not source: build output, dependency directories, caches, editor droppings. Keeping a second copy of it inside `espalier.config.yaml` would be a list that goes stale the first time someone adds a bundler, and staleness here is expensive — an entry missing from `espalier`'s copy is a directory it walks and a thousand paths it reports.
 
-**This reverses an earlier position.** Previous releases said `.gitignore` was not a policy input: it answers "what is a file in this repository," not "what does `espalier` govern." That distinction is real, and it is why the second question still has its own answer in `ignore`. What changed is the first question. `espalier` used to ask git — it shelled out to `git ls-files` — and a tool that needs another binary installed to know what a file is has a dependency it should not have. Reading the file directly removes the subprocess, removes the divergence between the two code paths that existed when git was absent, and leaves one definition of candidacy written in one place.
+**It answers a different question from `.espalierignore`.** A `.gitignore` says what is a file in this repository; `.espalierignore` says what `espalier` governs. The two questions are genuinely separate, which is why each keeps its own answer — and reading the first one directly rather than asking git for it means no second binary has to be installed before `espalier` knows what a file is.
 
 **It is read as `espalier`'s syntax, not as git's.** No compatibility is claimed and none should be relied on. Concretely: nested `.gitignore` files in subdirectories are not read, only the paths you list; character classes (`[a-z]`) and backslash escapes are unsupported. `espalier` is not a git client and a second, silently different implementation of gitignore is exactly what this was meant to avoid. What it reads is a list of patterns in a well-known shape.
 
-`espalier init --no-ignore-file` writes an empty list for a repository that genuinely has none, and `--no-common-ignore` declines the entries `init` would otherwise put in `ignore`. See [cli/init/README.MD](cli/init/README.MD#--ignore-file-and---no-ignore-file).
+`espalier init --no-ignore-file` writes an empty list for a repository that genuinely has none, and `--no-common-ignore` declines the entries `init` would otherwise write. See [cli/init/README.MD](cli/init/README.MD#--ignore-file-and---no-ignore-file).
 
-**It does not cover files that are tracked on purpose.** `package.json`, `Cargo.toml`, `pnpm-lock.yaml` and `tsconfig.json` appear in no `.gitignore` anywhere, because they are meant to be committed — and they are also not architecture, so no rule should have to declare them. That list has no upstream to defer to; it is `espalier`'s own opinion, and `espalier init --lang` writes it into `ignore` where you can read it. See [cli/init/README.MD](cli/init/README.MD#--lang).
+**It does not cover files that are tracked on purpose.** `package.json`, `Cargo.toml`, `pnpm-lock.yaml` and `tsconfig.json` appear in no `.gitignore` anywhere, because they are meant to be committed — and they are also not architecture, so no rule should have to declare them. That list has no upstream to defer to; it is `espalier`'s own opinion, and `espalier init --lang` writes it into `.espalierignore` where you can read it. See [cli/init/README.MD](cli/init/README.MD#--lang).
 
-One consequence worth knowing. A path your `.gitignore` names and your espalier declares is a contradiction, and contradictions are `ignored_required_path` — an error, not a silent winner. A repository that commits something out of `dist/` and wants it governed re-includes it, which is possible because `ignore` is layered after `ignoreFiles`:
+One consequence worth knowing. A path your `.gitignore` names and your espalier declares is a contradiction, and contradictions are `ignored_required_path` — an error, not a silent winner. A repository that commits something out of `dist/` and wants it governed re-includes it, which is possible because `.espalierignore` is layered after `ignoreFiles`:
+
+`espalier.config.yaml`:
 
 ```yaml
 ignoreFiles:
   - .gitignore
-ignore:
-  - "!dist/"          # stop pruning the directory
-  - "dist/**"         # ignore what is inside it, without pruning
-  - "!dist/index.js"  # except this
+```
+
+`.espalierignore`:
+
+```
+# `dist/index.js` is committed on purpose and the espalier declares it.
+# All three lines are load-bearing; see below.
+!dist/
+dist/**
+!dist/index.js
 ```
 
 **All three lines are needed**, and the first is the one that is easy to miss. A `.gitignore` almost always spells this `dist/`, which excludes the directory itself — and a directory that is excluded is never entered, so nothing under it is ever looked at and `!dist/index.js` alone matches nothing. That is git's rule as much as this one's, and it is why the negation has to un-prune the directory before it can say anything about a file inside.
@@ -130,42 +167,45 @@ The failure when you skip it is `ignored_required_path`, which names the leaf ra
 
 ### What is ignored without being configured
 
-Four things are invisible unconditionally, because `espalier` reporting on its own machinery is a bug rather than a finding:
+Five things are invisible unconditionally, because `espalier` reporting on its own machinery is a bug rather than a finding:
 
 - `espalier.config.yaml` itself
+- `.espalierignore`
 - every file `ignoreFiles` names
 - the `root` directory
 - every file `espalier build` generated
+
+`.espalierignore` is on the list for the same reason the config is, and could not be anywhere else: it is dot-prefixed, so no rule can declare it — see [MATCHING.MD](MATCHING.MD#node-kinds) — and a file that cannot be declared and is not invisible is a file every run reports forever.
 
 `ignoreFiles` entries are on that list for the same reason the config is: they are configuration this run read. With the default name it never showed, because the common list `init` writes covers `.gitignore` anyway — but a project naming `.customignore` should not then have to ignore it as well.
 
 These cannot be un-ignored. Generated documentation is identified by its provenance header, not by path, because `build` distributes files through the tree rather than confining them to one directory.
 
-The VCS directory is **not** on this list, though it once was. `.git/` is excluded by an entry `espalier init` writes into `ignore` like any other, alongside the rest of the common block — CI definitions, licence files, editor droppings, and the repository metadata that is committed on purpose. All of it is visible, appealable, and deletable by anyone who has a reason. Nothing in `espalier` decides on your behalf which paths exist.
+The VCS directory is **not** on this list. `.git/` is excluded by an entry `espalier init` writes into `.espalierignore` like any other, alongside the rest of the common block — CI definitions, licence files, editor droppings, and the repository metadata that is committed on purpose. All of it is visible, appealable, and deletable by anyone who has a reason. Nothing in `espalier` decides on your behalf which paths exist.
 
 ### What counts as a file
 
-`espalier` walks the filesystem from the repository root, and does not descend into a directory `ignore` matches. That walk is the whole definition: there is no second code path, no query to another tool, and nothing that behaves differently depending on what is installed.
+`espalier` walks the filesystem from the repository root, and does not descend into a directory an exclusion matches. That walk is the whole definition: there is no second code path, no query to another tool, and nothing that behaves differently depending on what is installed.
 
-The consequence to keep in mind is that **an empty `ignore` means a total walk.** A configuration that names nothing will enumerate `.git/`, `node_modules/` and every build directory, and report each file in them as `unexpected_path`. That failure is slow and extremely loud, which is the intended shape: a repository's exclusions live in a file you can read, and their absence is obvious rather than compensated for.
+The consequence to keep in mind is that **excluding nothing means a total walk.** A configuration that names nothing will enumerate `.git/`, `node_modules/` and every build directory, and report each file in them as `unexpected_path`. That failure is slow and extremely loud, which is the intended shape: a repository's exclusions live in a file you can read, and their absence is obvious rather than compensated for.
 
 Untracked files are candidates. The file an agent created ten seconds ago and has not committed is linted, because it is there.
 
-Every candidate is a file to be read, and reading means UTF-8. There is no binary detection and no extension list: a PNG handed to a rule arrives as the characters UTF-8 decoding produces, replacement characters and all. Rules match on paths, so a rule only sees what its own pattern claimed — and a directory of binaries is a directory to `ignore`, which is the same answer as for anything else nothing declares.
+Every candidate is a file to be read, and reading means UTF-8. There is no binary detection and no extension list: a PNG handed to a rule arrives as the characters UTF-8 decoding produces, replacement characters and all. Rules match on paths, so a rule only sees what its own pattern claimed — and a directory of binaries is a directory to exclude, which is the same answer as for anything else nothing declares.
 
-Nothing here consults git. Earlier releases ran `git ls-files --cached --others --exclude-standard` in a git-backed root and walked the filesystem otherwise, which meant two definitions of candidacy that agreed most of the time. The two disagreed in ways nobody would find on purpose — a committed `node_modules` is tracked, so git listed it and the walk did not — and the tool never promised git compliance in the first place. One walk, in one language, is what a linter can explain.
+Nothing here consults git. Asking it would mean two definitions of candidacy — one for a git-backed root and one for everywhere else — agreeing most of the time and parting where nobody would look: a committed `node_modules` is tracked, so git would list it and the walk would not. No git compliance is promised, and one walk, in one language, is what a linter can explain.
 
 ### Symlinks
 
 **A symlink is followed.** A link to a file is a file, a link to a directory is walked, and neither is a category of its own.
 
-Skipping them would make a fifth thing invisible unconditionally, and it would be the only one invisible without anybody having decided so. `espalier` never writes to the files it governs, so a link is nothing more than a second path to something it reads. A link you do not want governed is an `ignore` entry, like everything else you do not want governed.
+Skipping them would make a sixth thing invisible unconditionally, and it would be the only one invisible without anybody having decided so. `espalier` never writes to the files it governs, so a link is nothing more than a second path to something it reads. A link you do not want governed is an `.espalierignore` entry, like everything else you do not want governed.
 
 The consequence is worth stating plainly: **a link pointing outside the repository brings what it points at into the governed set.** Its content is linted under the path the link occupies, and a rule can `read` it there. That is the link's doing rather than `espalier`'s, and it is undone the way any other unwanted path is.
 
 **A link onto a directory containing it is not followed.** A link to an ancestor otherwise re-enters everything above it, and again, until the kernel refuses at around forty levels of indirection — the walk terminates either way, but a single file under such a link is reported forty-one times before it does. Nothing is lost by cutting it: the directory it points at is one the walk is already inside.
 
-**Two links onto the same directory are two directories**, and everything under them is governed twice, under both paths. Deduplicating would mean reporting a file under whichever path the walk happened to reach it by first, and directory listings are not returned in an order anything promises — the same repository would answer differently on two machines. Both paths exist; a repository that does not want both says so in `ignore`.
+**Two links onto the same directory are two directories**, and everything under them is governed twice, under both paths. Deduplicating would mean reporting a file under whichever path the walk happened to reach it by first, and directory listings are not returned in an order anything promises — the same repository would answer differently on two machines. Both paths exist; a repository that does not want both says so in `.espalierignore`.
 
 **A link pointing nowhere is a failure**, and so is a file or directory this process may not read. `espalier` exits `2` with `unreadable_path` and lints nothing. Something that could not be read cannot be pronounced correct, and a run that quietly stepped over it would report a clean repository it never finished inspecting — the same reasoning as [Errors](#errors) below.
 
@@ -209,10 +249,10 @@ The object must be safe for concurrent use by many rules in unspecified order. I
 
 Generated files carry a provenance header, and that marker is what `espalier` uses to decide what it may delete, what to ignore while matching, and what it must not touch.
 
-Files bearing the marker are regenerated and, when the espalier no longer produces them, removed — a stale document that keeps steering agents after its rule was deleted is worse than no document. The removal is confined to the paths this configuration governs: a marked file matched by `ignore` is left where it is. A documentation file **without** the marker halts the build rather than being overwritten; move its content into the corresponding `ESPALIER.MD` and run again. First contact with a tool is not the right moment to lose your agent instructions.
+Files bearing the marker are regenerated and, when the espalier no longer produces them, removed — a stale document that keeps steering agents after its rule was deleted is worse than no document. The removal is confined to the paths this configuration governs: a marked file that is excluded is left where it is. A documentation file **without** the marker halts the build rather than being overwritten; move its content into the corresponding `ESPALIER.MD` and run again. First contact with a tool is not the right moment to lose your agent instructions.
 
 ## Errors
 
-Everything in this document that fails — a missing config, an unknown key, an unrecognized version, an addon that will not start, an `ignore` pattern that contradicts a required leaf — is an operational failure. `espalier` exits `2` and reports nothing else. A broken configuration must not be able to look like a clean repository.
+Everything in this document that fails — a missing config, an unknown key, an unrecognized version, an addon that will not start, an exclusion that contradicts a required leaf — is an operational failure. `espalier` exits `2` and reports nothing else. A broken configuration must not be able to look like a clean repository.
 
 Every code is listed in [ERRORS.MD](ERRORS.MD).

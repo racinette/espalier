@@ -21,8 +21,8 @@ espalier init [--config <path>] [--root <dir>] [--lang <name>]...
   -i, --ignore-file    a file holding ignore patterns (default: .gitignore);
                        repeat to name several, read in the order given
   --no-ignore-file     write no `ignoreFiles` entry at all
-  --no-common-ignore   write no common ignore entries either; the `ignore`
-                       list is then yours alone
+  --no-common-ignore   write no common entries either; `.espalierignore`
+                       is then yours alone
   --ignore-all         also write an ignore entry for every top-level path,
                        putting the existing tree out of scope
   --config <path>    write the config here instead of ./espalier.config.yaml
@@ -41,40 +41,45 @@ root: espalier
 
 ignoreFiles:
   - .gitignore
+```
 
-ignore:
-  # Version control metadata. `.gitignore` never lists `.git/` — git has no need
-  # to ignore itself — so this is the one exclusion no other file supplies.
-  - .git/
-  - .hg/
-  - .svn/
+And a `.espalierignore` beside it:
 
-  # Repository metadata. Tracked on purpose, and dictated by the tool that reads
-  # them rather than by this project's architecture.
-  - .gitignore
-  - .gitattributes
-  # …
+```
+# Version control metadata. `.gitignore` never lists `.git/` — git has no need
+# to ignore itself — so this is the one exclusion no other file supplies.
+.git/
+.hg/
+.svn/
 
-  # Continuous integration.
-  - .github/
-  # …
+# Repository metadata. Tracked on purpose, and dictated by the tool that reads
+# them rather than by this project's architecture.
+.gitignore
+.gitattributes
+# …
 
-  # Licence and legal.
-  - LICENSE
-  # …
+# Continuous integration.
+.github/
+# …
 
-  # Editor, agent and operating system droppings. The agent directories are here
-  # for the same reason as the editor ones: dot-prefixed, so no rule could declare
-  # them even if a project wanted to.
-  - .vscode/
-  # …
+# Licence and legal.
+LICENSE
+# …
+
+# Editor, agent and operating system droppings. The agent directories are here
+# for the same reason as the editor ones: dot-prefixed, so no rule could declare
+# them even if a project wanted to.
+.vscode/
+# …
 ```
 
 Plus `espalier/`, holding a `.gitkeep`.
 
 `ignoreFiles` has no default — an empty key is what a hand-written config gets. `init` is where the choice is made, and writing it down is the whole of making it: a file quietly excluding paths is otherwise something you discover months later, wondering why a check never ran.
 
-The `ignore` block is `ignores/_common.gitignore`, copied verbatim, comments and all. It holds what belongs to no language and to no `.gitignore`: version control directories, the repository metadata that is committed on purpose, CI definitions, licence files, and editor droppings. Every entry is a line you can read and delete.
+`.espalierignore` is `ignores/_common.gitignore`, copied verbatim, comments and all. It holds what belongs to no language and to no `.gitignore`: version control directories, the repository metadata that is committed on purpose, CI definitions, licence files, and editor droppings. Every entry is a line you can read and delete.
+
+Verbatim includes the comments, and that now costs something to get wrong. `espalier build` writes each comment into the documentation for the directory the entry sits in — see [cli/build/README.MD](../build/README.MD#not-described-here) — so a shipped list is also the wording an agent reads when it asks why `node_modules/` is not described. The comments in `ignores/` are written to be read twice: once by the person editing the file, once by whoever the documents are for.
 
 The VCS entries are the reason it is written unconditionally. `.gitignore` does not list `.git/` — git has no need to ignore itself — so it is the one exclusion no external file supplies. Delete that line and `espalier` walks several tens of thousands of objects and reports every one of them, which is a mistake you will notice within a second.
 
@@ -104,7 +109,7 @@ After `init`, the rule still holds: a file named in `ignoreFiles` that is not th
 
 ## `--no-common-ignore`
 
-Writes none of the common block. The `ignore` list is then whatever `--lang` and `--ignore-all` put there, and nothing else:
+Writes none of the common block. `.espalierignore` is then whatever `--lang` and `--ignore-all` put there, and nothing else:
 
 ```bash
 espalier init --no-common-ignore
@@ -123,7 +128,7 @@ Use it when the common list is wrong for this repository — a project that genu
 
 **The consequence to know before reaching for it.** `.git/` is in that block, and no `.gitignore` names it, so a config without either walks several tens of thousands of objects and reports every one of them. That is loud and immediate rather than subtle, and one `ignore` line fixes it — but it is yours to write.
 
-There is no matching config key. Nothing here is applied at run time: the block is copied into `ignore` and then belongs to you, so the way to remove an entry after the fact is to delete the line. This flag exists for the case where you did not want it written in the first place.
+There is no matching config key. Nothing here is applied at run time: the block is copied into `.espalierignore` and then belongs to you, so the way to remove an entry after the fact is to delete the line. This flag exists for the case where you did not want it written in the first place.
 
 ## `--lang`
 
@@ -133,16 +138,15 @@ Writes the ignore entries for a language's tooling — manifests, lockfiles, and
 espalier init --lang javascript --lang python
 ```
 
-```yaml
-ignore:
-  # … the common block, as above …
+```
+# … the common block, as above …
 
-  # javascript
-  - package.json
-  - package-lock.json
-  - yarn.lock
-  - pnpm-lock.yaml
-  - tsconfig.json
+# javascript
+package.json
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+tsconfig.json
   - tsconfig.*.json
   # …
 
@@ -157,7 +161,7 @@ These are not files `.gitignore` knows about. A lockfile is committed on purpose
 
 The lists ship as data, one file per language, under `ignores/` in the installed package. `_common` is the one written every time; its leading underscore is what keeps it out of the language names. `--lang go` writes `ignores/go.gitignore`; the set of legal names is what that directory contains, and an unrecognized one is `unknown_language` with the available names listed. They are `.gitignore`-suffixed for the same reason [github/gitignore](https://github.com/github/gitignore) names its files that way — the syntax is gitignore's, and editors highlight it.
 
-**They are copied, not referenced.** `init` reads them once and writes their contents into your `ignore`. Nothing at lint time opens them, no config points at a file inside `node_modules`, and upgrading `espalier` never changes what your repository governs. The cost is that a config written in 2026 does not learn about a lockfile invented in 2027; the benefit is that a config says what it does, and `espalier explain` can answer with a line number instead of "a built-in list."
+**They are copied, not referenced.** `init` reads them once and writes their contents into your `.espalierignore`. Nothing at lint time opens them, no config points at a file inside `node_modules`, and upgrading `espalier` never changes what your repository governs. The cost is that a config written in 2026 does not learn about a lockfile invented in 2027; the benefit is that a config says what it does, and `espalier explain` can answer with a line number instead of "a built-in list."
 
 ### What the lists hold, and what they deliberately do not
 
@@ -179,19 +183,20 @@ Writing an ignore list for your own tree here would mean guessing your source la
 
 Writes one entry per top-level path — directories as `<dir>/**`, files by name — so `espalier lint` passes from the first run:
 
-```yaml
-ignore:
-  - public/**
-  - src/**
-  - test/**
-  - main.ts
+```
+# espalier governs nothing yet.
+# Remove entries as you bring each area under the espalier — see `espalier adopt`.
+public/**
+src/**
+test/**
+main.ts
 ```
 
 Paths already covered by `ignoreFiles` or by `--lang` are left out; so is the espalier root.
 
 Use it when you are introducing `espalier` to a repository that is already in CI and a red build would be a problem. The list is a **backlog, not a junk drawer**: entries arrive generated and leave by hand, and the list shrinking is what progress looks like.
 
-Note that this is not only a bootstrap concern. A repository is never expected to end up fully described, so a partial espalier reports its undescribed areas for as long as it stays partial. `ignore` is what makes that liveable, whenever you decide you want it.
+Note that this is not only a bootstrap concern. A repository is never expected to end up fully described, so a partial espalier reports its undescribed areas for as long as it stays partial. `.espalierignore` is what makes that liveable, whenever you decide you want it.
 
 ## After `init`
 

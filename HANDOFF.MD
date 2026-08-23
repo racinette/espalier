@@ -517,6 +517,25 @@ Open, both raised by dogfooding:
   producer left and is gone. The section and the table now describe one run
   that declares every visible file.
 
+## Why the exclusion list is a file
+
+`.espalierignore` rather than an `ignore` key in the config, because entries
+need comments and YAML has nowhere natural to put one.
+
+The comments are the point. An exclusion without a reason cannot be reviewed,
+and the two kinds are indistinguishable once written: `node_modules/` will never
+have a rule, `src/legacy/` does not have one yet. Only the person excluding it
+knows which. `espalier build` reads each comment into the documentation for the
+directory that entry sits in, so the reason reaches the reader who would
+otherwise have to guess — and the tool never supplies one itself, because it has
+patterns and not intent.
+
+Two consequences worth knowing. A separate file is easier to let grow than a
+block in a config you open for other reasons; the comments are the only thing
+holding that in check, which is why an entry without one renders bare. And
+`init` no longer escapes anything: `*.swp`, `!foo` and a bare `:` stop being
+hazards once they are not YAML.
+
 ## Known gaps
 
 Carrying `TODO`s in the code: none. The last one — `src/ignore.ts` being more

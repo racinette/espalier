@@ -1,6 +1,6 @@
 # `espalier adopt`
 
-Brings an existing directory under the espalier: infers its shape from the files already there, writes stub rule modules, and narrows `ignore` so they take effect.
+Brings an existing directory under the espalier: infers its shape from the files already there, writes stub rule modules, and narrows `.espalierignore` so they take effect.
 
 ```bash
 espalier adopt src/clients
@@ -50,20 +50,20 @@ export async function lint() {}
 
 `description` is the filename without its extension, after "a" — so `requestModels.ts` gets `"a requestModels"`, which is ugly on purpose. It is marked `TODO`, it appears in the project map, and a phrase that reads like it was written by a machine is a phrase someone will replace. A plausible-sounding wrong description is the one that survives review.
 
-and narrows the config:
+and narrows `.espalierignore`:
 
 ```diff
- ignore:
--  - src/**
-+  - src/api/**
-+  - src/components/**
+ # espalier governs nothing here yet.
+-src/**
++src/api/**
++src/components/**
 ```
 
-The replacement entries are the queried path's siblings — everything the old entry covered except the area now described.
+The replacement entries are the queried path's siblings — everything the old entry covered except the area now described. The comment above the entry is left where it is: it introduced a group and still does, and rewriting somebody's sentence because its list got shorter is not `adopt`'s call.
 
-Adopting an area that stays ignored would do nothing, so `adopt` edits the entry that covered it. That is the only reason it touches configuration.
+Adopting an area that stays excluded would do nothing, so `adopt` edits the entry that covered it. That is the only reason it touches configuration.
 
-When no `ignore` entry covers the path, there is nothing to narrow and `adopt` leaves the config alone. `espalier init` writes no ignore list unless asked, so that is the common case; the narrowing matters for a repository that reached for [`--ignore-all`](../init/README.MD#--ignore-all) to keep a build green while it was being described.
+When no entry covers the path, there is nothing to narrow and `adopt` leaves the file alone. `espalier init` writes no backlog unless asked, so that is the common case; the narrowing matters for a repository that reached for [`--ignore-all`](../init/README.MD#--ignore-all) to keep a build green while it was being described.
 
 ## What it refuses
 
@@ -71,7 +71,7 @@ Three targets, all for the same reason — the run could not produce a module th
 
 A path outside the repository, or one that is not a directory. The espalier root, which is not itself governed. And a path with a dot-prefixed segment: `espalier/.cursor/rules/` is skipped by the compiler, so `adopt .cursor` would report modules written and exit `0` while `lint` went on calling every file under it undeclared. All three fail with `invalid_adopt_target`.
 
-Dot-prefixed paths *inside* an adopted directory are simply not inferred from — they are tooling rather than architecture, and [MATCHING.MD](../../MATCHING.MD#node-kinds) has the reasoning. They are not declared optional either, which is what everything else the inference passes over now becomes: a dot-prefixed path cannot be declared at all, so there is no module to write and nothing for the architect to revisit. `ignore` is where they belong.
+Dot-prefixed paths *inside* an adopted directory are simply not inferred from — they are tooling rather than architecture, and [MATCHING.MD](../../MATCHING.MD#node-kinds) has the reasoning. They are not declared optional either, which is what everything else the inference passes over now becomes: a dot-prefixed path cannot be declared at all, so there is no module to write and nothing for the architect to revisit. `.espalierignore` is where they belong.
 
 The espalier root and the configuration are not inferred from either, for the reason they are invisible to matching: espalier does not describe its own machinery. Nor are they evidence of a shape — with `root: tools/espalier`, counting the espalier root as a sibling is how `adopt tools` turns `tools/espalier/` and `tools/lib/` into one dynamic directory nobody chose.
 
@@ -191,7 +191,7 @@ Three kinds of line, tagged as such under `--format jsonl`:
 |---|---|
 | `written` | a stub rule module this run created |
 | `skipped` | a rule module that already existed and was left alone |
-| `narrowed` | an `ignore` entry that was replaced |
+| `narrowed` | an `.espalierignore` entry that was replaced |
 
 A `written` line carries `optional` when the module it wrote declares the file optional, and `--format human` marks the same line:
 
@@ -208,7 +208,7 @@ written   espalier/src/clients/[client]/webhook.ts.mjs  (optional)
 
 The marker is there because the three `written` lines are not equally trustworthy. `client.ts` was observed in every sibling; `webhook.ts` was observed in one, and whether that makes webhooks part of the shape or makes that sibling unusual is the question only the architect can answer. A report that printed them identically would be hiding its least confident guess among its most confident ones.
 
-There is no kind for a file the inference declined to declare, because it no longer declines. Every visible file under the target is named by a module when the run finishes, and the run's output is what it wrote rather than what it gave up on.
+There is no kind for a file the inference declined to declare, because it never declines. Every visible file under the target is named by a module when the run finishes, so the report is what was written rather than what was given up on.
 
 `--dry-run` prints exactly these lines and writes nothing.
 
