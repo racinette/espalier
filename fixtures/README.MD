@@ -100,6 +100,21 @@ A clean run says nothing about who owns what. A matcher that handed every file t
 
 **A fixture that runs `lint` should carry an `ownership` map.** It costs a line per file and it is the only assertion that fails when a file quietly changes hands.
 
+## The agreement sweep
+
+Every fixture whose espalier compiles is also swept for **disagreement between commands**, whether or not it wrote anything asking for it. Nothing needs to be added to `expected.json`; there is nothing to write.
+
+The sweep asserts relationships rather than answers:
+
+- A path `explain` calls owned is a path `lint` enumerated. Claiming an owner for a file no walk reached is how a symlink came to be governed by one command and invisible to the other.
+- A path nothing excluded is a path something enumerated. There is no third category.
+- What `explain` says excludes a path is what the repository says excludes it.
+- For every directory holding a governed file, `explain` on that *prefix* declares the rule that owns it. The prefix form walks the trie itself instead of resolving one path through it, so this is the half that catches a walk losing its captures on the way down — the node it fails to reach declares nothing, and every owner beneath it goes missing. Asking `explain` about a *file* would not: that path resolves through the same function `lint` does, and comparing a function with itself pins nothing.
+
+Paths inside a child espalier are answered by that child, so the sweep opens it and asks it, rather than comparing two different questions.
+
+This exists because the bugs that have actually happened here were not wrong answers, they were two commands giving different ones — and every assertion above this line describes a single command's output. Line coverage cannot see it either: the code was running the whole time. Nobody had compared the results.
+
 **`stderr`** — fragments the `lint` run must write to stderr. For effects with no reporting channel: addon disposal happens after the last issue is emitted and after the exit code is decided, so a marker on stderr is the only way to see it happened.
 
 **`error`** — for `exit: 2`, the operational failure that must be reported. The espalier never compiles, so `issues` is empty.

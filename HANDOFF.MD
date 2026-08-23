@@ -41,6 +41,12 @@ sibling-overlap decision procedure, and every operational failure code
 instrumentation, which merges the subprocess runs the fixtures spawn; without
 that merge the CLI would read as untested.
 
+Every fixture that compiles is also swept for cross-command disagreement — see
+`fixtures/README.MD`, "The agreement sweep". It asserts relationships rather
+than answers, so it needs no expectation written for it and runs everywhere. It
+roughly doubles the suite's wall time, which is the price of the only assertion
+that can see two commands answering differently.
+
 Both scripts `cd dist/test` and run a bare `node --test` rather than passing a
 path glob. Node only expands globs in test paths from v21, the declared floor is
 v20, and an unquoted `dist/test/*.test.js` is the shell expanding it — which

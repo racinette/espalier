@@ -16,6 +16,9 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { statSync } from "node:fs";
+import { open } from "../src/repository.js";
+import { isOwnership } from "../src/match.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..", "..");
@@ -143,6 +146,44 @@ function walk(dir: string, prefix = ""): string[] {
     const at = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
     if (entry.isDirectory()) found.push(...walk(path.join(dir, entry.name), at));
     else found.push(at);
+  }
+  return found;
+}
+
+/**
+ * Every path under `dir` as the tool would see it: links followed, a link onto
+ * a directory containing it refused. Separate from `walk` above, which compares
+ * generated trees and has no links to meet — this one is the independent list
+ * the agreement sweep asks about, so it must not be built from the thing it is
+ * checking.
+ */
+function walkFollowing(dir: string, prefix = "", ancestors?: Set<string>): string[] {
+  const stats = statSync(dir);
+  const seen = ancestors ?? new Set<string>([`${stats.dev}:${stats.ino}`]);
+  const found: string[] = [];
+
+  for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  )) {
+    const at = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
+    const absolute = path.join(dir, entry.name);
+    let resolved;
+    try {
+      resolved = statSync(absolute);
+    } catch {
+      // A link pointing nowhere. The run it is about fails, and a fixture
+      // asserting a failure is not swept.
+      continue;
+    }
+    if (!resolved.isDirectory()) {
+      if (resolved.isFile()) found.push(at);
+      continue;
+    }
+    const id = `${resolved.dev}:${resolved.ino}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    found.push(...walkFollowing(absolute, at, seen));
+    seen.delete(id);
   }
   return found;
 }
@@ -305,32 +346,193 @@ function checkWrites(dir: string, command: string, expected: WriteRun): void {
  * every other assertion here: a clean run says nothing about who owns what, and
  * a matcher handing files to the wrong rule would still exit 0 with no issues.
  */
-function checkOwnership(dir: string, expected: Record<string, string | null>): void {
-  // The espalier root is invisible to matching, so listing its modules would be
-  // a column of nulls. Everything else in the fixture is in scope, including
-  // paths `ignore` covers — those record `null` and are exactly the boundary
-  // worth writing down.
+/** What `explain` answered about one path, reduced to what is compared. */
+interface Answer {
+  rule: string | null;
+  ignoredBy: string | null;
+}
+
+/** The directories holding the given paths, including the root, sorted. */
+function directoriesOf(paths: string[]): string[] {
+  const found = new Set<string>([""]);
+  for (const at of paths) {
+    const segments = at.split("/");
+    for (let depth = 1; depth < segments.length; depth += 1) {
+      found.add(segments.slice(0, depth).join("/"));
+    }
+  }
+  return [...found].sort();
+}
+
+/**
+ * The paths a fixture is about: everything under it except the harness's own
+ * scaffolding, the config, and the espalier root — which is invisible to
+ * matching, so listing its modules would be a column of nulls.
+ */
+function subject(dir: string): string[] {
   const config = readFileSync(path.join(dir, "espalier.config.yaml"), "utf8");
   const espalierRoot = /^root:\s*(\S+)/m.exec(config)?.[1] ?? "espalier";
 
-  const files = walk(dir).filter((at) => {
+  return walkFollowing(dir).filter((at) => {
     const top = at.split("/")[0]!;
     return !SCAFFOLDING.has(top) && top !== "espalier.config.yaml" && top !== espalierRoot;
   });
+}
 
-  const actual: Record<string, string | null> = {};
-  for (const at of files) {
-    const explain = run(dir, ["explain", at, "--format", "jsonl"]);
-    const [answer] = parseLines(explain.stdout, `explain ${at}`);
-    const rule = answer?.["rule"];
-    actual[at] = typeof rule === "string" ? rule : null;
+function explainAll(dir: string, paths: string[]): Map<string, Answer> {
+  const answers = new Map<string, Answer>();
+  for (const at of paths) {
+    const [line] = parseLines(run(dir, ["explain", at, "--format", "jsonl"]).stdout, `explain ${at}`);
+    const rule = line?.["rule"];
+    const ignoredBy = line?.["ignoredBy"];
+    answers.set(at, {
+      rule: typeof rule === "string" ? rule : null,
+      ignoredBy: typeof ignoredBy === "string" ? ignoredBy : null,
+    });
   }
+  return answers;
+}
+
+function checkOwnership(expected: Record<string, string | null>, answers: Map<string, Answer>): void {
+  // Hand-written, and kept alongside the derived check below because it is
+  // written from the specification rather than from the implementation: it is
+  // the one oracle here that cannot agree with a bug by construction.
+  const actual: Record<string, string | null> = {};
+  for (const [at, answer] of answers) actual[at] = answer.rule;
 
   assert.deepEqual(
     actual,
     expected,
     "ownership: every file in the fixture must appear, with no extras",
   );
+}
+
+/**
+ * Every command must answer the same way about the same path.
+ *
+ * Nothing above this can see a disagreement. A fixture pins what one run
+ * reports, and the bugs that have actually happened here were two runs
+ * reporting different things about one file: `explain` calling a path owned
+ * while `lint` never enumerated it, or the two walking a resolved directory
+ * with different captures in hand. Both were invisible to every assertion in
+ * the suite and to line coverage, which counts execution rather than agreement.
+ *
+ * So this asserts the relationships rather than the answers, and needs no
+ * expectation written for it — which is why it runs on every fixture instead of
+ * the ones somebody remembered to write a map for.
+ */
+async function checkAgreement(dir: string, paths: string[], answers: Map<string, Answer>): Promise<void> {
+  await sweep(dir, "", paths, answers);
+}
+
+/**
+ * One espalier's share of the sweep, then each of its children's.
+ *
+ * `explain` delegates to the nearest espalier at or above a path, so the answer
+ * already in hand for `packages/api/index.ts` came from the espalier in
+ * `packages/api`. Comparing it against the *parent* would be comparing two
+ * different questions; the child is opened and asked its own.
+ */
+async function sweep(
+  root: string,
+  prefix: string,
+  paths: string[],
+  answers: Map<string, Answer>,
+): Promise<void> {
+  let repository;
+  try {
+    repository = await open(undefined, path.join(root, prefix));
+  } catch {
+    // A child that will not compile reports its failure and describes nothing.
+    // The fixture asserting that failure is what pins it.
+    return;
+  }
+
+  const under = prefix === "" ? paths : paths.filter((at) => at.startsWith(`${prefix}/`));
+  const deferred: string[] = [];
+
+  for (const at of under) {
+    const relative = prefix === "" ? at : at.slice(prefix.length + 1);
+    if (repository.children.some((child) => relative.startsWith(`${child}/`))) {
+      deferred.push(at);
+      continue;
+    }
+
+    const answer = answers.get(at)!;
+    const excluded = repository.ungoverned(relative);
+    const enumerated = repository.visibleSet.has(relative);
+
+    // Claiming an owner for a path no run enumerated is the shape the symlink
+    // hole had: `explain` walked the trie, `lint` walked the filesystem, and
+    // nothing compared the two.
+    if (answer.rule !== null) {
+      assert.ok(enumerated, `${at}: explain says it is owned, lint never saw it`);
+    }
+
+    if (excluded !== null) {
+      assert.equal(answer.ignoredBy, excluded, `${at}: explain disagrees about what excludes it`);
+      assert.equal(answer.rule, null, `${at}: excluded, and explain still named an owner`);
+      continue;
+    }
+
+    assert.ok(enumerated, `${at}: nothing excluded it and nothing enumerated it`);
+
+    // The trie walk `explain` does and the one `lint` resolves ownership with
+    // must land on the same rule, captures and all.
+    const owner = repository.resolve(relative);
+    assert.equal(
+      answer.rule,
+      isOwnership(owner) ? owner.rule.modulePath : null,
+      `${at}: explain and lint resolve different owners`,
+    );
+  }
+
+  // The prefix form walks the trie itself rather than resolving one path
+  // through it, so asking it about a file would compare `resolve` with
+  // `resolve`. Asking it about a directory is what catches a walk that loses
+  // the captures on the way down: the node it fails to reach declares nothing,
+  // and every rule that owns a file under it goes missing from the answer.
+  const governed = under.filter((at) => {
+    const relative = prefix === "" ? at : at.slice(prefix.length + 1);
+    return !deferred.includes(at) && repository.visibleSet.has(relative);
+  });
+
+  for (const directory of directoriesOf(
+    governed.map((at) => (prefix === "" ? at : at.slice(prefix.length + 1))),
+  )) {
+    const owners = new Set<string>();
+    for (const at of governed) {
+      const relative = prefix === "" ? at : at.slice(prefix.length + 1);
+      if (directory !== "" && !relative.startsWith(`${directory}/`)) continue;
+      const owner = repository.resolve(relative);
+      if (isOwnership(owner)) owners.add(owner.rule.modulePath);
+    }
+    if (owners.size === 0) continue;
+
+    const target = directory === "" ? "." : `${directory}/`;
+    const at = prefix === "" ? target : path.join(prefix, target) + (directory === "" ? "/" : "");
+    const [line] = parseLines(
+      run(root, ["explain", at, "--format", "jsonl"]).stdout,
+      `explain ${at}`,
+    );
+    const listed = new Set(
+      ((line?.["rules"] as { rule?: unknown }[] | undefined) ?? [])
+        .map((entry) => entry.rule)
+        .filter((rule): rule is string => typeof rule === "string"),
+    );
+
+    for (const owner of owners) {
+      assert.ok(
+        listed.has(owner),
+        `explain ${at}: does not declare ${owner}, which owns a file under it`,
+      );
+    }
+  }
+
+  for (const child of repository.children) {
+    const at = prefix === "" ? child : `${prefix}/${child}`;
+    await sweep(root, at, deferred, answers);
+  }
 }
 
 function lintIn(dir: string, scratch: string, expected: Expected): void {
@@ -474,7 +676,7 @@ function checkLint(dir: string, expected: Expected): void {
 }
 
 for (const name of fixtures) {
-  test(name, () => {
+  test(name, async () => {
     const dir = path.join(fixturesDir, name);
     const expected = JSON.parse(
       readFileSync(path.join(dir, "expected.json"), "utf8"),
@@ -483,7 +685,18 @@ for (const name of fixtures) {
     // A fixture asserts a lint run, a build run, or both. The harness runs
     // only what is asserted.
     if (expected.exit !== undefined) checkLint(dir, expected);
-    if (expected.ownership !== undefined) checkOwnership(dir, expected.ownership);
+
+    // Every fixture whose espalier compiles is swept, whether or not it wrote
+    // an ownership map. A fixture that fails before matching has nothing to
+    // agree about.
+    if (expected.exit !== 2 && expected.error === undefined && existsSync(path.join(dir, "espalier.config.yaml"))) {
+      const paths = subject(dir);
+      const answers = explainAll(dir, paths);
+      if (expected.ownership !== undefined) checkOwnership(expected.ownership, answers);
+      await checkAgreement(dir, paths, answers);
+    } else if (expected.ownership !== undefined) {
+      checkOwnership(expected.ownership, explainAll(dir, subject(dir)));
+    }
     if (expected.build !== undefined) checkWrites(dir, "build", expected.build);
     if (expected.init !== undefined) checkWrites(dir, "init", expected.init);
     if (expected.adopt !== undefined) checkWrites(dir, "adopt", expected.adopt);
