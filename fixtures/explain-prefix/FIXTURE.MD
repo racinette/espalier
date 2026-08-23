@@ -28,14 +28,15 @@ node's children. They have different keys because they are different things:
 including in the `unexpected_path` metadata `lint` emits. Reusing it for a
 flattened subtree listing would be one key with two shapes.
 
-## Cardinality is not re-derived
+## The answer is not re-derived
 
-The `cardinality` string comes from the same code that writes the closed-set
-statement into `AGENTS.MD`. The root's sentence names both dynamic leaves by
-their full relative paths and `components/`'s names them relative to itself —
-the same relativity rule `build` uses, from the same function. `explain` and
-the generated documentation cannot disagree, because there is nothing between
-them to disagree.
+`map` and `closedSet` come from the same code that writes the map and the
+closed-set sentence into `AGENTS.MD`. The human form draws that map with the
+same function `build` draws it with, so the branch characters, the suffixes and
+the alignment are one implementation. The root's map reaches both dynamic
+leaves through `components/` and `components/`'s starts at them — the same
+relativity rule, from the same walk. `explain` and the generated documentation
+cannot disagree, because there is nothing between them to disagree.
 
 It is asserted unwrapped. Line breaks belong to `build`, which is writing
 prose into a file; a JSON consumer wants the sentence.

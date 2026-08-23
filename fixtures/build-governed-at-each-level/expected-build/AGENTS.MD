@@ -2,16 +2,19 @@
 
 ## Structure
 
-    └─ main.ts  the application entry point, required
+    ├─ tools/        developer tooling
+    │
+    │  └─ [tool].ts  a developer tool, any number, any name
+    │
+    └─ main.ts       the application entry point, required
 
 Nothing else may exist under this directory.
 
 ## Governed elsewhere
 
-    packages/api/  has an espalier of its own
-    packages/web/  has an espalier of its own
+    tools/reports/  has an espalier of its own
 
-Read the documentation inside each one.
+Read the documentation inside it.
 
 ## Not described here
 

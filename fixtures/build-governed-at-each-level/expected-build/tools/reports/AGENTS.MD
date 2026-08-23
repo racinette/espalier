@@ -2,30 +2,22 @@
 
 ## Structure
 
-    └─ main.ts  the application entry point, required
+    └─ index.ts  the report entry point, required
 
 Nothing else may exist under this directory.
 
-## Governed elsewhere
-
-    packages/api/  has an espalier of its own
-    packages/web/  has an espalier of its own
-
-Read the documentation inside each one.
-
 ## Not described here
 
-    .espalierignore       Configuration. Read by `espalier`, not by this
+    espalier.config.yaml  Configuration. Read by `espalier`, not by this
                           project.
-    espalier.config.yaml
     espalier/
     AGENTS.MD             Written by `espalier build` from the rules above.
 
 Nothing above describes these, so nothing here tells you how to write them. That makes them a poor place to put work that belongs in the list above: a file with nowhere legal to go is a gap to report, not one to route around.
 
-## main.ts — the application entry point
+## index.ts — the report entry point
 
-Wire up the application and start it.
+Export one render function.
 
 ## Checking your work
 

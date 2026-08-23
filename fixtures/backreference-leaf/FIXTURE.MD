@@ -23,9 +23,10 @@ Three claims, and the exhaustive `ownership` map is what separates them:
   espalier at compile time.
 
 The map orders them `{provider}.ts` before `[helper].ts` — static, then
-resolved, then dynamic — and the cardinality paragraph names the resolved leaf
-as authored, because the paragraph describes the rule rather than any one
-provider.
+resolved, then dynamic — and names the resolved leaf as authored, with the
+suffix saying what the brace holds: `{provider} repeats what [provider]
+matched`. The map describes the rule rather than any one provider, so it cannot
+print `stripe.ts` and must say what the name will be instead.
 
 `explain` pins the lossy normalization stated in
 [MATCHING.MD](../../docs/MATCHING.MD#normalization): the pattern is

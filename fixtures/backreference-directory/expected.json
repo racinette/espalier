@@ -27,7 +27,7 @@
             "rule": "clients/[provider]/{provider}/[handler].ts.mjs"
           }
         ],
-        "cardinality": "Zero or more files matching `[handler].ts` may exist. Nothing else may exist under clients/stripe/stripe/."
+        "closedSet": "Nothing else may exist under clients/stripe/stripe/."
       }
     },
     "clients/twilio/twilio/sms.ts": {

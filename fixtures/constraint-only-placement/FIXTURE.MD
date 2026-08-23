@@ -6,7 +6,7 @@ it, the longest static prefix of its directory.
 
 So `backend/AGENTS.MD` has **no trie node**, and the two sections that come
 from one are omitted along with their headings: no `## Structure`, no
-cardinality paragraph. There is nothing to say about what may exist under
+closed-set sentence. There is nothing to say about what may exist under
 `backend/`, because the espalier does not say. Writing an empty map, or a
 closed-set sentence over an empty set, would be inventing an answer.
 

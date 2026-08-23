@@ -16,11 +16,12 @@ Two optional leaves, in the two positions that behave differently:
 
 `main.ts` and `[client]/client.ts` are required and present, so a fix that
 simply stopped requiring anything would still fail — the ownership map and the
-cardinality paragraph both name them.
+generated map both name them.
 
-The paragraph pins both new sentences from
-[cli/build/README.MD](../../docs/cli/build/README.MD#the-cardinality-paragraph):
-`notes.md is optional.` on the spine, and `Each one may also have webhook.ts.`
-per instance. They are separate sentences from the required ones deliberately —
-one tells an agent what it must produce, the other what it may — so a rendering
-that merged them would read as the same claim and fails here.
+The map pins the suffixes from
+[cli/build/README.MD](../../docs/cli/build/README.MD#suffixes): `notes.md` and
+`webhook.ts` carry `optional`, `main.ts` and `client.ts` carry `required`, and
+neither is a default. A rendering that left the optional ones unmarked, or that
+marked requiredness only at the top of the map, fails here — `webhook.ts` is
+optional inside every `[client]/`, and the line it sits on is where that has to
+be said.

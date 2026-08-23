@@ -19,6 +19,6 @@ claim:
   survives with the example alone, so the fix cannot be "drop any section whose
   rule is empty".
 
-The map and the cardinality paragraph are unaffected either way. What a node
+The map is unaffected either way. What a node
 declares is a matcher question, and an empty `rule` does not make a file less
 required.

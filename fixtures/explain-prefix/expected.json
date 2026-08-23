@@ -28,7 +28,14 @@
             "required": false
           }
         ],
-        "cardinality": "Zero or more files matching `buttons/[button].tsx` may exist. Zero or more files matching `layouts/[layout].tsx` may exist. Nothing else may exist under components/.",
+        "map": [
+          { "path": "buttons/", "description": null, "required": null },
+          { "path": "buttons/[button].tsx", "description": "a button component", "required": null },
+          { "path": "layouts/", "description": null, "required": null },
+          { "path": "layouts/[layout].tsx", "description": "a layout component", "required": null }
+        ],
+        "closedSet": "Nothing else may exist under components/.",
+        "governed": [],
         "constraints": [
           {
             "name": "no-as-any",
@@ -57,7 +64,7 @@
         "kind": "explanation",
         "prefix": "",
         "description": "a small example application",
-        "cardinality": "main.ts is required. Zero or more files matching `components/buttons/[button].tsx` may exist. Zero or more files matching `components/layouts/[layout].tsx` may exist. Nothing else may exist under this directory."
+        "closedSet": "Nothing else may exist under this directory."
       }
     },
     "main.ts": {

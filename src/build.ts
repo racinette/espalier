@@ -234,7 +234,6 @@ function planFor(
           point,
           repository.config.espalierRoot,
           assigned.get(point.at) ?? [],
-          repository.children,
           excluded.get(point.at) ?? [],
         ),
       );

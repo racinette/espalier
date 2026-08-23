@@ -17,7 +17,7 @@ demoted from `##` to `###`. The rule body itself is the same bytes it would
 have been distributed — `--inline` is a placement decision, not a second
 rendering.
 
-The section carries no cardinality paragraph of its own. This fixture argued
+The section carries no closed-set sentence of its own. This fixture argued
 the other way once — that an agent scrolled to the section for the directory it
 is working in should find the closed-set statement there rather than screens up
 — and the distance it assumed is not a distance this format produces. The whole
@@ -26,10 +26,9 @@ what the section's would have said. Stated twice it reads as two rules, because
 each is written relative to its own point: `[button].tsx` here against
 `components/buttons/[button].tsx` above.
 
-There is one map and one cardinality paragraph, both at the root, because the
-root's were always the whole repository and the paragraph is that map restated
-in prose. There is one amendment instruction, at the end, because there is one
-file.
+There is one map and one closed-set sentence, both at the root, because the
+root's were always the whole repository. There is one amendment instruction, at
+the end, because there is one file.
 
 `--inline` and `build.inline: true` in the config mean the same thing; this
 fixture uses the flag so that the config stays comparable with the others.

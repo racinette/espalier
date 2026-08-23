@@ -7,7 +7,7 @@
 
 import type { Constraint, Espalier, NodeDoc, StructuralRule, TrieNode } from "./compile.js";
 import { PROVENANCE } from "./files.js";
-import { backrefNames, type Segment } from "./pattern.js";
+import { backrefNames, parseSegment, type Segment } from "./pattern.js";
 
 export const AMENDING = `## Amending this structure
 
@@ -254,134 +254,184 @@ export function plan(espalier: Espalier): Placement[] {
 }
 
 /**
+ * One node of the map, as data. `build` draws it and `explain` reports it, so
+ * the two answer from one list rather than from two walks that agree today.
+ * docs/cli/build/README.MD "The map".
+ */
+export interface MapEntry {
+  /** Authored form, relative to the point, with a trailing `/` for a directory. */
+  path: string;
+  description: string | null;
+  /**
+   * Null where the espalier names no file: a directory, whose existence is its
+   * contents', and a dynamic leaf, which answers `any number, any name`.
+   */
+  required: boolean | null;
+}
+
+export function mapEntries(espalier: Espalier, node: TrieNode, at: string): MapEntry[] {
+  const entries: MapEntry[] = [];
+
+  for (const visit of subtree(node)) {
+    const directory = isDirectory(visit.node);
+    entries.push({
+      path: visit.at + (directory ? "/" : ""),
+      description: directory
+        ? (espalier.nodes.get(under(at, visit.at))?.description ?? null)
+        : (visit.node.rule?.module.description ?? null),
+      required:
+        directory || visit.node.segment.dynamic
+          ? null
+          : visit.node.rule?.module.optional !== true,
+    });
+  }
+
+  return entries;
+}
+
+/**
  * What one map line says after its name. Each suffix is true of the line it
  * sits on and of nothing else, so a reader never has to work out which
  * directory or which depth is being talked about.
  * docs/cli/build/README.MD "Suffixes".
  */
-function suffixes(node: TrieNode): string[] {
+function suffixes(entry: MapEntry): string[] {
   const marks: string[] = [];
+  const name = entry.path.endsWith("/") ? entry.path.slice(0, -1) : entry.path;
+  const segment = parseSegment(name.slice(name.lastIndexOf("/") + 1), "map");
 
-  // Named leaves only. A dynamic leaf has no name to require, and `any number,
-  // any name` already says zero or more; a directory exists exactly when the
-  // files inside it do, so requiring one would restate them or claim an empty
-  // directory satisfies something.
-  if (!isDirectory(node) && !node.segment.dynamic) {
-    marks.push(node.rule?.module.optional === true ? "optional" : "required");
-  }
-
-  if (node.segment.dynamic) marks.push("any number, any name");
+  if (entry.required !== null) marks.push(entry.required ? "required" : "optional");
+  if (segment.dynamic) marks.push("any number, any name");
 
   // What the capture holds, not what the segment was: under
   // `[provider]-provider/`, `{provider}Impl.ts` is `stripeImpl.ts`, and "the
   // same name as the directory" would be wrong.
-  for (const name of backrefNames(node.segment)) {
-    marks.push(`{${name}} repeats what [${name}] matched`);
+  for (const held of backrefNames(segment)) {
+    marks.push(`{${held}} repeats what [${held}] matched`);
   }
 
   return marks;
 }
 
-interface MapRow {
-  /** Branch characters and name. */
-  line: string;
-  /** What a continuation line hangs under: the branches, no name. */
-  under: string;
-  /** The branches a guide row below this line carries, already trimmed. */
-  guide: string;
-  text: string | null;
-}
+const parentOf = (path: string): string => {
+  const trimmed = path.endsWith("/") ? path.slice(0, -1) : path;
+  const cut = trimmed.lastIndexOf("/");
+  return cut === -1 ? "" : trimmed.slice(0, cut);
+};
 
-function renderMap(espalier: Espalier, point: Placement): string | null {
-  if (point.node === null) return null;
+/**
+ * The map as lines, without the indent its caller adds. Branch characters,
+ * one text column, and a guide row wherever text is involved — a wrapped
+ * description otherwise leaves a reader deciding whether the line below
+ * continues it or begins a new entry. docs/cli/build/README.MD "The map".
+ *
+ * The tree is read back out of the paths, which are depth-first: an entry is
+ * the last of its siblings when no later entry shares its parent.
+ */
+export function drawMap(entries: MapEntry[], width: number): string[] {
+  if (entries.length === 0) return [];
 
-  const rows: MapRow[] = [];
+  const seen = new Set<string>();
+  const last: boolean[] = [];
+  const children = new Map<string, number>();
+  for (let i = entries.length - 1; i >= 0; i -= 1) {
+    const parent = parentOf(entries[i]!.path);
+    last[i] = !seen.has(parent);
+    seen.add(parent);
+    children.set(parent, (children.get(parent) ?? 0) + 1);
+  }
 
-  const walk = (node: TrieNode, at: string, bars: string): void => {
-    const children = ordered(node);
+  interface Row {
+    line: string;
+    /** What a continuation line hangs under: the branches, no name. */
+    under: string;
+    /** The branches a guide row below this line carries, already trimmed. */
+    guide: string;
+    text: string | null;
+  }
 
-    children.forEach((child, index) => {
-      const last = index === children.length - 1;
-      const path = under(at, child.display);
-      const directory = isDirectory(child);
-      const inside = directory ? ordered(child) : [];
+  const rows: Row[] = [];
+  // Whether the node on the current path at each depth still has siblings to
+  // come, which is what decides between a bar and three spaces below it.
+  const open: boolean[] = [];
 
-      // Where a continuation of this line hangs: the branch this entry sits on
-      // stays open only while a sibling is still to come.
-      const beneath = bars + (last ? "   " : "│  ");
+  entries.forEach((entry, index) => {
+    const name = entry.path.endsWith("/") ? entry.path.slice(0, -1) : entry.path;
+    const depth = name.split("/").length - 1;
+    const bars = open
+      .slice(0, depth)
+      .map((carries) => (carries ? "│  " : "   "))
+      .join("");
+    open[depth] = !last[index]!;
 
-      const description = directory
-        ? (espalier.nodes.get(under(point.at, path))?.description ?? null)
-        : (child.rule?.module.description ?? null);
-      const marks = suffixes(child);
-      const text = [description, ...marks].filter((entry) => entry !== null).join(", ");
+    // Where a continuation of this line hangs: the branch this entry sits on
+    // stays open only while a sibling is still to come.
+    const beneath = bars + (last[index] ? "   " : "│  ");
+    const text = [entry.description, ...suffixes(entry)]
+      .filter((piece) => piece !== null)
+      .join(", ");
 
-      rows.push({
-        line: bars + (last ? "└─ " : "├─ ") + child.display + (directory ? "/" : ""),
-        under: beneath,
-        // A directory's guide row descends one level, to the branch its own
-        // children hang from. docs/cli/build/README.MD "The map".
-        guide: (directory ? beneath + (inside.length > 1 ? "│" : "") : beneath).trimEnd(),
-        text: text === "" ? null : text,
-      });
-
-      if (directory) walk(child, path, beneath);
+    rows.push({
+      line: bars + (last[index] ? "└─ " : "├─ ") + name.slice(name.lastIndexOf("/") + 1) + (entry.path.endsWith("/") ? "/" : ""),
+      under: beneath,
+      // A directory's guide row descends one level, to the branch its own
+      // children hang from.
+      guide: (entry.path.endsWith("/")
+        ? beneath + ((children.get(name) ?? 0) > 1 ? "│" : "")
+        : beneath
+      ).trimEnd(),
+      text: text === "" ? null : text,
     });
-  };
-
-  walk(point.node, "", "");
-
-  if (rows.length === 0) return null;
+  });
 
   // Two spaces after the longest rendered line, counting the branch characters
-  // and not the four spaces of the code block, which are added to every line
-  // afterwards and so cannot change the alignment.
+  // and not the indent the caller adds, which reaches every line alike and so
+  // cannot change the alignment.
   const column = Math.max(...rows.map((row) => row.line.length)) + 2;
-  const width = WIDTH - 4 - column;
+  const room = width - column;
 
   const lines: string[] = [];
 
   rows.forEach((row, index) => {
     if (row.text === null) {
-      lines.push(`    ${row.line}`);
+      lines.push(row.line);
     } else {
-      const [first, ...rest] = wrap(row.text, width).split("\n");
-      lines.push(`    ${row.line.padEnd(column)}${first}`);
-      for (const piece of rest) lines.push(`    ${row.under.padEnd(column)}${piece}`);
+      const [first, ...rest] = wrap(row.text, room).split("\n");
+      lines.push(row.line.padEnd(column) + first);
+      for (const piece of rest) lines.push(row.under.padEnd(column) + piece);
     }
 
-    // A guide row wherever text is involved: a wrapped description otherwise
-    // leaves a reader deciding whether the line below continues it or begins a
-    // new entry. Two silent entries have no thread to lose.
     const next = rows[index + 1];
     if (next !== undefined && (row.text !== null || next.text !== null)) {
-      lines.push(`    ${row.guide}`.trimEnd());
+      lines.push(row.guide);
     }
   });
 
-  return lines.join("\n");
+  return lines;
 }
 
+function renderMap(espalier: Espalier, point: Placement): string | null {
+  if (point.node === null) return null;
+  const lines = drawMap(mapEntries(espalier, point.node, point.at), WIDTH - 4);
+  return lines.length === 0 ? null : lines.map((line) => `    ${line}`.trimEnd()).join("\n");
+}
 /**
- * Which placement point names each child espalier: the deepest one above it.
- * Exactly one document names each, and it is the one whose closed set would
- * otherwise have covered the directory.
- * docs/cli/build/README.MD "Governed elsewhere".
+ * Which placement points name each child espalier: every one whose closed set
+ * covers it. Each of those documents ends on the same absolute sentence, so
+ * each has to say what it defers to; naming the child only in the deepest one
+ * would leave the others claiming a directory a reader can see they do not
+ * govern. docs/cli/build/README.MD "Governed elsewhere".
  */
 export function assignChildren(points: Placement[], children: string[]): Map<string, string[]> {
   const assigned = new Map<string, string[]>();
 
   for (const child of children) {
-    let deepest = "";
     for (const point of points) {
-      if (point.at === "") continue;
-      if (child === point.at || child.startsWith(`${point.at}/`)) {
-        if (point.at.length > deepest.length) deepest = point.at;
-      }
+      if (point.at !== "" && child !== point.at && !child.startsWith(`${point.at}/`)) continue;
+      const found = assigned.get(point.at);
+      if (found === undefined) assigned.set(point.at, [child]);
+      else found.push(child);
     }
-    const found = assigned.get(deepest);
-    if (found === undefined) assigned.set(deepest, [child]);
-    else found.push(child);
   }
 
   return assigned;
@@ -406,15 +456,16 @@ function renderChildren(at: string, children: string[], level: number): string[]
     .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
 
   const column = Math.max(...names.map((name) => name.length)) + 2;
-  const rows = names.map((name) => `    ${name.padEnd(column)}has an espalier of its own`);
+  const rows = names.map((name) => `    ${name.padEnd(column)}${OWNED}`);
 
-  return [
-    `${"#".repeat(level)} Governed elsewhere`,
-    rows.join("\n"),
-    names.length === 1
-      ? "Read the documentation inside it."
-      : "Read the documentation inside each one.",
-  ];
+  return [`${"#".repeat(level)} Governed elsewhere`, rows.join("\n"), readInside(names.length)];
+}
+
+/** What a child espalier's line says, wherever the list is drawn. */
+export const OWNED = "has an espalier of its own";
+
+export function readInside(count: number): string {
+  return count === 1 ? "Read the documentation inside it." : "Read the documentation inside each one.";
 }
 
 /** One excluded entry in a directory, and why it is excluded. */
@@ -482,76 +533,23 @@ function renderExcluded(entries: Excluded[], level: number): string[] {
 }
 
 /**
- * What `explain` answers a directory prefix with, as one unwrapped string: the
- * same subtree the generated map covers, said in prose, because a terminal
- * answering one query is not the place for a drawing of the whole subtree. It
- * ends on `closedSet`, which is the sentence `build` writes — so the one claim
- * both make is made once. docs/cli/explain/README.MD "A prefix".
- */
-export function cardinality(node: TrieNode, at: string, defers = false): string {
-  const sentences: string[] = [];
-  const { required, optional } = leavesUnder(node);
-  if (required.length > 0) {
-    sentences.push(`${list(required)} ${required.length === 1 ? "is" : "are"} required.`);
-  }
-  // Its own sentence rather than a qualifier inside the first: the two are
-  // addressed to the same reader for opposite purposes, one being what an
-  // agent must produce and the other what it may.
-  // docs/cli/explain/README.MD "A prefix".
-  if (optional.length > 0) {
-    sentences.push(`${list(optional)} ${optional.length === 1 ? "is" : "are"} optional.`);
-  }
-
-  for (const visit of subtree(node)) {
-    if (!visit.node.segment.dynamic) continue;
-
-    if (isDirectory(visit.node)) {
-      sentences.push(`Zero or more \`${visit.at}/\` directories may exist.`);
-      const inside = leavesUnder(visit.node);
-      if (inside.required.length > 0) {
-        sentences.push(
-          `For each one that does, ${list(inside.required)} ${inside.required.length === 1 ? "is" : "are"} required.`,
-        );
-      }
-      if (inside.optional.length > 0) {
-        sentences.push(`Each one may also have ${list(inside.optional)}.`);
-      }
-    } else {
-      sentences.push(`Zero or more files matching \`${visit.at}\` may exist.`);
-    }
-  }
-
-  sentences.push(closedSet(at, defers));
-
-  return sentences.join(" ");
-}
-
-/**
  * The sentence the map ends on, and the whole of what `build` writes under it.
  * What must exist, what may, and what repeats what are marked on the lines
  * they belong to; a paragraph restating them below would be a second
  * description of one subtree. docs/cli/build/README.MD "The closed set".
  */
-export function closedSet(at: string, defers: boolean): string {
+export function closedSet(at: string): string {
   // No path to print at an espalier's own root — it would be `under .` — so the
   // sentence anchors on the file's location instead. A document cannot know
   // where it sits in an outer tree, and in a package "the repository root" is
   // wrong on both counts.
   const where = at === "" ? "this directory" : `${at}/`;
-  // Where a child espalier falls inside the closed set, it defers rather than
-  // stating something the reader can see is untrue — listing them after an
-  // absolute sentence would not retract it. Stated in general rather than by
-  // name, because every document whose subtree covers a child has to defer,
-  // while only the deepest one above it names them. "already" is load-bearing:
-  // this is an exception for the directories that have one, not a licence to
-  // create another.
-  const except = defers ? ", apart from the directories that already have an espalier of their own" : "";
-  return `Nothing else may exist under ${where}${except}.`;
+  return `Nothing else may exist under ${where}.`;
 }
 
-function renderClosedSet(point: Placement, covered: boolean): string | null {
+function renderClosedSet(point: Placement): string | null {
   if (point.node === null) return null;
-  return wrap(closedSet(point.at, covered));
+  return wrap(closedSet(point.at));
 }
 
 /** `**​/*.ts` and `**​/*.tsx` → "applies to TypeScript files throughout the project". */
@@ -668,16 +666,11 @@ function marker(espalierRoot: string, at: string): string {
 
 /** The body every document shares: prose, structure, sections. */
 /** Whether any child espalier falls inside this placement point's closed set. */
-function covers(at: string, children: string[]): boolean {
-  return children.some((child) => at === "" || child === at || child.startsWith(`${at}/`));
-}
-
 function core(
   espalier: Espalier,
   point: Placement,
   level: number,
   named: string[],
-  all: string[],
   excluded: Excluded[],
 ): string[] {
   const blocks: string[] = [];
@@ -685,7 +678,7 @@ function core(
   if (point.doc !== null && point.doc.body !== "") blocks.push(point.doc.body);
 
   const map = renderMap(espalier, point);
-  const closed = renderClosedSet(point, covers(point.at, all));
+  const closed = renderClosedSet(point);
 
   if (map !== null) {
     blocks.push(`${"#".repeat(level)} Structure`, map);
@@ -703,10 +696,9 @@ export function renderDistributed(
   point: Placement,
   espalierRoot: string,
   named: string[] = [],
-  all: string[] = named,
   excluded: Excluded[] = [],
 ): string {
-  const blocks = [marker(espalierRoot, point.at), ...core(espalier, point, 2, named, all, excluded)];
+  const blocks = [marker(espalierRoot, point.at), ...core(espalier, point, 2, named, excluded)];
   if (point.at === "") blocks.push(CHECKING);
   blocks.push(AMENDING);
   return `${blocks.join("\n\n")}\n`;
@@ -729,20 +721,18 @@ export function renderInline(
   const assigned = assignChildren(points, children);
   const blocks = [
     marker(espalierRoot, ""),
-    ...core(espalier, root, 2, assigned.get("") ?? [], children, excluded.get("") ?? []),
+    ...core(espalier, root, 2, assigned.get("") ?? [], excluded.get("") ?? []),
   ];
 
   for (const point of points) {
     if (point.at === "") continue;
-    // Prose and rule sections only. The root's map and closed-set sentence
-    // cover the whole repository already, and both are written relative to the
-    // point that produced them — folded in, they would state one rule several
-    // times over in words that differ every time.
+    // Prose and rule sections only. The root's map, closed-set sentence and
+    // list of child espaliers cover the whole repository already, and all are
+    // written relative to the point that produced them — folded in, they would
+    // state one rule several times over in words that differ every time.
     // docs/cli/build/README.MD "`--inline`".
-    const inside = assigned.get(point.at) ?? [];
     const body: string[] = [];
     if (point.doc !== null && point.doc.body !== "") body.push(point.doc.body);
-    body.push(...renderChildren(point.at, inside, 3));
     body.push(...renderSections(espalier, point, 3));
     // A point exists because it has a document or rules of its own, so this is
     // all but unreachable — a description with an empty body and nothing placed

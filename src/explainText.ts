@@ -6,6 +6,7 @@
 // the other does not get.
 
 import type { CaptureValue } from "./match.js";
+import { drawMap, type MapEntry, OWNED, readInside } from "./render.js";
 
 /** Descriptions align here, on every line that has one. */
 const COLUMN = 41;
@@ -45,7 +46,11 @@ export interface PrefixAnswer {
   body: string;
   captures: Record<string, CaptureValue>;
   rules: RuleAnswer[];
-  cardinality: string | null;
+  /** The same subtree `build` draws, as data. */
+  map: MapEntry[] | null;
+  closedSet: string | null;
+  /** Child espaliers inside the subtree, relative to the prefix. */
+  governed: string[];
   constraints: ConstraintAnswer[];
 }
 
@@ -197,16 +202,30 @@ export function renderExplanation(answer: Explanation): string {
     if (answeredBy !== null) blocks.push(answeredBy);
     if (answer.body !== "") blocks.push(answer.body);
 
-    if (answer.rules.length > 0) {
+    // The map `build` draws, from the same code and to the same width less
+    // this indent. docs/cli/explain/README.MD "A prefix".
+    if (answer.map !== null && answer.map.length > 0) {
       blocks.push(
         [
           "  Declared here:",
-          ...answer.rules.map((rule) => `    ${column(rule.path, COLUMN - 4)}${rule.description ?? ""}`.trimEnd()),
+          ...drawMap(answer.map, WIDTH + 2 - 4).map((line) => `    ${line}`.trimEnd()),
         ].join("\n"),
       );
     }
 
-    if (answer.cardinality !== null) blocks.push(wrap(answer.cardinality));
+    if (answer.closedSet !== null) blocks.push(wrap(answer.closedSet));
+
+    if (answer.governed.length > 0) {
+      const width = Math.max(...answer.governed.map((name) => name.length)) + 2;
+      blocks.push(
+        [
+          "  Governed elsewhere:",
+          ...answer.governed.map((name) => `    ${column(name, width)}${OWNED}`),
+          "",
+          `  ${readInside(answer.governed.length)}`,
+        ].join("\n"),
+      );
+    }
 
     for (const rule of answer.rules) {
       blocks.push(section(rule.path));

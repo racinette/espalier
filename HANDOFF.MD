@@ -542,6 +542,48 @@ holding that in check, which is why an entry without one renders bare. And
 `init` no longer escapes anything: `*.swp`, `!foo` and a bare `:` stop being
 hazards once they are not YAML.
 
+## Why the map is a tree
+
+The map used to be an indented list under a paragraph that restated it in
+prose: what is required, what is optional, one sentence per dynamic node, and
+the closed set. Eight sentences for a subtree the list above had already drawn.
+
+The paragraph had to name each node again to say anything about it, and naming
+it again meant naming it from somewhere — `required in every [command]`,
+`below is where?` — so every sentence carried a bearing the reader had to take
+before they could use it. The suffixes carry the same facts with no bearing at
+all: the line is the subject. `required`, `optional`, `any number, any name`,
+`{provider} repeats what [provider] matched`.
+
+The last of those is phrased around the capture rather than the segment because
+a capture is the matched text, not the name it was matched from:
+`[provider]-provider/` binds `provider = "stripe"`, so `{provider}Impl.ts` is
+`stripeImpl.ts`. "The same name as the directory" is right in one of the four
+shapes and wrong in the other three.
+
+Box drawing rather than indentation because the text wraps. A wrapped
+description under an indented list is a line a reader has to classify;
+under a branch it is not. The blank guide row between described entries is the
+same argument one step further.
+
+`explain <prefix>` draws the same map from the same function, and its `jsonl`
+carries the entries as data rather than the drawing. What survives of the
+paragraph is its last sentence, `Nothing else may exist under this directory.`,
+which is the only thing the tree does not say.
+
+## Why every covering document names a child espalier
+
+A child espalier sits inside the closed set of every document above it, and
+each of those ends on the same absolute sentence. Naming the child only in the
+deepest one left the others appending "apart from the directories that already
+have an espalier of their own" — a terminal statement with an exception bolted
+on, and the exception unnamed. Every covering document now lists it under
+`Governed elsewhere`, at its own path, and the sentence is absolute everywhere.
+
+`--inline` is the exception that proves it: one file, one closed set, so the
+root's list is the only one, and a folded section carries prose and rule
+sections alone.
+
 ## Known gaps
 
 Carrying `TODO`s in the code: none. The last one — `src/ignore.ts` being more

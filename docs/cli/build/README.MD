@@ -155,7 +155,7 @@ It is the only prose the structure gets. What must exist, what may, and what rep
 A directory holding an espalier of its own is not described by this one, and the closed-set sentence above would otherwise have said nothing else may exist here — which a reader who can see the directory reads as a lie, not as a subtlety. Naming them here is what makes the sentence true: the closed set is closed over what this espalier governs, and a directory listed in this section is visibly not that.
 
 ```markdown
-main.ts is required. Nothing else may exist under this directory.
+Nothing else may exist under this directory.
 
 ## Governed elsewhere
 
@@ -167,7 +167,9 @@ Read the documentation inside each one.
 
 An indented block, one line per child, sorted by path, aligned by the same rule as the map. Names are relative to the placement point and carry a trailing `/`. The closing sentence takes its singular form — `Read the documentation inside it.` — when there is one child.
 
-**Each child is named in exactly one document:** the one at the deepest placement point above it. A child two levels below the nearest placement point is still named there, as `tools/reports/`, because that is the document whose closed set would otherwise have covered it.
+**Every document whose closed set covers a child names it.** A child sits inside the subtree of every placement point above it, and each of those files ends on the same absolute sentence, so each of them has to say what it defers to — at its own path: `packages/api/` in the root file, `api/` in `packages/AGENTS.MD`. Naming it only in the deepest one would leave the others claiming a directory a reader can see they do not govern, and the alternative — appending an exception to the closed set — is a sentence that has stopped being terminal.
+
+A child several levels below the nearest placement point is named there too, as `tools/reports/`, since that is the file whose closed set covers it.
 
 The section names the children and stops. It does not say what they contain, which document to open, or what the child's `build.filename` is, because the outer espalier does not know and must not appear to: a summary of somebody else's rules is a second source of truth that goes stale silently. The reader is sent to the directory, where the child's own document is.
 

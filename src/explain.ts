@@ -11,7 +11,7 @@ import type { ConstraintAnswer, RuleAnswer } from "./explainText.js";
 import { constraintCaptures, isOwnership, type CaptureValue } from "./match.js";
 import type { Reporter } from "./output.js";
 import { matchSegment, resolveSegment } from "./pattern.js";
-import { cardinality, constraintGroups, isDirectory, requiredUnder, subtree } from "./render.js";
+import { closedSet, constraintGroups, isDirectory, mapEntries, requiredUnder, subtree } from "./render.js";
 import { delegated } from "./nested.js";
 import { open } from "./repository.js";
 
@@ -171,16 +171,15 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
       body: doc?.body ?? "",
       captures: found?.captures ?? {},
       rules,
-      cardinality:
-        found === null
-          ? null
-          : cardinality(
-              found.node,
-              target,
-              repository.children.some(
-                (child) => target === "" || child === target || child.startsWith(`${target}/`),
-              ),
-            ),
+      map: found === null ? null : mapEntries(espalier, found.node, found.authored),
+      closedSet: found === null ? null : closedSet(target),
+      // Named for the reason a generated document names them: the sentence
+      // above is absolute, and a boundary the reader can see has to be one the
+      // answer accounts for. docs/cli/build/README.MD "Governed elsewhere".
+      governed: repository.children
+        .filter((child) => target === "" || child === target || child.startsWith(`${target}/`))
+        .map((child) => `${child.slice(prefix.length)}/`)
+        .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0)),
       constraints: groups
         .filter((group) => reaches(group.prefix, target))
         .map(({ members: _members, prefix: _prefix, ...summary }) => summary),

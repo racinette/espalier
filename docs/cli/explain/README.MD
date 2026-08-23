@@ -41,12 +41,15 @@ Everything rendered by more than one screen lives here.
 A component used by exactly one screen belongs beside that screen instead.
 
   Declared here:
-    components/buttons/[button].tsx      a button component
-    components/layouts/[layout].tsx      a layout component
+    ├─ buttons/
+    │
+    │  └─ [button].tsx  a button component, any number, any name
+    │
+    └─ layouts/
 
-  Zero or more files matching `buttons/[button].tsx` may exist. Zero or more
-  files matching `layouts/[layout].tsx` may exist. Nothing else may exist under
-  components/.
+       └─ [layout].tsx  a layout component, any number, any name
+
+  Nothing else may exist under components/.
 
 ── components/buttons/[button].tsx ───────────────────────────────────
 
@@ -71,9 +74,11 @@ A component used by exactly one screen belongs beside that screen instead.
     Never write as any. Narrow the type instead.
 ```
 
-The closed-set sentence is the same text `espalier build` writes into `components/AGENTS.MD`, from the same function, wrapped to the same width less its indent.
+**The map, its suffixes and the closed-set sentence are the same text `espalier build` writes into `components/AGENTS.MD`,** from the same code, wrapped to the same width less its indent. What is required, what may repeat, and where the subtree ends are read off the same lines in both places.
 
 That matters more than it looks. The tempting alternative is to phrase it a second way here — "`[button]` matches one filename segment. Zero or more may exist." — which is the same fact in different words from a different code path, and two code paths stating one fact is a promise to drift. `explain` is the direct query and `build` is the written form of the same answer; if they can disagree, the tool has lost the property it exists to provide.
+
+A child espalier inside the subtree is named, for the reason the generated document names it: the closed-set sentence is absolute, and a boundary a reader can see has to be one the answer accounts for. See [build](../build/README.MD#governed-elsewhere).
 
 ## A path
 
@@ -162,7 +167,7 @@ A prefix is a different question. It lists what one espalier declares, so a pref
 
 Fixed, so the output is scannable and diffable:
 
-- Descriptions align to **column 41** — on the header line, in the declared list, and beside a constraint's patterns.
+- Descriptions align to **column 41** — on the header line and beside a constraint's patterns. The map aligns by its own rule, [as in a generated document](../build/README.MD#the-map).
 - A section rule is `── ` plus a title plus a space, padded with `─` to **70 columns**.
 - Composed prose wraps at **78** and is indented two, so nothing exceeds 80.
 - Text an author wrote — node prose, rule bodies — is never re-wrapped, exactly as in [build](../build/README.MD#rendering).
@@ -209,14 +214,16 @@ Carries the owning rule, the normalized pattern that matched, the captures, and 
 ### A prefix
 
 ```json
-{"kind":"explanation","prefix":"components/","description":"shared UI components","body":"","rules":[{"path":"components/buttons/[button].tsx","pattern":"components/buttons/*.tsx","rule":"components/buttons/[button].tsx.mjs","description":"a button component","ruleText":"Default-export a single component named after the file.","example":"components/buttons/SubmitButton.tsx","required":false}],"cardinality":"Zero or more files matching `buttons/[button].tsx` may exist. Nothing else may exist under components/.","constraints":[]}
+{"kind":"explanation","prefix":"components/","description":"shared UI components","body":"","rules":[{"path":"components/buttons/[button].tsx","pattern":"components/buttons/*.tsx","rule":"components/buttons/[button].tsx.mjs","description":"a button component","ruleText":"Default-export a single component named after the file.","example":"components/buttons/SubmitButton.tsx","required":false}],"map":[{"path":"buttons/","description":null,"required":null},{"path":"buttons/[button].tsx","description":"a button component","required":null}],"closedSet":"Nothing else may exist under components/.","governed":[],"constraints":[]}
 ```
 
 `rules` is every structural rule in the subtree, in the same order `build` lists them, with `required` false for anything the espalier does not insist on — a collection that may be empty, and a static leaf whose module exports `optional`. The two are different declarations and `path` tells them apart, but the question `required` answers is whether `lint` will report the file's absence, and for both the answer is no. `description` and `body` come from the directory's `ESPALIER.MD`.
 
 It is called `rules` rather than `declared` because `declared` already means something narrower and is already in the output above: the names of a node's immediate children, which is what `lint` attaches to `unexpected_path`. One key, one shape.
 
-`cardinality` is a single unwrapped string. Line breaks are `build`'s business, since only `build` is writing into a file someone will read as prose.
+`map` is the same subtree the human form draws, as data: one entry per node in map order, `path` relative to the prefix and carrying a trailing `/` for a directory. `required` is null where the espalier names no file — a directory, or a dynamic leaf that already answers `any number, any name`. The drawing is not in the JSON, because branch characters and line breaks are a rendering, and a consumer of this format is not reading prose.
+
+`closedSet` is a single unwrapped string, for the same reason.
 
 A constraint is listed under a prefix when its static prefix and the queried prefix are prefixes of one another — that is, when the subtree could contain a file it matches. It is a deliberately generous test: a constraint that reaches a subtree but happens to match nothing in it today will still match the next file added there.
 

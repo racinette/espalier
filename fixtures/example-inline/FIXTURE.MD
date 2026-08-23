@@ -18,6 +18,6 @@ Two nodes, one for each export:
 match is a specification error and exits `2`. Between the pair, both branches of
 the check are held.
 
-The cardinality line in `src/AGENTS.MD` is exactly eighty characters, which is
-not an accident of the names: it pins the bound in *greedily wrapped at 80
-columns* as inclusive.
+A map line in `src/AGENTS.MD` runs to exactly eighty characters, which is not an
+accident of the names: it pins the bound in *greedily wrapped at 80 columns* as
+inclusive.

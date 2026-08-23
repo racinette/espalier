@@ -5,12 +5,15 @@ Everything rendered by more than one screen lives here.
 A component used by exactly one screen belongs beside that screen instead.
 
   Declared here:
-    components/buttons/[button].tsx      a button component
-    components/layouts/[layout].tsx      a layout component
+    ├─ buttons/
+    │
+    │  └─ [button].tsx  a button component, any number, any name
+    │
+    └─ layouts/
 
-  Zero or more files matching `buttons/[button].tsx` may exist. Zero or more
-  files matching `layouts/[layout].tsx` may exist. Nothing else may exist under
-  components/.
+       └─ [layout].tsx  a layout component, any number, any name
+
+  Nothing else may exist under components/.
 
 ── components/buttons/[button].tsx ───────────────────────────────────
 

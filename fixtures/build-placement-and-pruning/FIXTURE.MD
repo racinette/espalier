@@ -20,9 +20,8 @@ it declares no file, so it answers no question a map is asked.
 
 Every sibling list is directories before files, then static before dynamic,
 then lexicographic. That is why `handlers/` precedes `client.ts` in the map
-even though the espalier declares them the other way round, and why the
-cardinality sentence lists `handlers/webhook.ts` first — a reader comparing
-the sentence against the map should not have to re-sort it.
+even though the espalier declares them the other way round, and why the rule
+sections below follow in the same order.
 
 ## Requiredness
 
@@ -42,8 +41,8 @@ mode this case exists to make loud.
 ## What the golden tree pins
 
 Byte for byte: the provenance marker and its `source:`, the alignment column
-(longest map-internal name plus two, before the code block's own indent), the
-80-column greedy wrap of the cardinality paragraph, section headings carrying
+(longest map-internal line plus two, before the code block's own indent), the
+80-column greedy wrap of a map line's text, section headings carrying
 the full path from the repository root, the `Example:` line appearing only
 where a module exports one, and the two fixed texts.
 

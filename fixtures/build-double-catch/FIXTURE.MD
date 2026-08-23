@@ -6,10 +6,15 @@ satisfies both shapes — and are legal, because a directory never owns a file.
 fixture answers the question that shape left open: whether `build` can say
 what may exist there.
 
-It can, and the answer is unremarkable: two sentences and one closing one.
+It can, and the answer is unremarkable: two lines, each saying `any number, any
+name` for itself, under one sentence covering both.
 
-    Zero or more `[provider]/` directories may exist. For each one that does,
-    client.ts is required. Zero or more files matching `[summary].ts` may exist.
+    ├─ [provider]/   any number, any name
+    │
+    │  └─ client.ts  an integration with an external API, required
+    │
+    └─ [summary].ts  a one-file summary of a provider, any number, any name
+
     Nothing else may exist under clients/.
 
 The closed set stays closed because the sentence closing it covers both. That
@@ -23,10 +28,8 @@ is written anyway. It is the only file carrying the map of the whole repository
 and the instruction to run `lint`, and it is the one file a tool that reads only
 the root will find. Pruning it would be pruning the product.
 
-Note that the root's cardinality paragraph names the dynamic nodes by their full
-relative paths, `clients/[provider]/` and `clients/[summary].ts`, while
-`clients/AGENTS.MD` names the same two nodes as `[provider]/` and
-`[summary].ts`. Both are the authored shape relative to the file the reader is
-holding.
+Note that the root's map reaches the same two nodes through `clients/`, while
+`clients/AGENTS.MD` starts at them. Both draw the authored shape relative to the
+file the reader is holding.
 
-Pins: cli/build/README.MD "The cardinality paragraph", "Generation" step 3.
+Pins: cli/build/README.MD "The map", "Generation" step 3.
