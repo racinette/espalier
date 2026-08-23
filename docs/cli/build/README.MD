@@ -187,10 +187,13 @@ The other half of what makes the closed-set sentence true. `Governed elsewhere` 
 ## Not described here
 
     dist/          Build output. Regenerated; never edited by hand.
+
     package.json   Not this project's architecture. Their shape is dictated by
     tsconfig.json  the tools that read them.
-    node_modules/
+
     AGENTS.MD      Written by `espalier build` from the rules above.
+
+    node_modules/
 
 Nothing above describes these, so nothing here tells you how to write them.
 That makes them a poor place to put work that belongs in the list above: a
@@ -202,6 +205,8 @@ file with nowhere legal to go is a gap to report, not one to route around.
 **The reason comes from `.espalierignore`**, verbatim, from the comment block introducing that entry — see [CONFIG.MD](../../CONFIG.MD#espalierignore). An entry with no comment above it gets no reason, and the line is the path alone. `espalier` never invents one: it has patterns, not intent, and the difference between *will never have a rule* and *does not have one yet* is exactly what it cannot see.
 
 Entries are ordered by reason and then by name, with the unexplained ones last, and only the first of a group carries the text. Ordering by name alone would scatter a group across the section and leave its one shared line landing wherever the alphabet happened to put it. A reason too long for the column wraps into it, hanging there, as a map line's text does.
+
+**A blank line goes wherever the reason changes hands**, for the reason a map has guide rows: a wrapped reason and a fresh entry are the same shape, and without the break the entry below one is read as covered by it. The entries nobody explained are one group and stay together, which matters most — they are last, under the longest reason in the section, and are exactly the entries a reader must not attribute to it.
 
 **A directory counts when everything inside it is excluded**, not only when the directory itself is named. `dist/` and `dist/**` exclude the same files and differ over whether the walk enters — a difference invisible here, where a reader can see the directory either way.
 

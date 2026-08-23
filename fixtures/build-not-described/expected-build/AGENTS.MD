@@ -14,14 +14,19 @@ Nothing else may exist under this directory.
                           project.
     espalier.config.yaml
     espalier/
+
     package.json          Not this project's architecture. Their shape is
                           dictated by the tools that read them, and changing one
                           is a conversation with that tool rather than with this
                           repository.
     tsconfig.json
+
     vendor/               Third-party source. Not ours to shape.
+
     AGENTS.MD             Written by `espalier build` from the rules above.
+
     generated/            Written by the code generator.
+
     .gitignore.fixture
     logs/
     notes.txt

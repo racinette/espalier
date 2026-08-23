@@ -119,23 +119,32 @@ Nothing else may exist under this directory.
                           project.
     espalier.config.yaml
     espalier/
+
     .claude/              Editor and operating system droppings.
     .cursor/
+
     LICENSE               Licence and legal.
+
     package-lock.json     Manifests and lockfiles.
     package.json
+
     .gitignore            Repository metadata. Tracked on purpose, and dictated
                           by the tool that reads them rather than by this
                           project's architecture.
+
     tsconfig.json         Tool configuration. The tool decides the filename; the
                           project only decides the contents.
+
     .git/                 Version control metadata. `.gitignore` never lists
                           `.git/` — git has no need to ignore itself — so this
                           is the one exclusion no other file supplies.
+
     AGENTS.MD             Written by `espalier build` from the rules above.
+
     fixtures/             espalier's own fixtures are data: sixty configs,
                           several deliberately invalid, and a root run executing
                           all sixty is not what anyone means by it.
+
     dist/
     node_modules/
 

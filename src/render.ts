@@ -510,7 +510,14 @@ function renderExcluded(entries: Excluded[], level: number): string[] {
   for (const [index, entry] of sorted.entries()) {
     // Entries sharing a comment share it, carried on the first of them, so a
     // group written as one thought reads as one rather than as a refrain.
-    const repeated = index > 0 && entry.reason !== null && entry.reason === sorted[index - 1]!.reason;
+    // Null counts as a reason for this: the entries nobody explained are one
+    // group, not one group each.
+    const repeated = index > 0 && entry.reason === sorted[index - 1]!.reason;
+    // A blank line wherever the reason changes hands. Without it an entry with
+    // no reason of its own, sitting under a wrapped one, is read as covered by
+    // it — and the entries with no reason are all at the end, under the longest
+    // one there is. docs/cli/build/README.MD "Not described here".
+    if (index > 0 && !repeated) rows.push("");
     const reason = repeated ? "" : (entry.reason ?? "");
     if (reason === "") {
       rows.push(`    ${entry.name}`);
