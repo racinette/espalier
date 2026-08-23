@@ -63,7 +63,9 @@ ignore:
   - LICENSE
   # …
 
-  # Editor and operating system droppings.
+  # Editor, agent and operating system droppings. The agent directories are here
+  # for the same reason as the editor ones: dot-prefixed, so no rule could declare
+  # them even if a project wanted to.
   - .vscode/
   # …
 ```

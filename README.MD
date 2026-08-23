@@ -54,7 +54,7 @@ From this single source, `espalier` produces two things:
 
 **Documentation**, written into the repository by `espalier build`:
 
-> Each directory gets an `AGENTS.MD` describing what may exist there, which files are required, and the conventions each must follow. Agents pick these up from the directory they are working in — the one behaviour every tool shares. The repository root carries the full project map.
+> Each directory that declares something gets an `AGENTS.MD` describing what may exist there, which files are required, and the conventions each must follow. Agents pick these up from the directory they are working in — the one behaviour every tool shares. The repository root carries the full project map.
 
 **Linters**, run deterministically against the working tree by `espalier lint`:
 
@@ -212,25 +212,27 @@ Rules execute independently, in unspecified order, with no shared state. A rule 
 
 ## The project map
 
-`espalier build` generates a repository-wide architectural overview deterministically from the structural portion of the espalier, and writes it at the repository root:
+`espalier build` generates a repository-wide architectural overview deterministically from the structural portion of the espalier, and writes it into the document at the repository root, under `## Structure`:
 
 ```text
-├─ components
-│  ├─ buttons
-│  │  └─ [button].tsx         // a button component
-│  ├─ dropdowns
-│  │  └─ [dropdown].tsx       // a dropdown component
-│  └─ layouts
-│     └─ [layout].tsx         // a layout component
-├─ models
-│  └─ [domain].ts             // a domain model
-├─ endpoints
-│  └─ [endpoint].ts           // an endpoint implementation
-├─ clients
-│  └─ [apiProviderDirectory]
-│     └─ [apiProviderImplementation].ts // an HTTP client implementation
-└─ main.ts                    // the application entry point
+    clients/
+      [apiProviderDirectory]/
+        [apiProviderImplementation].ts  an HTTP client implementation
+    components/
+      buttons/
+        [button].tsx                    a button component
+      dropdowns/
+        [dropdown].tsx                  a dropdown component
+      layouts/
+        [layout].tsx                    a layout component
+    endpoints/
+      [endpoint].ts                     an endpoint implementation
+    models/
+      [domain].ts                       a domain model
+    main.ts                             the application entry point
 ```
+
+Names are the authored form, directories carry a trailing `/`, and descriptions align to one column. Siblings are ordered directories first, then by specificity, then lexicographically — the same order the matcher resolves them in, so a document listing them one way while ownership resolves them another is not possible.
 
 This is the architectural map: small, stable, and sufficient to orient any decision about where new code should go. It stays small because it carries only descriptions — one line per node. The conventions themselves live in the documentation written into each directory, so an agent working in `src/clients/` picks up the rules for `src/clients/` and pays nothing for the rest of the repository.
 

@@ -26,12 +26,12 @@ espalier lint [paths...]
 ## What it does
 
 1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, and build the matcher. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `rule` export — stops the run before a single repository file is read.
-2. **Collect files.** Everything git knows about, minus `ignore` and the unconditionally invisible paths. See [CONFIG.MD](../../CONFIG.MD).
+2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory `ignore` matches, then drop the unconditionally invisible paths. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
 3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required leaves with no file report `missing_required_file`. See [MATCHING.MD](../../MATCHING.MD).
 4. **Run rules.** For every owned file: its structural rule's `lint`, plus the `lint` of every constraint whose pattern matches it.
 5. **Report.** Every issue every rule emitted.
 
-Rules execute independently and in unspecified order. A rule may read any file in the repository, but must not assume another rule has or has not run.
+Rules execute independently and in unspecified order. A rule may read any file this espalier governs — see [What this asks of a rule](#what-this-asks-of-a-rule) — but must not assume another rule has or has not run.
 
 ## Scoping
 

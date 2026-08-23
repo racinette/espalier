@@ -91,7 +91,7 @@ Three signals, all conservative, and **two of a thing is a pattern**. That thres
 
 **Repeated filename shapes** become a dynamic leaf. Two or more files sharing an extension in one directory become `[tsx].tsx` rather than one node each.
 
-**A file named after the directory holding it** becomes a [back-reference](../../TYPES.MD#back-references). Where every instance of a dynamic directory holds a file whose name is the instance's own, that is `{client}.ts` — one file per client, named for it, required.
+**A file named after the directory holding it** becomes a [back-reference](../../MATCHING.MD#back-references). Where every instance of a dynamic directory holds a file whose name is the instance's own, that is `{client}.ts` — one file per client, named for it, required.
 
 **The first signal wins where they meet.** Inside a dynamic directory, the shared filenames are the evidence that made it a family — `stripe/` and `twilio/` are a repeating unit *because* both hold a `client.ts` and a `requestModels.ts`. Collapsing those into `[ts].ts` because they share an extension would discard the stronger finding and declare something nobody observed. So the intersection is declared exactly as it is, and the extension rule applies only to a directory that is not part of a family.
 

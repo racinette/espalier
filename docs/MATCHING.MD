@@ -288,7 +288,9 @@ There is no syntax for "at least one." If a file is mandatory, declare it static
 
 ## Files espalier does not see
 
-Four things are invisible unconditionally, because espalier reporting on its own machinery is a bug rather than a finding: the VCS directory, `espalier.config.yaml`, the espalier source root, and every file `espalier build` generated.
+Four things are invisible unconditionally, because espalier reporting on its own machinery is a bug rather than a finding: `espalier.config.yaml`, every file `ignoreFiles` names, the espalier source root, and every file `espalier build` generated.
+
+The VCS directory is **not** among them. `.git/` is an `ignore` entry that `espalier init` writes like any other, so it is visible, appealable and deletable — see [CONFIG.MD](CONFIG.MD#what-is-ignored-without-being-configured).
 
 Everything else in the repository is governed. Files you do not want governed are listed in `ignore` — see [CONFIG.MD](CONFIG.MD).
 

@@ -200,7 +200,7 @@ Carries the owning rule, the normalized pattern that matched, the captures, and 
 
 ### A path espalier does not govern
 
-`ignoredBy` names what excluded it — `ignore`, the path of the `ignoreFiles` entry the pattern came from, or `espalier` for the three things that are invisible unconditionally:
+`ignoredBy` names what excluded it — `ignore`, the path of the `ignoreFiles` entry the pattern came from, or `espalier` for the four things that are invisible unconditionally:
 
 ```json
 {"kind":"explanation","path":"package.json","ignoredBy":"ignore","rule":null,"pattern":null,"captures":{},"constraints":[]}
