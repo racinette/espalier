@@ -61,6 +61,8 @@ The unit is one rule invocation — a module, the pattern that matched, and the 
 - every `files` glob still returns the same list
 - the espalier is unchanged
 
+**The file being linted counts as a path it read**, whether or not the rule opened it. Its contents are what the rule was asked about, and a rule that answered without looking is still answering about that file. The alternative reading is the dangerous one: a rule deciding on `path` and `captures` alone would keep its verdict across every edit to the file it was judging.
+
 **Nothing is hashed.** Size and modification time come from the file's inode, so a warm run opens no source file at all — its whole I/O is listing the repository, reading the cache, and one `stat` per path some rule depended on. What this leaves open is a file edited within the same second to the same length. Closing it would mean reading every file in the repository on every run, which is the cost being avoided.
 
 **The espalier is all-or-nothing.** Any change under `root`, or to the config, discards the cache entirely. One comparison covers a rule edit, a module the rules import, a renamed node and a changed setting, where tracking them apart would mean walking the module graph. The architect changes the espalier far less often than the repository changes under it. The `addons` module counts as well, since what it returns decides what rules are told. A module *it* imports does not: it lives outside the espalier, where there is no directory to hash and no bound on what could be reached. Editing one is the one change that needs a `--no-cache` run to take effect.

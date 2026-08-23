@@ -33,7 +33,7 @@ src/output.ts       human and jsonl formatters, --out destinations
 src/cli.ts          argument parsing and exit codes
 ```
 
-`npm test` builds and runs everything: 209 tests, of which 73 are conformance
+`npm test` builds and runs everything: 235 tests, of which 73 are conformance
 fixtures and the rest cover what a fixture cannot reach — a repository is not
 the right shape for every claim. The programmatic API, config discovery from a
 subdirectory, the ignore walk's pruning, the cache, the sibling-overlap decision
@@ -51,6 +51,15 @@ Every fixture that compiles is also swept for cross-command disagreement — see
 than answers, so it needs no expectation written for it and runs everywhere. It
 roughly doubles the suite's wall time, which is the price of the only assertion
 that can see two commands answering differently.
+
+The incremental cache is the only state the tool keeps, and 49 of those tests
+are about it — `test/cache.test.ts`. Every clause of cli/lint/README.MD
+"Incremental runs" is observed there, and each mechanism has been checked by
+removing it and watching the right test fail: the espalier key component by
+component, both halves of the read stamp, the glob dependencies, pruning in
+both directions, and header validation. A stale pass is silent, survives every
+later run, and looks exactly like a clean repository, so a test that passes for
+the wrong reason is worth less here than anywhere else.
 
 Both scripts `cd dist/test` and run a bare `node --test` rather than passing a
 path glob. Node only expands globs in test paths from v21, the declared floor is

@@ -602,3 +602,490 @@ test("structural findings are fresh on a warm run", () => {
     discard(root);
   }
 });
+
+// The espalier key, one component at a time. "Any change under `root`, or to
+// the config, discards the cache entirely" is a single comparison covering
+// several things, and a comparison that quietly stopped covering one of them
+// would still pass every test that changes a rule module.
+
+test("an added rule module discards the cache", () => {
+  const root = repository();
+  try {
+    assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
+    // A module that owns nothing here — dynamic, so it requires no file to
+    // exist. What changed is the espalier, and the espalier is all-or-nothing.
+    writeFileSync(path.join(root, "espalier", "[note].md.mjs"), EMITS);
+    assert.deepEqual(lint(root, "second"), { "a.ts": "second", "b.ts": "second" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("a deleted rule module discards the cache", () => {
+  const root = repository();
+  try {
+    writeFileSync(path.join(root, "espalier", "[note].md.mjs"), EMITS);
+    lint(root, "first");
+    assert.deepEqual(lint(root, "second"), { "a.ts": "first", "b.ts": "first" }, "replayed");
+
+    rmSync(path.join(root, "espalier", "[note].md.mjs"));
+    assert.deepEqual(lint(root, "third"), { "a.ts": "third", "b.ts": "third" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("edited prose discards the cache, though no rule changed", () => {
+  const root = repository();
+  try {
+    writeFileSync(
+      path.join(root, "espalier", "ESPALIER.MD"),
+      "---\ndescription: the repository\n---\n\nProse.\n",
+    );
+    lint(root, "first");
+    assert.deepEqual(lint(root, "second"), { "a.ts": "first", "b.ts": "first" }, "replayed");
+
+    // Nothing a rule does depends on this. Telling it apart from a rule edit
+    // would mean walking the module graph, and the trade is stated: the
+    // architect changes the espalier far less often than the repository
+    // changes under it.
+    writeFileSync(
+      path.join(root, "espalier", "ESPALIER.MD"),
+      "---\ndescription: the repository\n---\n\nDifferent prose.\n",
+    );
+    assert.deepEqual(lint(root, "third"), { "a.ts": "third", "b.ts": "third" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("a dotfile under the espalier root is not part of the key", () => {
+  const root = repository();
+  try {
+    lint(root, "first");
+    // "`listEntries` skips dotfiles, so the cache is never part of its own
+    // key." The cache is written *into* the espalier root, so a key that read
+    // everything there could never match itself twice — the first warm run
+    // would discard the file it had just written.
+    writeFileSync(path.join(root, "espalier", ".DS_Store"), "junk\n");
+    assert.deepEqual(lint(root, "second"), { "a.ts": "first", "b.ts": "first" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("an ignore file that appears discards the cache", () => {
+  const root = repository();
+  try {
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nignoreFiles:\n  - .espalierignore\n",
+    );
+    writeFileSync(path.join(root, ".espalierignore"), "");
+    assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
+    assert.deepEqual(lint(root, "second"), { "a.ts": "first", "b.ts": "first" }, "replayed");
+
+    writeFileSync(path.join(root, ".espalierignore"), "b.ts\n");
+    // `b.ts` is now ungoverned, so only `a.ts` is left — and it ran again.
+    assert.deepEqual(lint(root, "third"), { "a.ts": "third" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("a cache with one unreadable line is discarded entirely", () => {
+  const root = repository();
+  try {
+    lint(root, "first");
+    const at = path.join(root, CACHE);
+    const lines = readFileSync(at, "utf8").split("\n").filter((line) => line !== "");
+    // Header intact, one entry mangled. Half a cache is not a cache: the
+    // entries it still holds cannot be told from the ones it lost, so a run
+    // that kept the readable half would replay a subset it could not name.
+    writeFileSync(at, `${lines[0]}\n${lines[1]}\n{"rule":\n`);
+
+    assert.deepEqual(lint(root, "second"), { "a.ts": "second", "b.ts": "second" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("an empty cache file is not an error", () => {
+  const root = repository();
+  try {
+    lint(root, "first");
+    writeFileSync(path.join(root, CACHE), "");
+    assert.deepEqual(lint(root, "second"), { "a.ts": "second", "b.ts": "second" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("an edit to an ungoverned file leaves every entry replayed", () => {
+  const root = repository();
+  try {
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nignore:\n  - notes.txt\n",
+    );
+    writeFileSync(path.join(root, "notes.txt"), "one\n");
+    assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
+
+    // The key is deliberately coarse over the espalier and deliberately narrow
+    // over the repository. Nothing stamps an ignored path — which is the same
+    // reason `read` refuses one.
+    writeFileSync(path.join(root, "notes.txt"), "two\n");
+    assert.deepEqual(
+      lint(root, "second"),
+      { "a.ts": "first", "b.ts": "first" },
+      "an ungoverned edit invalidated the cache",
+    );
+  } finally {
+    discard(root);
+  }
+});
+
+test("the file being linted is a dependency whether or not the rule read it", () => {
+  const root = repository();
+  try {
+    assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
+
+    // This rule never calls `read`. It still must not keep its verdict about a
+    // file that changed underneath it: its contents are what the rule was asked
+    // about, and a rule that answered without looking is still answering about
+    // that file. `b.ts` replays, so the invalidation is per invocation rather
+    // than a discarded cache.
+    writeFileSync(path.join(root, "a.ts"), "export const a = 999;\n");
+    assert.deepEqual(lint(root, "second"), { "a.ts": "second", "b.ts": "first" });
+  } finally {
+    discard(root);
+  }
+});
+
+// Listing dependencies. "A `files` glob depends on which paths exist, not on
+// what is in them" is two claims, and the negative half — that editing a
+// sibling changes nothing — is the one a digest over contents would break
+// while every other test still passed.
+
+const PEERS = module(`  const seen = await context.files("*.ts");
+  emit({ code: "peers", message: \`\${seen.join(",")}:\${${token}}\`, severity: "warning" });`);
+
+test("editing a sibling does not invalidate a peer comparison", () => {
+  const root = repository(PEERS);
+  try {
+    assert.equal(lint(root, "first")["a.ts"], "a.ts,b.ts:first");
+
+    // `b.ts` is in the list `a.ts` depends on. Its contents are not.
+    writeFileSync(path.join(root, "b.ts"), "export const b = 999;\n");
+    // `b.ts` itself re-runs — it is the file being linted — but `a.ts`, which
+    // only listed it, keeps its answer.
+    assert.equal(lint(root, "second")["a.ts"], "a.ts,b.ts:first");
+  } finally {
+    discard(root);
+  }
+});
+
+test("a glob that matched nothing notices when it starts matching", () => {
+  const root = repository(
+    module(`  const seen = await context.files("generated/*.ts");
+  emit({ code: "peers", message: \`\${seen.length}:\${${token}}\`, severity: "warning" });`),
+  );
+  try {
+    assert.equal(lint(root, "first")["a.ts"], "0:first");
+    assert.equal(lint(root, "second")["a.ts"], "0:first", "replayed");
+
+    // An empty list is a recorded answer, not an absent dependency. A cache
+    // that only stamped globs with results would replay this one forever.
+    mkdirSync(path.join(root, "generated"));
+    mkdirSync(path.join(root, "espalier", "generated"));
+    writeFileSync(path.join(root, "generated", "x.ts"), "export const x = 1;\n");
+    writeFileSync(path.join(root, "espalier", "generated", "[name].ts.mjs"), EMITS);
+    assert.equal(lint(root, "third")["a.ts"], "1:third");
+  } finally {
+    discard(root);
+  }
+});
+
+test("one changed glob re-runs an invocation that listed two", () => {
+  const root = repository(
+    module(`  const ts = await context.files("*.ts");
+  const md = await context.files("*.md");
+  emit({ code: "peers", message: \`\${ts.length}/\${md.length}:\${${token}}\`, severity: "warning" });`),
+  );
+  try {
+    writeFileSync(path.join(root, "espalier", "[note].md.mjs"), EMITS);
+    assert.equal(lint(root, "first")["a.ts"], "2/0:first");
+
+    writeFileSync(path.join(root, "notes.md"), "# notes\n");
+    assert.equal(lint(root, "second")["a.ts"], "2/1:second");
+  } finally {
+    discard(root);
+  }
+});
+
+test("a glob never sees an ignored path, so one appearing changes nothing", () => {
+  const root = repository(PEERS);
+  try {
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nignore:\n  - vendor/\n",
+    );
+    assert.equal(lint(root, "first")["a.ts"], "a.ts,b.ts:first");
+
+    // "`files` never returns one — an ignored or invisible path is one nothing
+    // stamps, so a rule that depended on one would be replayed unchanged after
+    // it changed." The list is the same list, so the entry stands.
+    mkdirSync(path.join(root, "vendor"));
+    writeFileSync(path.join(root, "vendor", "c.ts"), "export const c = 1;\n");
+    assert.equal(lint(root, "second")["a.ts"], "a.ts,b.ts:first");
+  } finally {
+    discard(root);
+  }
+});
+
+// The file itself: header, directory, and what a run leaves behind.
+
+test("a header that is not this tool's is discarded", () => {
+  const root = repository();
+  try {
+    lint(root, "first");
+    const lines = readFileSync(path.join(root, CACHE), "utf8").split("\n");
+    // Valid JSON, valid entries, and no claim to be a cache. Anything may end
+    // up at this path; only a line that says what it is may be trusted.
+    writeFileSync(
+      path.join(root, CACHE),
+      [JSON.stringify({ kind: "notes", version: 1 }), ...lines.slice(1)].join("\n"),
+    );
+    assert.deepEqual(lint(root, "second"), { "a.ts": "second", "b.ts": "second" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("a cache holding only a header is a cold run", () => {
+  const root = repository();
+  try {
+    lint(root, "first");
+    const header = readFileSync(path.join(root, CACHE), "utf8").split("\n")[0]!;
+    writeFileSync(path.join(root, CACHE), `${header}\n`);
+    assert.deepEqual(lint(root, "second"), { "a.ts": "second", "b.ts": "second" });
+    // And it refills, rather than staying empty.
+    assert.deepEqual(entries(root), ["a.ts", "b.ts"]);
+  } finally {
+    discard(root);
+  }
+});
+
+test("the cache directory is created, and only when there is something to put in it", () => {
+  const root = repository();
+  try {
+    assert.equal(existsSync(path.join(root, "espalier", ".cache")), false, "created too early");
+    lint(root, "first");
+    assert.ok(existsSync(path.join(root, CACHE)));
+  } finally {
+    discard(root);
+  }
+});
+
+test("a warm run rewrites the cache to the same bytes", () => {
+  const root = repository();
+  try {
+    lint(root, "first");
+    const after = readFileSync(path.join(root, CACHE), "utf8");
+    lint(root, "second");
+    // Nothing changed, so nothing about the record should change either. Churn
+    // here would be a reordering or a re-stamp, and either means the file is
+    // recording something other than what it claims to.
+    assert.equal(readFileSync(path.join(root, CACHE), "utf8"), after);
+  } finally {
+    discard(root);
+  }
+});
+
+// Nesting. Each espalier keys on its own tree, so a change in one must not
+// reach the other's cache — in either direction. A shared key would be the
+// expensive kind of wrong: correct answers, silently recomputed forever.
+
+/** A repository with a child espalier in `packages/web`. */
+function nested(): { root: string; child: string } {
+  const root = repository();
+  const child = path.join(root, "packages", "web");
+  mkdirSync(path.join(child, "espalier"), { recursive: true });
+  writeFileSync(path.join(child, "espalier.config.yaml"), "version: 1\nroot: espalier\n");
+  writeFileSync(path.join(child, "espalier", "[file].ts.mjs"), EMITS);
+  writeFileSync(path.join(child, "c.ts"), "export const c = 3;\n");
+  return { root, child };
+}
+
+test("a parent espalier edit leaves the child's cache standing", () => {
+  const { root, child } = nested();
+  try {
+    lint(root, "first");
+    writeFileSync(path.join(root, "espalier", "[note].md.mjs"), EMITS);
+
+    assert.deepEqual(lint(root, "second"), {
+      "a.ts": "second",
+      "b.ts": "second",
+      "packages/web/c.ts": "first",
+    });
+    void child;
+  } finally {
+    discard(root);
+  }
+});
+
+test("a child espalier edit leaves the parent's cache standing", () => {
+  const { root, child } = nested();
+  try {
+    lint(root, "first");
+    writeFileSync(path.join(child, "espalier", "[note].md.mjs"), EMITS);
+
+    assert.deepEqual(lint(root, "second"), {
+      "a.ts": "first",
+      "b.ts": "first",
+      "packages/web/c.ts": "second",
+    });
+  } finally {
+    discard(root);
+  }
+});
+
+test("--no-cache reaches every espalier in the run", () => {
+  const { root } = nested();
+  try {
+    lint(root, "first");
+    const before = readFileSync(path.join(root, CACHE), "utf8");
+
+    assert.deepEqual(lint(root, "second", ["--no-cache"]), {
+      "a.ts": "second",
+      "b.ts": "second",
+      "packages/web/c.ts": "second",
+    });
+    // "does the work regardless and writes nothing" — in the child as well as
+    // here, or a hook that distrusts the cache would still be trusting one.
+    assert.equal(readFileSync(path.join(root, CACHE), "utf8"), before);
+  } finally {
+    discard(root);
+  }
+});
+
+// Scoping, which is where merging matters: a narrowed run sees part of the
+// repository and must leave its record of the rest exactly as it found it.
+
+test("a scoped run records what it visited for the first time", () => {
+  const root = repository();
+  try {
+    lint(root, "first");
+    writeFileSync(path.join(root, "c.ts"), "export const c = 3;\n");
+
+    // Scoped to the new file alone. Its entry has to arrive, or the next full
+    // run pays for it again — and the run after that, forever.
+    run(root, "second", ["c.ts"]);
+    assert.deepEqual(entries(root), ["a.ts", "b.ts", "c.ts"]);
+
+    assert.deepEqual(lint(root, "third"), { "a.ts": "first", "b.ts": "first", "c.ts": "second" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("a scope that matches nothing leaves the cache exactly as it was", () => {
+  const root = repository();
+  try {
+    lint(root, "first");
+    const before = readFileSync(path.join(root, CACHE), "utf8");
+
+    run(root, "second", ["does/not/exist"]);
+    assert.equal(readFileSync(path.join(root, CACHE), "utf8"), before);
+  } finally {
+    discard(root);
+  }
+});
+
+test("a scoped run does not prune what a later full run still wants", () => {
+  const root = repository();
+  try {
+    lint(root, "first");
+    rmSync(path.join(root, "b.ts"));
+
+    // Scoped, so no pruning: `b.ts` is gone from the repository but its entry
+    // is not this run's to drop, because this run never looked for it.
+    run(root, "second", ["a.ts"]);
+    assert.deepEqual(entries(root), ["a.ts", "b.ts"]);
+
+    // The full run is the one that decides.
+    lint(root, "third");
+    assert.deepEqual(entries(root), ["a.ts"]);
+  } finally {
+    discard(root);
+  }
+});
+
+// What a failure leaves behind. A cache damaged by a run that could not finish
+// is worse than no cache: it survives, and it is wrong.
+
+test("a failing run leaves the previous cache intact", () => {
+  const root = repository();
+  try {
+    lint(root, "first");
+    const before = readFileSync(path.join(root, CACHE), "utf8");
+
+    // A rule that throws is an operational failure, and the run reports
+    // nothing else. What it must also not do is take the record with it.
+    writeFileSync(
+      path.join(root, "espalier", "[file].ts.mjs"),
+      module(`  throw new Error("from the rule");`),
+    );
+    assert.equal(run(root, "second").status, 2);
+    assert.equal(readFileSync(path.join(root, CACHE), "utf8"), before);
+  } finally {
+    discard(root);
+  }
+});
+
+test("a replayed issue carries its position and metadata", () => {
+  const root = repository(
+    module(`  emit({
+    code: "positioned",
+    message: ${token},
+    severity: "warning",
+    line: 12,
+    column: 3,
+    metadata: { nested: { depth: 2 }, list: ["a", "b"] },
+  });`),
+  );
+  try {
+    const cold = run(root, "first").issues.find((issue) => issue["path"] === "a.ts")!;
+    const warm = run(root, "second").issues.find((issue) => issue["path"] === "a.ts")!;
+
+    // Everything `emit` was given, through a JSON round trip and back out.
+    // Both formats are identical warm and cold, and that has to include the
+    // fields nothing else in the suite looks at.
+    assert.deepEqual(warm, cold);
+    assert.equal(warm["line"], 12);
+    assert.equal(warm["column"], 3);
+    assert.deepEqual(warm["metadata"], { nested: { depth: 2 }, list: ["a", "b"] });
+  } finally {
+    discard(root);
+  }
+});
+
+test("an issue attached to another file replays against that file", () => {
+  const root = repository(
+    module(`  if (context.path !== "a.ts") return;
+  emit({ code: "elsewhere", message: ${token}, severity: "warning", path: "b.ts" });`),
+  );
+  try {
+    // The entry is keyed by the invocation, not by the path the issue landed
+    // on. Replaying it has to put the issue back where the rule sent it.
+    assert.deepEqual(lint(root, "first"), { "b.ts": "first" });
+    assert.deepEqual(lint(root, "second"), { "b.ts": "first" });
+
+    // And editing the file the issue points at does not re-run the rule that
+    // emitted it: `a.ts` is what that invocation depended on.
+    writeFileSync(path.join(root, "b.ts"), "export const b = 999;\n");
+    assert.deepEqual(lint(root, "third"), { "b.ts": "first" });
+  } finally {
+    discard(root);
+  }
+});
