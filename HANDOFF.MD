@@ -33,10 +33,19 @@ src/output.ts       human and jsonl formatters, --out destinations
 src/cli.ts          argument parsing and exit codes
 ```
 
-`npm test` builds and runs everything: thirty-seven fixtures, nine unit tests for the
-sibling-overlap decision procedure — subtle and only partly fixtured — and
-thirteen for the programmatic API, which no subprocess fixture can reach. All
-green.
+`npm test` builds and runs everything: 151 tests, of which 67 are conformance
+fixtures and the rest cover what a fixture cannot reach — the programmatic API,
+config discovery from a subdirectory, the ignore walk's pruning, the cache, the
+sibling-overlap decision procedure, and every operational failure code
+(`test/failures.test.ts`). All green. `npm run coverage` adds Node's own
+instrumentation, which merges the subprocess runs the fixtures spawn; without
+that merge the CLI would read as untested.
+
+Both scripts `cd dist/test` and run a bare `node --test` rather than passing a
+path glob. Node only expands globs in test paths from v21, the declared floor is
+v20, and an unquoted `dist/test/*.test.js` is the shell expanding it — which
+makes development POSIX-only for no reason. Discovery from the directory itself
+needs neither.
 
 `render.ts` reads no files and takes no paths, deliberately: a renderer that
 could read a file could produce output depending on something other than the

@@ -31,8 +31,8 @@
     "prepublishOnly": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && npm test",
     "prepare": "npm run build",
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node --test dist/test/*.test.js",
-    "coverage": "npm run build && node --test --experimental-test-coverage --test-coverage-include='dist/src/**' dist/test/*.test.js",
+    "test": "npm run build && cd dist/test && node --test",
+    "coverage": "npm run build && cd dist/test && node --test --experimental-test-coverage --test-coverage-include=\"../src/**\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
