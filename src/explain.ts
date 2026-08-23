@@ -10,7 +10,7 @@ import { fail } from "./errors.js";
 import type { ConstraintAnswer, RuleAnswer } from "./explainText.js";
 import { constraintCaptures, isOwnership, type CaptureValue } from "./match.js";
 import type { Reporter } from "./output.js";
-import { matchSegment } from "./pattern.js";
+import { matchSegment, resolveSegment } from "./pattern.js";
 import { cardinality, constraintGroups, isDirectory, requiredUnder, subtree } from "./render.js";
 import { delegated } from "./nested.js";
 import { open } from "./repository.js";
@@ -39,14 +39,35 @@ function descend(espalier: Espalier, segments: string[]): Descent | null {
   const captures: Record<string, CaptureValue> = {};
 
   for (const segment of segments) {
-    // Static beats dynamic here as everywhere else.
+    // static > resolved > dynamic, the same specificity order ownership
+    // resolves by. A directory naming itself after the instance above it is a
+    // directory the espalier declares, and answering "not declared" about one
+    // would be this command disagreeing with `lint`.
     let next = node.children.get(segment);
-    if (next !== undefined && (next.segment.dynamic || !isDirectory(next))) next = undefined;
+    if (
+      next !== undefined &&
+      (next.segment.dynamic || next.segment.resolved || !isDirectory(next))
+    ) {
+      next = undefined;
+    }
+
+    // A resolved node is keyed by its authored form, so it is never the exact
+    // hit above; it becomes a literal only once the captures collected on the
+    // way down are substituted in.
+    if (next === undefined) {
+      for (const child of node.children.values()) {
+        if (!child.segment.resolved || !isDirectory(child)) continue;
+        if (resolveSegment(child.segment, captures) === segment) {
+          next = child;
+          break;
+        }
+      }
+    }
 
     if (next === undefined) {
       for (const child of node.children.values()) {
         if (!child.segment.dynamic || !isDirectory(child)) continue;
-        const bound = matchSegment(child.segment, segment);
+        const bound = matchSegment(child.segment, segment, captures);
         if (bound !== null) {
           next = child;
           Object.assign(captures, bound);

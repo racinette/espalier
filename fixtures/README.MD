@@ -192,6 +192,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `optional-leaf` | an optional leaf on the spine and inside a dynamic directory, and both new sentences |
 | `invalid-optional` | `optional` on a dynamic leaf is rejected, not ignored |
 | `backreference-leaf` | `{name}` resolves, is required per instance, and coexists with a dynamic sibling |
+| `backreference-directory` | `{name}` as a directory: a constraint below one still runs, and `explain` still declares it |
 | `invalid-backreference` | a `{name}` with no `[name]` above it never compiles |
 | `constraint-only-placement` | a placement point with no trie node, and a generated description |
 | `adopt-sibling-directories` | matching siblings become a dynamic directory, and the ignore entry narrows |

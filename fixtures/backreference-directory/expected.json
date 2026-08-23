@@ -1,0 +1,48 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "path": "clients/stripe/stripe/refund.ts",
+      "code": "raw_fetch",
+      "severity": "error",
+      "rule": "clients/[provider]/{provider}/[...path]/no-fetch.ts.mjs",
+      "pattern": "clients/*/*/**/*.ts",
+      "captures": { "provider": "stripe", "path": [] }
+    }
+  ],
+  "ownership": {
+    "clients/stripe/stripe/charge.ts": "clients/[provider]/{provider}/[handler].ts.mjs",
+    "clients/stripe/stripe/refund.ts": "clients/[provider]/{provider}/[handler].ts.mjs",
+    "clients/twilio/twilio/sms.ts": "clients/[provider]/{provider}/[handler].ts.mjs"
+  },
+  "explain": {
+    "clients/stripe/stripe/": {
+      "exit": 0,
+      "object": {
+        "prefix": "clients/stripe/stripe/",
+        "captures": { "provider": "stripe" },
+        "rules": [
+          {
+            "path": "clients/stripe/stripe/[handler].ts",
+            "rule": "clients/[provider]/{provider}/[handler].ts.mjs"
+          }
+        ],
+        "cardinality": "Zero or more files matching `[handler].ts` may exist. Nothing else may exist under clients/stripe/stripe/."
+      }
+    },
+    "clients/twilio/twilio/sms.ts": {
+      "exit": 0,
+      "object": {
+        "rule": "clients/[provider]/{provider}/[handler].ts.mjs",
+        "captures": { "provider": "twilio", "handler": "sms" },
+        "constraints": [
+          {
+            "name": "no-fetch",
+            "rule": "clients/[provider]/{provider}/[...path]/no-fetch.ts.mjs",
+            "captures": { "provider": "twilio", "path": [] }
+          }
+        ]
+      }
+    }
+  }
+}

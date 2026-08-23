@@ -215,17 +215,21 @@ export function constraintCaptures(
 
   if (directories.length < before.length + after.length) return null;
 
+  // Segments are matched in path order, and each is handed what the ones
+  // before it captured: a `{name}` resolves against the text its `[name]`
+  // already bound. Compilation guarantees the placeholder comes first, and
+  // excludes the recursive one, so nothing here refers forward.
   const captures: Record<string, CaptureValue> = {};
 
   for (const [index, segment] of before.entries()) {
-    const bound = matchSegment(segment, directories[index]!);
+    const bound = matchSegment(segment, directories[index]!, captures);
     if (bound === null) return null;
     Object.assign(captures, bound);
   }
 
   const tail = directories.length - after.length;
   for (const [index, segment] of after.entries()) {
-    const bound = matchSegment(segment, directories[tail + index]!);
+    const bound = matchSegment(segment, directories[tail + index]!, captures);
     if (bound === null) return null;
     Object.assign(captures, bound);
   }
