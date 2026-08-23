@@ -10,7 +10,7 @@ It can, and the answer is unremarkable: two lines, each saying `(zero or more,
 any name)` for itself, under one sentence covering both.
 
     ├─ [provider]/   (zero or more, any name)
-    │
+    │  │
     │  └─ client.ts  an integration with an external API (required)
     │
     └─ [summary].ts  a one-file summary of a provider (zero or more, any name)

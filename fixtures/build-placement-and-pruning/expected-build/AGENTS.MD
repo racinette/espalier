@@ -7,18 +7,18 @@ renders.
 
     ├─ components/
     │  └─ buttons/
-    │
+    │     │
     │     └─ [button].tsx         a button component (zero or more, any name)
     │
     ├─ src/
-    │
+    │  │
     │  └─ clients/                outbound API integrations
-    │
+    │     │
     │     └─ [provider]/          one directory per upstream provider (zero or
     │                             more, any name)
     │        │
     │        ├─ handlers/
-    │        │
+    │        │  │
     │        │  └─ webhook.ts     an inbound webhook handler (required)
     │        │
     │        ├─ client.ts         an integration with an external API (required)

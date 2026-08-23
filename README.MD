@@ -216,35 +216,35 @@ Rules execute independently, in unspecified order, with no shared state. A rule 
 
 ```text
     ├─ clients/
-    │
+    │  │
     │  └─ [apiProviderDirectory]/            (zero or more, any name)
-    │
+    │     │
     │     └─ [apiProviderImplementation].ts  an HTTP client implementation (zero
     │                                        or more, any name)
     │
     ├─ components/
     │  ├─ buttons/
-    │  │
+    │  │  │
     │  │  └─ [button].tsx                    a button component (zero or more,
     │  │                                     any name)
     │  │
     │  ├─ dropdowns/
-    │  │
+    │  │  │
     │  │  └─ [dropdown].tsx                  a dropdown component (zero or more,
     │  │                                     any name)
     │  │
     │  └─ layouts/
-    │
+    │     │
     │     └─ [layout].tsx                    a layout component (zero or more,
     │                                        any name)
     │
     ├─ endpoints/
-    │
+    │  │
     │  └─ [endpoint].ts                      an endpoint implementation (zero or
     │                                        more, any name)
     │
     ├─ models/
-    │
+    │  │
     │  └─ [domain].ts                        a domain model (zero or more, any
     │                                        name)
     │

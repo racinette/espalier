@@ -333,12 +333,10 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
 
   const seen = new Set<string>();
   const last: boolean[] = [];
-  const children = new Map<string, number>();
   for (let i = entries.length - 1; i >= 0; i -= 1) {
     const parent = parentOf(entries[i]!.path);
     last[i] = !seen.has(parent);
     seen.add(parent);
-    children.set(parent, (children.get(parent) ?? 0) + 1);
   }
 
   interface Row {
@@ -380,11 +378,10 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
       line: bars + (last[index] ? "└─ " : "├─ ") + name.slice(name.lastIndexOf("/") + 1) + (entry.path.endsWith("/") ? "/" : ""),
       under: beneath,
       // A directory's guide row descends one level, to the branch its own
-      // children hang from.
-      guide: (entry.path.endsWith("/")
-        ? beneath + ((children.get(name) ?? 0) > 1 ? "│" : "")
-        : beneath
-      ).trimEnd(),
+      // children hang from. Always, however many children it has: that bar is
+      // the branch coming down into the first one, and the corner it lands on
+      // is drawn from it. docs/cli/build/README.MD "The map".
+      guide: (entry.path.endsWith("/") ? `${beneath}│` : beneath).trimEnd(),
       text: text === "" ? null : text,
     });
   });

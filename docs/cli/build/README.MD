@@ -103,7 +103,7 @@ Branches are drawn with box-drawing characters: `├─ ` for an entry with sibl
 
 ```text
     ├─ clients/                external API providers
-    │
+    │  │
     │  └─ [provider]/          (zero or more, any name)
     │     │
     │     ├─ requestModels.ts  request shapes (required)
@@ -118,7 +118,9 @@ Branches are drawn with box-drawing characters: `├─ ` for an entry with sibl
 
 Indentation alone would say the same thing in less space, and say it less well: text long enough to wrap leaves a reader deciding whether the next line continues the entry above or begins a new one, and a branch answers that before the question is asked.
 
-**A guide row separates two entries whenever either carries text.** It holds the branch characters and nothing else: the bars the entry above it carried, then a `│` at that entry's own depth when a sibling still follows it, and, when that entry is a directory, one more at its children's depth on the same rule. Trailing spaces are trimmed, so no guide row reaches the text column. Two entries that both carry no text sit adjacent, there being no thread there to lose.
+**A guide row separates two entries whenever either carries text.** It holds the branch characters and nothing else: the bars the entry above it carried, then a `│` at that entry's own depth when a sibling still follows it, and, when that entry is a directory, one more at its children's depth. Trailing spaces are trimmed, so no guide row reaches the text column. Two entries that both carry no text sit adjacent, there being no thread there to lose.
+
+**A directory's guide row descends however many children it has.** The bar at the children's depth is not a claim that more than one follows — it is the branch coming down into the first, and the `├─` or `└─` it lands on is drawn from it. A `└─` with nothing above it is a corner with no line to turn.
 
 **Text starts at one column across the whole map:** two spaces after the longest rendered line, counting the branch characters and not the four spaces of the code block, which are added to every line afterwards and so cannot change the alignment. Text too long for the remaining width wraps into that column and hangs there, under the branch characters of its own line.
 
@@ -316,7 +318,7 @@ nothing outside src/clients/ performs HTTP requests directly.
                             any name)
        │
        ├─ handlers/
-       │
+       │  │
        │  └─ webhook.ts     an inbound webhook handler (required)
        │
        ├─ client.ts         an integration with an external API (required)

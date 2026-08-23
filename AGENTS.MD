@@ -15,23 +15,23 @@ the two still point at each other, rather than checking style.
     │  │  │
     │  │  ├─ adopt/             bringing an existing directory under the
     │  │  │                     espalier
-    │  │  │
+    │  │  │  │
     │  │  │  └─ README.MD       the reference page (required)
     │  │  │
     │  │  ├─ build/             generating the agent-facing documentation
-    │  │  │
+    │  │  │  │
     │  │  │  └─ README.MD       the reference page (required)
     │  │  │
     │  │  ├─ explain/           answering what the espalier says about a path
-    │  │  │
+    │  │  │  │
     │  │  │  └─ README.MD       the reference page (required)
     │  │  │
     │  │  ├─ init/              bootstrapping a repository
-    │  │  │
+    │  │  │  │
     │  │  │  └─ README.MD       the reference page (required)
     │  │  │
     │  │  └─ lint/              validating the repository against the espalier
-    │  │
+    │  │     │
     │  │     └─ README.MD       the reference page (required)
     │  │
     │  ├─ API.MD                using espalier as a library (required)
@@ -48,7 +48,7 @@ the two still point at each other, rather than checking style.
     │                           (required)
     │
     ├─ ignores/                 the ignore lists espalier ships
-    │
+    │  │
     │  └─ [language].gitignore  a shipped ignore list (zero or more, any name)
     │
     ├─ src/                     the implementation
@@ -103,7 +103,7 @@ the two still point at each other, rather than checking style.
     │  └─ repository.ts         what lint and explain both work from (required)
     │
     ├─ test/                    the argument that the tool works
-    │
+    │  │
     │  └─ [name].test.ts        a test module (zero or more, any name)
     │
     ├─ HANDOFF.MD               the record of what was decided and why

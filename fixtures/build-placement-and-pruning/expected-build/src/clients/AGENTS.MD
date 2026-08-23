@@ -9,7 +9,7 @@ Every upstream provider gets its own directory. Nothing outside
                             any name)
        │
        ├─ handlers/
-       │
+       │  │
        │  └─ webhook.ts     an inbound webhook handler (required)
        │
        ├─ client.ts         an integration with an external API (required)

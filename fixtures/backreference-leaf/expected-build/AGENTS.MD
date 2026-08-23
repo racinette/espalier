@@ -3,7 +3,7 @@
 ## Structure
 
     └─ clients/
-
+       │
        └─ [provider]/       (zero or more, any name)
           │
           ├─ {provider}.ts  the provider's entry point (required, {provider}
