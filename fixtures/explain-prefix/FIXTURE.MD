@@ -52,13 +52,37 @@ recursive placeholder doing the only job it has.
 constraint only runs on a file with a structural owner, and this file has
 none. Reporting it would describe a rule that will never run.
 
-Pins: cli/explain/README.MD "Usage", "Output", "Exit codes";
-MATCHING.MD "The deepest recognized node", "Ownership".
+## A prefix that answers nothing still answers
+
+Four queries where the espalier has no subtree to describe, each pinning a
+different route to the same shape:
+
+- `components/nosuch/` — recognized as far as `components/`, and answered with
+  what is declared there. The same words `components/Modal.tsx` gets, because
+  it is the same question about a name that is not there.
+- `nosuch/` — the walk reaches only the root, so there is nothing to report
+  beyond the violation: `recognized` is null and `declared` is empty.
+- `main.ts/` — a name the espalier declares as a **file**, asked about as a
+  directory. The trailing slash is the question, and answering with
+  `main.ts.mjs`'s rule would answer a different one. This is the case that
+  separates *a prefix* from *a path spelled with a slash*.
+- `espalier/` — excluded, and exclusion is checked first, so the answer names
+  what excluded it rather than reporting nothing declared. The path form of the
+  same query gives the same answer, which is the point of checking in the same
+  order.
+
+None of the four lists a constraint, for the reason `components/Modal.tsx` does
+not: a constraint runs on files a structural rule owns.
+
+Pins: cli/explain/README.MD "Usage", "Output", "Exit codes", "A prefix the
+espalier does not recognize"; MATCHING.MD "The deepest recognized node",
+"Ownership".
 
 ## The human layout is pinned too
 
-`human/prefix.txt`, `human/owned.txt` and `human/undeclared.txt` hold the exact
-stdout of three of these queries at `--format human`, compared byte for byte.
+`human/prefix.txt`, `human/owned.txt`, `human/undeclared.txt` and
+`human/unrecognized-prefix.txt` hold the exact stdout of four of these queries
+at `--format human`, compared byte for byte.
 `human/prefix.txt` is the same bytes as the worked example in
 cli/explain/README.MD; if they ever differ, one of them is wrong.
 

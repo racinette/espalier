@@ -29,7 +29,17 @@ function declared(node: TrieNode): string[] {
     .sort();
 }
 
-function stopped(node: TrieNode, at: string[], captures: Record<string, CaptureValue>): Recognition {
+/**
+ * How far recognition got, for a walk that did not finish. Shared with
+ * `explain`, so a prefix nothing declares is answered in the same terms as a
+ * path nothing declares. docs/cli/explain/README.MD "A prefix the espalier
+ * does not recognize".
+ */
+export function stopped(
+  node: TrieNode,
+  at: string[],
+  captures: Record<string, CaptureValue>,
+): Recognition {
   // Reaching only the root recognizes nothing, and there is nothing to report
   // beyond the violation itself.
   if (at.length === 0) return { recognized: null, captures: {}, declared: [] };

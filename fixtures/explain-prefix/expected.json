@@ -133,6 +133,59 @@
         "constraints": []
       },
       "human": "human/undeclared.txt"
+    },
+    "components/nosuch/": {
+      "exit": 1,
+      "object": {
+        "kind": "explanation",
+        "path": "components/nosuch/",
+        "rule": null,
+        "pattern": null,
+        "captures": {},
+        "recognized": "components",
+        "declared": [
+          "buttons/",
+          "layouts/"
+        ],
+        "constraints": []
+      },
+      "human": "human/unrecognized-prefix.txt"
+    },
+    "nosuch/": {
+      "exit": 1,
+      "object": {
+        "kind": "explanation",
+        "path": "nosuch/",
+        "rule": null,
+        "pattern": null,
+        "captures": {},
+        "recognized": null,
+        "declared": [],
+        "constraints": []
+      }
+    },
+    "main.ts/": {
+      "exit": 1,
+      "object": {
+        "kind": "explanation",
+        "path": "main.ts/",
+        "rule": null,
+        "pattern": null,
+        "recognized": null,
+        "declared": [],
+        "constraints": []
+      }
+    },
+    "espalier/": {
+      "exit": 1,
+      "object": {
+        "kind": "explanation",
+        "path": "espalier/",
+        "ignoredBy": "espalier",
+        "rule": null,
+        "pattern": null,
+        "constraints": []
+      }
     }
   },
   "ownership": {

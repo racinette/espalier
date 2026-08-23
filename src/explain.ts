@@ -8,7 +8,7 @@ import path from "node:path";
 import type { Espalier, TrieNode } from "./compile.js";
 import { fail } from "./errors.js";
 import type { ConstraintAnswer, RuleAnswer } from "./explainText.js";
-import { constraintCaptures, isOwnership, type CaptureValue } from "./match.js";
+import { constraintCaptures, isOwnership, type CaptureValue, stopped } from "./match.js";
 import type { Reporter } from "./output.js";
 import { matchSegment, resolveSegment } from "./pattern.js";
 import { closedSet, constraintGroups, isDirectory, mapEntries, requiredUnder, subtree } from "./render.js";
@@ -22,10 +22,13 @@ export interface ExplainOptions {
 }
 
 interface Descent {
+  /** The deepest node reached, which is the root when nothing matched. */
   node: TrieNode;
-  /** Authored path, e.g. `clients/[provider]` for a query about `clients/stripe`. */
-  authored: string;
+  /** Authored segments, e.g. `clients/[provider]` for a query about `clients/stripe`. */
+  authored: string[];
   captures: Record<string, CaptureValue>;
+  /** How many segments were recognized. Short of the query, the walk stopped. */
+  reached: number;
 }
 
 /**
@@ -33,7 +36,7 @@ interface Descent {
  * a directory, which is what distinguishes `clients/stripe` — a prefix — from
  * `clients/stripe/client.ts`, a file.
  */
-function descend(espalier: Espalier, segments: string[]): Descent | null {
+function descend(espalier: Espalier, segments: string[]): Descent {
   let node = espalier.root;
   const authored: string[] = [];
   const captures: Record<string, CaptureValue> = {};
@@ -76,12 +79,12 @@ function descend(espalier: Espalier, segments: string[]): Descent | null {
       }
     }
 
-    if (next === undefined) return null;
+    if (next === undefined) return { node, authored, captures, reached: authored.length };
     node = next;
     authored.push(node.display);
   }
 
-  return { node, authored: authored.join("/"), captures };
+  return { node, authored, captures, reached: authored.length };
 }
 
 /**
@@ -128,7 +131,10 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
 
   const groups = constraintGroups(espalier);
   const segments = target === "" ? [] : target.split("/");
-  const found = descend(espalier, segments);
+  const walk = descend(espalier, segments);
+  // A prefix the espalier declares. Short of that, the walk stopped somewhere
+  // above, and what it reached is the answer rather than the prefix.
+  const found = walk.reached === segments.length ? walk : null;
 
   // A trailing slash always means a prefix. Without one, it is a prefix if the
   // espalier recognizes a directory there and no structural rule owns the path
@@ -136,32 +142,66 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
   // a dynamic leaf, `clients/registry.ts` matches `clients/[provider]` as
   // readily as `clients/[summary].ts`, and the file is the better answer —
   // something owns it, and that owner is what the reader asked about.
-  const asPrefix =
-    options.target.endsWith("/") ||
-    options.target === "." ||
-    target === "" ||
-    (found !== null && !isOwnership(repository.resolve(target)));
+  // A trailing slash, or `.`, asks about a directory. The question stands even
+  // where nothing answers it: a name the espalier declares as a file is not a
+  // directory, and reporting its rule would answer something else.
+  const spelled = options.target.endsWith("/") || options.target === "." || target === "";
+  const asPrefix = spelled || (found !== null && !isOwnership(repository.resolve(target)));
+
+  // Exclusion is checked before declaration for a prefix exactly as it is for a
+  // path below, so the two forms of one question cannot give two answers.
+  const ignored = repository.ungoverned(target);
+  if (asPrefix && ignored !== null) {
+    reporter.explanation({
+      kind: "explanation",
+      espalier: null,
+      path: `${target}/`,
+      ignoredBy: ignored,
+      rule: null,
+      pattern: null,
+      captures: {},
+      constraints: [],
+    });
+    return 1;
+  }
 
   if (asPrefix) {
-    const prefix = target === "" ? "" : `${target}/`;
-    const doc = found === null ? undefined : espalier.nodes.get(found.authored);
-    const required = found === null ? new Set<string>() : new Set(requiredUnder(found.node));
+    // Nothing declares this prefix. The same answer a path nothing declares
+    // gets, in the same words, and no constraints — a constraint runs on files
+    // a structural rule owns, and nothing here owns anything.
+    // docs/cli/explain/README.MD "A prefix the espalier does not recognize".
+    if (found === null) {
+      const recognition = stopped(walk.node, walk.authored, walk.captures);
+      reporter.explanation({
+        kind: "explanation",
+        espalier: null,
+        path: `${target}/`,
+        rule: null,
+        pattern: null,
+        captures: recognition.captures,
+        recognized: recognition.recognized,
+        declared: recognition.declared,
+        constraints: [],
+      });
+      return 1;
+    }
 
-    const rules: RuleAnswer[] =
-      found === null
-        ? []
-        : [...subtree(found.node)]
-            .filter((visit) => visit.node.rule !== null)
-            .map((visit) => ({
-              path: `${prefix}${visit.at}`,
-              pattern: visit.node.rule!.pattern,
-              rule: visit.node.rule!.modulePath,
-              description: visit.node.rule!.module.description,
-              ruleText: visit.node.rule!.module.rule.trim(),
-              example: visit.node.rule!.module.example,
-              exampleSource: visit.node.rule!.module.exampleSource,
-              required: required.has(visit.at),
-            }));
+    const prefix = target === "" ? "" : `${target}/`;
+    const doc = espalier.nodes.get(found.authored.join("/"));
+    const required = new Set(requiredUnder(found.node));
+
+    const rules: RuleAnswer[] = [...subtree(found.node)]
+      .filter((visit) => visit.node.rule !== null)
+      .map((visit) => ({
+        path: `${prefix}${visit.at}`,
+        pattern: visit.node.rule!.pattern,
+        rule: visit.node.rule!.modulePath,
+        description: visit.node.rule!.module.description,
+        ruleText: visit.node.rule!.module.rule.trim(),
+        example: visit.node.rule!.module.example,
+        exampleSource: visit.node.rule!.module.exampleSource,
+        required: required.has(visit.at),
+      }));
 
     reporter.explanation({
       kind: "explanation",
@@ -169,10 +209,10 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
       prefix,
       description: doc?.description ?? null,
       body: doc?.body ?? "",
-      captures: found?.captures ?? {},
+      captures: found.captures,
       rules,
-      map: found === null ? null : mapEntries(espalier, found.node, found.authored),
-      closedSet: found === null ? null : closedSet(target),
+      map: mapEntries(espalier, found.node, found.authored.join("/")),
+      closedSet: closedSet(target),
       // Named for the reason a generated document names them: the sentence
       // above is absolute, and a boundary the reader can see has to be one the
       // answer accounts for. docs/cli/build/README.MD "Governed elsewhere".

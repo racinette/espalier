@@ -80,6 +80,29 @@ That matters more than it looks. The tempting alternative is to phrase it a seco
 
 A child espalier inside the subtree is named, for the reason the generated document names it: the closed-set sentence is absolute, and a boundary a reader can see has to be one the answer accounts for. See [build](../build/README.MD#governed-elsewhere).
 
+### A prefix the espalier does not recognize
+
+Answered the way an undeclared path is, in the same words, because it is the same question about a name that is not there:
+
+```text
+$ espalier explain components/nosuch/
+
+components/nosuch/ is not declared.
+
+  The espalier recognizes components/
+  Declared there:
+    buttons/
+    layouts/
+```
+
+The trailing slash is the question, so a name the espalier declares as a file and not as a directory is answered here too: `clients/registry.ts/` is not a directory, and `Declared there:` is where `registry.ts` appears. Answering with the file's rule would be answering a question that was not asked.
+
+No constraint is listed. A constraint runs on files a structural rule owns, and nothing here owns anything, so the ones whose patterns reach this prefix are rules that will never run.
+
+### A prefix espalier does not govern
+
+Answered like the path of the same name — `node_modules/ is not governed by espalier.` and what excluded it. Exclusion is checked before declaration for a prefix exactly as it is for a path, so the two forms of one question cannot give two answers.
+
 ## A path
 
 Returns the rule that owns it, its captures, and every constraint that applies.
@@ -224,6 +247,8 @@ It is called `rules` rather than `declared` because `declared` already means som
 `map` is the same subtree the human form draws, as data: one entry per node in map order, `path` relative to the prefix and carrying a trailing `/` for a directory. `required` is null where the espalier names no file — a directory, or a dynamic leaf that already answers `any number, any name`. The drawing is not in the JSON, because branch characters and line breaks are a rendering, and a consumer of this format is not reading prose.
 
 `closedSet` is a single unwrapped string, for the same reason.
+
+An unrecognized or ungoverned prefix carries the shapes above rather than a shape of its own, with the queried prefix — trailing slash and all — in `path`. One question answered two ways would be two shapes for a consumer to learn, and the answer does not depend on how the reader spelled it.
 
 A constraint is listed under a prefix when its static prefix and the queried prefix are prefixes of one another — that is, when the subtree could contain a file it matches. It is a deliberately generous test: a constraint that reaches a subtree but happens to match nothing in it today will still match the next file added there.
 
