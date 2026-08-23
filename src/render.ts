@@ -264,7 +264,7 @@ export interface MapEntry {
   description: string | null;
   /**
    * Null where the espalier names no file: a directory, whose existence is its
-   * contents', and a dynamic leaf, which answers `any number, any name`.
+   * contents', and a dynamic leaf, which answers `zero or more, any name`.
    */
   required: boolean | null;
 }
@@ -301,7 +301,7 @@ function suffixes(entry: MapEntry): string[] {
   const segment = parseSegment(name.slice(name.lastIndexOf("/") + 1), "map");
 
   if (entry.required !== null) marks.push(entry.required ? "required" : "optional");
-  if (segment.dynamic) marks.push("any number, any name");
+  if (segment.dynamic) marks.push("zero or more, any name");
 
   // What the capture holds, not what the segment was: under
   // `[provider]-provider/`, `{provider}Impl.ts` is `stripeImpl.ts`, and "the

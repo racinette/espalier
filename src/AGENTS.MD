@@ -26,7 +26,7 @@ cannot be read, parsed, trusted or written is a cache the run does without.
 
 ## Structure
 
-    └─ [name].ts  an implementation module, any number, any name
+    └─ [name].ts  an implementation module, zero or more, any name
 
 Nothing else may exist under src/.
 

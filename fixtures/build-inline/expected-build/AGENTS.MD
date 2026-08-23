@@ -8,7 +8,7 @@ the repository root.
     ├─ components/
     │  └─ buttons/
     │
-    │     └─ [button].tsx  a button component, any number, any name
+    │     └─ [button].tsx  a button component, zero or more, any name
     │
     └─ main.ts             the application entry point, required
 

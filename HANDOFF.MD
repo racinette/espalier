@@ -552,8 +552,12 @@ The paragraph had to name each node again to say anything about it, and naming
 it again meant naming it from somewhere — `required in every [command]`,
 `below is where?` — so every sentence carried a bearing the reader had to take
 before they could use it. The suffixes carry the same facts with no bearing at
-all: the line is the subject. `required`, `optional`, `any number, any name`,
+all: the line is the subject. `required`, `optional`, `zero or more, any name`,
 `{provider} repeats what [provider] matched`.
+
+`zero or more` rather than `any number`, which was the first phrasing: on a line
+reading `[domain].ts  a domain model, any number`, the number has no subject,
+and characters in the filename read as well as files in the directory.
 
 The last of those is phrased around the capture rather than the segment because
 a capture is the matched text, not the name it was matched from:
@@ -570,6 +574,35 @@ same argument one step further.
 carries the entries as data rather than the drawing. What survives of the
 paragraph is its last sentence, `Nothing else may exist under this directory.`,
 which is the only thing the tree does not say.
+
+## Why a dynamic leaf has no "at least one"
+
+Considered and declined. `optional` is rejected on a dynamic leaf, and the
+tempting reading is that the unmarked form should therefore mean *at least one*
+— which would let an espalier say `test/[name].test.ts` and have a repository
+with no tests reported.
+
+Two things sank it.
+
+The use cases are thinner than they look. A dynamic leaf with no instances
+usually means its directory does not exist, and git does not track an empty
+directory, so the violable state cannot arise. The cases that survive — no
+tests, no packages, no migrations — are all true of a young repository on day
+one, so the marker would be set `optional` immediately and would catch only
+someone deleting the last one.
+
+The default is the real argument. Zero-or-more is the common case, so requiring
+`optional = true` to say it would put a marker on most dynamic leaves stating
+what was already true, and leave the silent form meaning the rarer thing. A
+default earns its silence by being what is usually meant.
+
+That also settles the rejection, which had looked like a wart: an author writing
+`optional` on `[domain].ts` believes it changes something, and
+`module_invalid_export` tells them it does not. Accepting it as a no-op would
+leave the belief intact.
+
+`MATCHING.MD` stands as written — *there is no syntax for "at least one"* — and
+a collection that must not be empty stays unstateable.
 
 ## Why every covering document names a child espalier
 

@@ -31,11 +31,11 @@ this project; these pages are read by whoever is using it.
 
     ├─ cli/             one page per command
     │
-    │  └─ [command]/    any number, any name
+    │  └─ [command]/    zero or more, any name
     │
     │     └─ README.MD  the page for one command, required
     │
-    └─ [doc].MD         a specification document, any number, any name
+    └─ [doc].MD         a specification document, zero or more, any name
 
 Nothing else may exist under docs/.
 

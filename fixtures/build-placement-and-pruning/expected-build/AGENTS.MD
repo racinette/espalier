@@ -8,14 +8,14 @@ renders.
     ├─ components/
     │  └─ buttons/
     │
-    │     └─ [button].tsx         a button component, any number, any name
+    │     └─ [button].tsx         a button component, zero or more, any name
     │
     ├─ src/
     │
     │  └─ clients/                outbound API integrations
     │
-    │     └─ [provider]/          one directory per upstream provider, any
-    │                             number, any name
+    │     └─ [provider]/          one directory per upstream provider, zero or
+    │                             more, any name
     │        │
     │        ├─ handlers/
     │        │

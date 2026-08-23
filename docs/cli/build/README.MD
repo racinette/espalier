@@ -104,7 +104,7 @@ Branches are drawn with box-drawing characters: `├─ ` for an entry with sibl
 ```text
     ├─ clients/                external API providers
     │
-    │  └─ [provider]/          any number, any name
+    │  └─ [provider]/          zero or more, any name
     │     │
     │     ├─ requestModels.ts  request shapes, required
     │     │
@@ -132,11 +132,13 @@ There are three kinds, and each is true of the line it sits on and of nothing el
 
 **`required` and `optional`** mark every leaf the espalier names — every static and resolved one — and neither is a default. A named file carrying no such suffix is not a file whose requiredness is left to inference; there is no such file. Both read against the line's own position, so `requestModels.ts` drawn inside `[provider]/` is required in a `[provider]/` directory, which is where the reader is looking.
 
-A dynamic leaf carries neither. `any number, any name` already says zero or more, and there is no named file there to require.
+A dynamic leaf carries neither. `zero or more, any name` says the count itself, and there is no named file there to require. Marking one `optional` is rejected rather than ignored — see [TYPES.MD](../../TYPES.MD#optional) — because an author writing it believes it changes something.
 
 Directories carry neither. A directory exists exactly when the files described inside it do, so marking one required would either restate its contents or claim that an empty directory satisfies something, and the second is false.
 
-**`any number, any name`** marks every node whose own name holds a `[name]` placeholder, wherever the placeholder sits — `[provider]/`, `[button].tsx`, `test-[name].ts`. It teaches the bracket by example on the line the bracket is on, rather than relying on a syntax rule stated once at the top of a file the reader may have entered halfway down.
+**`zero or more, any name`** marks every node whose own name holds a `[name]` placeholder, wherever the placeholder sits — `[provider]/`, `[button].tsx`, `test-[name].ts`. It teaches the bracket by example on the line the bracket is on, rather than relying on a syntax rule stated once at the top of a file the reader may have entered halfway down.
+
+Both halves are load-bearing and neither stands alone. `any name` without a count leaves *how many* unanswered, and a count without `any name` leaves the brackets unexplained. The count is named rather than implied: a line reading `a domain model, any number` gives the number no subject, and characters in the filename read as well as files in the directory.
 
 **`{provider} repeats what [provider] matched`** marks every node whose name holds a back-reference, one clause per placeholder, comma-joined. It describes what the capture holds rather than what the segment was, which is the only phrasing that survives an affix: under `[provider]-provider/`, a `{provider}Impl.ts` in the directory named `stripe-provider` is `stripeImpl.ts`, and a suffix promising "the same name as the directory" would be wrong three times out of four.
 
@@ -308,8 +310,8 @@ nothing outside src/clients/ performs HTTP requests directly.
 
 ## Structure
 
-    └─ [provider]/          one directory per upstream provider, any number, any
-                            name
+    └─ [provider]/          one directory per upstream provider, zero or more,
+                            any name
        │
        ├─ handlers/
        │

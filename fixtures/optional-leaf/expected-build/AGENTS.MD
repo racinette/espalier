@@ -2,7 +2,7 @@
 
 ## Structure
 
-    ├─ [client]/      any number, any name
+    ├─ [client]/      zero or more, any name
     │  │
     │  ├─ client.ts   a client, required
     │  │

@@ -13,23 +13,23 @@ the two still point at each other, rather than checking style.
     │  │
     │  ├─ cli/                  one page per command
     │  │
-    │  │  └─ [command]/         any number, any name
+    │  │  └─ [command]/         zero or more, any name
     │  │
     │  │     └─ README.MD       the page for one command, required
     │  │
-    │  └─ [doc].MD              a specification document, any number, any name
+    │  └─ [doc].MD              a specification document, zero or more, any name
     │
     ├─ ignores/                 the ignore lists espalier ships
     │
-    │  └─ [language].gitignore  a shipped ignore list, any number, any name
+    │  └─ [language].gitignore  a shipped ignore list, zero or more, any name
     │
     ├─ src/                     the implementation
     │
-    │  └─ [name].ts             an implementation module, any number, any name
+    │  └─ [name].ts             an implementation module, zero or more, any name
     │
     ├─ test/                    the argument that the tool works
     │
-    │  └─ [name].test.ts        a test module, any number, any name
+    │  └─ [name].test.ts        a test module, zero or more, any name
     │
     ├─ HANDOFF.MD               the record of what was decided and why, required
     │

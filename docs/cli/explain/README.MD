@@ -43,11 +43,11 @@ A component used by exactly one screen belongs beside that screen instead.
   Declared here:
     ├─ buttons/
     │
-    │  └─ [button].tsx  a button component, any number, any name
+    │  └─ [button].tsx  a button component, zero or more, any name
     │
     └─ layouts/
 
-       └─ [layout].tsx  a layout component, any number, any name
+       └─ [layout].tsx  a layout component, zero or more, any name
 
   Nothing else may exist under components/.
 
@@ -244,7 +244,7 @@ Carries the owning rule, the normalized pattern that matched, the captures, and 
 
 It is called `rules` rather than `declared` because `declared` already means something narrower and is already in the output above: the names of a node's immediate children, which is what `lint` attaches to `unexpected_path`. One key, one shape.
 
-`map` is the same subtree the human form draws, as data: one entry per node in map order, `path` relative to the prefix and carrying a trailing `/` for a directory. `required` is null where the espalier names no file — a directory, or a dynamic leaf that already answers `any number, any name`. The drawing is not in the JSON, because branch characters and line breaks are a rendering, and a consumer of this format is not reading prose.
+`map` is the same subtree the human form draws, as data: one entry per node in map order, `path` relative to the prefix and carrying a trailing `/` for a directory. `required` is null where the espalier names no file — a directory, or a dynamic leaf that already answers `zero or more, any name`. The drawing is not in the JSON, because branch characters and line breaks are a rendering, and a consumer of this format is not reading prose.
 
 `closedSet` is a single unwrapped string, for the same reason.
 

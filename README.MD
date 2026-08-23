@@ -217,42 +217,42 @@ Rules execute independently, in unspecified order, with no shared state. A rule 
 ```text
     ├─ clients/
     │
-    │  └─ [apiProviderDirectory]/            any number, any name
+    │  └─ [apiProviderDirectory]/            zero or more, any name
     │
-    │     └─ [apiProviderImplementation].ts  an HTTP client implementation, any
-    │                                        number, any name
+    │     └─ [apiProviderImplementation].ts  an HTTP client implementation, zero
+    │                                        or more, any name
     │
     ├─ components/
     │  ├─ buttons/
     │  │
-    │  │  └─ [button].tsx                    a button component, any number, any
-    │  │                                     name
+    │  │  └─ [button].tsx                    a button component, zero or more,
+    │  │                                     any name
     │  │
     │  ├─ dropdowns/
     │  │
-    │  │  └─ [dropdown].tsx                  a dropdown component, any number,
+    │  │  └─ [dropdown].tsx                  a dropdown component, zero or more,
     │  │                                     any name
     │  │
     │  └─ layouts/
     │
-    │     └─ [layout].tsx                    a layout component, any number, any
-    │                                        name
+    │     └─ [layout].tsx                    a layout component, zero or more,
+    │                                        any name
     │
     ├─ endpoints/
     │
-    │  └─ [endpoint].ts                      an endpoint implementation, any
-    │                                        number, any name
+    │  └─ [endpoint].ts                      an endpoint implementation, zero or
+    │                                        more, any name
     │
     ├─ models/
     │
-    │  └─ [domain].ts                        a domain model, any number, any
+    │  └─ [domain].ts                        a domain model, zero or more, any
     │                                        name
     │
     └─ main.ts                               the application entry point,
                                              required
 ```
 
-Names are the authored form, and each line carries what is true of it and of nothing else: whether the file is `required` or `optional`, whether a placeholder means `any number, any name`, and which capture a `{brace}` repeats. Siblings are ordered directories first, then by specificity, then lexicographically — the same order the matcher resolves them in, so a document listing them one way while ownership resolves them another is not possible.
+Names are the authored form, and each line carries what is true of it and of nothing else: whether the file is `required` or `optional`, whether a placeholder means `zero or more, any name`, and which capture a `{brace}` repeats. Siblings are ordered directories first, then by specificity, then lexicographically — the same order the matcher resolves them in, so a document listing them one way while ownership resolves them another is not possible.
 
 This is the architectural map: small, stable, and sufficient to orient any decision about where new code should go. It stays small because it carries a description and nothing more — no rule bodies, no examples. The conventions themselves live in the documentation written into each directory, so an agent working in `src/clients/` picks up the rules for `src/clients/` and pays nothing for the rest of the repository.
 

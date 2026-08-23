@@ -4,7 +4,7 @@
 
     ├─ tools/        developer tooling
     │
-    │  └─ [tool].ts  a developer tool, any number, any name
+    │  └─ [tool].ts  a developer tool, zero or more, any name
     │
     └─ main.ts       the application entry point, required
 

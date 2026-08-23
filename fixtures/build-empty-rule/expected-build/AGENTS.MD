@@ -6,7 +6,7 @@
        │
        ├─ registry.ts  the module registry, required
        │
-       └─ [module].ts  a module, any number, any name
+       └─ [module].ts  a module, zero or more, any name
 
 Nothing else may exist under this directory.
 

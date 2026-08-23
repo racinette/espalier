@@ -11,7 +11,7 @@ up a command should not have to read the parser.
 
 ## Structure
 
-    └─ [command]/    any number, any name
+    └─ [command]/    zero or more, any name
 
        └─ README.MD  the page for one command, required
 
