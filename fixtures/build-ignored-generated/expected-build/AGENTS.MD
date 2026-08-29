@@ -19,7 +19,7 @@ Rules appear in evaluation order. A leading `!` retains a path that an earlier r
 
 | Rules | Why |
 | --- | --- |
-| `FIXTURE.MD`<br>`expected.json`<br>`expected-build/**`<br>`vendor/**` | — |
+| `vendor/**` | — |
 
 ### Tool-owned entries
 

@@ -33,14 +33,6 @@ Scratch space. Anything that is not a decision belongs here.
 
 ## Not described here
 
-### Exclusion rules
-
-Rules appear in evaluation order. A leading `!` retains a path that an earlier rule excluded.
-
-| Rules | Why |
-| --- | --- |
-| `FIXTURE.MD`<br>`expected.json` | — |
-
 ### Tool-owned entries
 
 | Entries | Why |

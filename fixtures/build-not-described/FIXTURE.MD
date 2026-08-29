@@ -1,23 +1,22 @@
-# build: exclusion policy and tool-owned entries
+# build: materialized exclusion policy and tool-owned entries
 
-The output is derived from declarations, not from whichever ignored files
-happen to exist during one build. Every ignore rule appears in evaluation order
-even when it matches nothing, and the comment block introducing a group appears
-once beside the whole group.
+The output contains only exclusion declarations that participate for entries
+encountered in this fixture. Exact rooted files and directories appear when
+present. A glob appears once when at least one path matches it, without listing
+those paths.
 
-This fixture pins a group with two rules, an unmatched negation, an exact rooted
-file, an exact rooted directory, and an unexplained group. The `ignoreFiles`
-rule appears too, but not the comment written for git: only `.espalierignore`
-supplies project-facing reasons.
+The absent `/missing.txt` and unmatched `*.bak` are omitted. The unmatched
+`!generated/manifest.json` negation is omitted as well, while `generated/**`
+remains because `generated/out.ts` exists. Comments still describe an authored
+group once after its inactive declarations are filtered out. The configured
+ignore-file rule appears because `logs/` exists, but its git-facing comment does
+not become project-facing explanation.
 
-Tool-owned entries are separate. The generated document points to its
-`ESPALIER.MD` as the persistent source for guidance and says to modify it, while
-configuration is named without suggesting that an agent should edit the ignore
-lists. Other build fixtures have placement points without that file and pin the
-corresponding instruction to create it. None of these rows depends on whether
-`logs/debug.log`, `generated/out.ts`, or any other match exists during the run.
+Tool-owned entries remain separate. The generated document points to its
+`ESPALIER.MD` as the persistent source for guidance and configuration is named
+without suggesting edits to ignore lists.
 
-The golden is compared byte for byte, so grouping, ordering, table escaping,
-negation, unmatched rules, and the generated-source link are one assertion.
+The golden is compared byte for byte, so filtering, grouping, ordering,
+placement, table escaping, and the generated-source link are one assertion.
 
 Pins: cli/build/README.MD "Not described here", CONFIG.MD "`.espalierignore`".

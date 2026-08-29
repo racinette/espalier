@@ -46,17 +46,14 @@ Rules appear in evaluation order. A leading `!` retains a path that an earlier r
 
 | Rules | Why |
 | --- | --- |
-| `LEGACY_README.MD`<br>`node_modules/`<br>`dist/` | — |
-| `.cache/` | — |
-| `.git/`<br>`.hg/`<br>`.svn/` | Version control metadata. `.gitignore` never lists `.git/` — git has no need to ignore itself — so this is the one exclusion no other file supplies. |
-| `.gitignore`<br>`.gitattributes`<br>`.gitmodules`<br>`.mailmap`<br>`.git-blame-ignore-revs`<br>`.editorconfig`<br>`.dockerignore`<br>`.tool-versions` | Repository metadata. Tracked on purpose, and dictated by the tool that reads them rather than by this project's architecture. |
-| `.github/`<br>`.gitlab/`<br>`.gitlab-ci.yml`<br>`.circleci/`<br>`.buildkite/`<br>`.travis.yml`<br>`azure-pipelines.yml`<br>`Jenkinsfile`<br>`.drone.yml`<br>`.woodpecker.yml` | Continuous integration. |
-| `LICENSE`<br>`LICENSE.*`<br>`LICENCE`<br>`LICENCE.*`<br>`COPYING`<br>`NOTICE`<br>`AUTHORS`<br>`CONTRIBUTORS` | Licence and legal. |
-| `.vscode/`<br>`.idea/`<br>`.fleet/`<br>`.zed/`<br>`.claude/`<br>`.cursor/`<br>`.windsurf/`<br>`.continue/`<br>`.codeium/`<br>`.aider*`<br>`*.swp`<br>`.DS_Store`<br>`Thumbs.db`<br>`desktop.ini` | Editor and operating system droppings. |
-| `package.json`<br>`package-lock.json`<br>`npm-shrinkwrap.json`<br>`yarn.lock`<br>`pnpm-lock.yaml`<br>`pnpm-workspace.yaml`<br>`bun.lock`<br>`bun.lockb`<br>`deno.json`<br>`deno.jsonc`<br>`deno.lock` | Manifests and lockfiles. |
-| `tsconfig.json`<br>`tsconfig.*.json`<br>`jsconfig.json`<br>`.eslintrc`<br>`.eslintrc.*`<br>`eslint.config.*`<br>`.prettierrc`<br>`.prettierrc.*`<br>`prettier.config.*`<br>`.babelrc`<br>`.babelrc.*`<br>`babel.config.*`<br>`.npmrc`<br>`.nvmrc`<br>`.node-version` | Tool configuration. The tool decides the filename; the project only decides the contents. |
+| `node_modules/`<br>`dist/` | — |
+| `.git/` | Version control metadata. `.gitignore` never lists `.git/` — git has no need to ignore itself — so this is the one exclusion no other file supplies. |
+| `.gitignore` | Repository metadata. Tracked on purpose, and dictated by the tool that reads them rather than by this project's architecture. |
+| `LICENSE` | Licence and legal. |
+| `.claude/`<br>`.cursor/` | Editor and operating system droppings. |
+| `package.json`<br>`package-lock.json` | Manifests and lockfiles. |
+| `tsconfig.json` | Tool configuration. The tool decides the filename; the project only decides the contents. |
 | `fixtures/**` | espalier's own fixtures are data: sixty configs, several deliberately invalid, and a root run executing all sixty is not what anyone means by it. |
-| `LEGACY_README.MD` | Not source, and not in .gitignore either. |
 
 ### Tool-owned entries
 

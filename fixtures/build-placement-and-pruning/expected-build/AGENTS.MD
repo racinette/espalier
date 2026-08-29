@@ -32,14 +32,6 @@ Never write `as any`. Narrow the type instead.
 
 ## Not described here
 
-### Exclusion rules
-
-Rules appear in evaluation order. A leading `!` retains a path that an earlier rule excluded.
-
-| Rules | Why |
-| --- | --- |
-| `FIXTURE.MD`<br>`expected.json`<br>`expected-build/**` | — |
-
 ### Tool-owned entries
 
 | Entries | Why |

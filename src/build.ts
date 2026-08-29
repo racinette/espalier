@@ -117,10 +117,10 @@ export async function build(options: BuildOptions, reporter: Reporter): Promise<
 }
 
 /**
- * Exclusion policy at the root, and the entries espalier itself owns beside
- * each generated document. Nothing here depends on which ignored files happen
- * to exist during this run: patterns are declarations, not an inventory of
- * their current matches.
+ * Materialized exclusion policy at its narrowest scope, and the entries
+ * espalier itself owns beside each generated document. Rules are declarations,
+ * but only declarations that participated in the repository walk are useful to
+ * a reader of the generated document.
  * docs/cli/build/README.MD "Not described here".
  */
 interface ScopedExclusionGroup extends ExclusionGroup {
@@ -220,7 +220,7 @@ function outsideAt(
 
   const exclusions = new Map<string, ExclusionGroup[]>();
   for (const point of points) exclusions.set(point.at, []);
-  for (const group of exclusionGroups(repository.ignoreRules)) {
+  for (const group of exclusionGroups(repository.activeIgnoreRules)) {
     const target = inline ? points[0]! : pointFor(points, commonScope(group.scopes));
     exclusions.get(target.at)!.push({ rules: group.rules, reason: group.reason });
   }

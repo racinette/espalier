@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync, statSync, type Dirent } from "node:fs";
 import path from "node:path";
 import { fail } from "./errors.js";
-import { ignores, type IgnoreRule } from "./ignore.js";
+import { excludedBy, type IgnoreRule } from "./ignore.js";
 
 /**
  * The opening of the header `espalier build` writes into every file it
@@ -116,12 +116,15 @@ export function collectCandidates(
   rules: IgnoreRule[],
   skip?: string,
   loadIgnore?: IgnoreLoader,
+  observed?: Set<IgnoreRule>,
 ): string[] {
   const found: string[] = [];
   // The directories on the way down from the root, by `dev:ino`. A link is a
   // cycle exactly when it lands on one of them, and seeding the root is what
   // makes a link straight back to it a cycle rather than a second repository.
   const ancestors = new Set<string>([identify(root)]);
+  const ignored = (relative: string, asDirectory = false): boolean =>
+    excludedBy(rules, relative, asDirectory, observed) !== null;
 
   const descend = (absolute: string, prefix: string): void => {
     // Like git, learn a directory's local rules before considering anything
@@ -138,14 +141,14 @@ export function collectCandidates(
       // fail. The rules are consulted first, under both interpretations: which
       // one applies is precisely what resolving would have answered, and a
       // broken link nobody can fix must stay excludable.
-      if (entry.isSymbolicLink() && (ignores(rules, relative, true) || ignores(rules, relative))) {
+      if (entry.isSymbolicLink() && (ignored(relative, true) || ignored(relative))) {
         continue;
       }
 
       const resolved = inspect(entry, at, relative);
 
       if (resolved.kind === "directory") {
-        if (ignores(rules, relative, true)) continue;
+        if (ignored(relative, true)) continue;
         // Only an ancestor is refused, not every directory reached twice.
         // Two links to one directory are two paths, and both of them exist —
         // reporting the file under whichever the walk happened to arrive by
@@ -156,6 +159,10 @@ export function collectCandidates(
         descend(at, relative);
         ancestors.delete(resolved.id!);
       } else if (resolved.kind === "file") {
+        // Ignored files remain candidates so `explain` can name the rule that
+        // excluded them. Observing the decision here also drives build's concise
+        // exclusion table without a second filesystem walk.
+        ignored(relative);
         found.push(relative);
       }
     }

@@ -19,6 +19,8 @@ export interface Repository {
   visibleSet: Set<string>;
   /** User `ignore` only; the default list is a heuristic a declaration overrides. */
   ignoreRules: IgnoreRule[];
+  /** Ignore rules that participate in at least one decision for an encountered entry. */
+  activeIgnoreRules: IgnoreRule[];
   /** Repo-relative directories holding an espalier of their own, sorted. */
   children: string[];
   resolve(filePath: string): Ownership | Recognition;
@@ -123,6 +125,7 @@ export async function open(configOption: string | undefined, cwd: string): Promi
   const espalierPrefix = `${config.espalierRoot}/`;
   const configRelative = path.relative(config.root, config.configPath).split(path.sep).join("/");
 
+  const observedIgnoreRules = new Set<IgnoreRule>();
   const candidates = collectCandidates(
     config.root,
     ignoreRules,
@@ -132,6 +135,7 @@ export async function open(configOption: string | undefined, cwd: string): Promi
       if (!existsSync(path.join(absolute, IGNORE_FILENAME))) return [];
       return compileIgnore(readNestedIgnoreFile(config.root, origin), origin, at);
     },
+    observedIgnoreRules,
   );
   const children = findChildren(candidates, configRelative, ignoreRules);
   const childPrefixes = children.map((child) => `${child}/`);
@@ -198,6 +202,7 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     visible,
     visibleSet: new Set(visible),
     ignoreRules,
+    activeIgnoreRules: ignoreRules.filter((rule) => observedIgnoreRules.has(rule)),
     children,
     resolve: lookup,
     ungoverned,

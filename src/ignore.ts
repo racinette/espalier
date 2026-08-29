@@ -135,6 +135,7 @@ export function excludedBy(
   rules: IgnoreRule[],
   relativePath: string,
   asDirectory = false,
+  observed?: Set<IgnoreRule>,
 ): IgnoreRule | null {
   const segments = relativePath.split("/");
   let winner: IgnoreRule | null = null;
@@ -149,7 +150,14 @@ export function excludedBy(
     for (const rule of rules) {
       if (rule.dirOnly && !isDirectory) continue;
       const local = localPath(rule, partial);
-      if (local !== null && rule.matcher.test(local)) winner = rule.negated ? null : rule;
+      if (local !== null && rule.matcher.test(local)) {
+        const next = rule.negated ? null : rule;
+        // A positive match becomes the explanation for the exclusion even when
+        // another positive rule had already excluded the path. A negation only
+        // participates when there is an exclusion for it to retain the path from.
+        if (next !== winner) observed?.add(rule);
+        winner = next;
+      }
     }
 
     // An ancestor settled it. Deeper patterns describe paths inside a directory

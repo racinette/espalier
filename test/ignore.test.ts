@@ -174,3 +174,15 @@ test("a deeper ignore file overrides applicable ancestor rules", () => {
   assert.equal(ignores(rules, "src/important.log"), false);
   assert.equal(ignores(rules, "docs/important.log"), true);
 });
+
+test("observation records only rules that participate for materialized paths", () => {
+  const rules = compileIgnore(["*.log", "debug.log", "!debug.log", "!missing.log", "*.bak"]);
+  const observed = new Set<(typeof rules)[number]>();
+
+  assert.equal(excludedBy(rules, "debug.log", false, observed), null);
+  assert.equal(excludedBy(rules, "main.ts", false, observed), null);
+  assert.deepEqual(
+    rules.filter((rule) => observed.has(rule)).map((rule) => rule.pattern),
+    ["*.log", "debug.log", "!debug.log"],
+  );
+});

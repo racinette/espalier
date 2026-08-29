@@ -13,14 +13,6 @@ Wire up the application and start it.
 
 ## Not described here
 
-### Exclusion rules
-
-Rules appear in evaluation order. A leading `!` retains a path that an earlier rule excluded.
-
-| Rules | Why |
-| --- | --- |
-| `FIXTURE.MD`<br>`expected.json`<br>`expected-build/**`<br>`backend/**` | — |
-
 ### Tool-owned entries
 
 | Entries | Why |

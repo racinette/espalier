@@ -22,10 +22,10 @@ Rules appear in evaluation order. A leading `!` retains a path that an earlier r
 | Rules | Why |
 | --- | --- |
 | `logs/` | — |
-| `FIXTURE.MD`<br>`expected.json`<br>`.gitignore.fixture` | — |
+| `.gitignore.fixture` | — |
 | `/vendor/` | Third-party source. Not ours to shape. |
 | `package.json`<br>`tsconfig.json` | Not this project's architecture. Their shape is dictated by the tools that read them, and changing one is a conversation with that tool rather than with this repository. |
-| `generated/**`<br>`!generated/manifest.json` | Written by the code generator. |
+| `generated/**` | Written by the code generator. |
 | `/notes.txt` | — |
 
 ### Tool-owned entries

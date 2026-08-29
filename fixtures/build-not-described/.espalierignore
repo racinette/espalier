@@ -16,3 +16,7 @@ generated/**
 !generated/manifest.json
 
 /notes.txt
+
+# Not materialized in this fixture.
+/missing.txt
+*.bak

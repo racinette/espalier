@@ -246,16 +246,22 @@ Configured `ignoreFiles` remain repository-root-relative external sources. They
 are not discovered per directory.
 
 Two tables for two different reasons something sits outside the structural map.
-Neither is a snapshot of the ignored files that happen to exist during one
-build.
+The exclusion table is materialized from the entries encountered during this
+build; the tool-owned table is independent of repository contents.
 
 #### Exclusion rules
 
-Every rule from every configured ignore source, whether it currently matches a
-path or not. Rules preserve source-file and evaluation order because later
-matches win; sorting or grouping across authored blocks would describe a
-different policy. Negations appear too, since omitting one would turn the rule
-above it into a broader exclusion than the repository actually has.
+Only rules that participate in an exclusion decision for at least one file or
+directory encountered by the repository walk. A positive rule participates
+when it becomes the winning explanation for an exclusion. A negation
+participates only when it retains an encountered path excluded by an earlier
+rule. Exact declarations whose path is absent and glob declarations with no
+encountered match are omitted.
+
+Rules preserve source-file and evaluation order because later matches win;
+sorting or grouping across authored blocks would describe a different policy.
+The table quotes each participating declaration once and never enumerates the
+paths that caused a glob to participate.
 
 ```markdown
 ### Exclusion rules
@@ -283,13 +289,13 @@ so their groups carry `—`. See [CONFIG.MD](../../CONFIG.MD#espalierignore).
 
 The first cell quotes declarations, not their matches. An exact rooted path is
 therefore an exact path, a bare name remains a pattern that can match at any
-depth, and a glob remains useful when tomorrow's run produces a filename that
-did not exist today. Rules and paths use Markdown code spans, lengthened when a
-value itself contains backticks; pipes are escaped so they cannot split a table
-cell.
+depth, and a glob appears whole as soon as one encountered entry matches it.
+Rules and paths use Markdown code spans, lengthened when a value itself contains
+backticks; pipes are escaped so they cannot split a table cell.
 
-The exclusion table appears only in the document at this espalier's root.
-Descendant documents inherit it rather than repeating the complete policy.
+Filtering happens before placement. Each surviving authored group appears in
+the deepest generated document covering all of its participating rules; common
+groups remain in an ancestor and descendants inherit them.
 
 #### Tool-owned entries
 
