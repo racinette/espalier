@@ -4,6 +4,7 @@
 
 ## Structure
 
+    docs/cli/explain/
     └─ README.MD  the reference page (required)
 
 Nothing else may exist under docs/cli/explain/.

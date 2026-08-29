@@ -21,6 +21,7 @@ passed with the fix reverted.
 
 ## Structure
 
+    test/
     └─ [name].test.ts  a test module (zero or more, any name)
 
 Nothing else may exist under test/.

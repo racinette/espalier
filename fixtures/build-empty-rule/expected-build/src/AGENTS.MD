@@ -2,6 +2,7 @@
 
 ## Structure
 
+    src/
     ├─ registry.ts  the module registry (required)
     │
     └─ [module].ts  a module (zero or more, any name)

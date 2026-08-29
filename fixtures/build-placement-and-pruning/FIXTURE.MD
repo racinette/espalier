@@ -9,7 +9,11 @@ Five placement points exist on the static spine — the root, `components`,
 `components/buttons`, `src`, `src/clients`. Two of them are dropped:
 `components` and `src` have no rules of their own and no `ESPALIER.MD`, and an
 intermediate directory whose content all lives deeper produces no file. Three
-files are written.
+files are written. The root map therefore expands through the two dropped
+points, names `components/buttons/` and `src/clients/`, and stops before the
+contents repeated in those documents. It opens with `./`; the deeper maps open
+with `components/buttons/` and `src/clients/`, so each handoff directory is the
+one row shared by the two maps.
 
 The constraint at `[...path]/no-as-any.{ts,tsx}` places at the root, because a
 recursive placeholder truncates the static prefix exactly like any other
@@ -43,7 +47,9 @@ mode this case exists to make loud.
 Byte for byte: the provenance marker and its `source:`, both forms of the
 heading — `# demo-app` at the root and `# demo-app — src/clients/` below it,
 this being the only fixture whose config sets a `name` and so the only one
-where a heading is written at all — the alignment column
+where a heading is written at all — the root map stopping at its two deeper
+generated documents while both descendant maps begin at the handoff directory
+and remain complete, the alignment column
 (longest map-internal line plus two, before the code block's own indent), the
 80-column greedy wrap of a map line's text, section headings carrying
 the full path from the repository root, the `Example:` line appearing only

@@ -269,15 +269,27 @@ export interface MapEntry {
   required: boolean | null;
 }
 
-export function mapEntries(espalier: Espalier, node: TrieNode, at: string): MapEntry[] {
+export function mapEntries(
+  espalier: Espalier,
+  node: TrieNode,
+  at: string,
+  stopAt: readonly string[] = [],
+): MapEntry[] {
   const entries: MapEntry[] = [];
 
   for (const visit of subtree(node)) {
+    const absolute = under(at, visit.at);
+    // A distributed document names the directory where the next document
+    // takes over, but does not repeat anything that document will say below
+    // it. Intermediate directories without a document remain visible, so no
+    // part of the structure disappears between two placement points.
+    if (stopAt.some((boundary) => absolute.startsWith(`${boundary}/`))) continue;
+
     const directory = isDirectory(visit.node);
     entries.push({
       path: visit.at + (directory ? "/" : ""),
       description: directory
-        ? (espalier.nodes.get(under(at, visit.at))?.description ?? null)
+        ? (espalier.nodes.get(absolute)?.description ?? null)
         : (visit.node.rule?.module.description ?? null),
       required:
         directory || visit.node.segment.dynamic
@@ -365,6 +377,8 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
     // Where a continuation of this line hangs: the branch this entry sits on
     // stays open only while a sibling is still to come.
     const beneath = bars + (last[index] ? "   " : "│  ");
+    const next = entries[index + 1];
+    const hasVisibleChild = next !== undefined && parentOf(next.path) === name;
     // Parenthesized, and separately from the description: one is the author's
     // sentence and the other is the espalier's annotation of it, and a comma
     // between them would read as one clause.
@@ -377,11 +391,11 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
     rows.push({
       line: bars + (last[index] ? "└─ " : "├─ ") + name.slice(name.lastIndexOf("/") + 1) + (entry.path.endsWith("/") ? "/" : ""),
       under: beneath,
-      // A directory's guide row descends one level, to the branch its own
-      // children hang from. Always, however many children it has: that bar is
-      // the branch coming down into the first one, and the corner it lands on
-      // is drawn from it. docs/cli/build/README.MD "The map".
-      guide: (entry.path.endsWith("/") ? `${beneath}│` : beneath).trimEnd(),
+      // A directory's guide row descends to the branch its first visible child
+      // hangs from. A distributed map can stop at a directory whose contents
+      // continue in another document, and drawing that branch there would
+      // leave a pipe with nothing to land on. docs/cli/build/README.MD "The map".
+      guide: (hasVisibleChild ? `${beneath}│` : beneath).trimEnd(),
       text: text === "" ? null : text,
     });
   });
@@ -412,10 +426,18 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
   return lines;
 }
 
-function renderMap(espalier: Espalier, point: Placement): string | null {
+function renderMap(
+  espalier: Espalier,
+  point: Placement,
+  stopAt: readonly string[] = [],
+): string | null {
   if (point.node === null) return null;
-  const lines = drawMap(mapEntries(espalier, point.node, point.at), WIDTH - 4);
-  return lines.length === 0 ? null : lines.map((line) => `    ${line}`.trimEnd()).join("\n");
+  const lines = drawMap(mapEntries(espalier, point.node, point.at, stopAt), WIDTH - 4);
+  // A map without its root is a forest. The espalier root has no authored
+  // directory name, so `./` names it without confusing the config's project
+  // name for a path; every deeper point can name its repository-relative path.
+  const root = point.at === "" ? "./" : `${point.at}/`;
+  return [root, ...lines].map((line) => `    ${line}`.trimEnd()).join("\n");
 }
 /**
  * Which placement points name each child espalier: every one whose closed set
@@ -689,12 +711,13 @@ function core(
   level: number,
   named: string[],
   excluded: Excluded[],
+  stopAt: readonly string[] = [],
 ): string[] {
   const blocks: string[] = [];
 
   if (point.doc !== null && point.doc.body !== "") blocks.push(point.doc.body);
 
-  const map = renderMap(espalier, point);
+  const map = renderMap(espalier, point, stopAt);
   const closed = renderClosedSet(point);
 
   if (map !== null) {
@@ -710,16 +733,21 @@ function core(
 
 export function renderDistributed(
   espalier: Espalier,
+  points: Placement[],
   point: Placement,
   espalierRoot: string,
   name: string | null,
   named: string[] = [],
   excluded: Excluded[] = [],
 ): string {
+  const prefix = point.at === "" ? "" : `${point.at}/`;
+  const stopAt = points
+    .filter((candidate) => candidate.at !== point.at && candidate.at.startsWith(prefix))
+    .map((candidate) => candidate.at);
   const blocks = [
     marker(espalierRoot, point.at),
     ...heading(name, point.at),
-    ...core(espalier, point, 2, named, excluded),
+    ...core(espalier, point, 2, named, excluded, stopAt),
   ];
   if (point.at === "") blocks.push(CHECKING);
   blocks.push(AMENDING);

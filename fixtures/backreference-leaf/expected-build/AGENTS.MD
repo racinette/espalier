@@ -2,14 +2,8 @@
 
 ## Structure
 
+    ./
     └─ clients/
-       │
-       └─ [provider]/       (zero or more, any name)
-          │
-          ├─ {provider}.ts  the provider's entry point (required, {provider}
-          │                 repeats what [provider] matched)
-          │
-          └─ [helper].ts    a helper (zero or more, any name)
 
 Nothing else may exist under this directory.
 

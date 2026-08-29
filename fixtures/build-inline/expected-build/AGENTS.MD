@@ -5,6 +5,7 @@ the repository root.
 
 ## Structure
 
+    ./
     ├─ components/
     │  └─ buttons/
     │     │

@@ -7,6 +7,7 @@ Every upstream provider gets its own directory. Nothing outside
 
 ## Structure
 
+    src/clients/
     └─ [provider]/          one directory per upstream provider (zero or more,
                             any name)
        │

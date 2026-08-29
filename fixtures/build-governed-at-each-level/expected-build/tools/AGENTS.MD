@@ -4,6 +4,7 @@ Scripts run by hand or by CI. Nothing here is imported by the application.
 
 ## Structure
 
+    tools/
     └─ [tool].ts  a developer tool (zero or more, any name)
 
 Nothing else may exist under tools/.

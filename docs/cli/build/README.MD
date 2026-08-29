@@ -53,7 +53,11 @@ Constraints are not a special case. A recursive placeholder is just a dynamic se
 
 ## What each file contains
 
-**A local map** — the whole subtree beneath this point, one line per node, including nodes whose bodies live in a deeper file. Shape propagates upward.
+**A local map** — its first row names the directory this document describes,
+then the structure it owns. A branch stops at the next directory with a
+generated document: that directory appears, and the document inside it begins
+from the same directory before showing its contents. Intermediate directories
+without a document remain expanded, so every structural node appears somewhere.
 
 **Rule bodies** — only for rules placed *here*. Detail does not propagate upward.
 
@@ -63,13 +67,14 @@ Constraints are not a special case. A recursive placeholder is just a dynamic se
 
 **The amendment instruction** — that the espalier is not the reader's to change, and that work which does not fit the declared structure should be reported rather than legalised. Every file carries it, because an agent that reads a rule and finds it inconvenient is exactly the agent that needs to have read this. See [README.MD](../../../README.MD#who-changes-the-espalier).
 
-The root file additionally carries the project preamble, the map of the entire repository, and instructions to run `espalier lint`.
+The root file additionally carries the project preamble and instructions to run
+`espalier lint`.
 
 ## Generation
 
 1. Walk the static spine from the root, stopping at the first dynamic segment. Those are the placement points.
 2. Assign every rule to the longest static prefix of its directory path.
-3. Drop placement points with no assigned rules and no `ESPALIER.MD` — an intermediate directory whose content all lives deeper produces no file, and agents walking up still find the deeper one. The root is never dropped: it is the one file every tool reads, and it alone carries the map of the whole repository and the instruction to run `lint`.
+3. Drop placement points with no assigned rules and no `ESPALIER.MD` — an intermediate directory whose content all lives deeper produces no file, and the map above it stays expanded through that directory. The root is never dropped: it is the one file every tool reads, and it alone carries the instruction to run `lint`.
 4. Render each surviving point.
 5. Write with a provenance header, in deterministic order. A file whose rendered bytes match what is already on disk is left alone rather than rewritten, so a second run touches nothing and reports nothing.
 
@@ -106,11 +111,28 @@ Both halves earn their place, and neither on its own would. A document is read i
 
 ### The map
 
-An indented code block drawn as a tree, one line per structural node in the subtree, depth-first in sibling order. Directories carry a trailing `/`. Names are authored form, so a dynamic node appears as `[provider]/` or `[button].tsx`.
+An indented code block drawn as a tree, opening with the directory this document
+describes and then proceeding depth-first in sibling order. The first row is
+`./` at the espalier root and the full repository-relative path with a trailing
+slash at every deeper placement point. The project [`name`](../../CONFIG.MD#name)
+is not used there: it names the project, not necessarily its directory.
+
+Every other directory also carries a trailing `/`. Names are authored form, so
+a dynamic node appears as `[provider]/` or `[button].tsx`.
+
+In distributed output, a map includes the directory where a deeper generated
+document takes over and stops that branch there. If the next document is
+several directories down, every intermediate directory remains expanded until
+that boundary. The deeper document begins with the boundary itself, so the two
+maps overlap at exactly one row and the handoff is explicit.
+
+Inline output is the exception: it has no deeper documents to continue into,
+so its one map contains the entire espalier.
 
 Branches are drawn with box-drawing characters: `├─ ` for an entry with siblings still to come, `└─ ` for the last one, and, under each of those, `│  ` and three spaces respectively for everything nested inside.
 
 ```text
+    ./
     ├─ clients/                external API providers
     │  │
     │  └─ [provider]/          (zero or more, any name)
@@ -129,7 +151,12 @@ Indentation alone would say the same thing in less space, and say it less well: 
 
 **A guide row separates two entries whenever either carries text.** It holds the branch characters and nothing else: the bars the entry above it carried, then a `│` at that entry's own depth when a sibling still follows it, and, when that entry is a directory, one more at its children's depth. Trailing spaces are trimmed, so no guide row reaches the text column. Two entries that both carry no text sit adjacent, there being no thread there to lose.
 
-**A directory's guide row descends however many children it has.** The bar at the children's depth is not a claim that more than one follows — it is the branch coming down into the first, and the `├─` or `└─` it lands on is drawn from it. A `└─` with nothing above it is a corner with no line to turn.
+**A directory's guide row descends when a child follows in this map.** The bar
+at the children's depth is not a claim that more than one follows — it is the
+branch coming down into the first, and the `├─` or `└─` it lands on is drawn
+from it. A directory where a deeper generated document takes over is a leaf in
+this map, so its guide row carries no child-depth bar. A `└─` with nothing above
+it is a corner with no line to turn.
 
 **Text starts at one column across the whole map:** two spaces after the longest rendered line, counting the branch characters and not the four spaces of the code block, which are added to every line afterwards and so cannot change the alignment. Text too long for the remaining width wraps into that column and hangs there, under the branch characters of its own line.
 
@@ -157,7 +184,10 @@ Both halves are load-bearing and neither stands alone. `any name` without a coun
 
 ### The closed set
 
-One sentence, following the map, covering **the same subtree the map covers**. A closed-set statement that stopped at the next placement point would not be closed, and an agent reading the root file to find out where a new file may go is asking about the repository, not about the root directory.
+One sentence, following the map, closing the structure governed beneath this
+point. A directory where the map stops remains inside that closed set; the
+generated document in that directory describes its contents. The map delegates
+the inventory, not the authority.
 
 At a placement point below the espalier's root the sentence names it: `Nothing else may exist under src/clients/.` At the root there is no path to print — it would be `under .` — so the sentence anchors on the file's location instead: `Nothing else may exist under this directory.` A document has no way to know where it sits in an outer tree, by design, and claiming to be a repository or a root is wrong in a package on both counts.
 

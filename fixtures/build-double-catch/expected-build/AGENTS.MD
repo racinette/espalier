@@ -2,14 +2,8 @@
 
 ## Structure
 
+    ./
     └─ clients/
-       │
-       ├─ [provider]/   (zero or more, any name)
-       │  │
-       │  └─ client.ts  an integration with an external API (required)
-       │
-       └─ [summary].ts  a one-file summary of a provider (zero or more, any
-                        name)
 
 Nothing else may exist under this directory.
 

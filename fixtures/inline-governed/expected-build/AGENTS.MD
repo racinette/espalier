@@ -2,6 +2,7 @@
 
 ## Structure
 
+    ./
     ├─ tools/        developer tooling
     │  │
     │  └─ [tool].ts  a developer tool (zero or more, any name)

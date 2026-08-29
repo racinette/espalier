@@ -4,6 +4,7 @@
 
 ## Structure
 
+    docs/cli/init/
     └─ README.MD  the reference page (required)
 
 Nothing else may exist under docs/cli/init/.

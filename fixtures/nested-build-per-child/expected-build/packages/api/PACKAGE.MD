@@ -2,6 +2,7 @@
 
 ## Structure
 
+    ./
     └─ index.ts  the package entry point (required)
 
 Nothing else may exist under this directory.

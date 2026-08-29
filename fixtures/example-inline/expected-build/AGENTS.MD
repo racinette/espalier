@@ -2,11 +2,8 @@
 
 ## Structure
 
+    ./
     └─ src/
-       │
-       ├─ schema.sql       the canonical schema (required)
-       │
-       └─ [migration].sql  a migration (zero or more, any name)
 
 Nothing else may exist under this directory.
 

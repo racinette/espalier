@@ -2,6 +2,7 @@
 
 ## Structure
 
+    ./
     └─ main.ts  the application entry point (required)
 
 Nothing else may exist under this directory.

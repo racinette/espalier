@@ -18,6 +18,7 @@ place is a list that stops matching the modules.
 
 ## Structure
 
+    src/
     ├─ adopt.ts        the adopt command (required)
     │
     ├─ api.ts          the programmatic surface (required)

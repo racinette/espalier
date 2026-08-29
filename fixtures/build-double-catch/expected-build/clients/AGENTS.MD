@@ -2,6 +2,7 @@
 
 ## Structure
 
+    clients/
     ├─ [provider]/   (zero or more, any name)
     │  │
     │  └─ client.ts  an integration with an external API (required)

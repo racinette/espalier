@@ -232,6 +232,7 @@ function planFor(
         at,
         renderDistributed(
           repository.espalier,
+          points,
           point,
           repository.config.espalierRoot,
           repository.config.name,

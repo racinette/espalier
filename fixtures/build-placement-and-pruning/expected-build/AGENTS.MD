@@ -7,27 +7,14 @@ renders.
 
 ## Structure
 
+    ./
     ├─ components/
     │  └─ buttons/
-    │     │
-    │     └─ [button].tsx         a button component (zero or more, any name)
-    │
     ├─ src/
     │  │
-    │  └─ clients/                outbound API integrations
-    │     │
-    │     └─ [provider]/          one directory per upstream provider (zero or
-    │                             more, any name)
-    │        │
-    │        ├─ handlers/
-    │        │  │
-    │        │  └─ webhook.ts     an inbound webhook handler (required)
-    │        │
-    │        ├─ client.ts         an integration with an external API (required)
-    │        │
-    │        └─ requestModels.ts  request payload types (required)
+    │  └─ clients/  outbound API integrations
     │
-    └─ main.ts                    the application entry point (required)
+    └─ main.ts      the application entry point (required)
 
 Nothing else may exist under this directory.
 

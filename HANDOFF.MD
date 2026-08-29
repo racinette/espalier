@@ -798,3 +798,28 @@ Settled while getting the tarball right:
 - Do not add features, flags, or config keys that no document describes.
 - Rule modules are user-authored `.mjs` and are ordinary ES modules — no
   sandbox, no bundling.
+
+## Distributed maps stop where the next document begins
+
+A generated document used to carry the complete structural tree below its
+placement point even when deeper generated documents repeated parts of that
+tree. That made the root document the most expensive map and the least coherent
+one: its rule sections were local, but its inventory described every descendant.
+
+Distributed maps now name a directory with a deeper generated document and stop
+that branch there. The deeper document continues with the directory's contents.
+An intermediate static directory whose placement point was pruned remains
+expanded, so truncation follows actual generated-document boundaries rather
+than a fixed filesystem depth. No structural node disappears between two
+documents; the handoff directory is deliberately visible in both.
+
+Inline output keeps the complete tree because it deliberately writes no deeper
+documents. The closed-set sentence also remains absolute: delegation changes
+where the inventory is explained, not what the espalier governs.
+
+Every map names its own root as its first row: `./` at the espalier root and the
+full repository-relative directory below it. The configured project name is
+not a directory name and is deliberately not reused there. Parent and child
+maps therefore repeat their handoff directory once — the parent ends there and
+the child begins there — which makes the continuation explicit and gives each
+map one visible root instead of rendering its entries as a forest.
