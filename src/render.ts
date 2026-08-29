@@ -495,11 +495,24 @@ export function readInside(count: number): string {
 }
 
 /** One excluded entry in a directory, and why it is excluded. */
-export interface Excluded {
-  /** Name as the directory lists it, with a trailing `/` for a directory. */
-  name: string;
-  /** The comment introducing the entry that excluded it, or null when none did. */
+export interface ExclusionGroup {
+  /** Authored declarations, in evaluation order. */
+  rules: string[];
+  /** The comment block introducing them, or null when none does. */
   reason: string | null;
+}
+
+export interface ToolOwnedGroup {
+  /** Exact paths, relative to this document. */
+  entries: string[];
+  reason: string;
+}
+
+export interface Outside {
+  /** Root-only authored exclusion policy. */
+  exclusions: ExclusionGroup[];
+  /** Entries espalier itself reads or writes. */
+  toolOwned: ToolOwnedGroup[];
 }
 
 /**
@@ -516,47 +529,63 @@ export interface Excluded {
  * rule from one that does not have a rule yet.
  * docs/cli/build/README.MD "Not described here".
  */
-function renderExcluded(entries: Excluded[], level: number): string[] {
-  if (entries.length === 0) return [];
+function markdownCode(value: string): string {
+  const escaped = value.replace(/\|/g, "\\|");
+  const runs = escaped.match(/`+/g) ?? [];
+  const fence = "`".repeat(Math.max(0, ...runs.map((run) => run.length)) + 1);
+  const content = escaped.startsWith("`") || escaped.endsWith("`") ? ` ${escaped} ` : escaped;
+  return `${fence}${content}${fence}`;
+}
 
-  // One bullet per reason, its paths at the front. A reason set beside one path
-  // of a group reads as that path's, and one long enough to wrap detaches that
-  // path from the rest — the break the eye finds is the wrap, and no
-  // arrangement of blank lines moves it. Naming them together is what makes
-  // them one group. docs/cli/build/README.MD "Not described here".
-  const groups = new Map<string, { reason: string | null; names: string[] }>();
-  for (const entry of entries) {
-    const id = entry.reason ?? "\uffff";
-    const found = groups.get(id);
-    if (found === undefined) groups.set(id, { reason: entry.reason, names: [entry.name] });
-    else found.names.push(entry.name);
+function tableText(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\n/g, "<br>");
+}
+
+function table(headers: string[], rows: string[][]): string {
+  return [
+    `| ${headers.join(" | ")} |`,
+    `| ${headers.map(() => "---").join(" | ")} |`,
+    ...rows.map((row) => `| ${row.join(" | ")} |`),
+  ].join("\n");
+}
+
+function renderOutside(outside: Outside, level: number): string[] {
+  if (outside.exclusions.length === 0 && outside.toolOwned.length === 0) return [];
+
+  const blocks = [`${"#".repeat(level)} Not described here`];
+
+  if (outside.exclusions.length > 0) {
+    blocks.push(
+      `${"#".repeat(level + 1)} Exclusion rules`,
+      "Rules appear in evaluation order. A leading `!` retains a path that an earlier rule excluded.",
+      table(
+        ["Rules", "Why"],
+        outside.exclusions.map((group) => [
+          group.rules.map(markdownCode).join("<br>"),
+          group.reason === null ? "—" : tableText(group.reason),
+        ]),
+      ),
+    );
   }
 
-  const bullets = [...groups.values()]
-    .map((group) => ({
-      ...group,
-      names: [...group.names].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0)),
-    }))
-    // By the first path in each, so a reader holding a directory listing reads
-    // down the names. The entries nobody explained come last, being the ones
-    // there is nothing to read.
-    .sort((left, right) => {
-      if ((left.reason === null) !== (right.reason === null)) return left.reason === null ? 1 : -1;
-      return left.names[0]! < right.names[0]! ? -1 : left.names[0]! > right.names[0]! ? 1 : 0;
-    })
-    .map((group) => {
-      const named = group.names.map((name) => `\`${name}\``).join(", ");
-      const text = group.reason === null ? named : `${named} — ${group.reason}`;
-      return `- ${wrap(text, WIDTH - 2).split("\n").join("\n  ")}`;
-    });
+  if (outside.toolOwned.length > 0) {
+    blocks.push(
+      `${"#".repeat(level + 1)} Tool-owned entries`,
+      table(
+        ["Entries", "Why"],
+        outside.toolOwned.map((group) => [
+          group.entries.map(markdownCode).join(", "),
+          tableText(group.reason),
+        ]),
+      ),
+    );
+  }
 
-  return [
-    `${"#".repeat(level)} Not described here`,
-    bullets.join("\n"),
-    "Nothing above describes these, so nothing here tells you how to write them. " +
-      "That makes them a poor place to put work that belongs in the list above: a file " +
-      "with nowhere legal to go is a gap to report, not one to route around.",
-  ];
+  blocks.push(
+    "Nothing above describes these as project structure. They are not alternative " +
+      "destinations for work that does not fit the structure above.",
+  );
+  return blocks;
 }
 
 /**
@@ -710,7 +739,7 @@ function core(
   point: Placement,
   level: number,
   named: string[],
-  excluded: Excluded[],
+  outside: Outside,
   stopAt: readonly string[] = [],
 ): string[] {
   const blocks: string[] = [];
@@ -726,8 +755,8 @@ function core(
   }
 
   blocks.push(...renderChildren(point.at, named, level));
-  blocks.push(...renderExcluded(excluded, level));
   blocks.push(...renderSections(espalier, point, level));
+  blocks.push(...renderOutside(outside, level));
   return blocks;
 }
 
@@ -738,7 +767,7 @@ export function renderDistributed(
   espalierRoot: string,
   name: string | null,
   named: string[] = [],
-  excluded: Excluded[] = [],
+  outside: Outside = { exclusions: [], toolOwned: [] },
 ): string {
   const prefix = point.at === "" ? "" : `${point.at}/`;
   const stopAt = points
@@ -747,7 +776,7 @@ export function renderDistributed(
   const blocks = [
     marker(espalierRoot, point.at),
     ...heading(name, point.at),
-    ...core(espalier, point, 2, named, excluded, stopAt),
+    ...core(espalier, point, 2, named, outside, stopAt),
   ];
   if (point.at === "") blocks.push(CHECKING);
   blocks.push(AMENDING);
@@ -766,14 +795,20 @@ export function renderInline(
   espalierRoot: string,
   name: string | null,
   children: string[] = [],
-  excluded: Map<string, Excluded[]> = new Map(),
+  outside: Map<string, Outside> = new Map(),
 ): string {
   const root = points.find((point) => point.at === "")!;
   const assigned = assignChildren(points, children);
   const blocks = [
     marker(espalierRoot, ""),
     ...heading(name, ""),
-    ...core(espalier, root, 2, assigned.get("") ?? [], excluded.get("") ?? []),
+    ...core(
+      espalier,
+      root,
+      2,
+      assigned.get("") ?? [],
+      outside.get("") ?? { exclusions: [], toolOwned: [] },
+    ),
   ];
 
   for (const point of points) {

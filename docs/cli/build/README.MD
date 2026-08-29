@@ -92,9 +92,9 @@ provenance marker
 node prose                    the ESPALIER.MD body, verbatim
 ## Structure                  the tree, then the closed-set sentence
 ## Governed elsewhere         child espaliers below this point, when any
-## Not described here         excluded paths in this directory, when any
 ## <rule> — <description>     one per structural rule placed here
 ## Constraints                one ### per constraint placed here
+## Not described here         exclusion policy and tool-owned entries
 ## Checking your work         root file only
 ## Amending this structure    fixed text, every file
 ```
@@ -222,39 +222,91 @@ The section names the children and stops. It does not say what they contain, whi
 
 ### Not described here
 
-The other half of what makes the closed-set sentence true. `Governed elsewhere` names the directories another espalier describes; this names the paths no espalier describes at all, so that between them every entry a reader can see is accounted for by name.
+Two tables for two different reasons something sits outside the structural map.
+Neither is a snapshot of the ignored files that happen to exist during one
+build.
+
+#### Exclusion rules
+
+Every rule from every configured ignore source, whether it currently matches a
+path or not. Rules preserve source-file and evaluation order because later
+matches win; sorting or grouping across authored blocks would describe a
+different policy. Negations appear too, since omitting one would turn the rule
+above it into a broader exclusion than the repository actually has.
 
 ```markdown
-## Not described here
+### Exclusion rules
 
-- `dist/` — Build output. Regenerated; never edited by hand.
-- `package.json`, `tsconfig.json` — Not this project's architecture. Their
-  shape is dictated by the tools that read them.
-- `AGENTS.MD` — Written by `espalier build` from the rules above.
-- `node_modules/`
+Rules appear in evaluation order. A leading `!` retains a path that an earlier
+rule excluded.
 
-Nothing above describes these, so nothing here tells you how to write them.
-That makes them a poor place to put work that belongs in the list above: a
-file with nowhere legal to go is a gap to report, not one to route around.
+| Rules | Why |
+| --- | --- |
+| `*.log`<br>`coverage/**` | Per-run output. |
+| `/dist/`<br>`!dist/manifest.json` | Generated build contents; retain the reviewed manifest. |
+| `/LICENSE` | Licence and legal. |
+| `package.json`<br>`tsconfig.json` | — |
 ```
 
-**Direct children only, and only the ones that are there.** A reader is holding a directory listing; the section answers that listing and nothing else. What is inside an excluded directory never appears — `node_modules/` is one line whether it holds four packages or four thousand — and an exclusion that matches nothing here is not mentioned, because a reader cannot see it to be confused by it.
+One row is one authored group: the uninterrupted declarations introduced by a
+`#` comment block, or an uninterrupted undescribed block. Declarations stay in
+authored order inside the first cell and the description is written once. A
+blank line ends the group. Groups are never merged merely because their
+descriptions are identical.
 
-**The reason comes from `.espalierignore`**, verbatim, from the comment block introducing that entry — see [CONFIG.MD](../../CONFIG.MD#espalierignore). An entry with no comment above it has no reason, and joins the bullet that carries none. `espalier` never invents one: it has patterns, not intent, and the difference between *will never have a rule* and *does not have one yet* is exactly what it cannot see.
+Comments in `.espalierignore` supply `Why`. Comments in `ignoreFiles` do not:
+they were written for another tool by somebody answering a different question,
+so their groups carry `—`. See [CONFIG.MD](../../CONFIG.MD#espalierignore).
 
-**One bullet per reason, its paths at the front.** Paths within a bullet sort by name, bullets sort by their first path, and the paths nobody explained come last as a bullet with no reason at all.
+The first cell quotes declarations, not their matches. An exact rooted path is
+therefore an exact path, a bare name remains a pattern that can match at any
+depth, and a glob remains useful when tomorrow's run produces a filename that
+did not exist today. Rules and paths use Markdown code spans, lengthened when a
+value itself contains backticks; pipes are escaped so they cannot split a table
+cell.
 
-Naming them together is what makes them one group. A reason set beside a single path reads as that path's, and one long enough to wrap detaches that path from the others sharing it — the break a reader's eye finds is the wrap, and no arrangement of blank lines or indents moves it. A list also needs no alignment column, so the reason wraps across the full width rather than into whatever space the longest path left, and an author's sentence is rendered as the prose it is rather than as a column of a table it never joined.
+The exclusion table appears only in the document at this espalier's root.
+Descendant documents inherit it rather than repeating the complete policy.
 
-**Nothing is invented for the paths with no reason.** They are a bullet of names, and the closing sentence below covers them as it covers the rest. `espalier` has patterns and not intent, and the difference between *will never have a rule* and *does not have one yet* is exactly what it cannot see.
+#### Tool-owned entries
 
-**A directory counts when everything inside it is excluded**, not only when the directory itself is named. `dist/` and `dist/**` exclude the same files and differ over whether the walk enters — a difference invisible here, where a reader can see the directory either way.
+Exact paths that espalier itself reads or writes, independent of ignore
+matching. Configuration is named without linking to or recommending changes to
+an ignore source. Generated documentation is the exception: its row points
+away from the artifact that will be overwritten and toward the source where a
+persistent change belongs.
 
-The unconditionally invisible five are described rather than quoted, since no comment introduces them: the generated file says `Written by \`espalier build\` from the rules above.`, and `espalier.config.yaml`, `.espalierignore` and the espalier root say `Configuration. Read by \`espalier\`, not by this project.`
+```markdown
+### Tool-owned entries
 
-**The closing sentence is fixed**, and says the only thing true of every entry: there are no instructions here. It does not say the paths are off limits, because they are not — `espalier` does not claim to describe every file, and a repository adopting it one directory at a time is the documented case rather than a failure. Saying otherwise would be a rule the tool cannot enforce and the architect did not write. What it does say is that an undescribed directory is a bad destination for work that belongs in a described one, which is the loophole an agent under pressure would otherwise find: *the rules are strict over there and silent over here.*
+| Entries | Why |
+| --- | --- |
+| `AGENTS.MD` | Generated by `espalier build`; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
+| `.espalierignore`, `espalier.config.yaml`, `espalier/` | Configuration. Read by `espalier`, not by this project. |
+```
 
-**Omitted entirely when the directory has no excluded children**, like `Governed elsewhere`. Most directories are in that case, and they get the closed-set sentence with nothing after it — which is the point of the whole arrangement.
+Every distributed document names its own generated file. The root additionally
+names its config, its espalier root, every `ignoreFiles` entry and
+`.espalierignore` when that file exists. Inline output has the root row only.
+
+The generated-file explanation always links to the placement point's
+`ESPALIER.MD`. It says `Modify` when that file exists and `Create` when it does
+not, so a reader has one concrete place for persistent document guidance in
+either case. Links are relative to the generated document and their path
+segments are percent-encoded.
+
+Table rows remain one physical line. Pipes in prose and code spans are escaped,
+and line breaks become `<br>`, so authored text cannot change the table's
+columns.
+
+The whole section follows local rule sections and constraints. A document first
+says what it describes, then accounts for the policy and machinery outside that
+structure; putting those in the opposite order interrupts the document with
+exceptions before it has finished stating the rules.
+
+The section closes by saying only what is true of both tables: neither exclusion
+rules nor tool-owned entries are alternative destinations for work that does
+not fit the declared structure.
 
 ### Rule sections
 

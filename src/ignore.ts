@@ -16,13 +16,14 @@ export interface IgnoreRule {
   /**
    * The comment block introducing this entry, or null when none does.
    *
-   * `espalier build` writes it into the documentation for the directory the
-   * entry excludes — docs/cli/build/README.MD "Not described here" — which is
-   * the reason the list is a file rather than a key. The tool never supplies
-   * one of its own: it has patterns, not intent, and cannot tell an exclusion
-   * that will never have a rule from one that does not have a rule yet.
+   * `espalier build` writes it once beside its authored group —
+   * docs/cli/build/README.MD "Not described here" — which is the reason the
+   * list is a file rather than a key. The tool never supplies one of its own:
+   * it has patterns, not intent.
    */
   comment: string | null;
+  /** The authored comment-or-blank-delimited block this rule belongs to. */
+  group: number;
 }
 
 function escape(char: string): string {
@@ -65,11 +66,13 @@ export function compileIgnore(patterns: string[], origin = ".espalierignore"): I
   // which is how a group written as one thought stays one thought. Lines
   // accumulate so a reason may run to several.
   let comment: string[] = [];
+  let group = 0;
 
   for (const pattern of patterns) {
     const trimmed = pattern.trim();
     if (trimmed === "") {
       comment = [];
+      group += 1;
       continue;
     }
     if (trimmed.startsWith("#")) {
@@ -97,6 +100,7 @@ export function compileIgnore(patterns: string[], origin = ".espalierignore"): I
       pattern,
       origin,
       comment: comment.length === 0 ? null : comment.join(" "),
+      group,
     });
   }
 

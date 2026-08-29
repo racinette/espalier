@@ -823,3 +823,29 @@ not a directory name and is deliberately not reused there. Parent and child
 maps therefore repeat their handoff directory once — the parent ends there and
 the child begins there — which makes the continuation explicit and gives each
 map one visible root instead of rendering its entries as a forest.
+
+## Exclusions are declarations, not a snapshot
+
+`Not described here` no longer enumerates whichever ignored files happen to
+exist during `build`. Per-run output made that list drift while the policy stayed
+the same, and a glob rendered as its current matches stopped being a glob at the
+exact moment a reader needed to understand it.
+
+The root document renders every ignore rule in evaluation order, grouped by its
+authored comment block. A description is written once for the group, unmatched
+patterns and negations remain visible, and comments from `ignoreFiles` remain
+absent because they were written for another tool. No row links to an ignore
+file or suggests changing one.
+
+Tool-owned entries use a separate table in each document. Its generated-file
+row warns that edits will be overwritten and always links the placement's
+`ESPALIER.MD`: modify it when present, create it when absent. The link target is
+therefore stable while the verb truthfully follows the source tree. That is a
+persistence hint for generated knowledge, not an invitation to route around
+the project structure.
+
+Rule sections and constraints render before `Not described here`: the document
+finishes saying what it governs before turning to exclusions and machinery.
+Paths and patterns in both tables use Markdown code spans rather than HTML
+`code` elements, with longer fences for values that contain backticks and
+escaped pipes where the table grammar requires them.

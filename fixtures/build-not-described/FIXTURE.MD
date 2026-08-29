@@ -1,43 +1,23 @@
-# build: what is not described here, and why
+# build: exclusion policy and tool-owned entries
 
-The closed-set sentence is absolute — `Nothing else may exist under this
-directory.` — and this section is what makes it true. Between the map above it,
-`Governed elsewhere`, and this, every entry a reader can see in the directory is
-named. A closed set that ended in *apart from* would not be closed.
+The output is derived from declarations, not from whichever ignored files
+happen to exist during one build. Every ignore rule appears in evaluation order
+even when it matches nothing, and the comment block introducing a group appears
+once beside the whole group.
 
-Every branch of the rendering is here, because our own repository exercises them
-and a demonstration is not an assertion:
+This fixture pins a group with two rules, an unmatched negation, an exact rooted
+file, an exact rooted directory, and an unexplained group. The `ignoreFiles`
+rule appears too, but not the comment written for git: only `.espalierignore`
+supplies project-facing reasons.
 
-- **A reason, quoted.** `vendor/` carries the comment above it in
-  `.espalierignore`, verbatim.
-- **A group.** `package.json` and `tsconfig.json` share one comment, and only
-  the first of them carries the text. Repeating it would read as a refrain.
-- **Wrapping.** That comment is longer than the column, so it wraps into it.
-  Unlike a map line, where an alignment column that survived a wrap would not be
-  one, here the column is what the continuation hangs from.
-- **Ordering.** By reason, then by name, with the unexplained last. Ordering by
-  name alone would scatter a group and leave its shared line landing wherever
-  the alphabet put it.
-- **A directory named directly.** `vendor/` is excluded as `vendor/`.
-- **A directory excluded only by its contents.** `generated/**` never names the
-  directory, so the walk enters it and finds every file excluded — and a reader
-  still sees `generated/` sitting there. It is listed, with the reason from the
-  entry that covers what is inside it.
-- **An `ignoreFiles` exclusion, bare.** `logs/` comes from `.gitignore.fixture`,
-  which has a comment above it. That comment does not appear. It was written for
-  git by somebody answering a different question, and quoting it here would put
-  words in their mouth — see [CONFIG.MD](../../docs/CONFIG.MD#espalierignore).
-- **An entry nobody explained.** `notes.txt` is separated from the comment above
-  it by a blank line, so it inherits nothing and the line is the path alone.
-  `espalier` never invents a reason: it has patterns, not intent.
-- **The document itself.** `AGENTS.MD` is added because a document sits in the
-  directory it describes, not because the directory was read — on a first build
-  it is not there yet, and a section that appeared on the second run would make
-  `--check` report drift against a tree nobody touched.
+Tool-owned entries are separate. The generated document points to its
+`ESPALIER.MD` as the persistent source for guidance and says to modify it, while
+configuration is named without suggesting that an agent should edit the ignore
+lists. Other build fixtures have placement points without that file and pin the
+corresponding instruction to create it. None of these rows depends on whether
+`logs/debug.log`, `generated/out.ts`, or any other match exists during the run.
 
-The golden is compared byte for byte, so each of those is pinned by the same
-assertion. `espalier.config.yaml`, `.espalierignore` and the espalier root are
-described rather than quoted, since no comment introduces them: the tool may say
-what its own machinery is, and may not say what a project's exclusions are for.
+The golden is compared byte for byte, so grouping, ordering, table escaping,
+negation, unmatched rules, and the generated-source link are one assertion.
 
 Pins: cli/build/README.MD "Not described here", CONFIG.MD "`.espalierignore`".
