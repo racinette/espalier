@@ -12,8 +12,6 @@ Call the shared client, never fetch directly.
 
 ### Exclusion rules
 
-Rules appear in evaluation order. A leading `!` retains a path that an earlier rule excluded.
-
 | Rules | Why |
 | --- | --- |
 | `backend/**` | — |

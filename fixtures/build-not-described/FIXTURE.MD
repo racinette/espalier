@@ -5,12 +5,13 @@ encountered in this fixture. Exact rooted files and directories appear when
 present. A glob appears once when at least one path matches it, without listing
 those paths.
 
-The absent `/missing.txt` and unmatched `*.bak` are omitted. The unmatched
-`!generated/manifest.json` negation is omitted as well, while `generated/**`
-remains because `generated/out.ts` exists. Comments still describe an authored
-group once after its inactive declarations are filtered out. The configured
-ignore-file rule appears because `logs/` exists, but its git-facing comment does
-not become project-facing explanation.
+The absent `/missing.txt` and unmatched `*.bak` are omitted. The effective
+`!generated/manifest.json` negation is omitted as well: the retained manifest is
+accounted for by `Structure`, while `generated/**` remains because it finally
+excludes `generated/out.ts`. Comments still describe an authored group once
+after inactive declarations are filtered out. The configured ignore-file rule
+appears because `logs/` exists, but its git-facing comment does not become
+project-facing explanation.
 
 Tool-owned entries remain separate. The generated document points to its
 `ESPALIER.MD` as the persistent source for guidance and configuration is named

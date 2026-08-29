@@ -19,7 +19,7 @@ export interface Repository {
   visibleSet: Set<string>;
   /** User `ignore` only; the default list is a heuristic a declaration overrides. */
   ignoreRules: IgnoreRule[];
-  /** Ignore rules that participate in at least one decision for an encountered entry. */
+  /** Ignore rules that finally exclude at least one encountered entry. */
   activeIgnoreRules: IgnoreRule[];
   /** Repo-relative directories holding an espalier of their own, sorted. */
   children: string[];

@@ -152,19 +152,19 @@ export function excludedBy(
       const local = localPath(rule, partial);
       if (local !== null && rule.matcher.test(local)) {
         const next = rule.negated ? null : rule;
-        // A positive match becomes the explanation for the exclusion even when
-        // another positive rule had already excluded the path. A negation only
-        // participates when there is an exclusion for it to retain the path from.
-        if (next !== winner) observed?.add(rule);
         winner = next;
       }
     }
 
     // An ancestor settled it. Deeper patterns describe paths inside a directory
     // the walk never opened.
-    if (winner !== null && depth < segments.length) return winner;
+    if (winner !== null && depth < segments.length) {
+      observed?.add(winner);
+      return winner;
+    }
   }
 
+  if (winner !== null) observed?.add(winner);
   return winner;
 }
 

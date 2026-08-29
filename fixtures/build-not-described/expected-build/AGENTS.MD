@@ -5,7 +5,9 @@ One rule, and rather more that no rule reaches.
 ## Structure
 
     ./
-    └─ main.ts  the entry point (required)
+    ├─ generated/
+    │
+    └─ main.ts     the entry point (required)
 
 Nothing else may exist under this directory.
 
@@ -17,15 +19,12 @@ Start the server.
 
 ### Exclusion rules
 
-Rules appear in evaluation order. A leading `!` retains a path that an earlier rule excluded.
-
 | Rules | Why |
 | --- | --- |
 | `logs/` | — |
 | `.gitignore.fixture` | — |
 | `/vendor/` | Third-party source. Not ours to shape. |
 | `package.json`<br>`tsconfig.json` | Not this project's architecture. Their shape is dictated by the tools that read them, and changing one is a conversation with that tool rather than with this repository. |
-| `generated/**` | Written by the code generator. |
 | `/notes.txt` | — |
 
 ### Tool-owned entries

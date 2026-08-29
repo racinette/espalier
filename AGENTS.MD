@@ -42,8 +42,6 @@ specification; it is not allowed to be a second, drifting copy of it.
 
 ### Exclusion rules
 
-Rules appear in evaluation order. A leading `!` retains a path that an earlier rule excluded.
-
 | Rules | Why |
 | --- | --- |
 | `node_modules/`<br>`dist/` | — |

@@ -557,7 +557,6 @@ function renderOutside(outside: Outside, level: number): string[] {
   if (outside.exclusions.length > 0) {
     blocks.push(
       `${"#".repeat(level + 1)} Exclusion rules`,
-      "Rules appear in evaluation order. A leading `!` retains a path that an earlier rule excluded.",
       table(
         ["Rules", "Why"],
         outside.exclusions.map((group) => [

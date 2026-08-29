@@ -824,18 +824,20 @@ maps therefore repeat their handoff directory once — the parent ends there and
 the child begins there — which makes the continuation explicit and gives each
 map one visible root instead of rendering its entries as a forest.
 
-## Exclusions are declarations, not a snapshot
+## Exclusions describe materialized final decisions
 
-`Not described here` no longer enumerates whichever ignored files happen to
-exist during `build`. Per-run output made that list drift while the policy stayed
-the same, and a glob rendered as its current matches stopped being a glob at the
-exact moment a reader needed to understand it.
+`Not described here` renders only positive rules that finally exclude an entry
+encountered during `build`. An exact absent path, a glob with no finally excluded
+match, a superseded positive rule and every negation are omitted. A matching
+glob is still written once as its authored pattern rather than expanded into
+the paths it matched.
 
-The root document renders every ignore rule in evaluation order, grouped by its
-authored comment block. A description is written once for the group, unmatched
-patterns and negations remain visible, and comments from `ignoreFiles` remain
-absent because they were written for another tool. No row links to an ignore
-file or suggests changing one.
+Rules retain their authored comment groups after filtering. A description is
+written once for the surviving declarations, and comments from `ignoreFiles`
+remain absent because they were written for another tool. No row links to an
+ignore file or suggests changing one. Retained paths belong to `Structure` or
+violate its closed set; intermediate ignore evaluation adds nothing to either
+account.
 
 Tool-owned entries use a separate table in each document. Its generated-file
 row warns that edits will be overwritten and always links the placement's

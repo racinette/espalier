@@ -118,9 +118,9 @@ export async function build(options: BuildOptions, reporter: Reporter): Promise<
 
 /**
  * Materialized exclusion policy at its narrowest scope, and the entries
- * espalier itself owns beside each generated document. Rules are declarations,
- * but only declarations that participated in the repository walk are useful to
- * a reader of the generated document.
+ * espalier itself owns beside each generated document. Only positive rules that
+ * finally excluded something during the repository walk are useful to a reader
+ * of the generated document.
  * docs/cli/build/README.MD "Not described here".
  */
 interface ScopedExclusionGroup extends ExclusionGroup {

@@ -251,28 +251,22 @@ build; the tool-owned table is independent of repository contents.
 
 #### Exclusion rules
 
-Only rules that participate in an exclusion decision for at least one file or
-directory encountered by the repository walk. A positive rule participates
-when it becomes the winning explanation for an exclusion. A negation
-participates only when it retains an encountered path excluded by an earlier
-rule. Exact declarations whose path is absent and glob declarations with no
-encountered match are omitted.
+Only positive rules that are the final winning exclusion for at least one file
+or directory encountered by the repository walk. Exact declarations whose path
+is absent, glob declarations with no finally excluded match, superseded positive
+rules and all negations are omitted. A retained path is governed by the
+structure or rejected by its closed set; it is not an exclusion to explain.
 
-Rules preserve source-file and evaluation order because later matches win;
-sorting or grouping across authored blocks would describe a different policy.
-The table quotes each participating declaration once and never enumerates the
-paths that caused a glob to participate.
+The table quotes each winning declaration once and never enumerates the paths
+that caused a glob to appear.
 
 ```markdown
 ### Exclusion rules
 
-Rules appear in evaluation order. A leading `!` retains a path that an earlier
-rule excluded.
-
 | Rules | Why |
 | --- | --- |
 | `*.log`<br>`coverage/**` | Per-run output. |
-| `/dist/`<br>`!dist/manifest.json` | Generated build contents; retain the reviewed manifest. |
+| `/dist/` | Generated build contents. |
 | `/LICENSE` | Licence and legal. |
 | `package.json`<br>`tsconfig.json` | — |
 ```
@@ -294,8 +288,8 @@ Rules and paths use Markdown code spans, lengthened when a value itself contains
 backticks; pipes are escaped so they cannot split a table cell.
 
 Filtering happens before placement. Each surviving authored group appears in
-the deepest generated document covering all of its participating rules; common
-groups remain in an ancestor and descendants inherit them.
+the deepest generated document covering all of its winning rules; common groups
+remain in an ancestor and descendants inherit them.
 
 #### Tool-owned entries
 

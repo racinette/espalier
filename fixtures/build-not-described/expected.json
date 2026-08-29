@@ -3,6 +3,7 @@
   "issues": [],
   "ownership": {
     ".gitignore.fixture": null,
+    "generated/manifest.json": "generated/manifest.json.mjs",
     "generated/out.ts": null,
     "logs/debug.log": null,
     "main.ts": "main.ts.mjs",
@@ -17,6 +18,10 @@
       {
         "kind": "written",
         "path": "AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "generated/AGENTS.MD"
       }
     ]
   }

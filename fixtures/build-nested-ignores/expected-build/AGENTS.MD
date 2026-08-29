@@ -18,8 +18,6 @@ Start the application.
 
 ### Exclusion rules
 
-Rules appear in evaluation order. A leading `!` retains a path that an earlier rule excluded.
-
 | Rules | Why |
 | --- | --- |
 | `*.log` | Logs are generated throughout the repository. |
