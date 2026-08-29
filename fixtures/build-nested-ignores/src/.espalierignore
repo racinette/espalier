@@ -1,0 +1,5 @@
+# Keep the source log used as a checked-in example.
+!important.log
+
+# Source-local scratch data.
+scratch/

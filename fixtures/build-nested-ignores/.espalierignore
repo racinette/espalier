@@ -1,0 +1,12 @@
+# Logs are generated throughout the repository.
+*.log
+
+# Generated caches owned by separate parts of the project.
+/src/cache/
+/docs/cache/
+
+# Source compiler output.
+/src/generated/
+
+# The walk never reaches an ignore file below this directory.
+/blocked/

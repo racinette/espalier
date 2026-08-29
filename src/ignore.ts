@@ -13,6 +13,8 @@ export interface IgnoreRule {
    * whole point of reading these lists from files a user can open.
    */
   origin: string;
+  /** Repository-relative directory against which this file's patterns match. */
+  base: string;
   /**
    * The comment block introducing this entry, or null when none does.
    *
@@ -60,7 +62,11 @@ function toMatcher(glob: string, anchored: boolean): RegExp {
   return new RegExp(`^${anchored ? body : `(?:.*/)?${body}`}$`);
 }
 
-export function compileIgnore(patterns: string[], origin = ".espalierignore"): IgnoreRule[] {
+export function compileIgnore(
+  patterns: string[],
+  origin = ".espalierignore",
+  base = "",
+): IgnoreRule[] {
   const rules: IgnoreRule[] = [];
   // A comment introduces the entries beneath it and is closed by a blank line,
   // which is how a group written as one thought stays one thought. Lines
@@ -99,12 +105,20 @@ export function compileIgnore(patterns: string[], origin = ".espalierignore"): I
       dirOnly,
       pattern,
       origin,
+      base,
       comment: comment.length === 0 ? null : comment.join(" "),
       group,
     });
   }
 
   return rules;
+}
+
+/** A repository-relative path as seen from the ignore file that owns a rule. */
+function localPath(rule: IgnoreRule, relativePath: string): string | null {
+  if (rule.base === "") return relativePath;
+  const prefix = `${rule.base}/`;
+  return relativePath.startsWith(prefix) ? relativePath.slice(prefix.length) : null;
 }
 
 /**
@@ -134,7 +148,8 @@ export function excludedBy(
 
     for (const rule of rules) {
       if (rule.dirOnly && !isDirectory) continue;
-      if (rule.matcher.test(partial)) winner = rule.negated ? null : rule;
+      const local = localPath(rule, partial);
+      if (local !== null && rule.matcher.test(local)) winner = rule.negated ? null : rule;
     }
 
     // An ancestor settled it. Deeper patterns describe paths inside a directory

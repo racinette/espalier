@@ -123,8 +123,30 @@ export async function build(options: BuildOptions, reporter: Reporter): Promise<
  * their current matches.
  * docs/cli/build/README.MD "Not described here".
  */
-function exclusionGroups(rules: IgnoreRule[]): ExclusionGroup[] {
-  const groups: ExclusionGroup[] = [];
+interface ScopedExclusionGroup extends ExclusionGroup {
+  scopes: string[];
+}
+
+function ignoreScope(rule: IgnoreRule): string {
+  let glob = rule.pattern.trim();
+  if (glob.startsWith("!")) glob = glob.slice(1);
+  const rooted = glob.startsWith("/");
+  if (rooted) glob = glob.slice(1);
+  if (glob.endsWith("/")) glob = glob.slice(0, -1);
+
+  // A bare name floats at every depth below its ignore file. An anchored path
+  // can be narrowed only through literal segments before its first wildcard.
+  if (!rooted && !glob.includes("/")) return rule.base;
+  const fixed: string[] = [];
+  for (const segment of glob.split("/")) {
+    if (segment === "" || /[*?[]/.test(segment)) break;
+    fixed.push(segment);
+  }
+  return [rule.base, ...fixed].filter(Boolean).join("/");
+}
+
+function exclusionGroups(rules: IgnoreRule[]): ScopedExclusionGroup[] {
+  const groups: ScopedExclusionGroup[] = [];
   let previous: IgnoreRule | null = null;
 
   for (const rule of rules) {
@@ -135,13 +157,33 @@ function exclusionGroups(rules: IgnoreRule[]): ExclusionGroup[] {
       previous.comment === rule.comment;
     if (sameGroup) {
       groups[groups.length - 1]!.rules.push(rule.pattern);
+      groups[groups.length - 1]!.scopes.push(ignoreScope(rule));
     } else {
-      groups.push({ rules: [rule.pattern], reason: rule.comment });
+      groups.push({ rules: [rule.pattern], reason: rule.comment, scopes: [ignoreScope(rule)] });
     }
     previous = rule;
   }
 
   return groups;
+}
+
+function commonScope(scopes: string[]): string {
+  if (scopes.length === 0) return "";
+  const parts = scopes.map((scope) => (scope === "" ? [] : scope.split("/")));
+  const shared: string[] = [];
+  for (let index = 0; index < parts[0]!.length; index += 1) {
+    const segment = parts[0]![index]!;
+    if (!parts.every((entry) => entry[index] === segment)) break;
+    shared.push(segment);
+  }
+  return shared.join("/");
+}
+
+function pointFor(points: Placement[], scope: string): Placement {
+  return points
+    .filter((point) => point.at === "" || scope === point.at || scope.startsWith(`${point.at}/`))
+    .sort((left, right) => left.at.length - right.at.length)
+    .at(-1)!;
 }
 
 function linkFrom(at: string, target: string): string {
@@ -176,7 +218,20 @@ function outsideAt(
   const machinery = new Set([configRelative, espalierRoot, ...repository.config.ignoreFiles]);
   if (existsSync(path.join(root, IGNORE_FILENAME))) machinery.add(IGNORE_FILENAME);
 
-  const exclusions = exclusionGroups(repository.ignoreRules);
+  const exclusions = new Map<string, ExclusionGroup[]>();
+  for (const point of points) exclusions.set(point.at, []);
+  for (const group of exclusionGroups(repository.ignoreRules)) {
+    const target = inline ? points[0]! : pointFor(points, commonScope(group.scopes));
+    exclusions.get(target.at)!.push({ rules: group.rules, reason: group.reason });
+  }
+
+  const localMachinery = new Map<string, Set<string>>();
+  for (const point of points) localMachinery.set(point.at, new Set());
+  for (const rule of repository.ignoreRules) {
+    if (rule.base === "" || path.posix.basename(rule.origin) !== IGNORE_FILENAME) continue;
+    const target = inline ? points[0]! : pointFor(points, path.posix.dirname(rule.origin));
+    localMachinery.get(target.at)!.add(path.posix.relative(target.at || ".", rule.origin));
+  }
   const found = new Map<string, Outside>();
   for (const point of points) {
     if (inline && point.at !== "") continue;
@@ -187,12 +242,16 @@ function outsideAt(
     if (point.at === "") {
       toolOwned.push({ entries: [...machinery].sort(), reason: MACHINERY });
     }
+    const nestedMachinery = localMachinery.get(point.at)!;
+    if (nestedMachinery.size > 0) {
+      toolOwned.push({ entries: [...nestedMachinery].sort(), reason: MACHINERY });
+    }
     toolOwned.sort((left, right) =>
       left.entries[0]! < right.entries[0]! ? -1 : left.entries[0]! > right.entries[0]! ? 1 : 0,
     );
 
     found.set(point.at, {
-      exclusions: point.at === "" ? exclusions : [],
+      exclusions: exclusions.get(point.at)!,
       toolOwned,
     });
   }

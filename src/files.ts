@@ -109,7 +109,14 @@ function identify(absolute: string): string {
  * cannot be used is not an error" (cli/lint/README.MD) has to survive a cache
  * directory this process cannot open, which it does not if the walk goes looking.
  */
-export function collectCandidates(root: string, rules: IgnoreRule[], skip?: string): string[] {
+export type IgnoreLoader = (absolute: string, relativePath: string) => IgnoreRule[];
+
+export function collectCandidates(
+  root: string,
+  rules: IgnoreRule[],
+  skip?: string,
+  loadIgnore?: IgnoreLoader,
+): string[] {
   const found: string[] = [];
   // The directories on the way down from the root, by `dev:ino`. A link is a
   // cycle exactly when it lands on one of them, and seeding the root is what
@@ -117,6 +124,11 @@ export function collectCandidates(root: string, rules: IgnoreRule[], skip?: stri
   const ancestors = new Set<string>([identify(root)]);
 
   const descend = (absolute: string, prefix: string): void => {
+    // Like git, learn a directory's local rules before considering anything
+    // inside it. Rules from siblings remain harmless because each carries the
+    // directory it is relative to.
+    if (prefix !== "" && loadIgnore !== undefined) rules.push(...loadIgnore(absolute, prefix));
+
     for (const entry of readEntries(absolute, prefix)) {
       const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
       if (relative === skip) continue;

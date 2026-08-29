@@ -1,0 +1,2 @@
+# This fixture ships its cache on purpose.
+!.cache/

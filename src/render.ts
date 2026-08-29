@@ -509,7 +509,7 @@ export interface ToolOwnedGroup {
 }
 
 export interface Outside {
-  /** Root-only authored exclusion policy. */
+  /** Authored exclusion policy whose narrowest generated scope is this document. */
   exclusions: ExclusionGroup[];
   /** Entries espalier itself reads or writes. */
   toolOwned: ToolOwnedGroup[];

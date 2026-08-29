@@ -155,3 +155,22 @@ test("the winning rule is the last to match, not the most specific", () => {
   assert.equal(excludedBy(rules, "debug.log")?.pattern, "debug.log");
   assert.equal(excludedBy(compileIgnore(["debug.log", "*.log"]), "debug.log")?.pattern, "*.log");
 });
+
+test("rules in a nested ignore file are relative to its directory", () => {
+  const rules = compileIgnore(["/generated/", "*.log"], "src/.espalierignore", "src");
+  assert.equal(ignores(rules, "src/generated", true), true);
+  assert.equal(ignores(rules, "src/deep/debug.log"), true);
+  assert.equal(ignores(rules, "generated", true), false);
+  assert.equal(ignores(rules, "docs/debug.log"), false);
+});
+
+test("a deeper ignore file overrides applicable ancestor rules", () => {
+  const rules = [
+    ...compileIgnore(["*.log"]),
+    ...compileIgnore(["!important.log"], "src/.espalierignore", "src"),
+  ];
+  assert.equal(ignores(rules, "debug.log"), true);
+  assert.equal(ignores(rules, "src/debug.log"), true);
+  assert.equal(ignores(rules, "src/important.log"), false);
+  assert.equal(ignores(rules, "docs/important.log"), true);
+});

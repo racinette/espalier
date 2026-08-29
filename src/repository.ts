@@ -92,6 +92,15 @@ function readIgnoreFile(root: string, entry: string): string[] {
   }
 }
 
+/** A per-directory `.espalierignore`, discovered only after its directory opens. */
+function readNestedIgnoreFile(root: string, entry: string): string[] {
+  try {
+    return readFileSync(path.join(root, entry), "utf8").split("\n");
+  } catch (cause) {
+    fail("unreadable_path", `${entry} could not be read: ${(cause as Error).message}`);
+  }
+}
+
 export async function open(configOption: string | undefined, cwd: string): Promise<Repository> {
   const config = loadConfig(configOption, cwd);
   const espalier = await compile(config.root, config.espalierRoot);
@@ -114,7 +123,16 @@ export async function open(configOption: string | undefined, cwd: string): Promi
   const espalierPrefix = `${config.espalierRoot}/`;
   const configRelative = path.relative(config.root, config.configPath).split(path.sep).join("/");
 
-  const candidates = collectCandidates(config.root, ignoreRules, config.espalierRoot);
+  const candidates = collectCandidates(
+    config.root,
+    ignoreRules,
+    config.espalierRoot,
+    (absolute, at) => {
+      const origin = `${at}/${IGNORE_FILENAME}`;
+      if (!existsSync(path.join(absolute, IGNORE_FILENAME))) return [];
+      return compileIgnore(readNestedIgnoreFile(config.root, origin), origin, at);
+    },
+  );
   const children = findChildren(candidates, configRelative, ignoreRules);
   const childPrefixes = children.map((child) => `${child}/`);
 
@@ -136,7 +154,7 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     // Configuration, like the file above it — and dot-prefixed, so no rule
     // could declare it even if a project wanted to. A file that cannot be
     // declared and is not invisible is one every run reports forever.
-    if (candidate === IGNORE_FILENAME) return "espalier";
+    if (path.basename(candidate) === IGNORE_FILENAME) return "espalier";
     // A file `ignoreFiles` names is configuration this run read, the same as
     // the config itself. Reporting it would be espalier reporting on its own
     // input — and `_common` covering `.gitignore` only ever hid that for the

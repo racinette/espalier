@@ -4,5 +4,3 @@ dist/
 
 # espalier writes one per espalier, including inside fixtures.
 .cache/
-# except the one a fixture ships on purpose.
-!fixtures/lint-cache-not-trusted/espalier/.cache/

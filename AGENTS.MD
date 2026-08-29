@@ -47,7 +47,7 @@ Rules appear in evaluation order. A leading `!` retains a path that an earlier r
 | Rules | Why |
 | --- | --- |
 | `LEGACY_README.MD`<br>`node_modules/`<br>`dist/` | — |
-| `.cache/`<br>`!fixtures/lint-cache-not-trusted/espalier/.cache/` | — |
+| `.cache/` | — |
 | `.git/`<br>`.hg/`<br>`.svn/` | Version control metadata. `.gitignore` never lists `.git/` — git has no need to ignore itself — so this is the one exclusion no other file supplies. |
 | `.gitignore`<br>`.gitattributes`<br>`.gitmodules`<br>`.mailmap`<br>`.git-blame-ignore-revs`<br>`.editorconfig`<br>`.dockerignore`<br>`.tool-versions` | Repository metadata. Tracked on purpose, and dictated by the tool that reads them rather than by this project's architecture. |
 | `.github/`<br>`.gitlab/`<br>`.gitlab-ci.yml`<br>`.circleci/`<br>`.buildkite/`<br>`.travis.yml`<br>`azure-pipelines.yml`<br>`Jenkinsfile`<br>`.drone.yml`<br>`.woodpecker.yml` | Continuous integration. |

@@ -3,13 +3,16 @@
 ## Structure
 
     ./
+    ├─ docs/
+    ├─ src/
+    │
     └─ main.ts  the application entry point (required)
 
 Nothing else may exist under this directory.
 
 ## main.ts — the application entry point
 
-Wire up the application and start it.
+Start the application.
 
 ## Not described here
 
@@ -19,7 +22,9 @@ Rules appear in evaluation order. A leading `!` retains a path that an earlier r
 
 | Rules | Why |
 | --- | --- |
-| `FIXTURE.MD`<br>`expected.json`<br>`expected-build/**` | — |
+| `*.log` | Logs are generated throughout the repository. |
+| `/src/cache/`<br>`/docs/cache/` | Generated caches owned by separate parts of the project. |
+| `/blocked/` | The walk never reaches an ignore file below this directory. |
 
 ### Tool-owned entries
 

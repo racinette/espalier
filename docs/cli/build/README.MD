@@ -222,6 +222,29 @@ The section names the children and stops. It does not say what they contain, whi
 
 ### Not described here
 
+#### Exclusion scope
+
+Exclusion declarations follow Git's per-directory model. Espalier reads the
+repository-root `.espalierignore`, then discovers another `.espalierignore`
+whenever the repository walk enters a directory. Patterns are relative to the
+directory containing their file. Ancestor files apply first, deeper files
+override them, and the last matching pattern within one file wins. An ignore
+file below an excluded directory is never discovered, so it cannot re-include
+anything beneath that directory.
+
+Rendering preserves comment-or-blank-delimited authored groups. A group appears
+in the deepest generated document whose subtree contains every path the group
+could affect. A bare recursive pattern therefore stays at the document for its
+ignore file's directory; an anchored pattern can move to the document covering
+its literal leading path; and a group spanning separate subtrees stays at their
+nearest common generated ancestor. If no document exists at the calculated
+scope, the nearest generated ancestor owns the group. Parent documents provide
+the common policy inherited by their descendants; declarations are not copied
+into every descendant.
+
+Configured `ignoreFiles` remain repository-root-relative external sources. They
+are not discovered per directory.
+
 Two tables for two different reasons something sits outside the structural map.
 Neither is a snapshot of the ignored files that happen to exist during one
 build.
