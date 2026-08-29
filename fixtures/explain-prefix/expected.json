@@ -34,7 +34,7 @@
           { "path": "layouts/", "description": null, "required": null },
           { "path": "layouts/[layout].tsx", "description": "a layout component", "required": null }
         ],
-        "closedSet": "Nothing else may exist under components/.",
+        "closedSet": "Every path under components/ must fit the project layout or a documented repository-specific purpose.",
         "governed": [],
         "constraints": [
           {
@@ -64,7 +64,7 @@
         "kind": "explanation",
         "prefix": "",
         "description": "a small example application",
-        "closedSet": "Nothing else may exist under this directory."
+        "closedSet": "Every path in this directory must fit the project layout or a documented repository-specific purpose."
       }
     },
     "main.ts": {

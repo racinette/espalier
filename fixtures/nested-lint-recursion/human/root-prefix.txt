@@ -9,7 +9,8 @@
     │
     └─ main.ts         the application entry point (required)
 
-  Nothing else may exist under this directory.
+  Every path in this directory must fit the project layout or a documented
+  repository-specific purpose.
 
   Governed elsewhere:
     packages/web/

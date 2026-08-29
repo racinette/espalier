@@ -61,7 +61,11 @@ without a document remain expanded, so every structural node appears somewhere.
 
 **Rule bodies** — only for rules placed *here*. Detail does not propagate upward.
 
-**Cardinality and the closed set** — which files are required, which may appear zero or more times, and the statement that nothing else may exist. These come from the espalier's structure rather than from anything an author writes, and they are the most useful lines in the file for an agent about to create something.
+**Cardinality and the complete account** — which files are required, which may
+appear zero or more times, and the final statement that every path belongs to
+the project layout or a documented repository-specific purpose. These come
+from the compiled structure and the materialized repository paths rather than
+from anything an author writes.
 
 **Node prose** — the body of the directory's `ESPALIER.MD`, if it has one.
 
@@ -90,16 +94,16 @@ The document is assembled in a fixed order. A section with nothing to say is omi
 provenance marker
 # <name> — <path>/            the heading, when the config names the project
 node prose                    the ESPALIER.MD body, verbatim
-## Structure                  the tree, then the closed-set sentence
+## Project layout             the tree
 ## Governed elsewhere         child espaliers below this point, when any
 ## <rule> — <description>     one per structural rule placed here
-## Constraints                one ### per constraint placed here
-## Not described here         exclusion policy and tool-owned entries
+## Constraints                grouped by extension, then one rule section each
+## Other repository paths     one Paths/Purpose table, then the complete account
 ## Checking your work         root file only
 ## Amending this structure    fixed text, every file
 ```
 
-Text `espalier` composes — the map's own text and the closed-set sentence — is greedily wrapped at 80 columns. Text an author wrote — node prose, rule bodies — is copied verbatim and never re-wrapped, because reflowing someone's markdown is how a tool mangles a table.
+Text `espalier` composes — the map's own text and the complete-account sentence — is greedily wrapped at 80 columns. Text an author wrote — node prose, rule bodies — is copied verbatim and never re-wrapped, because reflowing someone's markdown is how a tool mangles a table.
 
 ### The heading
 
@@ -182,26 +186,28 @@ Both halves are load-bearing and neither stands alone. `any name` without a coun
 
 **`{provider} repeats what [provider] matched`** marks every node whose name holds a back-reference, one clause per placeholder, comma-joined inside the parentheses. It describes what the capture holds rather than what the segment was, which is the only phrasing that survives an affix: under `[provider]-provider/`, a `{provider}Impl.ts` in the directory named `stripe-provider` is `stripeImpl.ts`, and a suffix promising "the same name as the directory" would be wrong three times out of four.
 
-### The closed set
+### The complete account
 
-One sentence, following the map, closing the structure governed beneath this
-point. A directory where the map stops remains inside that closed set; the
-generated document in that directory describes its contents. The map delegates
-the inventory, not the authority.
+One sentence follows `Other repository paths`, after the document has described
+both the project layout and the purpose-specific paths that exist outside it:
+`Every path in this directory must fit the project layout or a documented
+repository-specific purpose.` Below the root it names the placement point:
+`Every path under src/clients/ must fit the project layout or a documented
+repository-specific purpose.`
 
-At a placement point below the espalier's root the sentence names it: `Nothing else may exist under src/clients/.` At the root there is no path to print — it would be `under .` — so the sentence anchors on the file's location instead: `Nothing else may exist under this directory.` A document has no way to know where it sits in an outer tree, by design, and claiming to be a repository or a root is wrong in a package on both counts.
-
-Absolute, with nothing appended to it. Everything a reader can see that this sentence does not cover is named further down the file — a child espalier under [Governed elsewhere](#governed-elsewhere), everything else under [Not described here](#not-described-here) — so the sentence stays terminal and the exceptions are enumerated rather than gestured at. A closed set that ends in *apart from* is not closed, and a reader who can see `package.json` sitting beside it reads the whole document as approximate.
-
-It is the only prose the structure gets. What must exist, what may, and what repeats what are marked on the lines they belong to; a paragraph restating them under the map would be a second description of one subtree, and the two would disagree the first time either was edited.
+The sentence closes the combined account rather than pretending the layout map
+is an inventory of the filesystem. A directory where the map stops remains in
+the project layout; the generated document inside it continues the description.
+Child espaliers named under `Governed elsewhere` are likewise established parts
+of that layout. Materialized exclusions, generated guidance and configuration
+are accounted for by their stated purposes in the table immediately above.
 
 ### Governed elsewhere
 
-A directory holding an espalier of its own is not described by this one, and the closed-set sentence above would otherwise have said nothing else may exist here — which a reader who can see the directory reads as a lie, not as a subtlety. Naming them here is what makes the sentence true: the closed set is closed over what this espalier governs, and a directory listed in this section is visibly not that.
+A directory holding an espalier of its own is not described by this one. Naming
+it here makes the handoff visible while leaving its own document authoritative.
 
 ```markdown
-Nothing else may exist under this directory.
-
 ## Governed elsewhere
 
 - `packages/api/`
@@ -220,7 +226,7 @@ A child several levels below the nearest placement point is named there too, as 
 
 The section names the children and stops. It does not say what they contain, which document to open, or what the child's `build.filename` is, because the outer espalier does not know and must not appear to: a summary of somebody else's rules is a second source of truth that goes stale silently. The reader is sent to the directory, where the child's own document is.
 
-### Not described here
+### Other repository paths
 
 #### Exclusion scope
 
@@ -245,11 +251,11 @@ into every descendant.
 Configured `ignoreFiles` remain repository-root-relative external sources. They
 are not discovered per directory.
 
-Two tables for two different reasons something sits outside the structural map.
-The exclusion table is materialized from the entries encountered during this
-build; the tool-owned table is independent of repository contents.
+One reader-facing table accounts for paths outside the project layout. Its
+materialized rows come from entries encountered during this build; its generated
+guidance and configuration rows are independent of repository contents.
 
-#### Exclusion rules
+#### Materialized paths
 
 Only positive rules that are the final winning exclusion for at least one file
 or directory encountered by the repository walk. Exact declarations whose path
@@ -261,9 +267,12 @@ The table quotes each winning declaration once and never enumerates the paths
 that caused a glob to appear.
 
 ```markdown
-### Exclusion rules
+## Other repository paths
 
-| Rules | Why |
+These paths are part of the repository but serve specific purposes outside the
+project layout. Use them only for the purpose stated here.
+
+| Paths | Purpose |
 | --- | --- |
 | `*.log`<br>`coverage/**` | Per-run output. |
 | `/dist/` | Generated build contents. |
@@ -291,21 +300,19 @@ Filtering happens before placement. Each surviving authored group appears in
 the deepest generated document covering all of its winning rules; common groups
 remain in an ancestor and descendants inherit them.
 
-#### Tool-owned entries
+#### Generated guidance and configuration
 
-Exact paths that espalier itself reads or writes, independent of ignore
-matching. Configuration is named without linking to or recommending changes to
-an ignore source. Generated documentation is the exception: its row points
-away from the artifact that will be overwritten and toward the source where a
-persistent change belongs.
+Additional exact paths name the inputs and output of repository-guidance
+generation, independent of ignore matching. Configuration is named without
+linking to or recommending changes to an ignore source. Generated documentation
+points away from the artifact that will be overwritten and toward the source
+where a persistent change belongs.
 
 ```markdown
-### Tool-owned entries
-
-| Entries | Why |
+| Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated by `espalier build`; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
-| `.espalierignore`, `espalier.config.yaml`, `espalier/` | Configuration. Read by `espalier`, not by this project. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
+| `.espalierignore`, `espalier.config.yaml`, `espalier/` | Sources used to generate and check this repository guidance. |
 ```
 
 Every distributed document names its own generated file. The root additionally
@@ -327,9 +334,8 @@ says what it describes, then accounts for the policy and machinery outside that
 structure; putting those in the opposite order interrupts the document with
 exceptions before it has finished stating the rules.
 
-The section closes by saying only what is true of both tables: neither exclusion
-rules nor tool-owned entries are alternative destinations for work that does
-not fit the declared structure.
+The section closes with the complete-account sentence. A purpose-specific path
+is valid for that purpose without becoming a destination for unrelated work.
 
 ### Rule sections
 
@@ -361,14 +367,19 @@ export default function Submit() { … }
 
 One or the other, never both — [TYPES.MD](../../TYPES.MD#example-and-examplesource) rejects a module setting each.
 
-Constraints render the same way one level down, under a shared `## Constraints` heading, with the rule name as the `###` heading and a line naming what it applies to:
+Constraints are grouped by their extension set. Known extensions use the
+language names in the renderer's alias map; an unknown extension falls back to
+its literal dotted form. The group states its scope in prose, and individual
+rules render one level beneath it:
 
 ```markdown
 ## Constraints
 
-### no-as-any — applies to TypeScript files throughout the project
+### TypeScript files
 
-Applies to: `**/*.ts`, `**/*.tsx`
+These rules apply to all TypeScript files in this project.
+
+#### no-as-any — no `as any`
 
 <the rule body, verbatim>
 ```
@@ -447,7 +458,8 @@ nothing outside src/clients/ performs HTTP requests directly.
        │
        └─ requestModels.ts  request payload types (required)
 
-Nothing else may exist under src/clients/.
+Every path under src/clients/ must fit the project layout or a documented
+repository-specific purpose.
 
 ## src/clients/[provider]/handlers/webhook.ts — an inbound webhook handler
 
@@ -560,7 +572,7 @@ nothing outside src/clients/ performs HTTP requests directly.
 
 **A folded point contributes its prose and its rule sections, and nothing else.** Everything shifts one heading level down, and the rule bodies are the same bytes they would have been distributed.
 
-There is no second map and no second closed-set sentence, because the root's cover the whole repository already. Both are written relative to the point that produced them, so folded in they would state one rule several times over in words that differ every time — `[provider]/` here, `clients/[provider]/` a section up, `src/clients/[provider]/` at the root — leaving the reader to work out that the three are one. The distributed form repeats itself because each of its files is read alone, which is exactly what this mode is not.
+There is no second map and no second complete-account sentence, because the root's cover the whole repository already. Both are written relative to the point that produced them, so folded in they would state one rule several times over in words that differ every time — `[provider]/` here, `clients/[provider]/` a section up, `src/clients/[provider]/` at the root — leaving the reader to work out that the three are one. The distributed form repeats itself because each of its files is read alone, which is exactly what this mode is not.
 
 A point exists because it has a document or rules of its own, so this leaves it with something to say. One whose document has a description and an empty body would be left with a bare heading, and loses the heading too, under the ordinary rule that a section with nothing in it is not written.
 

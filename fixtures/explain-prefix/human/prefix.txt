@@ -13,7 +13,8 @@ A component used by exactly one screen belongs beside that screen instead.
        │
        └─ [layout].tsx  a layout component (zero or more, any name)
 
-  Nothing else may exist under components/.
+  Every path under components/ must fit the project layout or a documented
+  repository-specific purpose.
 
 ── components/buttons/[button].tsx ───────────────────────────────────
 

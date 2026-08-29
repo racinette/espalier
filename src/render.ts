@@ -527,7 +527,7 @@ export interface Outside {
  * Reasons are quoted from `.espalierignore` and never invented: `espalier` has
  * patterns, not intent, and cannot tell an exclusion that will never have a
  * rule from one that does not have a rule yet.
- * docs/cli/build/README.MD "Not described here".
+ * docs/cli/build/README.MD "Other repository paths".
  */
 function markdownCode(value: string): string {
   const escaped = value.replace(/\|/g, "\\|");
@@ -552,43 +552,27 @@ function table(headers: string[], rows: string[][]): string {
 function renderOutside(outside: Outside, level: number): string[] {
   if (outside.exclusions.length === 0 && outside.toolOwned.length === 0) return [];
 
-  const blocks = [`${"#".repeat(level)} Not described here`];
+  const rows = [
+    ...outside.exclusions.map((group) => [
+      group.rules.map(markdownCode).join("<br>"),
+      group.reason === null ? "—" : tableText(group.reason),
+    ]),
+    ...outside.toolOwned.map((group) => [
+      group.entries.map(markdownCode).join("<br>"),
+      tableText(group.reason),
+    ]),
+  ];
 
-  if (outside.exclusions.length > 0) {
-    blocks.push(
-      `${"#".repeat(level + 1)} Exclusion rules`,
-      table(
-        ["Rules", "Why"],
-        outside.exclusions.map((group) => [
-          group.rules.map(markdownCode).join("<br>"),
-          group.reason === null ? "—" : tableText(group.reason),
-        ]),
-      ),
-    );
-  }
-
-  if (outside.toolOwned.length > 0) {
-    blocks.push(
-      `${"#".repeat(level + 1)} Tool-owned entries`,
-      table(
-        ["Entries", "Why"],
-        outside.toolOwned.map((group) => [
-          group.entries.map(markdownCode).join(", "),
-          tableText(group.reason),
-        ]),
-      ),
-    );
-  }
-
-  blocks.push(
-    "Nothing above describes these as project structure. They are not alternative " +
-      "destinations for work that does not fit the structure above.",
-  );
-  return blocks;
+  return [
+    `${"#".repeat(level)} Other repository paths`,
+    "These paths are part of the repository but serve specific purposes outside the " +
+      "project layout. Use them only for the purpose stated here.",
+    table(["Paths", "Purpose"], rows),
+  ];
 }
 
 /**
- * The sentence the map ends on, and the whole of what `build` writes under it.
+ * The sentence the combined project-layout and repository-path account ends on.
  * What must exist, what may, and what repeats what are marked on the lines
  * they belong to; a paragraph restating them below would be a second
  * description of one subtree. docs/cli/build/README.MD "The closed set".
@@ -598,8 +582,8 @@ export function closedSet(at: string): string {
   // sentence anchors on the file's location instead. A document cannot know
   // where it sits in an outer tree, and in a package "the repository root" is
   // wrong on both counts.
-  const where = at === "" ? "this directory" : `${at}/`;
-  return `Nothing else may exist under ${where}.`;
+  const where = at === "" ? "in this directory" : `under ${at}/`;
+  return `Every path ${where} must fit the project layout or a documented repository-specific purpose.`;
 }
 
 function renderClosedSet(point: Placement): string | null {
@@ -699,15 +683,29 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
 
   if (point.constraints.length > 0) {
     blocks.push(`${hashes} Constraints`);
-    const groups = constraintGroups(espalier);
+    const placed = new Set(point.constraints.map((constraint) => constraint.modulePath));
+    const extensionGroups = new Map<string, { extensions: string[]; rules: ConstraintGroup[] }>();
 
-    for (const constraint of point.constraints) {
-      const group = groups.find((entry) => entry.rule === constraint.modulePath)!;
-      blocks.push(
-        `${"#".repeat(level + 1)} ${group.name} — ${group.description}`,
-        `Applies to: ${group.patterns.map((pattern) => `\`${pattern}\``).join(", ")}`,
-        group.ruleText,
-      );
+    for (const group of constraintGroups(espalier)) {
+      if (!placed.has(group.rule)) continue;
+      const extensions = [...new Set(group.members.map((member) => member.extension))].sort();
+      const key = extensions.join("\0");
+      const bucket = extensionGroups.get(key);
+      if (bucket === undefined) extensionGroups.set(key, { extensions, rules: [group] });
+      else bucket.rules.push(group);
+    }
+
+    for (const bucket of extensionGroups.values()) {
+      const known = [...new Set(bucket.extensions.map((extension) => ALIASES[extension] ?? `.${extension}`))];
+      const kinds = `${list(known)} files`;
+      const where = point.at === "" ? "in this project" : "under this directory";
+      blocks.push(`${"#".repeat(level + 1)} ${kinds}`, `These rules apply to all ${kinds} ${where}.`);
+
+      for (const group of bucket.rules) {
+        const description = group.members[0]!.module.description;
+        const heading = description === null ? "" : ` — ${description}`;
+        blocks.push(`${"#".repeat(level + 2)} ${group.name}${heading}`, group.ruleText);
+      }
     }
   }
 
@@ -731,8 +729,7 @@ function heading(name: string | null, at: string): string[] {
   return [at === "" ? `# ${name}` : `# ${name} — ${at}/`];
 }
 
-/** The body every document shares: prose, structure, sections. */
-/** Whether any child espalier falls inside this placement point's closed set. */
+/** The body every document shares: prose, project layout, sections and other paths. */
 function core(
   espalier: Espalier,
   point: Placement,
@@ -740,6 +737,7 @@ function core(
   named: string[],
   outside: Outside,
   stopAt: readonly string[] = [],
+  close = true,
 ): string[] {
   const blocks: string[] = [];
 
@@ -749,13 +747,13 @@ function core(
   const closed = renderClosedSet(point);
 
   if (map !== null) {
-    blocks.push(`${"#".repeat(level)} Structure`, map);
-    if (closed !== null) blocks.push(closed);
+    blocks.push(`${"#".repeat(level)} Project layout`, map);
   }
 
   blocks.push(...renderChildren(point.at, named, level));
   blocks.push(...renderSections(espalier, point, level));
   blocks.push(...renderOutside(outside, level));
+  if (close && closed !== null) blocks.push(closed);
   return blocks;
 }
 
@@ -807,12 +805,14 @@ export function renderInline(
       2,
       assigned.get("") ?? [],
       outside.get("") ?? { exclusions: [], toolOwned: [] },
+      [],
+      false,
     ),
   ];
 
   for (const point of points) {
     if (point.at === "") continue;
-    // Prose and rule sections only. The root's map, closed-set sentence and
+    // Prose and rule sections only. The root's map, complete-account sentence and
     // list of child espaliers cover the whole repository already, and all are
     // written relative to the point that produced them — folded in, they would
     // state one rule several times over in words that differ every time.
@@ -829,6 +829,8 @@ export function renderInline(
     blocks.push(`## ${point.at}/${heading}`, ...body);
   }
 
+  const closed = renderClosedSet(root);
+  if (closed !== null) blocks.push(closed);
   blocks.push(CHECKING, AMENDING);
   return `${blocks.join("\n\n")}\n`;
 }

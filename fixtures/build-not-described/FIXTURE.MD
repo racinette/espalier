@@ -13,11 +13,12 @@ after inactive declarations are filtered out. The configured ignore-file rule
 appears because `logs/` exists, but its git-facing comment does not become
 project-facing explanation.
 
-Tool-owned entries remain separate. The generated document points to its
-`ESPALIER.MD` as the persistent source for guidance and configuration is named
-without suggesting edits to ignore lists.
+Generated guidance and its configuration share the reader-facing table with
+the materialized repository paths. The generated document points to its
+`ESPALIER.MD` as the persistent source for guidance without suggesting edits to
+ignore lists.
 
 The golden is compared byte for byte, so filtering, grouping, ordering,
 placement, table escaping, and the generated-source link are one assertion.
 
-Pins: cli/build/README.MD "Not described here", CONFIG.MD "`.espalierignore`".
+Pins: cli/build/README.MD "Other repository paths", CONFIG.MD "`.espalierignore`".

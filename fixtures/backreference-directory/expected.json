@@ -27,7 +27,7 @@
             "rule": "clients/[provider]/{provider}/[handler].ts.mjs"
           }
         ],
-        "closedSet": "Nothing else may exist under clients/stripe/stripe/."
+        "closedSet": "Every path under clients/stripe/stripe/ must fit the project layout or a documented repository-specific purpose."
       }
     },
     "clients/twilio/twilio/sms.ts": {

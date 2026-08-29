@@ -42,7 +42,7 @@
       "object": {
         "prefix": "",
         "espalier": null,
-        "closedSet": "Nothing else may exist under this directory.",
+        "closedSet": "Every path in this directory must fit the project layout or a documented repository-specific purpose.",
         "governed": ["packages/web/"]
       },
       "human": "human/root-prefix.txt"

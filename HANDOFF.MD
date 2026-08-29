@@ -77,7 +77,7 @@ slows anything down. Encodings were checked too — CRLF in an ignore file, in
 `ESPALIER.MD` frontmatter, and a UTF-8 BOM in the config all behave.
 
 A generated document is a pure function of the espalier **and the repository
-tree**: `Not described here` lists the excluded paths that are actually present,
+tree**: `Other repository paths` lists the excluded paths that are actually present,
 so adding an ignored file changes a document and `build --check` says so. That
 is the price of a section a reader can check against `ls` rather than against a
 glob. `build-not-described` is where the whole of that rendering is pinned.
@@ -575,7 +575,7 @@ same argument one step further.
 
 `explain <prefix>` draws the same map from the same function, and its `jsonl`
 carries the entries as data rather than the drawing. What survives of the
-paragraph is its last sentence, `Nothing else may exist under this directory.`,
+paragraph is its last sentence, `Every path in this directory must fit the project layout or a documented repository-specific purpose.`,
 which is the only thing the tree does not say.
 
 ## Why a dynamic leaf has no "at least one"
@@ -826,7 +826,7 @@ map one visible root instead of rendering its entries as a forest.
 
 ## Exclusions describe materialized final decisions
 
-`Not described here` renders only positive rules that finally exclude an entry
+`Other repository paths` renders only positive rules that finally exclude an entry
 encountered during `build`. An exact absent path, a glob with no finally excluded
 match, a superseded positive rule and every negation are omitted. A matching
 glob is still written once as its authored pattern rather than expanded into
@@ -839,15 +839,17 @@ ignore file or suggests changing one. Retained paths belong to `Structure` or
 violate its closed set; intermediate ignore evaluation adds nothing to either
 account.
 
-Tool-owned entries use a separate table in each document. Its generated-file
-row warns that edits will be overwritten and always links the placement's
+Generated guidance and configuration share the same reader-facing
+`Paths`/`Purpose` table. The generated-file row warns that edits will be
+overwritten and always links the placement's
 `ESPALIER.MD`: modify it when present, create it when absent. The link target is
 therefore stable while the verb truthfully follows the source tree. That is a
 persistence hint for generated knowledge, not an invitation to route around
 the project structure.
 
-Rule sections and constraints render before `Not described here`: the document
-finishes saying what it governs before turning to exclusions and machinery.
+Rule sections and constraints render before `Other repository paths`: the
+document finishes describing its project layout before accounting for
+purpose-specific paths.
 Paths and patterns in both tables use Markdown code spans rather than HTML
 `code` elements, with longer fences for values that contain backticks and
 escaped pipes where the table grammar requires them.
