@@ -96,7 +96,7 @@ See [CONFIG.MD](CONFIG.MD#addons).
 |---|---|
 | `path_outside_repository` | `explain` was given a path outside the root |
 | `invalid_adopt_target` | `adopt` was given a path that is not a directory inside the repository, is the espalier root, or has a dot-prefixed segment and so cannot be declared |
-| `unmarked_documentation` | `build` found a documentation file with no provenance marker, and will not eat a hand-written file |
+| `unmarked_documentation` | `build` found a planned documentation file with no provenance marker; `--force` is required to overwrite it |
 | `missing_argument` | a command was invoked without an argument it needs |
 
 ## The runner itself

@@ -28,17 +28,26 @@ These paths are part of the repository but serve specific purposes outside the p
 Every path in this directory must fit the project layout or a documented
 repository-specific purpose.
 
-## Checking your work
+## Working with Espalier
 
-Run `espalier lint` before you finish. Every violation it reports arrives with
-the rule text attached, so a failure tells you what to do and not only what is
-wrong.
+Espalier is the architecture compiler for this repository. It turns structural
+rules and `ESPALIER.MD` guidance into this generated document, then checks the
+working tree against them. Use it to place new code, discover the constraints on
+a path, and catch architectural drift while a change is still small.
 
-## Amending this structure
+Use this loop:
 
-This file is generated from `espalier/`, and the structure it describes is not
-yours to change. If the work does not fit — a file has nowhere legal to go, or a
-rule is wrong for the task — YOU MUST stop and report the gap. YOU MUST NOT
-widen a pattern, add a rule, or edit `espalier/` to make an error go away.
-Deciding the shape of this project is the architect's job, and a task that
-appears to require changing that shape is a task to hand back, not to unblock.
+1. Find the intended path in **Project layout** and read the generated guidance
+   in the nearest directory.
+2. Run `espalier explain <path>` when you need to understand how a path is
+   governed.
+3. Make the change without working around the declared structure.
+4. Run `espalier lint` and follow the rule text attached to each finding.
+
+Generated guidance files are outputs, not edit targets. When a task explicitly
+changes the architecture, update the corresponding `ESPALIER.MD` for guidance
+or the structural rule modules for structure, then run `espalier build`.
+Otherwise, if the work has no valid place or conflicts with a rule, report the
+design gap instead of weakening the espalier. Use `espalier build --force` only
+to restore a generated file whose provenance marker was removed; it authorizes
+overwriting an unmarked document at a planned output path.

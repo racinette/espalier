@@ -5,6 +5,7 @@ Generates the repository's agent-facing documentation from the espalier.
 ```bash
 espalier build
 espalier build --check
+espalier build --force
 espalier build --inline
 ```
 
@@ -13,10 +14,11 @@ Everything `build` writes is a generated artifact. The espalier is the source of
 ## Usage
 
 ```text
-espalier build [--check] [--inline] [--format <fmt>] [--out <dest>] [--config <path>]
+espalier build [--check] [--force] [--inline] [--format <fmt>] [--out <dest>] [--config <path>]
 
   --check          compare generated output against what is on disk,
                    write nothing, exit 1 if they differ
+  --force          overwrite an unmarked file at a planned output path
   --inline         write a single document at the root instead of
                    distributing files through the tree
   --format <fmt>   human or jsonl (default: human)
@@ -69,16 +71,18 @@ from anything an author writes.
 
 **Node prose** — the body of the directory's `ESPALIER.MD`, if it has one.
 
-**The amendment instruction** — that the espalier is not the reader's to change, and that work which does not fit the declared structure should be reported rather than legalised. Every file carries it, because an agent that reads a rule and finds it inconvenient is exactly the agent that needs to have read this. See [README.MD](../../../README.MD#who-changes-the-espalier).
+**Operational guidance** — the root document introduces Espalier, explains how
+its generated guidance aids development, and gives the working loop. Placement
+documents below it inherit that guidance rather than repeating a footer. See
+[README.MD](../../../README.MD#who-changes-the-espalier).
 
-The root file additionally carries the project preamble and instructions to run
-`espalier lint`.
+The root file additionally carries the project preamble.
 
 ## Generation
 
 1. Walk the static spine from the root, stopping at the first dynamic segment. Those are the placement points.
 2. Assign every rule to the longest static prefix of its directory path.
-3. Drop placement points with no assigned rules and no `ESPALIER.MD` — an intermediate directory whose content all lives deeper produces no file, and the map above it stays expanded through that directory. The root is never dropped: it is the one file every tool reads, and it alone carries the instruction to run `lint`.
+3. Drop placement points with no assigned rules and no `ESPALIER.MD` — an intermediate directory whose content all lives deeper produces no file, and the map above it stays expanded through that directory. The root is never dropped: it is the one file every tool reads, and it alone carries the Espalier introduction and development loop.
 4. Render each surviving point.
 5. Write with a provenance header, in deterministic order. A file whose rendered bytes match what is already on disk is left alone rather than rewritten, so a second run touches nothing and reports nothing.
 
@@ -99,8 +103,7 @@ node prose                    the ESPALIER.MD body, verbatim
 ## <rule> — <description>     one per structural rule placed here
 ## Constraints                grouped by extension, then one rule section each
 ## Other repository paths     one Paths/Purpose table, then the complete account
-## Checking your work         root file only
-## Amending this structure    fixed text, every file
+## Working with Espalier      root file only
 ```
 
 Text `espalier` composes — the map's own text and the complete-account sentence — is greedily wrapped at 80 columns. Text an author wrote — node prose, rule bodies — is copied verbatim and never re-wrapped, because reflowing someone's markdown is how a tool mangles a table.
@@ -384,29 +387,35 @@ These rules apply to all TypeScript files in this project.
 <the rule body, verbatim>
 ```
 
-### Fixed text
+### Operational guidance
 
-Every file ends with the amendment instruction, verbatim:
-
-```markdown
-## Amending this structure
-
-This file is generated from `espalier/`, and the structure it describes is not
-yours to change. If the work does not fit — a file has nowhere legal to go, or a
-rule is wrong for the task — YOU MUST stop and report the gap. YOU MUST NOT
-widen a pattern, add a rule, or edit `espalier/` to make an error go away.
-Deciding the shape of this project is the architect's job, and a task that
-appears to require changing that shape is a task to hand back, not to unblock.
-```
-
-The root file additionally carries, immediately before it:
+The root document ends with an operational introduction, where the former
+checking and amendment sections would otherwise have appeared:
 
 ```markdown
-## Checking your work
+## Working with Espalier
 
-Run `espalier lint` before you finish. Every violation it reports arrives with
-the rule text attached, so a failure tells you what to do and not only what is
-wrong.
+Espalier is the architecture compiler for this repository. It turns structural
+rules and `ESPALIER.MD` guidance into this generated document, then checks the
+working tree against them. Use it to place new code, discover the constraints on
+a path, and catch architectural drift while a change is still small.
+
+Use this loop:
+
+1. Find the intended path in **Project layout** and read the generated guidance
+   in the nearest directory.
+2. Run `espalier explain <path>` when you need to understand how a path is
+   governed.
+3. Make the change without working around the declared structure.
+4. Run `espalier lint` and follow the rule text attached to each finding.
+
+Generated guidance files are outputs, not edit targets. When a task explicitly
+changes the architecture, update the corresponding `ESPALIER.MD` for guidance
+or the structural rule modules for structure, then run `espalier build`.
+Otherwise, if the work has no valid place or conflicts with a rule, report the
+design gap instead of weakening the espalier. Use `espalier build --force` only
+to restore a generated file whose provenance marker was removed; it authorizes
+overwriting an unmarked document at a planned output path.
 ```
 
 ## Example
@@ -435,7 +444,7 @@ components/buttons/AGENTS.MD
 src/clients/AGENTS.MD
 ```
 
-`src/clients/AGENTS.MD` in full — the amendment instruction included, since every file carries it:
+`src/clients/AGENTS.MD` in full:
 
 ```markdown
 <!-- generated by espalier — do not edit — source: espalier/src/clients -->
@@ -478,14 +487,6 @@ Example: src/clients/stripe/client.ts
 
 Export one interface per endpoint the client calls.
 
-## Amending this structure
-
-This file is generated from `espalier/`, and the structure it describes is not
-yours to change. If the work does not fit — a file has nowhere legal to go, or a
-rule is wrong for the task — YOU MUST stop and report the gap. YOU MUST NOT
-widen a pattern, add a rule, or edit `espalier/` to make an error go away.
-Deciding the shape of this project is the architect's job, and a task that
-appears to require changing that shape is a task to hand back, not to unblock.
 ```
 
 `handlers/` sorts ahead of its file siblings because directories come first, and `handlers/` itself carries no text because no `ESPALIER.MD` describes it — a blank column would say the same nothing at greater length. `no-as-any` is a constraint on `[...path]`, whose longest static prefix is the root, so it renders in the root file and not here.
@@ -496,7 +497,11 @@ A directory holding an `espalier.config.yaml` of its own is a child espalier, an
 
 The outer run places no document inside a child's subtree and sweeps nothing there — the subtree is not its to describe. Each child is then built as its own run, with its own `build.filename` and `build.inline`, so a monorepo can keep distributed documents at the root and one inline document inside a package that prefers it. Neither run can see the other's output, which is why neither can delete it.
 
-Each child renders exactly as if it had been run alone: its `source:` marker, its `Amending this structure` text and its closed sets are all relative to the child's own root, because that is the frame a reader standing in the package is in. Only the report is re-rooted — its paths are relative to where the command was invoked, and each line's `espalier` names the run that produced it.
+Each child renders exactly as if it had been run alone: its `source:` marker,
+its Espalier introduction and its complete account are all relative to the
+child's own root, because that is the frame a reader standing in the package is
+in. Only the report is re-rooted — its paths are relative to where the command
+was invoked, and each line's `espalier` names the run that produced it.
 
 **Nothing is written unless every espalier planned successfully.** Each one is rendered in memory, the whole set is checked, and only then does anything reach the filesystem. A child that will not compile means no documents at all — not the root's, not a healthy sibling's.
 
@@ -519,6 +524,10 @@ That one line does three jobs: it tells `build` which files it may delete, it te
 - Files bearing the marker are rewritten each run. Any that this run did not produce — because the espalier node was renamed or removed — are deleted, since a document that keeps steering agents after its rule is gone is worse than no document.
 - **The sweep is confined to what the configuration governs.** A marked file that is excluded is never a candidate for deletion. The marker says a file is generated documentation; it does not say it is *this* run's. A repository holding a copy of `espalier`'s output — a golden fixture, a vendored copy of another repository — would otherwise lose it on the first build, with nothing to warn it.
 - A documentation file **without** the marker halts the build. Move its content into the corresponding `ESPALIER.MD` and run again; `build` will not eat a hand-written file.
+- `--force` bypasses that refusal only when the unmarked file occupies a path
+  this run plans to generate. It does not make unmarked files eligible for
+  orphan deletion. Because it can overwrite a genuinely hand-written document,
+  use it only to recover generated output whose marker was removed accidentally.
 - Generated files are invisible to matching, so espalier's own output is never reported as `unexpected_path`.
 
 Only files are deleted. A directory left empty by an orphan deletion stays, because git does not track it and because a tool that removes directories it did not create is one bad path away from removing something it should not have.
@@ -553,6 +562,15 @@ Renders everything in memory, compares against what is on disk, writes nothing. 
 
 Exits `1` when the output differs, `2` on operational failure. Run it in CI so agents are never guided by documentation that was generated before the last espalier change.
 
+## `--force`
+
+Authorizes `build` to overwrite an unmarked documentation file at a planned
+output path. Without it, that file is an operational failure and nothing is
+written anywhere. Other planning failures still stop the entire build.
+
+With `--check`, it permits the comparison but still writes nothing; the
+unmarked target is reported as changed. It never deletes an unmarked orphan.
+
 ## `--inline`
 
 Writes one document at the root containing every rule body, and no distributed files.
@@ -576,7 +594,7 @@ There is no second map and no second complete-account sentence, because the root
 
 A point exists because it has a document or rules of its own, so this leaves it with something to say. One whose document has a description and an empty body would be left with a bare heading, and loses the heading too, under the ordinary rule that a section with nothing in it is not written.
 
-The amendment instruction appears once, at the end.
+The `Working with Espalier` section appears once, at the end.
 
 Switching modes deletes the files the other mode produced. They carry the marker, this run did not produce them, and that is the whole orphan rule doing its ordinary job.
 

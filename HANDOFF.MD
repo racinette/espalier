@@ -121,6 +121,9 @@ Taken while writing the `build` fixtures, and now in the documents:
 - **A file whose rendered bytes already match is left alone.** A second run
   touches nothing and reports nothing, which is what makes `--check` in CI and
   `build` in a hook liveable.
+- **`build --force` overwrites only unmarked planned targets.** The default
+  still protects hand-written documentation; force does not turn unmarked
+  orphans into deletion candidates.
 - **The cardinality paragraph covers the whole subtree the map covers**, not
   just as far as the next placement point. A closed set that stopped early
   would not be closed.
@@ -696,8 +699,8 @@ and be muted. Telling them apart needs the previous espalier reconstructed from
 git and an ownership diff — real, but its only output is a note nobody is
 obliged to read, and it would drag git-history integration into a tool that
 now does not use git at all. Enforcement belongs to whatever can
-refuse: the harness, `CODEOWNERS`, a CI path check. The amendment instruction
-`build` writes is now imperative, and that is the tool's whole contribution.
+refuse: the harness, `CODEOWNERS`, a CI path check. The root workflow guidance
+`build` writes is imperative, and that is the tool's whole contribution.
 
 ## Candidacy and the ignore lists
 

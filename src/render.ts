@@ -9,20 +9,29 @@ import type { Constraint, Espalier, NodeDoc, StructuralRule, TrieNode } from "./
 import { PROVENANCE } from "./files.js";
 import { backrefNames, parseSegment, type Segment } from "./pattern.js";
 
-export const AMENDING = `## Amending this structure
+export const QUICKSTART = `## Working with Espalier
 
-This file is generated from \`espalier/\`, and the structure it describes is not
-yours to change. If the work does not fit — a file has nowhere legal to go, or a
-rule is wrong for the task — YOU MUST stop and report the gap. YOU MUST NOT
-widen a pattern, add a rule, or edit \`espalier/\` to make an error go away.
-Deciding the shape of this project is the architect's job, and a task that
-appears to require changing that shape is a task to hand back, not to unblock.`;
+Espalier is the architecture compiler for this repository. It turns structural
+rules and \`ESPALIER.MD\` guidance into this generated document, then checks the
+working tree against them. Use it to place new code, discover the constraints on
+a path, and catch architectural drift while a change is still small.
 
-export const CHECKING = `## Checking your work
+Use this loop:
 
-Run \`espalier lint\` before you finish. Every violation it reports arrives with
-the rule text attached, so a failure tells you what to do and not only what is
-wrong.`;
+1. Find the intended path in **Project layout** and read the generated guidance
+   in the nearest directory.
+2. Run \`espalier explain <path>\` when you need to understand how a path is
+   governed.
+3. Make the change without working around the declared structure.
+4. Run \`espalier lint\` and follow the rule text attached to each finding.
+
+Generated guidance files are outputs, not edit targets. When a task explicitly
+changes the architecture, update the corresponding \`ESPALIER.MD\` for guidance
+or the structural rule modules for structure, then run \`espalier build\`.
+Otherwise, if the work has no valid place or conflicts with a rule, report the
+design gap instead of weakening the espalier. Use \`espalier build --force\` only
+to restore a generated file whose provenance marker was removed; it authorizes
+overwriting an unmarked document at a planned output path.`;
 
 const WIDTH = 80;
 
@@ -775,15 +784,14 @@ export function renderDistributed(
     ...heading(name, point.at),
     ...core(espalier, point, 2, named, outside, stopAt),
   ];
-  if (point.at === "") blocks.push(CHECKING);
-  blocks.push(AMENDING);
+  if (point.at === "") blocks.push(QUICKSTART);
   return `${blocks.join("\n\n")}\n`;
 }
 
 /**
  * One document at the root, with every other placement point folded into it a
  * heading level down. There is one map and one closed-set sentence, because
- * the root's were always the whole repository, and one amendment instruction,
+ * the root's were always the whole repository, and one Espalier introduction,
  * because there is one file.
  */
 export function renderInline(
@@ -831,6 +839,6 @@ export function renderInline(
 
   const closed = renderClosedSet(root);
   if (closed !== null) blocks.push(closed);
-  blocks.push(CHECKING, AMENDING);
+  blocks.push(QUICKSTART);
   return `${blocks.join("\n\n")}\n`;
 }

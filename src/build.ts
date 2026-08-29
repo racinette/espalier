@@ -33,6 +33,7 @@ export interface BuildOptions {
   cwd: string;
   config: string | undefined;
   check: boolean;
+  force: boolean;
   inline: boolean;
 }
 
@@ -322,6 +323,7 @@ function planFor(
   for (const [at, contents] of [...existing].sort(([a], [b]) => (a < b ? -1 : 1))) {
     if (contents.startsWith(PROVENANCE)) continue;
     if (!planned.has(at)) continue;
+    if (options.force) continue;
     fail(
       "unmarked_documentation",
       `${at} exists without a provenance marker; move its content into the corresponding ESPALIER.MD and run again`,

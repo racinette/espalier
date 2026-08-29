@@ -18,12 +18,3 @@ These paths are part of the repository but serve specific purposes outside the p
 | --- | --- |
 | `backend/**` | — |
 | `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Create [`ESPALIER.MD`](../espalier/backend/ESPALIER.MD) to add persistent guidance to this document. |
-
-## Amending this structure
-
-This file is generated from `espalier/`, and the structure it describes is not
-yours to change. If the work does not fit — a file has nowhere legal to go, or a
-rule is wrong for the task — YOU MUST stop and report the gap. YOU MUST NOT
-widen a pattern, add a rule, or edit `espalier/` to make an error go away.
-Deciding the shape of this project is the architect's job, and a task that
-appears to require changing that shape is a task to hand back, not to unblock.

@@ -34,6 +34,7 @@ const USAGE = `espalier <command> [options]
 
   build only:
   --check               compare against what is on disk and write nothing
+  --force               overwrite an unmarked planned documentation file
   --inline              write one document at the root
 
   adopt only:
@@ -73,6 +74,7 @@ async function main(): Promise<number> {
         out: { type: "string" },
         config: { type: "string" },
         check: { type: "boolean" },
+        force: { type: "boolean" },
         root: { type: "string" },
         "ignore-all": { type: "boolean" },
         lang: { type: "string", short: "l", multiple: true },
@@ -141,6 +143,7 @@ async function main(): Promise<number> {
           cwd,
           config: values["config"] as string | undefined,
           check: values["check"] === true,
+          force: values["force"] === true,
           inline: values["inline"] === true,
         },
         reporter,
