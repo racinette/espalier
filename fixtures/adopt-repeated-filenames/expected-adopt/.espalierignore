@@ -1,3 +1,5 @@
 FIXTURE.MD
 expected.json
 expected-adopt/**
+components/**
+!components/**

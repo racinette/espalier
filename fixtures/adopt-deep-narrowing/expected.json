@@ -1,15 +1,11 @@
 {
   "adopt": {
-    "exit": 0,
+    "exit": 2,
     "args": ["tests/unit/query/fixtures"],
     "report": [
       {
-        "kind": "written",
-        "path": "espalier/tests/unit/query/fixtures/query.sql.mjs"
-      },
-      {
-        "kind": "narrowed",
-        "path": ".espalierignore"
+        "kind": "failure",
+        "code": "invalid_adopt_target"
       }
     ]
   }

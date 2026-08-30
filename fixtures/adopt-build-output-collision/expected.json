@@ -5,7 +5,19 @@
     "report": [
       {
         "kind": "failure",
-        "code": "unmarked_documentation"
+        "code": "unmarked_documentation",
+        "detail": {
+          "conflicts": [
+            {
+              "path": "area/PACKAGE.MD",
+              "source": "espalier/area/ESPALIER.MD"
+            },
+            {
+              "path": "area/sub/PACKAGE.MD",
+              "source": "espalier/area/sub/ESPALIER.MD"
+            }
+          ]
+        }
       }
     ]
   }

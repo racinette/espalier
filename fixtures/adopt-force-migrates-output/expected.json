@@ -1,0 +1,21 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": ["area", "--force"],
+    "human": "human/adopt.txt",
+    "warnings": [
+      "Migrated guidance is now durable; run `espalier build --force` to replace the original documents."
+    ],
+    "report": [
+      {
+        "kind": "migrated",
+        "from": "area/PACKAGE.MD",
+        "path": "espalier/area/ESPALIER.MD"
+      },
+      {
+        "kind": "written",
+        "path": "espalier/area/main.ts.mjs"
+      }
+    ]
+  }
+}

@@ -461,7 +461,10 @@ test("a back-reference needs every instance, not two of them", () => {
       path.join(root, "espalier.config.yaml"),
       "version: 1\npin: 0.1.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
     );
-    writeFileSync(path.join(root, ".espalierignore"), "main.ts\n.gitignore\nsrc/**\n");
+    writeFileSync(
+      path.join(root, ".espalierignore"),
+      "main.ts\n.gitignore\nsrc/**\n!src/clients/\n!src/clients/**\n",
+    );
 
     // Two clients name a file after themselves; the third does not. That is
     // not a convention, so the honest answer is the optional leaves — a

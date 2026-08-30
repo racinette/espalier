@@ -1,4 +1,4 @@
-export const description = "a query";   // TODO
+export const description = "a main";   // TODO
 
 export const rule = ``;                  // TODO
 

@@ -12,10 +12,6 @@
       {
         "kind": "written",
         "path": "espalier/components/theme.ts.mjs"
-      },
-      {
-        "kind": "narrowed",
-        "path": ".espalierignore"
       }
     ]
   }

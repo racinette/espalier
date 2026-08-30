@@ -243,7 +243,7 @@ test("--dry-run prints what a real adopt prints, and writes nothing", () => {
   });
 });
 
-test("build.inline in the config means what --inline means", () => {
+test("build.inline in the config owns document placement", () => {
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier", "ESPALIER.MD"),
@@ -254,9 +254,6 @@ test("build.inline in the config means what --inline means", () => {
       "---\ndescription: the source\n---\n\nMore prose.\n",
     );
 
-    // The flag is the tested spelling everywhere else, and the config key is
-    // the one a project actually commits — so the key is the one worth
-    // knowing still parses.
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
       "version: 1\npin: 0.1.0\nroot: espalier\nbuild:\n  inline: true\n",
@@ -268,6 +265,37 @@ test("build.inline in the config means what --inline means", () => {
       false,
       "inline still distributed a document",
     );
+  });
+});
+
+test("--inline is rejected because document placement is configuration", () => {
+  scratch((root) => {
+    const result = run(root, ["build", "--inline"]);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /Unknown option '--inline'/);
+  });
+});
+
+test("adopt --force migrates conflicting guidance idempotently", () => {
+  scratch((root) => {
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\npin: 0.1.0\nroot: espalier\nbuild:\n  filename: PACKAGE.MD\n",
+    );
+    mkdirSync(path.join(root, "area"), { recursive: true });
+    writeFileSync(path.join(root, "area", "PACKAGE.MD"), "# Legacy guidance\n");
+    writeFileSync(path.join(root, "area", "main.ts"), "export {};\n");
+
+    const first = run(root, ["adopt", "area", "--force"]);
+    assert.equal(first.status, 0, first.stdout + first.stderr);
+    const source = path.join(root, "espalier", "area", "ESPALIER.MD");
+    const migrated = readFileSync(source, "utf8");
+    assert.match(migrated, /espalier adopt: begin area\/PACKAGE\.MD/);
+    assert.match(migrated, /# Legacy guidance/);
+
+    const second = run(root, ["adopt", "area", "--force"]);
+    assert.equal(second.status, 0, second.stdout + second.stderr);
+    assert.equal(readFileSync(source, "utf8"), migrated);
   });
 });
 

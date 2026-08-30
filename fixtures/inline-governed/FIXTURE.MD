@@ -16,7 +16,7 @@ itself would be the one thing this mode exists to avoid: one rule stated twice
 in words that differ.
 
 The child is still its own run, and its document is written into its own
-directory. `--inline` is the outer espalier's decision about the outer
+directory. Inline output is the outer espalier's configured decision about the outer
 espalier's documentation; it says nothing about anybody else's.
 
-Pins: cli/build/README.MD "`--inline`", "Governed elsewhere".
+Pins: cli/build/README.MD "Inline output", "Governed elsewhere".

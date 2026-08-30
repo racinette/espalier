@@ -277,7 +277,10 @@ The object must be safe for concurrent use by many rules in unspecified order. I
 
 `filename` exists because tools disagree about what to call the file they read — `AGENTS.MD` is converging, but a project whose tooling wants `CLAUDE.md` changes one string rather than gaining a second output format.
 
-`inline` is for tools that read only the repository root. See [cli/build/README.MD](cli/build/README.MD).
+`inline` is for tools that read only the repository root. Document placement is
+configuration rather than an invocation flag so `build`, `build --check`, and
+`adopt` always agree about which paths Espalier owns. See
+[cli/build/README.MD](cli/build/README.MD#inline-output).
 
 `espalierGuidance: false` omits the canned `Working with Espalier` introduction
 from an outer root and the `Governance boundary` explanation from a nested

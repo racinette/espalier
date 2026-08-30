@@ -1,6 +1,5 @@
-narrowed  .espalierignore
 written   espalier/src/clients/[client]/client.ts.mjs
 written   espalier/src/clients/[client]/requestModels.ts.mjs
 written   espalier/src/clients/[client]/webhook.ts.mjs  (optional)
 
-1 narrowed, 3 written
+3 written

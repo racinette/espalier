@@ -18,10 +18,6 @@
         "kind": "written",
         "path": "espalier/src/clients/[client]/webhook.ts.mjs",
         "optional": true
-      },
-      {
-        "kind": "narrowed",
-        "path": ".espalierignore"
       }
     ]
   }

@@ -49,8 +49,10 @@ export type DriftState = "missing" | "changed" | "stale";
 
 /** What a `build` run did to the filesystem. docs/cli/build/README.MD "Output". */
 export interface BuildEntry {
-  kind: "written" | "deleted" | "drift" | "skipped" | "narrowed";
+  kind: "written" | "deleted" | "drift" | "skipped" | "migrated";
   path: string;
+  /** `migrated` only: the build-owned document whose content was preserved. */
+  from?: string;
   /** `drift` only. */
   state?: DriftState;
   /** `written` only: the module declares the file optional. */
@@ -225,7 +227,8 @@ class HumanReporter implements Reporter {
       // still that it was written, and the tally should say so. What differs
       // is how much the run is claiming, which belongs beside the path.
       const marker = entry.optional === true ? "  (optional)" : "";
-      this.destination.write(`${label.padEnd(10)}${entry.path}${marker}\n`);
+      const subject = entry.kind === "migrated" ? `${entry.from} -> ${entry.path}` : entry.path;
+      this.destination.write(`${label.padEnd(10)}${subject}${marker}\n`);
       counts.set(label, (counts.get(label) ?? 0) + 1);
     }
 

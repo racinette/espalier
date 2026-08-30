@@ -44,7 +44,12 @@ export function delegated(reporter: Reporter, at: string): Reporter {
       reporter.explanation({ ...answer, ...where, espalier: origin(answer.espalier) });
     },
     record(entry: BuildEntry): void {
-      reporter.record({ ...entry, path: under(at, entry.path), espalier: origin(entry.espalier) });
+      reporter.record({
+        ...entry,
+        path: under(at, entry.path),
+        ...(entry.from === undefined ? {} : { from: under(at, entry.from) }),
+        espalier: origin(entry.espalier),
+      });
     },
     // The command owns the destination and closes it once, when everything
     // that had something to say has said it.

@@ -1,7 +1,6 @@
 {
   "build": {
     "exit": 0,
-    "args": ["--inline"],
     "report": [
       { "kind": "written", "path": "AGENTS.MD" },
       { "kind": "deleted", "path": "components/buttons/AGENTS.MD" }

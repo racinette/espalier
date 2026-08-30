@@ -7,10 +7,8 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { IGNORE_FILENAME } from "./config.js";
 import { fail } from "./errors.js";
 import { probe } from "./files.js";
-import { compileIgnore, ignores } from "./ignore.js";
 import type { Reporter } from "./output.js";
 import { delegated } from "./nested.js";
 import { open } from "./repository.js";
@@ -20,6 +18,7 @@ export interface AdoptOptions {
   config: string | undefined;
   target: string;
   dryRun: boolean;
+  force: boolean;
 }
 
 /**
@@ -124,6 +123,7 @@ function infer(
   out: Inference,
   outside: Set<string>,
   build: BuildOutput,
+  visible: (relative: string, directory: boolean) => boolean,
   optional = false,
 ): void {
   // What this espalier does not describe is not evidence of a shape either: two
@@ -138,7 +138,7 @@ function infer(
         out.documentation.push(relative);
         return false;
       }
-      return !outside.has(relative);
+      return !outside.has(relative) && visible(relative, entry.directory);
     }),
   );
 
@@ -192,11 +192,22 @@ function infer(
       out,
       outside,
       build,
+      visible,
       optional,
     );
   } else {
     for (const member of shared) {
-      infer(root, member.holders, under(at, member.name), member.name, out, outside, build, optional);
+      infer(
+        root,
+        member.holders,
+        under(at, member.name),
+        member.name,
+        out,
+        outside,
+        build,
+        visible,
+        optional,
+      );
     }
   }
 
@@ -204,7 +215,17 @@ function infer(
   // join a family: the shape they would be claiming to share is one nobody
   // observed twice.
   for (const member of directories.filter((entry) => entry.optional)) {
-    infer(root, member.holders, under(at, member.name), member.name, out, outside, build, true);
+    infer(
+      root,
+      member.holders,
+      under(at, member.name),
+      member.name,
+      out,
+      outside,
+      build,
+      visible,
+      true,
+    );
   }
 
   const byExtension = new Map<string, Member[]>();
@@ -283,80 +304,32 @@ function ownsDocumentation(at: string, name: string, build: BuildOutput): boolea
   return at.split("/").every((segment) => !segment.startsWith("["));
 }
 
-/**
- * Whether an exclusion keeps anything inside this area out of scope.
- *
- * Not the same question as "is this directory ignored". A `components/**`
- * entry does not match `components` itself — only paths under it — so the test
- * probes with a path inside, which is what actually matters: adopting an area
- * whose *contents* stay ignored would do nothing.
- */
-function covers(pattern: string, target: string): boolean {
-  const rules = compileIgnore([pattern]);
-  return ignores(rules, target, true) || ignores(rules, `${target}/probe`);
+function guidanceSource(espalierRoot: string, documentation: string): string {
+  const directory = path.posix.dirname(documentation);
+  return directory === "."
+    ? `${espalierRoot}/ESPALIER.MD`
+    : `${espalierRoot}/${directory}/ESPALIER.MD`;
 }
 
-/**
- * Replaces the `.espalierignore` entry covering the adopted path with one per
- * sibling it also covered. Adopting an area that stays excluded would do
- * nothing, which is the only reason `adopt` touches configuration at all.
- *
- * A line at a time rather than a parse and a re-render: the comments are what
- * make this file worth having, and rewriting it from its patterns would drop
- * every one of them. The comment above a narrowed entry introduced a group and
- * still does — rewriting somebody's sentence because its list got shorter is
- * not `adopt`'s call.
- */
-function narrow(root: string, ignorePath: string, target: string): boolean {
-  if (!existsSync(ignorePath)) return false;
+function migrationContents(existing: string, from: string, contents: string): string {
+  const begin = `<!-- espalier adopt: begin ${from} -->`;
+  const end = `<!-- espalier adopt: end ${from} -->`;
+  const block = `${begin}\n${contents.trimEnd()}\n${end}`;
+  const start = existing.indexOf(begin);
 
-  const lines = readFileSync(ignorePath, "utf8").split("\n");
-  let changed = false;
-
-  const replaced: string[] = [];
-  for (const line of lines) {
-    const pattern = line.trim();
-    if (pattern === "" || pattern.startsWith("#") || !covers(pattern, target)) {
-      replaced.push(line);
-      continue;
-    }
-
-    changed = true;
-    const base = pattern.replace(/\/\*\*$/, "");
-
-    // `init --ignore-all` writes `<top-level>/**`. Replacing that broad rule
-    // must preserve siblings at every ancestor between it and a deeply adopted
-    // target, not merely the first segment below the ignored base.
-    if (pattern.endsWith("/**")) {
-      const baseDepth = base === "" ? 0 : base.split("/").length;
-      const targetParts = target.split("/");
-
-      for (let depth = baseDepth; depth < targetParts.length; depth += 1) {
-        const parent = targetParts.slice(0, depth).join("/");
-        const inside = targetParts[depth]!;
-        for (const entry of entries(path.join(root, parent))) {
-          if (entry.name === inside) continue;
-          const at = parent === "" ? entry.name : `${parent}/${entry.name}`;
-          replaced.push(entry.directory ? `${at}/**` : at);
-        }
-      }
-      continue;
-    }
-
-    const inside = target.startsWith(`${base}/`) ? target.slice(base.length + 1).split("/")[0]! : null;
-    if (inside === null) continue;
-
-    for (const entry of entries(path.join(root, base))) {
-      if (entry.name === inside) continue;
-      const at = base === "" ? entry.name : `${base}/${entry.name}`;
-      replaced.push(entry.directory ? `${at}/**` : at);
-    }
+  if (start === -1) {
+    return existing.trim() === "" ? `${block}\n` : `${existing.trimEnd()}\n\n${block}\n`;
   }
 
-  if (!changed) return false;
-
-  writeFileSync(ignorePath, `${replaced.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd()}\n`, "utf8");
-  return true;
+  const finish = existing.indexOf(end, start + begin.length);
+  if (finish === -1) {
+    fail(
+      "unmarked_documentation",
+      `${from} cannot be migrated because its existing adoption block has no closing marker`,
+      { path: from },
+    );
+  }
+  return `${existing.slice(0, start)}${block}${existing.slice(finish + end.length)}`;
 }
 
 export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<number> {
@@ -400,27 +373,68 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
     );
   }
 
+  const excluded = repository.ungoverned(target, true);
+  if (excluded !== null) {
+    fail(
+      "invalid_adopt_target",
+      `${options.target} is excluded by ${excluded}; explicitly re-include it before adopting`,
+      { path: target, excludedBy: excluded },
+    );
+  }
+
   const found: Inference = { leaves: [], documentation: [] };
   const name = target === "" ? "" : target.split("/").pop()!;
   // Everything this espalier does not describe: the subtrees it gave to a child,
   // and its own machinery.
   const configRelative = path.relative(root, configPath).split(path.sep).join("/");
   const outside = new Set([...repository.children, espalierRoot, configRelative]);
-  infer(root, [target], target, name, found, outside, repository.config.build);
+  infer(
+    root,
+    [target],
+    target,
+    name,
+    found,
+    outside,
+    repository.config.build,
+    (at, directory) => repository.ungoverned(at, directory) === null,
+  );
 
   // A provenance-marked document is already build machinery and is simply not
   // inferred. A hand-written collision cannot be made durable by `adopt`: stop
   // atomically and give the same migration direction as `build`.
-  const documentation = [...new Set(found.documentation)].sort().find(
-    (at) => repository.ungoverned(at) !== "espalier",
-  );
-  if (documentation !== undefined) {
-    const directory = path.posix.dirname(documentation);
-    const source = directory === "." ? "ESPALIER.MD" : `${directory}/ESPALIER.MD`;
+  const conflicts = [...new Set(found.documentation)]
+    .sort()
+    .filter((at) => repository.ungoverned(at) !== "espalier");
+  if (conflicts.length > 0 && !options.force) {
+    const named = conflicts
+      .map((at) => `${at} -> ${guidanceSource(espalierRoot, at)}`)
+      .join(", ");
     fail(
       "unmarked_documentation",
-      `${documentation} is reserved for generated guidance; move its durable guidance to ${source}, then build with --force to replace it`,
+      `adoption conflicts with build-owned documentation: ${named}; rerun adopt with --force to migrate it`,
+      {
+        conflicts: conflicts.map((at) => ({
+          path: at,
+          source: guidanceSource(espalierRoot, at),
+        })),
+      },
     );
+  }
+
+  let migrated = 0;
+  for (const from of conflicts) {
+    const source = guidanceSource(espalierRoot, from);
+    const sourceAbsolute = path.join(root, source);
+    const existing = existsSync(sourceAbsolute) ? readFileSync(sourceAbsolute, "utf8") : "";
+    const wanted = migrationContents(existing, from, readFileSync(path.join(root, from), "utf8"));
+    if (wanted === existing) continue;
+
+    if (!options.dryRun) {
+      mkdirSync(path.dirname(sourceAbsolute), { recursive: true });
+      writeFileSync(sourceAbsolute, wanted, "utf8");
+    }
+    reporter.record({ kind: "migrated", from, path: source });
+    migrated += 1;
   }
 
   const written: { path: string; optional: boolean }[] = [];
@@ -453,11 +467,10 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
   }
   for (const at of skipped) reporter.record({ kind: "skipped", path: at });
 
-  if (written.length > 0) {
-    const wouldNarrow = options.dryRun
-      ? repository.config.ignore.some((pattern) => covers(pattern.trim(), target))
-      : narrow(root, path.join(root, IGNORE_FILENAME), target);
-    if (wouldNarrow) reporter.record({ kind: "narrowed", path: IGNORE_FILENAME });
+  if (migrated > 0) {
+    reporter.warning(
+      "Migrated guidance is now durable; run `espalier build --force` to replace the original documents.",
+    );
   }
 
   return 0;

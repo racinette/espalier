@@ -1,6 +1,8 @@
 # `espalier adopt`
 
-Brings an existing directory under the espalier: infers its shape from the files already there, writes stub rule modules, and narrows `.espalierignore` so they take effect.
+Brings an existing directory under the espalier: infers its shape from the
+visible files already there and writes stub rule modules. It never changes
+repository exclusion policy.
 
 ```bash
 espalier adopt src/clients
@@ -11,10 +13,11 @@ espalier adopt src/clients
 ## Usage
 
 ```text
-espalier adopt <path>
+espalier adopt <path> [--force]
 
   <path>           directory to bring under the espalier
   --dry-run        print what would be written, write nothing
+  --force          migrate build-output conflicts into ESPALIER.MD
   --config <path>  use this config file instead of discovering one
   --format <fmt>   human or jsonl (default: human)
   --out <dest>     stdout, stderr, or a file path (default: stdout)
@@ -50,26 +53,28 @@ export async function lint() {}
 
 `description` is the filename without its extension, after "a" — so `requestModels.ts` gets `"a requestModels"`, which is ugly on purpose. It is marked `TODO`, it appears in the project map, and a phrase that reads like it was written by a machine is a phrase someone will replace. A plausible-sounding wrong description is the one that survives review.
 
-and narrows `.espalierignore`:
+`adopt` does not edit `.espalierignore`. A target excluded by repository policy
+fails with `invalid_adopt_target`; explicitly re-include the directory and its
+contents before adopting it. Excluded descendants remain invisible evidence
+and produce no inferred modules.
 
-```diff
- # espalier governs nothing yet.
--src/**
-+src/api/**
-+src/components/**
-```
-
-The replacement entries are the queried path's siblings — everything the old entry covered except the area now described. The comment above the entry is left where it is: it introduced a group and still does, and rewriting somebody's sentence because its list got shorter is not `adopt`'s call.
-
-Adopting an area that stays excluded would do nothing, so `adopt` edits the entry that covered it. That is the only reason it touches configuration.
-
-When no entry covers the path, there is nothing to narrow and `adopt` leaves the file alone. `espalier init` writes no backlog unless asked, so that is the common case; the narrowing matters for a repository that reached for [`--ignore-all`](../init/README.MD#--ignore-all) to keep a build green while it was being described.
+If a visible file occupies a documentation path the configured build will own,
+the run names every conflict and its corresponding source-side `ESPALIER.MD`,
+then writes nothing. `adopt --force` preserves each document verbatim in a
+source-tagged block in that `ESPALIER.MD`. Existing source prose is retained,
+and rerunning the migration replaces the same block rather than duplicating it.
+The original document remains until `espalier build --force` replaces it.
 
 ## What it refuses
 
-Three targets, all for the same reason — the run could not produce a module that governs anything.
+Four targets, all for the same reason — the run could not produce a module that governs anything.
 
-A path outside the repository, or one that is not a directory. The espalier root, which is not itself governed. And a path with a dot-prefixed segment: `espalier/.cursor/rules/` is skipped by the compiler, so `adopt .cursor` would report modules written and exit `0` while `lint` went on calling every file under it undeclared. All three fail with `invalid_adopt_target`.
+A path outside the repository, one that is not a directory, or one repository
+policy excludes. The espalier root, which is not itself governed. And a path
+with a dot-prefixed segment: `espalier/.cursor/rules/` is skipped by the
+compiler, so `adopt .cursor` would report modules written and exit `0` while
+`lint` went on calling every file under it undeclared. All four fail with
+`invalid_adopt_target`.
 
 Dot-prefixed paths *inside* an adopted directory are simply not inferred from — they are tooling rather than architecture, and [MATCHING.MD](../../MATCHING.MD#node-kinds) has the reasoning. They are not declared optional either, which is what everything else the inference passes over now becomes: a dot-prefixed path cannot be declared at all, so there is no module to write and nothing for the architect to revisit. `.espalierignore` is where they belong.
 
@@ -191,7 +196,7 @@ Three kinds of line, tagged as such under `--format jsonl`:
 |---|---|
 | `written` | a stub rule module this run created |
 | `skipped` | a rule module that already existed and was left alone |
-| `narrowed` | an `.espalierignore` entry that was replaced |
+| `migrated` | a build-owned document preserved in its durable `ESPALIER.MD` source |
 
 A `written` line carries `optional` when the module it wrote declares the file optional, and `--format human` marks the same line:
 
@@ -199,7 +204,7 @@ A `written` line carries `optional` when the module it wrote declares the file o
 {"kind":"written","path":"espalier/src/clients/[client]/client.ts.mjs"}
 {"kind":"written","path":"espalier/src/clients/[client]/webhook.ts.mjs","optional":true}
 {"kind":"skipped","path":"espalier/src/clients/[client]/requestModels.ts.mjs"}
-{"kind":"narrowed","path":"espalier.config.yaml"}
+{"kind":"migrated","from":"src/AGENTS.MD","path":"espalier/src/ESPALIER.MD"}
 ```
 
 ```text

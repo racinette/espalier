@@ -35,10 +35,10 @@ const USAGE = `espalier <command> [options]
   build only:
   --check               compare against what is on disk and write nothing
   --force               overwrite an unmarked planned documentation file
-  --inline              write one document at the root
 
   adopt only:
   --dry-run             print what would be written, write nothing
+  --force               migrate conflicting generated-output files into ESPALIER.MD
 
   lint only:
   --rule <module>       run one rule module only
@@ -81,7 +81,6 @@ async function main(): Promise<number> {
         "ignore-file": { type: "string", short: "i", multiple: true },
         "no-ignore-file": { type: "boolean" },
         "no-common-ignore": { type: "boolean" },
-        inline: { type: "boolean" },
         "dry-run": { type: "boolean" },
         rule: { type: "string" },
         "no-rule-text": { type: "boolean" },
@@ -132,6 +131,7 @@ async function main(): Promise<number> {
           config: values["config"] as string | undefined,
           target: found,
           dryRun: values["dry-run"] === true,
+          force: values["force"] === true,
         },
         reporter,
       );
@@ -144,7 +144,6 @@ async function main(): Promise<number> {
           config: values["config"] as string | undefined,
           check: values["check"] === true,
           force: values["force"] === true,
-          inline: values["inline"] === true,
         },
         reporter,
       );

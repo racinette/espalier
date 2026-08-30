@@ -878,7 +878,7 @@ export function renderInline(
     // list of child espaliers cover the whole repository already, and all are
     // written relative to the point that produced them — folded in, they would
     // state one rule several times over in words that differ every time.
-    // docs/cli/build/README.MD "`--inline`".
+    // docs/cli/build/README.MD "Inline output".
     const body: string[] = [];
     if (point.doc !== null && point.doc.body !== "") body.push(point.doc.body);
     body.push(...renderSections(espalier, point, 3));

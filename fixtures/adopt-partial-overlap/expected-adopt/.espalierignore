@@ -1,3 +1,6 @@
 FIXTURE.MD
 expected.json
 expected-adopt/**
+src/**
+!src/clients/
+!src/clients/**

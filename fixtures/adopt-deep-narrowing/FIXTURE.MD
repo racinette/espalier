@@ -1,5 +1,5 @@
-# Deep adoption preserves every unadopted branch
+# Deep excluded adoption is refused
 
 `init --ignore-all` writes a broad `tests/**` exclusion. Adopting a directory
-several levels below it must replace that exclusion with exclusions for every
-sibling branch encountered on the way down, not only siblings at `tests/`.
+several levels below it must fail without changing the exclusion or writing
+modules. Repository policy must explicitly re-include the target first.

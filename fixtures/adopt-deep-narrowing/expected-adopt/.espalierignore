@@ -1,8 +1,0 @@
-FIXTURE.MD
-expected.json
-expected-adopt/**
-tests/README.md
-tests/integration/**
-tests/unit/helpers/**
-tests/unit/query/notes.md
-tests/unit/query/worlds/**

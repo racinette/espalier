@@ -1,7 +1,7 @@
-# build --inline: one document, and the other mode's files removed
+# inline build: one document, and the other mode's files removed
 
 The repository starts in the distributed state — `components/buttons/AGENTS.MD`
-exists and carries the marker, as a previous run left it. `--inline` writes the
+exists and carries the marker, as a previous run left it. `build.inline: true` writes the
 single root document and removes the distributed one.
 
 That removal needs no rule of its own. The file carries the marker and this run
@@ -14,7 +14,7 @@ reached first.
 
 `components/buttons/` becomes a `##` section inside the root document, its rule
 demoted from `##` to `###`. The rule body itself is the same bytes it would
-have been distributed — `--inline` is a placement decision, not a second
+have been distributed — inline output is a placement decision, not a second
 rendering.
 
 The section carries no closed-set sentence of its own. This fixture argued
@@ -30,7 +30,7 @@ There is one map and one complete-account sentence, both at the root, because
 the root's were always the whole repository. There is one `Working with
 Espalier` section, at the end, because there is one file.
 
-`--inline` and `build.inline: true` in the config mean the same thing; this
-fixture uses the flag so that the config stays comparable with the others.
+The placement decision lives only in configuration so every invocation agrees
+about which documentation paths the repository owns.
 
-Pins: cli/build/README.MD "`--inline`", "Ownership".
+Pins: CONFIG.MD "`build`", cli/build/README.MD "Inline output", "Ownership".

@@ -6,7 +6,6 @@ Generates the repository's agent-facing documentation from the espalier.
 espalier build
 espalier build --check
 espalier build --force
-espalier build --inline
 ```
 
 Everything `build` writes is a generated artifact. The espalier is the source of truth; regenerate after changing it, and do not edit the output by hand.
@@ -14,13 +13,11 @@ Everything `build` writes is a generated artifact. The espalier is the source of
 ## Usage
 
 ```text
-espalier build [--check] [--force] [--inline] [--format <fmt>] [--out <dest>] [--config <path>]
+espalier build [--check] [--force] [--format <fmt>] [--out <dest>] [--config <path>]
 
   --check          compare generated output against what is on disk,
                    write nothing, exit 1 if they differ
   --force          overwrite an unmarked file at a planned output path
-  --inline         write a single document at the root instead of
-                   distributing files through the tree
   --format <fmt>   human or jsonl (default: human)
   --out <dest>     stdout, stderr, or a file path (default: stdout)
   --config <path>  use this config file instead of discovering one
@@ -624,11 +621,12 @@ written anywhere. Other planning failures still stop the entire build.
 With `--check`, it permits the comparison but still writes nothing; the
 unmarked target is reported as changed. It never deletes an unmarked orphan.
 
-## `--inline`
+## Inline output
 
-Writes one document at the root containing every rule body, and no distributed files.
+Set `build.inline: true` in `espalier.config.yaml` to write one document at the
+root containing every rule body, and no distributed files.
 
-The distributed form assumes agents pick up documentation from ancestor directories of the file they are working on. A tool that reads only the repository root gets nothing from distribution, and `--inline` gives it everything in the one file it does read. The cost is that the whole repository's rules are resident at all times, which is why it is not the default.
+The distributed form assumes agents pick up documentation from ancestor directories of the file they are working on. A tool that reads only the repository root gets nothing from distribution, and inline output gives it everything in the one file it does read. The cost is that the whole repository's rules are resident at all times, which is why it is not the default. Placement is configuration rather than a command flag because generated-document ownership must be stable for the repository.
 
 The document is the root document with the other placement points folded into it. After the root's own structure and rules, each remaining point in map order becomes a section:
 

@@ -34,7 +34,6 @@ export interface BuildOptions {
   config: string | undefined;
   check: boolean;
   force: boolean;
-  inline: boolean;
 }
 
 /**
@@ -57,9 +56,8 @@ function read(absolute: string): string | null {
  * The outer espalier, then every child below it. docs/cli/build/README.MD
  * "Nested espaliers".
  *
- * `--inline` is the invocation's, not the configuration's, so it is not passed
- * down: a child renders as its own config says to. Everything else about a
- * child run is the child's already.
+ * Each espalier renders as its own committed configuration says to. Document
+ * placement is repository architecture, not an invocation-time choice.
  */
 /** One espalier's rendered documents, and what is already on disk beside them. */
 interface Plan {
@@ -76,9 +74,7 @@ interface Plan {
  * Plans every espalier, then applies them — or, if any one of them could not be
  * planned, applies none.
  *
- * `--inline` is the invocation's, not the configuration's, so it is not passed
- * down: a child renders as its own config says to. Everything else about a
- * child run is the child's already.
+ * Each child reads its own configuration, including document placement.
  */
 export async function build(options: BuildOptions, reporter: Reporter): Promise<number> {
   const repository = await open(options.config, options.cwd);
@@ -86,10 +82,9 @@ export async function build(options: BuildOptions, reporter: Reporter): Promise<
 
   const collect = async (
     where: Repository,
-    inline: boolean,
     into: Reporter,
   ): Promise<number> => {
-    plans.push(planFor(where, { ...options, inline }, into));
+    plans.push(planFor(where, options, into));
 
     // A child that cannot be planned is reported and the walk carries on, so a
     // run that writes nothing still names all of what is wrong.
@@ -98,11 +93,11 @@ export async function build(options: BuildOptions, reporter: Reporter): Promise<
       where.children,
       into,
       async (childRoot, childReporter) =>
-        await collect(await open(undefined, childRoot), false, childReporter),
+        await collect(await open(undefined, childRoot), childReporter),
     );
   };
 
-  const failed = await collect(repository, options.inline, reporter);
+  const failed = await collect(repository, reporter);
 
   if (options.check) {
     // Nothing durable is produced either way, so a failure elsewhere is no
@@ -271,7 +266,7 @@ function planFor(
   reporter: Reporter,
 ): Plan {
   const { root, build: settings } = repository.config;
-  const inline = options.inline || settings.inline;
+  const inline = settings.inline;
   const nested = hasAncestorConfig(root);
 
   const points = plan(repository.espalier);

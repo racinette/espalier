@@ -12,10 +12,6 @@
       {
         "kind": "written",
         "path": "espalier/src/clients/[client]/requestModels.ts.mjs"
-      },
-      {
-        "kind": "narrowed",
-        "path": ".espalierignore"
       }
     ]
   }

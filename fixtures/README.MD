@@ -209,7 +209,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `nested-three-levels` | a child of a child: delegation is a rule, not a first-hop special case |
 | `nested-build-child-failure` | one espalier that will not compile, and nothing written anywhere |
 | `build-check-drift` | `--check` reports `missing`, `changed` and `stale`, and writes nothing |
-| `build-inline` | one document at the root, and the distributed run's files removed |
+| `build-inline` | configured inline output writes one root document and removes distributed files |
 | `build-empty-rule` | a section with nothing to say is omitted, heading and all |
 | `explain-prefix` | both answer shapes, and the rule that decides which one you get |
 | `explain-ungoverned` | which list excluded a path, and that ignored is not declared |
@@ -230,7 +230,9 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `backreference-with-capture` | a segment holding a back-reference and a placeholder: bound per instance, dynamic tier |
 | `invalid-backreference` | a `{name}` with no `[name]` above it never compiles |
 | `constraint-only-placement` | a placement point with no trie node, and a generated description |
-| `adopt-sibling-directories` | matching siblings become a dynamic directory, and the ignore entry narrows |
+| `adopt-sibling-directories` | matching siblings become a dynamic directory after explicit re-inclusion |
+| `adopt-deep-narrowing` | a deeply excluded target is refused rather than rewriting ignore policy |
+| `adopt-force-migrates-output` | forced adoption preserves conflicting output in a marked durable-source block |
 | `adopt-partial-overlap` | the shared files are required and the odd one out is declared optional |
 | `adopt-optional-directory` | a directory only some siblings have keeps its name, and everything inside it is optional |
 | `adopt-repeated-filenames` | files sharing an extension collapse, but not inside a family |

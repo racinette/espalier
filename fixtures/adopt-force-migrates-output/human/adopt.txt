@@ -1,0 +1,6 @@
+migrated  area/PACKAGE.MD -> espalier/area/ESPALIER.MD
+written   espalier/area/main.ts.mjs
+
+1 migrated, 1 written
+
+Migrated guidance is now durable; run `espalier build --force` to replace the original documents.
