@@ -12,6 +12,11 @@
 
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import {
+  mergeArtifacts,
+  type ArtifactTarget,
+  type GeneratedArtifact,
+} from "./artifacts.js";
 import { fail } from "./errors.js";
 import { hasAncestorConfig, IGNORE_FILENAME } from "./config.js";
 import { collectCandidates, PROVENANCE } from "./files.js";
@@ -65,7 +70,7 @@ interface Plan {
   root: string;
   /** Reports through it, already re-rooted to where the command was invoked. */
   reporter: Reporter;
-  planned: Map<string, string>;
+  planned: Map<string, GeneratedArtifact>;
   existing: Map<string, string>;
   orphans: string[];
 }
@@ -274,11 +279,12 @@ function planFor(
   const assigned = assignChildren(points, repository.children);
   const outside = outsideAt(repository, points, settings.filename, inline);
 
-  const planned = new Map<string, string>();
+  const artifacts: GeneratedArtifact[] = [];
   if (inline) {
-    planned.set(
-      settings.filename,
-      renderInline(
+    artifacts.push({
+      target: "default",
+      path: settings.filename,
+      contents: renderInline(
         repository.espalier,
         points,
         repository.config.espalierRoot,
@@ -288,13 +294,14 @@ function planFor(
         nested,
         settings.espalierGuidance,
       ),
-    );
+    });
   } else {
     for (const point of points) {
       const at = point.at === "" ? settings.filename : `${point.at}/${settings.filename}`;
-      planned.set(
-        at,
-        renderDistributed(
+      artifacts.push({
+        target: "default",
+        path: at,
+        contents: renderDistributed(
           repository.espalier,
           points,
           point,
@@ -305,9 +312,18 @@ function planFor(
           nested,
           settings.espalierGuidance,
         ),
-      );
+      });
     }
   }
+
+  const targets: ArtifactTarget[] = [
+    {
+      id: "default",
+      owns: (candidate) => path.basename(candidate) === settings.filename,
+      artifacts,
+    },
+  ];
+  const planned = mergeArtifacts(targets);
 
   // Every documentation file already on disk, and whether espalier wrote it.
   // The raw walk rather than `repository.visible`, which excludes generated
@@ -323,7 +339,7 @@ function planFor(
     undefined,
     repository.visibilityRules,
   )) {
-    if (path.basename(candidate) !== settings.filename) continue;
+    if (!targets.some((target) => target.owns(candidate))) continue;
     // A child espalier's subtree is not this run's to read, describe or delete.
     if (childPrefixes.some((prefix) => candidate.startsWith(prefix))) continue;
     const contents = read(path.join(root, candidate));
@@ -368,7 +384,7 @@ function reportDrift({ reporter, planned, existing, orphans }: Plan): number {
     if (found === undefined) {
       reporter.record({ kind: "drift", path: at, state: "missing" });
       drifted += 1;
-    } else if (found !== planned.get(at)) {
+    } else if (found !== planned.get(at)?.contents) {
       reporter.record({ kind: "drift", path: at, state: "changed" });
       drifted += 1;
     }
@@ -385,7 +401,7 @@ function reportDrift({ reporter, planned, existing, orphans }: Plan): number {
 /** The only part that touches the filesystem, and it runs for every espalier or none. */
 function apply({ root, reporter, planned, existing, orphans }: Plan): void {
   for (const at of [...planned.keys()].sort()) {
-    const wanted = planned.get(at)!;
+    const wanted = planned.get(at)!.contents;
     // A file whose rendered bytes already match is left alone, so a second run
     // touches nothing and reports nothing.
     if (existing.get(at) === wanted) continue;

@@ -23,6 +23,8 @@ place is a list that stops matching the modules.
     │
     ├─ api.ts          the programmatic surface (required)
     │
+    ├─ artifacts.ts    the target-neutral generated artifact model (required)
+    │
     ├─ build.ts        the build command (required)
     │
     ├─ cache.ts        the incremental lint cache (required)
@@ -63,6 +65,10 @@ place is a list that stops matching the modules.
     ├─ render.ts       turning the espalier into documentation (required)
     │
     └─ repository.ts   what lint and explain both work from (required)
+
+## `artifacts.ts` — the target-neutral generated artifact model
+
+Define generated outputs independently of filesystem application so multiple targets can share one atomic build transaction.
 
 ## `cache.ts` — the incremental lint cache
 
