@@ -33,7 +33,7 @@ export interface Repository {
    * or `"espalier"` for the three things invisible unconditionally, which are
    * grouped together because a user cannot un-ignore any of them.
    */
-  ungoverned(filePath: string): string | null;
+  ungoverned(filePath: string, asDirectory?: boolean): string | null;
 }
 
 function validateExamples(root: string, espalier: Espalier): void {
@@ -155,7 +155,7 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     return found;
   };
 
-  const ungoverned = (candidate: string): string | null => {
+  const ungoverned = (candidate: string, asDirectory = false): string | null => {
     // Invisible unconditionally: espalier reporting on its own machinery is a
     // bug rather than a finding. The VCS directory is not among these — it is
     // an `ignore` entry like any other, which is how a user can see it.
@@ -175,8 +175,7 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     // External ignores define the input universe. `explain` still names the
     // source for a path explicitly requested by the user, but the path never
     // reaches structure matching or generated exclusion documentation.
-    const hidden =
-      hiddenBy(visibilityRules, candidate) ?? hiddenBy(visibilityRules, candidate, true);
+    const hidden = hiddenBy(visibilityRules, candidate, asDirectory);
     if (hidden !== null) return hidden.origin;
 
     // A child espalier's subtree is not this espalier's to describe. Checked
@@ -189,7 +188,7 @@ export async function open(configOption: string | undefined, cwd: string): Promi
 
     // `origin` names the file the pattern came from, so `explain` can answer
     // with something the user can open rather than the name of a list.
-    return excludedBy(ignoreRules, candidate)?.origin ?? null;
+    return excludedBy(ignoreRules, candidate, asDirectory)?.origin ?? null;
   };
 
   const visible: string[] = [];

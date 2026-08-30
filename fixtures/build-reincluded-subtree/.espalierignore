@@ -1,0 +1,6 @@
+FIXTURE.MD
+expected.json
+expected-build/**
+packages/*/generated/**
+!packages/api/generated/client/
+!packages/api/generated/client/**

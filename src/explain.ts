@@ -151,7 +151,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
 
   // Exclusion is checked before declaration for a prefix exactly as it is for a
   // path below, so the two forms of one question cannot give two answers.
-  const ignored = repository.ungoverned(target);
+  const ignored = repository.ungoverned(target, true);
   if (asPrefix && ignored !== null) {
     reporter.explanation({
       kind: "explanation",
