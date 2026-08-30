@@ -52,7 +52,7 @@ const CACHE = path.join("espalier", ".cache", "lint.jsonl");
 function repository(rule = EMITS): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-cache-"));
   mkdirSync(path.join(root, "espalier"));
-  writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\nroot: espalier\n");
+  writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.1.0\nroot: espalier\n");
   writeFileSync(path.join(root, "espalier", "[file].ts.mjs"), rule);
   writeFileSync(path.join(root, "a.ts"), "export const a = 1;\n");
   writeFileSync(path.join(root, "b.ts"), "export const b = 2;\n");
@@ -191,7 +191,7 @@ test("a child espalier keeps its own cache", () => {
   try {
     const child = path.join(root, "packages", "web");
     mkdirSync(path.join(child, "espalier"), { recursive: true });
-    writeFileSync(path.join(child, "espalier.config.yaml"), "version: 1\nroot: espalier\n");
+    writeFileSync(path.join(child, "espalier.config.yaml"), "version: 1\npin: 0.1.0\nroot: espalier\n");
     writeFileSync(path.join(child, "espalier", "[file].ts.mjs"), EMITS);
     writeFileSync(path.join(child, "c.ts"), "export const c = 3;\n");
 
@@ -346,7 +346,7 @@ test("files never lists a path the espalier does not govern", () => {
     writeFileSync(path.join(root, "notes.txt"), "not governed\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\n",
+      "version: 1\npin: 0.1.0\nroot: espalier\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
 
@@ -368,7 +368,7 @@ test("read refuses a path the espalier does not govern", () => {
     writeFileSync(path.join(root, "notes.txt"), "not governed\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\n",
+      "version: 1\npin: 0.1.0\nroot: espalier\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
 
@@ -393,7 +393,7 @@ test("an edited config discards the cache", () => {
     // under the old one describes a run that no longer exists.
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\n",
+      "version: 1\npin: 0.1.0\nroot: espalier\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
 
@@ -414,7 +414,7 @@ test("an edited ignore file discards the cache", () => {
     writeFileSync(path.join(root, ".gitignore"), ".gitignore\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
+      "version: 1\npin: 0.1.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
     );
     assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
 
@@ -475,7 +475,7 @@ test("an edited addons module discards the cache", () => {
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\naddons: espalier.addons.mjs\n",
+      "version: 1\npin: 0.1.0\nroot: espalier\naddons: espalier.addons.mjs\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "espalier.addons.mjs\n");
     writeFileSync(
@@ -683,7 +683,7 @@ test("an ignore file that appears discards the cache", () => {
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignoreFiles:\n  - .espalierignore\n",
+      "version: 1\npin: 0.1.0\nroot: espalier\nignoreFiles:\n  - .espalierignore\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "");
     assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
@@ -730,7 +730,7 @@ test("an edit to an ungoverned file leaves every entry replayed", () => {
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\n",
+      "version: 1\npin: 0.1.0\nroot: espalier\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
     writeFileSync(path.join(root, "notes.txt"), "one\n");
@@ -938,7 +938,7 @@ test("a glob never sees an ignored path, so one appearing changes nothing", () =
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\n",
+      "version: 1\npin: 0.1.0\nroot: espalier\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "vendor/\n");
     assert.equal(lint(root, "first")["a.ts"], "a.ts,b.ts:first");
@@ -1022,7 +1022,7 @@ function nested(): { root: string; child: string } {
   const root = repository();
   const child = path.join(root, "packages", "web");
   mkdirSync(path.join(child, "espalier"), { recursive: true });
-  writeFileSync(path.join(child, "espalier.config.yaml"), "version: 1\nroot: espalier\n");
+  writeFileSync(path.join(child, "espalier.config.yaml"), "version: 1\npin: 0.1.0\nroot: espalier\n");
   writeFileSync(path.join(child, "espalier", "[file].ts.mjs"), EMITS);
   writeFileSync(path.join(child, "c.ts"), "export const c = 3;\n");
   return { root, child };

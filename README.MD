@@ -76,18 +76,23 @@ Guidance steers; the linter corrects. Either half failing degrades the loop's ef
 
 ## Quick start
 
-Install Espalier in a project running Node.js 20 or later:
+Install the CLI on a machine running Node.js 20 or later:
 
 ```bash
-npm install --save-dev espalier
+npm install --global espalier
 ```
+
+The global installation is only provisioning. `espalier init` records its exact
+version in the repository, and every later command refuses to run under a
+different version. Projects may instead provide the same pinned executable
+through a local dependency, package runner, container, or system toolchain.
 
 Initialize it. This command uses the project's existing `.gitignore` to define
 the filesystem Espalier can see; use `--no-ignore-file` only when the repository
 deliberately has none.
 
 ```bash
-npx espalier init --lang javascript
+espalier init --lang javascript
 ```
 
 `init` writes `espalier.config.yaml`, `.espalierignore`, and an empty
@@ -118,13 +123,13 @@ export async function lint({ read, emit }) {
 Generate the documentation your agent reads:
 
 ```bash
-npx espalier build
+espalier build
 ```
 
 Validate the repository:
 
 ```bash
-npx espalier lint
+espalier lint
 ```
 
 The generated documentation is a build artifact. The espalier itself is the source of truth.
@@ -273,7 +278,7 @@ See [docs/cli/build/README.MD](docs/cli/build/README.MD) for how files are place
 This catches the case where the espalier changed but the committed documentation did not, preventing agents from being guided by stale guidance.
 
 ```bash
-npx espalier build --check
+espalier build --check
 ```
 
 ## Who changes the espalier

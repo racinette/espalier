@@ -4,6 +4,7 @@
 
 ```yaml
 version: 1
+pin: 0.1.0
 
 name: acme-web
 
@@ -33,7 +34,22 @@ db/migrations/**
 
 Two files rather than one because they answer to different readers. The config is settings, read once by whoever set the project up. `.espalierignore` is a list that grows and shrinks as the espalier does, it is line-oriented rather than nested, and its comments are read back out into the documentation `build` writes — a YAML key can hold the patterns but not the reasons.
 
-Every key except `version` is optional. Unknown keys are errors — a typo in a config file is not something to discover three weeks later when the rule it disabled turns out never to have run.
+Every key except `version` and `pin` is optional. Unknown keys are errors — a typo in a config file is not something to discover three weeks later when the rule it disabled turns out never to have run.
+
+## `pin`
+
+The exact Espalier CLI version this repository expects:
+
+```yaml
+version: 1
+pin: 0.1.0
+```
+
+`version` describes the configuration schema; `pin` describes the implementation interpreting it. `espalier init` records the running package version, and every later command compares itself with that value before compiling the espalier or reading repository files.
+
+A mismatch is `version_mismatch`. Install the recorded version, or deliberately update `pin`, run the full lint suite, and regenerate guidance. Ranges are not accepted: two versions satisfying one range could generate different artifacts or enforce different rules while both claiming the repository was correctly configured.
+
+The pin does not dictate how the CLI is installed. A global installation, a local package runner, a container, and a reproducible system toolchain are equivalent provided they expose the exact recorded version as `espalier`.
 
 ## Discovery
 

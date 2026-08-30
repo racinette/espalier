@@ -12,6 +12,7 @@ import { fail } from "./errors.js";
 import { probe } from "./files.js";
 import { compileIgnore, ignores } from "./ignore.js";
 import type { Reporter } from "./output.js";
+import { VERSION } from "./version.js";
 
 /**
  * The shipped ignore lists, as data rather than as code. One file per language,
@@ -130,7 +131,15 @@ function render(name: string, espalierRoot: string, ignoreFiles: string[]): stri
   // The directory's own name, which is a guess an author can see and correct
   // rather than one buried in the tool. Without it every document `build`
   // writes would open with no heading. docs/cli/init/README.MD "`name`".
-  const lines = ["version: 1", "", `name: ${quoted(name)}`, "", `root: ${espalierRoot}`, ""];
+  const lines = [
+    "version: 1",
+    `pin: ${VERSION}`,
+    "",
+    `name: ${quoted(name)}`,
+    "",
+    `root: ${espalierRoot}`,
+    "",
+  ];
   // Written even when empty. `--no-ignore-file` is a decision, and a config
   // that omitted the key would leave the next reader to wonder whether one was
   // made at all.

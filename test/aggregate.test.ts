@@ -20,7 +20,7 @@ function write(root: string, relative: string, contents: string): void {
 
 function repository(): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-aggregate-"));
-  write(root, "espalier.config.yaml", "version: 1\nroot: espalier\n");
+  write(root, "espalier.config.yaml", "version: 1\npin: 0.1.0\nroot: espalier\n");
   write(
     root,
     "espalier/[name].json.mjs",
@@ -100,7 +100,7 @@ test("runRule refuses aggregate modules", async () => {
 test("aggregate is valid only as a boolean on constraints", async () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-aggregate-export-"));
   try {
-    write(root, "espalier.config.yaml", "version: 1\nroot: espalier\n");
+    write(root, "espalier.config.yaml", "version: 1\npin: 0.1.0\nroot: espalier\n");
     write(
       root,
       "espalier/[name].ts.mjs",

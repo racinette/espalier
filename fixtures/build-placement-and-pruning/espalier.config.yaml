@@ -1,3 +1,4 @@
 version: 1
+pin: 0.1.0
 name: demo-app
 root: espalier

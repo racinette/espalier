@@ -24,6 +24,7 @@ import { OperationalError } from "../src/errors.js";
 import { collectCandidates } from "../src/files.js";
 import { compileIgnore } from "../src/ignore.js";
 import { compileVisibility, hiddenBy } from "../src/visibility.js";
+import { VERSION } from "../src/version.js";
 
 function tree(): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-walk-"));
@@ -273,7 +274,7 @@ test("a config that names no ignore file reads none", () => {
     // so a hand-written config assumes nothing and a `.gitignore` sitting in
     // the repository does not quietly become policy.
     writeFileSync(path.join(root, ".gitignore"), "main.ts\n.gitignore\n");
-    writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\nroot: espalier\n");
+    writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.1.0\nroot: espalier\n");
 
     const run = espalier(root, ["lint", "--format", "jsonl"]);
     assert.equal(run.status, 1);
@@ -296,6 +297,7 @@ test("init --lang writes the shipped list, and refuses an unknown one", () => {
 
     assert.equal(espalier(root, ["init", "--no-ignore-file", "-l", "go", "-l", "python"]).status, 0);
     const config = readFileSync(path.join(root, "espalier.config.yaml"), "utf8");
+    assert.ok(config.includes(`pin: ${VERSION}`), "init did not pin the running CLI version");
     assert.ok(config.includes("ignoreFiles:"), "init wrote no ignoreFiles decision");
     const excluded = readFileSync(path.join(root, ".espalierignore"), "utf8");
     for (const entry of [".git/", "go.mod", "pyproject.toml"]) {
@@ -386,7 +388,7 @@ test("a config naming an ignore file that is gone fails every command", () => {
     writeFileSync(path.join(root, ".gitignore"), "dist/\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
+      "version: 1\npin: 0.1.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
     );
     assert.equal(espalier(root, ["lint"]).status, 1, "a present ignore file stopped the run");
 
@@ -407,7 +409,7 @@ test("a file ignoreFiles names is invisible, not merely ignored", () => {
     writeFileSync(path.join(root, ".customignore"), "dist/\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignoreFiles:\n  - .customignore\n",
+      "version: 1\npin: 0.1.0\nroot: espalier\nignoreFiles:\n  - .customignore\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "main.ts\n");
 
@@ -431,7 +433,7 @@ test("explain and lint agree about a path under a pruned directory", () => {
     writeFileSync(path.join(root, "vendor", "deep", "lib.ts"), "");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\n",
+      "version: 1\npin: 0.1.0\nroot: espalier\n",
     );
     writeFileSync(
       path.join(root, ".espalierignore"),
@@ -457,7 +459,7 @@ test("a back-reference needs every instance, not two of them", () => {
     writeFileSync(path.join(root, ".gitignore"), "");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
+      "version: 1\npin: 0.1.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "main.ts\n.gitignore\nsrc/**\n");
 

@@ -40,7 +40,7 @@ function scratch(body: (root: string) => void): void {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-human-"));
   try {
     mkdirSync(path.join(root, "espalier"));
-    writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\nroot: espalier\n");
+    writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.1.0\nroot: espalier\n");
     body(root);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -54,7 +54,7 @@ export async function lint() {}
 
 test("an operational failure prints one line and no summary", () => {
   scratch((root) => {
-    writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\nroot: espalier\nnope: 1\n");
+    writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.1.0\nroot: espalier\nnope: 1\n");
 
     const shown = run(root, ["lint"]);
     // "An operational failure here means the run produced nothing to

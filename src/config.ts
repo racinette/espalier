@@ -4,6 +4,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
 import { fail } from "./errors.js";
+import { VERSION } from "./version.js";
 
 export const CONFIG_FILENAME = "espalier.config.yaml";
 export const IGNORE_FILENAME = ".espalierignore";
@@ -13,6 +14,8 @@ export interface Config {
   root: string;
   /** Absolute path of the config file itself. */
   configPath: string;
+  /** Exact Espalier CLI version this repository was authored against. */
+  pin: string;
   /** What the project is called, and what heads every generated document. */
   name: string | null;
   /** Repo-relative directory holding the espalier tree. */
@@ -26,7 +29,7 @@ export interface Config {
   build: { filename: string; inline: boolean; espalierGuidance: boolean };
 }
 
-const KNOWN = new Set(["version", "name", "root", "ignoreFiles", "addons", "build"]);
+const KNOWN = new Set(["version", "pin", "name", "root", "ignoreFiles", "addons", "build"]);
 const KNOWN_BUILD = new Set(["filename", "inline", "espalierGuidance"]);
 
 function findConfig(from: string): string {
@@ -112,6 +115,18 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     fail(
       "config_unsupported_version",
       `unsupported version ${JSON.stringify(values["version"])}; this release understands version 1`,
+    );
+  }
+
+  if (!("pin" in values)) {
+    fail("config_missing_pin", "pin is required");
+  }
+  const pin = asString(values["pin"], "pin");
+  if (pin !== VERSION) {
+    fail(
+      "version_mismatch",
+      `this repository pins espalier ${pin}, but ${VERSION} is running; install espalier@${pin} or update pin deliberately`,
+      { pinned: pin, running: VERSION },
     );
   }
 
@@ -205,6 +220,7 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
   return {
     root,
     configPath,
+    pin,
     name,
     espalierRoot,
     ignoreFiles,

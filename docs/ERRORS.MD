@@ -27,6 +27,8 @@ See [CONFIG.MD](CONFIG.MD).
 | `config_unknown_key` | a key `espalier` does not recognize — usually a typo |
 | `config_missing_version` | `version` is required |
 | `config_unsupported_version` | written for a release that means something different |
+| `config_missing_pin` | `pin` is required so the repository cannot silently change tool versions |
+| `version_mismatch` | the running CLI is not the exact version recorded in `pin` |
 | `config_invalid_value` | a key holds the wrong type, or `root` escapes the repository |
 | `espalier_root_missing` | the configured `root` is not a directory |
 | `ignore_file_missing` | a path in `ignoreFiles` is not there. A config that names a file depends on it |
@@ -67,7 +69,7 @@ See [TYPES.MD](TYPES.MD).
 
 | Code | |
 |---|---|
-| `ignored_required_path` | a static leaf that `.espalierignore` also matches — the configuration asks for both and gets neither |
+| `ignored_required_path` | a static leaf hidden by external policy or `.espalierignore` — the configuration asks for both and gets neither |
 
 ## During a run
 

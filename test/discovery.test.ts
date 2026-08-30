@@ -27,7 +27,7 @@ function repository(): string {
   mkdirSync(path.join(root, "espalier", "src"), { recursive: true });
   mkdirSync(path.join(root, "src", "deep", "nested"), { recursive: true });
 
-  writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\n");
+  writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.1.0\n");
   writeFileSync(
     path.join(root, "espalier", "src", "[name].ts.mjs"),
     'export const description = "a module";\nexport const rule = "r";\nexport async function lint() {}\n',

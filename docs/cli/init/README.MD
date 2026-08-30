@@ -36,6 +36,7 @@ espalier init [--config <path>] [--root <dir>] [--lang <name>]...
 
 ```yaml
 version: 1
+pin: 0.1.0
 
 name: acme-web
 
@@ -45,7 +46,7 @@ ignoreFiles:
   - .gitignore
 ```
 
-`name` is the repository directory's own name. It heads every document `build` writes, so a project that never sets it has documents with no heading — and a guess written into the config where an author can see it is better than that, and better than a guess the tool keeps to itself. Rename it or delete it; both are one line.
+`pin` is the exact running package version. Every later command refuses a different version, so a global upgrade cannot silently change how this repository is interpreted. `name` is the repository directory's own name. It heads every document `build` writes, so a project that never sets it has documents with no heading — and a guess written into the config where an author can see it is better than that, and better than a guess the tool keeps to itself. Rename it or delete it; both are one line.
 
 And a `.espalierignore` beside it:
 
@@ -121,6 +122,7 @@ espalier init --no-common-ignore
 
 ```yaml
 version: 1
+pin: 0.1.0
 
 root: espalier
 
