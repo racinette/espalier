@@ -102,7 +102,7 @@ test("the packed package installs and supports the quick start", () => {
       [
         "--input-type=module",
         "--eval",
-        'import { runRule } from "espalier"; if (typeof runRule !== "function") process.exit(1);',
+        'import { runAggregate, runRule } from "espalier"; if (typeof runRule !== "function" || typeof runAggregate !== "function") process.exit(1);',
       ],
       app,
     );

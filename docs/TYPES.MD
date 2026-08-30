@@ -6,7 +6,7 @@ For how a module's position in the tree becomes a pattern, see [MATCHING.MD](MAT
 
 ## Rule modules
 
-Every rule module — structural or constraint — exports the same shape.
+Every rule module — structural or constraint — exports the same base shape.
 
 ```js
 export const description = "a button component";
@@ -31,6 +31,8 @@ export async function lint(context) {
 | `example` | no | a path to a canonical conforming file |
 | `exampleSource` | no | source for one, when no conforming file exists yet |
 | `optional` | no | whether this file has to exist |
+| `aggregate` | no | run a constraint once over its complete match set |
+| `targets` | no | positive globs that narrow the governed files admitted by a constraint |
 
 ### `description`
 
@@ -102,6 +104,63 @@ It exists for the file that some instances of a shape have and others do not. Wi
 The payoff is in the generated documentation, where an agent reads it before the file exists. `webhook.ts is optional` in a directory's `AGENTS.MD` is a standing invitation with a rule attached; the alternative is prose nobody wrote and a violation nobody expected.
 
 Only structural leaves take it. A dynamic leaf is already a collection that may be empty, and a constraint never requires anything, so `optional` on either has nothing to say and is rejected as `module_invalid_export` rather than ignored.
+
+### `targets`
+
+```js
+export const targets = ["*/queries.sql"];
+```
+
+A constraint normally admits every governed file matched by its structural
+scope and extension. `targets` narrows those candidates with positive globs.
+The patterns form an unordered union; Espalier deduplicates and sorts them.
+They cannot admit ignored, ungoverned, or extension-mismatched files, declare
+required paths, or otherwise change repository structure.
+
+Patterns are relative to the root of the constraint's recursive reach. For a
+constraint at `fixtures/[...fixture]/query-count.sql.mjs`, the selector above
+matches `fixtures/alpha/queries.sql` but not `fixtures/alpha/schema.sql`.
+`targets` must be a non-empty array of non-empty relative patterns. Negation,
+absolute patterns, and `..` segments are rejected. Omitting the export retains
+the extension-wide behavior.
+
+The same selector semantics apply to ordinary and aggregate constraints.
+Existing constraint captures are preserved for every selected path.
+
+### `aggregate`
+
+```js
+export const aggregate = true;
+```
+
+An ordinary constraint runs once per owned file it matches. An aggregate
+constraint runs once with the complete matching set:
+
+```js
+export async function lint({ matches, read, emit }) {
+  const contents = await Promise.all(matches.map(({ path }) => read(path)));
+  // Compare or summarize the group, then emit once.
+}
+```
+
+Only constraint modules take `aggregate`. Structural rules exist to describe
+and lint one owned file at a time, so setting it there is
+`module_invalid_export` rather than an execution mode with unclear ownership.
+
+`matches` is a sorted array of `{ path, captures }`. Captures belong to each
+match because a recursive placeholder usually binds a different value for every
+file in the group. The aggregate context itself has no singular `path` or
+`captures`; `read` therefore always requires a path.
+
+The module runs once even when `matches` is empty. This lets a collective rule
+enforce minimum population rather than silently disappearing in precisely the
+case it was meant to reject. Its default issue path is the constraint's longest
+static directory prefix, with a trailing slash, or `.` for a root constraint.
+As with any issue, `emit({ path })` may attach it somewhere more specific.
+
+All extensions in one constraint leaf form one group. A module named
+`coverage.{ts,tsx}.mjs` receives the combined TypeScript and TSX match set, not
+one invocation per extension.
 
 ## Captures
 
@@ -231,7 +290,7 @@ Captures name values. They never constrain the relationship between them: both `
  */
 
 /**
- * Passed to every `lint` invocation.
+ * Passed to every ordinary per-file `lint` invocation.
  *
  * @typedef {Object} LintContext
  *
@@ -272,9 +331,31 @@ Captures name values. They never constrain the relationship between them: both `
  */
 ```
 
+An aggregate constraint instead receives:
+
+```js
+/**
+ * @typedef {Object} AggregateMatch
+ * @property {string} path
+ * @property {Record<string, CaptureValue>} captures
+ */
+
+/**
+ * @typedef {Object} AggregateLintContext
+ * @property {AggregateMatch[]} matches
+ * Sorted complete match set, possibly empty.
+ * @property {string} pattern
+ * The normalized aggregate glob. An extension list remains one brace glob.
+ * @property {(path: string) => Promise<string>} read
+ * @property {ListFiles} files
+ * @property {EmitIssue} emit
+ * @property {Record<string, unknown>} addons
+ */
+```
+
 ## Execution
 
-Rules execute independently, in unspecified order, with no shared state. A rule may read any visible file, but must not assume another rule has or has not run.
+Rules execute independently, in unspecified order, with no shared state. An aggregate constraint is collective only over its `matches`; it does not consume findings or state from per-file rules. A rule may read any visible file, but must not assume another rule has or has not run.
 
 **Visible is the whole of what a rule may see.** `read` refuses a path outside the governed set with `read_ungoverned`, and `files` never returns one. This is not tidiness: an ungoverned path is one nothing stamps, so a rule that depended on one would be replayed unchanged after it changed. A rule that needs to consult an ignored file is a rule whose espalier should stop ignoring it.
 

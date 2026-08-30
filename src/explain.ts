@@ -14,6 +14,7 @@ import { matchSegment, resolveSegment } from "./pattern.js";
 import { closedSet, constraintGroups, isDirectory, mapEntries, requiredUnder, subtree } from "./render.js";
 import { delegated } from "./nested.js";
 import { open } from "./repository.js";
+import { admitsTarget } from "./targets.js";
 
 export interface ExplainOptions {
   cwd: string;
@@ -222,7 +223,11 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
         .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0)),
       constraints: groups
         .filter((group) => reaches(group.prefix, target))
-        .map(({ members: _members, prefix: _prefix, ...summary }) => summary),
+        .map(({ members: _members, prefix: _prefix, aggregate, targets, ...summary }) => ({
+          ...summary,
+          ...(aggregate ? { aggregate: true as const } : {}),
+          ...(targets === null ? {} : { targets }),
+        })),
     });
 
     return rules.length > 0 ? 0 : 1;
@@ -264,11 +269,16 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
   }
 
   const constraints: ConstraintAnswer[] = [];
-  for (const { members, prefix: _prefix, ...summary } of groups) {
+  for (const { members, prefix: _prefix, aggregate, targets, ...summary } of groups) {
     for (const member of members) {
       const captures = constraintCaptures(member, target);
-      if (captures === null) continue;
-      constraints.push({ ...summary, captures });
+      if (captures === null || !admitsTarget(member, target)) continue;
+      constraints.push({
+        ...summary,
+        captures,
+        ...(aggregate ? { aggregate: true as const } : {}),
+        ...(targets === null ? {} : { targets }),
+      });
       break;
     }
   }

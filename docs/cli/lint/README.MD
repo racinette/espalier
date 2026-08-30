@@ -33,6 +33,35 @@ espalier lint [paths...]
 
 Rules execute independently and in unspecified order. A rule may read any file this espalier governs — see [What this asks of a rule](#what-this-asks-of-a-rule) — but must not assume another rule has or has not run.
 
+## Constraint targets
+
+A constraint may export `targets`, a non-empty array of relative positive
+globs, to narrow the governed files matched by its scope and extension. The
+patterns form a union and cannot make an ignored, ungoverned, or
+extension-mismatched path admissible. Ordinary constraints run once per
+selected path; aggregate constraints receive the complete selected set.
+
+## Aggregate constraints
+
+A constraint exporting `aggregate = true` runs once over every owned file its
+pattern matches, rather than once per file. Its sorted `matches` retain each
+file's captures, and the group may be empty. See [TYPES.MD](../../TYPES.MD#aggregate).
+
+Aggregate execution is not a post hook. It cannot observe findings or mutable
+state from ordinary rules, whose order remains unspecified. It is one ordinary
+deterministic invocation whose input happens to be a set of matches.
+
+The match set is complete even during a scoped lint. If the requested scope
+intersects a selected member, the rule receives its whole repository-wide
+group; calculating an average over only the CLI selection would make the same
+repository pass or fail depending on how lint was invoked. An empty group uses
+the constraint's static prefix to decide whether it intersects the scope.
+
+Membership is an incremental-cache dependency automatically. Adding or removing
+a selected path reruns the aggregate; an owned path rejected by `targets` does
+not. Changing a member's contents reruns it when the rule read that member,
+under the same dependency rule as every other invocation.
+
 ## Scoping
 
 A path argument restricts the file set, at the cost of completeness:

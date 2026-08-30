@@ -5,10 +5,13 @@
 That is the whole difference, and it is what makes rule modules testable. There is no `espalier test` command and there will not be one: assertions, fixtures, reporting and watch mode are what a test framework already does, and reimplementing them inside a linter would produce a worse version of `node:test` with none of the tooling around it. What only `espalier` can supply is the lint context, so that is what it supplies.
 
 ```js
-import { check, runRule } from "espalier";
+import { check, runAggregate, runRule } from "espalier";
 ```
 
-Two entry points, because there are two questions. **Does this repository conform?** is `check`. **Does this rule catch what it was written to catch?** is `runRule`.
+Three entry points answer three questions. **Does this repository conform?** is
+`check`. **Does this per-file rule catch what it was written to catch?** is
+`runRule`. **Does this collective rule analyze its group correctly?** is
+`runAggregate`.
 
 ## `check(options)`
 
@@ -88,6 +91,54 @@ The same `Issue` objects `check` returns, with the same fields, so an assertion 
 `emit` is the runner's own, with the runner's validation. A rule emitting an issue with no `code`, an unknown `severity`, or an absolute `path` fails here for the same reason and with the same code it would fail for in production — which is most of the value of testing through this rather than by calling `lint` with a hand-written stub.
 
 A `lint` that throws throws out of `runRule`, wrapped as `rule_threw`. The real run treats that as a bug in the rule rather than a finding, and so does this; a test framework will report it as the error it is.
+
+`runRule` refuses a module exporting `aggregate = true`; a test that silently
+turned a collective rule into a one-file rule would prove the wrong behavior.
+
+If the module exports `targets`, `runRule` validates the export but does not
+perform repository matching. The supplied context is already one selected
+invocation; repository-level selector behavior belongs to `check` and `lint`.
+
+## `runAggregate(module, context)`
+
+Runs one aggregate constraint over a complete match set supplied by the test:
+
+```js
+import { runAggregate } from "espalier";
+import * as rule from "../espalier/fixtures/[...fixture]/frequency.json.mjs";
+
+const issues = await runAggregate(rule, {
+  matches: [
+    { path: "fixtures/a/case.json", captures: { fixture: ["a"] } },
+    { path: "fixtures/b/case.json", captures: { fixture: ["b"] } },
+  ],
+  pattern: "fixtures/**/*.json",
+  at: "fixtures/",
+  tree: {
+    "fixtures/a/case.json": "[]",
+    "fixtures/b/case.json": "[]",
+  },
+});
+```
+
+| Field | Default | |
+|---|---|---|
+| `matches` | required | complete `{ path, captures }` set; sorted before `lint` runs |
+| `pattern` | `**/*` | aggregate glob recorded on issues |
+| `at` | `.` | default issue path |
+| `tree` | `{}` | virtual repository backing `read` and `files` |
+| `read` | derived from `tree` | reader requiring an explicit path |
+| `files` | derived from `tree` | additional visible-file queries |
+| `addons` | `{}` | shared resources expected by the rule |
+| `rule` | `null` | module path recorded on issues |
+
+The module must export `aggregate = true`. Emitted issues have empty top-level
+`captures`, because no one match represents the group; a rule that needs to
+report per-match capture data puts it in `metadata` or attaches the issue to a
+specific path.
+
+As with `runRule`, `runAggregate` validates `targets` but treats the supplied
+sorted match set as already selected.
 
 ## Coverage
 

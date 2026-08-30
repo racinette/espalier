@@ -162,6 +162,24 @@ braces anywhere else            a back-reference
 
 The two positions are disjoint, so nothing has to be disambiguated at read time. A constraint leaf is a rule name plus a target extension rather than a segment that matches a file, so a back-reference has nothing to refer to there; and a structural leaf names one file, so a list of extensions has nothing to mean. The comma survives only as a diagnostic: braces containing one, on a structural leaf, is someone expecting a union, and that is what the rejection says.
 
+### Target selectors
+
+The module export `targets` narrows a constraint after its path and extension
+have matched:
+
+```js
+export const targets = ["*/queries.sql"];
+```
+
+The selector patterns are relative to the root of the recursive constraint
+path and form a positive union. They only reject candidates: they cannot claim
+an unowned path, override an ignore, change the constraint's extensions, or
+declare that a file must exist. Captures still come from the constraint path.
+
+For `fixtures/[...fixture]/query-count.sql.mjs`, the example selects
+`fixtures/alpha/queries.sql` while rejecting `fixtures/alpha/schema.sql`, even
+though both match the constraint's `fixtures/**/*.sql` pattern.
+
 ## Ownership
 
 Every file in the repository is owned by **exactly one** structural rule.
@@ -189,7 +207,7 @@ clients
 
 Only the winning structural rule's `lint` runs.
 
-Constraints work differently. They do not participate in ownership and they do not compete. **Every** constraint whose pattern matches a file runs against it, in addition to that file's structural owner.
+Constraints work differently. They do not participate in ownership and they do not compete. **Every** constraint whose pattern matches and whose `targets` selector admits a file runs against it, in addition to that file's structural owner.
 
 A constraint only runs on a file that **has** a structural owner. The espalier's reach is the tree it declares: a file no structural rule claims is reported once as `unexpected_path` and otherwise left alone. Nothing has said that file belongs to this project, so nothing gets to say how it should be written.
 

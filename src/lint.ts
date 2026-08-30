@@ -8,6 +8,7 @@ import type { Constraint, StructuralRule } from "./compile.js";
 import { createEmit, within } from "./context.js";
 import { fail, OperationalError } from "./errors.js";
 import { matchGlob } from "./files.js";
+import { admitsTarget, targetPatterns } from "./targets.js";
 import { constraintCaptures, isOwnership, requiredFiles, type CaptureValue } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
 import { eachChild } from "./nested.js";
@@ -132,17 +133,21 @@ async function lintOne(
   };
 
   const owned: { path: string; rule: StructuralRule; captures: Record<string, CaptureValue> }[] = [];
+  const allOwned: typeof owned = [];
 
   let considered = 0;
 
   for (const target of repository.visible) {
-    if (!inScope(target)) continue;
-    considered += 1;
     const found = repository.resolve(target);
     if (isOwnership(found)) {
-      owned.push({ path: target, rule: found.rule, captures: found.captures });
+      const file = { path: target, rule: found.rule, captures: found.captures };
+      allOwned.push(file);
+      if (inScope(target)) owned.push(file);
+      if (inScope(target)) considered += 1;
       continue;
     }
+    if (!inScope(target)) continue;
+    considered += 1;
     builtin(target, "unexpected_path", "this path is not declared in the espalier", {
       recognized: found.recognized,
       captures: found.captures,
@@ -273,10 +278,149 @@ async function lintOne(
     cache.record(modulePath, pattern, target, watched, produced);
   };
 
+  interface AggregateInvocation {
+    modulePath: string;
+    module: StructuralRule["module"];
+    constraints: Constraint[];
+    matches: Map<string, { path: string; captures: Record<string, CaptureValue> }>;
+    prefix: string;
+  }
+
+  const aggregates = new Map<string, AggregateInvocation>();
+  for (const constraint of espalier.constraints) {
+    if (!constraint.module.aggregate) continue;
+    let aggregate = aggregates.get(constraint.modulePath);
+    if (aggregate === undefined) {
+      const fixed: string[] = [];
+      for (const segment of constraint.directory) {
+        if (segment.dynamic || segment.resolved) break;
+        fixed.push(segment.source);
+      }
+      aggregate = {
+        modulePath: constraint.modulePath,
+        module: constraint.module,
+        constraints: [],
+        matches: new Map(),
+        prefix: fixed.join("/"),
+      };
+      aggregates.set(constraint.modulePath, aggregate);
+    }
+    aggregate.constraints.push(constraint);
+  }
+
+  for (const file of allOwned) {
+    for (const aggregate of aggregates.values()) {
+      for (const constraint of aggregate.constraints) {
+        const captures = constraintCaptures(constraint, file.path);
+        if (captures === null || !admitsTarget(constraint, file.path)) continue;
+        aggregate.matches.set(file.path, { path: file.path, captures });
+        break;
+      }
+    }
+  }
+
+  const pathsIntersect = (left: string, right: string): boolean =>
+    left === "" ||
+    right === "" ||
+    left === right ||
+    left.startsWith(`${right}/`) ||
+    right.startsWith(`${left}/`);
+
+  const aggregateInScope = (aggregate: AggregateInvocation): boolean =>
+    scope === null ||
+    scope.some((entry) => {
+      if (aggregate.matches.size === 0) return pathsIntersect(entry, aggregate.prefix);
+      return [...aggregate.matches.keys()].some((target) => pathsIntersect(entry, target));
+    });
+
+  const invokeAggregate = async (aggregate: AggregateInvocation): Promise<void> => {
+    if (options.rule !== undefined && options.rule !== aggregate.modulePath) return;
+    if (!aggregateInScope(aggregate)) return;
+
+    const extensions = [...new Set(aggregate.constraints.map((constraint) => constraint.extension))];
+    const first = aggregate.constraints[0]!;
+    const pattern =
+      extensions.length === 1
+        ? first.pattern
+        : `${first.pattern.slice(0, -first.extension.length)}{${extensions.join(",")}}`;
+    const target = aggregate.prefix === "" ? "." : `${aggregate.prefix}/`;
+    const captures: Record<string, CaptureValue> = {};
+    const derived = {
+      rule: aggregate.modulePath,
+      pattern,
+      captures,
+      ruleText: options.ruleText ? aggregate.module.rule : null,
+      description: aggregate.module.description,
+      example: aggregate.module.example,
+      exampleSource: aggregate.module.exampleSource,
+    };
+
+    const replayed = cache.replay(aggregate.modulePath, pattern, target);
+    if (replayed !== null) {
+      for (const issue of replayed) record({ ...issue, ...derived });
+      return;
+    }
+
+    const produced: ReturnType<typeof stored>[] = [];
+    const emit = createEmit({
+      modulePath: aggregate.modulePath,
+      pattern,
+      path: target,
+      captures,
+      ruleText: options.ruleText ? aggregate.module.rule : null,
+      description: aggregate.module.description,
+      example: aggregate.module.example,
+      exampleSource: aggregate.module.exampleSource,
+      record: (issue) => {
+        produced.push(stored(issue));
+        record(issue);
+      },
+    });
+
+    const watched = dependencies();
+    for (const constraint of aggregate.constraints) {
+      for (const pattern of targetPatterns(constraint)) {
+        watched.globs.set(
+          pattern,
+          listing(repository.visible.filter((candidate) => matchGlob(pattern, candidate))),
+        );
+      }
+    }
+    watching = watched;
+    try {
+      await aggregate.module.lint({
+        matches: [...aggregate.matches.values()],
+        pattern,
+        read: (where?: string) => {
+          if (where === undefined) {
+            fail("read_failed", `${aggregate.modulePath}: an aggregate constraint must name the file to read`);
+          }
+          return readFile(where, aggregate.modulePath);
+        },
+        files: listFiles,
+        emit,
+        addons,
+      });
+    } catch (cause) {
+      if (cause instanceof OperationalError) throw cause;
+      fail(
+        "rule_threw",
+        `${aggregate.modulePath} threw while linting aggregate ${pattern}: ${(cause as Error).message}`,
+      );
+    } finally {
+      watching = null;
+    }
+
+    // An aggregate's target is where its issues default, not an input. Its
+    // selected membership is represented by the watched target globs above.
+    cache.record(aggregate.modulePath, pattern, target, watched, produced, false);
+  };
+
   const applicable = (target: string): { constraint: Constraint; captures: Record<string, CaptureValue> }[] =>
     espalier.constraints.flatMap((constraint) => {
+      if (constraint.module.aggregate) return [];
       const captures = constraintCaptures(constraint, target);
-      return captures === null ? [] : [{ constraint, captures }];
+      return captures === null || !admitsTarget(constraint, target) ? [] : [{ constraint, captures }];
     });
 
   try {
@@ -289,6 +433,7 @@ async function lintOne(
         await invoke(constraint.modulePath, constraint.module, constraint.pattern, file.path, captures);
       }
     }
+    for (const aggregate of aggregates.values()) await invokeAggregate(aggregate);
   } finally {
     await dispose();
   }

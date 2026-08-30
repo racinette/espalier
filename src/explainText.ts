@@ -24,6 +24,8 @@ export interface ConstraintAnswer {
   example: string | null;
   exampleSource: string | null;
   captures?: Record<string, CaptureValue>;
+  aggregate?: true;
+  targets?: string[];
 }
 
 export interface RuleAnswer {

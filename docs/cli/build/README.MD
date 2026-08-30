@@ -387,6 +387,15 @@ language names in the renderer's case-insensitive alias map; an unknown
 extension falls back to its authored dotted form rendered as code. The group
 states its scope in prose, and individual rules render one level beneath it:
 
+A constraint with `targets` states the relative positive globs that narrow its
+governed candidates. This selector guidance precedes the rule body and does not
+alter the structural map.
+
+An aggregate constraint stays in the same section because it governs the same
+files. Its rule body is preceded by `This constraint analyzes all matching
+files as one group.` so a reader does not mistake collective guidance for a
+per-file check.
+
 ```markdown
 ## Constraints
 

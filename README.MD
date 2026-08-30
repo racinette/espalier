@@ -153,6 +153,15 @@ The first applies to every TypeScript file in the project; the second only withi
 
 Every file in the repository is owned by exactly one structural rule, and by every constraint whose pattern matches it. Which rule wins, and which files are required to exist, is specified in [docs/MATCHING.MD](docs/MATCHING.MD).
 
+A constraint can export `targets = ["*/queries.sql"]` to narrow its governed
+candidates without redefining ownership or repository structure. The positive
+globs form a union and apply equally to ordinary and aggregate constraints.
+
+A constraint exporting `aggregate = true` runs once over its complete matching
+set instead of once per file. This covers invariants that only exist at group
+scale: identifier uniqueness, translation parity, dependency cycles, or whether
+a fixture suite exercises every element often enough.
+
 ## Path placeholders
 
 Square brackets define named path placeholders:

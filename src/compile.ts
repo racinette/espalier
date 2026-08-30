@@ -25,6 +25,8 @@ export interface RuleModule {
   example?: unknown;
   exampleSource?: unknown;
   optional?: unknown;
+  aggregate?: unknown;
+  targets?: unknown;
 }
 
 export interface LoadedModule {
@@ -35,6 +37,9 @@ export interface LoadedModule {
   exampleSource: string | null;
   /** docs/TYPES.MD "optional". Always false for anything but a static leaf. */
   optional: boolean;
+  /** docs/TYPES.MD "aggregate". Always false for structural rules. */
+  aggregate: boolean;
+  targets: string[] | null;
 }
 
 /**
@@ -191,6 +196,39 @@ async function loadModule(absolute: string, modulePath: string, kind: ModuleKind
       }`,
     );
   }
+  if (loaded.aggregate !== undefined && typeof loaded.aggregate !== "boolean") {
+    fail("module_invalid_export", `${modulePath}: \`aggregate\` must be a boolean`);
+  }
+  if (
+    loaded.targets !== undefined &&
+    (!Array.isArray(loaded.targets) ||
+      loaded.targets.length === 0 ||
+      loaded.targets.some(
+        (target) =>
+          typeof target !== "string" ||
+          target.length === 0 ||
+          target.startsWith("!") ||
+          target.startsWith("/") ||
+          target.split("/").includes("..")
+      ))
+  ) {
+    fail(
+      "module_invalid_export",
+      `${modulePath}: \`targets\` must be a non-empty array of non-empty relative positive glob strings`
+    );
+  }
+  if (loaded.aggregate !== undefined && kind !== "constraint") {
+    fail(
+      "module_invalid_export",
+      `${modulePath}: \`aggregate\` has no meaning on a structural rule; structural rules run once per owned file`,
+    );
+  }
+  if (loaded.targets !== undefined && kind !== "constraint") {
+    fail(
+      "module_invalid_export",
+      `${modulePath}: \`targets\` is available only to constraint modules; structural rules define ownership`
+    );
+  }
 
   return {
     description: typeof loaded.description === "string" ? loaded.description : null,
@@ -199,6 +237,11 @@ async function loadModule(absolute: string, modulePath: string, kind: ModuleKind
     example: typeof loaded.example === "string" ? loaded.example : null,
     exampleSource: typeof loaded.exampleSource === "string" ? loaded.exampleSource : null,
     optional: loaded.optional === true,
+    aggregate: loaded.aggregate === true,
+    targets:
+      loaded.targets === undefined
+        ? null
+        : [...new Set(loaded.targets as string[])].sort((left, right) => left.localeCompare(right)),
   };
 }
 

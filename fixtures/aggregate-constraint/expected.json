@@ -1,0 +1,33 @@
+{
+  "exit": 0,
+  "args": ["fixtures/alpha"],
+  "warnings": [
+    "partial run: 1 of 4 files checked. A scoped run cannot tell you the repository conforms."
+  ],
+  "issues": [
+    {
+      "path": "fixtures/",
+      "code": "element_frequency",
+      "severity": "info",
+      "rule": "fixtures/[...fixture]/element-frequency.json.mjs",
+      "pattern": "fixtures/**/*.json",
+      "captures": {},
+      "message": "2:button,button,input",
+      "metadata": {
+        "matches": [
+          { "path": "fixtures/alpha/case.json", "fixture": ["alpha"] },
+          { "path": "fixtures/beta/case.json", "fixture": ["beta"] }
+        ]
+      }
+    },
+    {
+      "path": "fixtures/",
+      "code": "empty_yaml_group",
+      "severity": "info",
+      "rule": "fixtures/[...fixture]/require-yaml.yaml.mjs",
+      "pattern": "fixtures/**/*.yaml",
+      "captures": {},
+      "message": "0 YAML fixtures"
+    }
+  ]
+}

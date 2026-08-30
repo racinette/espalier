@@ -626,7 +626,9 @@ function describeConstraint(constraint: Constraint, extensions: string[]): strin
 
   const named = [...new Set(extensions.map(extensionLabel))];
   const where = staticPrefix(constraint.directory);
-  return `applies to ${list(named)} files ${where === "" ? "throughout the project" : `under ${where}/`}`;
+  const action = constraint.module.aggregate ? "analyzes" : "applies to";
+  const together = constraint.module.aggregate ? " together" : "";
+  return `${action} ${list(named)} files${together} ${where === "" ? "throughout the project" : `under ${where}/`}`;
 }
 
 /**
@@ -646,6 +648,8 @@ export interface ConstraintGroup {
   /** The longest static prefix of the directory the constraint applies under. */
   prefix: string;
   members: Constraint[];
+  aggregate: boolean;
+  targets: string[] | null;
 }
 
 export function constraintGroups(espalier: Espalier): ConstraintGroup[] {
@@ -672,6 +676,8 @@ export function constraintGroups(espalier: Espalier): ConstraintGroup[] {
       exampleSource: first.module.exampleSource,
       prefix: staticPrefix(first.directory),
       members,
+      aggregate: first.module.aggregate,
+      targets: first.module.targets,
     };
   });
 }
@@ -740,7 +746,17 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
       for (const group of bucket.rules) {
         const description = group.members[0]!.module.description;
         const heading = description === null ? "" : ` — ${description}`;
-        blocks.push(`${"#".repeat(level + 2)} ${group.name}${heading}`, group.ruleText);
+        const collective = group.aggregate
+          ? "This constraint analyzes all matching files as one group."
+          : null;
+        const targeting =
+          group.targets === null
+            ? null
+            : `Only governed paths matching ${list(group.targets.map((target) => `\`${target}\``))} under this constraint's scope are selected.`;
+        blocks.push(
+          `${"#".repeat(level + 2)} ${group.name}${heading}`,
+          ...[targeting, collective, group.ruleText].filter((entry): entry is string => entry !== null),
+        );
       }
     }
   }
