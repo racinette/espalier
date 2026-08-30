@@ -49,7 +49,8 @@ A component used by exactly one screen belongs beside that screen instead.
        │
        └─ [layout].tsx  a layout component (zero or more, any name)
 
-  Nothing else may exist under components/.
+  Every path under components/ must fit the project layout or a documented
+  repository-specific purpose.
 
 ── components/buttons/[button].tsx ───────────────────────────────────
 
@@ -237,7 +238,7 @@ Carries the owning rule, the normalized pattern that matched, the captures, and 
 ### A prefix
 
 ```json
-{"kind":"explanation","prefix":"components/","description":"shared UI components","body":"","rules":[{"path":"components/buttons/[button].tsx","pattern":"components/buttons/*.tsx","rule":"components/buttons/[button].tsx.mjs","description":"a button component","ruleText":"Default-export a single component named after the file.","example":"components/buttons/SubmitButton.tsx","required":false}],"map":[{"path":"buttons/","description":null,"required":null},{"path":"buttons/[button].tsx","description":"a button component","required":null}],"closedSet":"Nothing else may exist under components/.","governed":[],"constraints":[]}
+{"kind":"explanation","prefix":"components/","description":"shared UI components","body":"","rules":[{"path":"components/buttons/[button].tsx","pattern":"components/buttons/*.tsx","rule":"components/buttons/[button].tsx.mjs","description":"a button component","ruleText":"Default-export a single component named after the file.","example":"components/buttons/SubmitButton.tsx","required":false}],"map":[{"path":"buttons/","description":null,"required":null},{"path":"buttons/[button].tsx","description":"a button component","required":null}],"closedSet":"Every path under components/ must fit the project layout or a documented repository-specific purpose.","governed":[],"constraints":[]}
 ```
 
 `rules` is every structural rule in the subtree, in the same order `build` lists them, with `required` false for anything the espalier does not insist on — a collection that may be empty, and a static leaf whose module exports `optional`. The two are different declarations and `path` tells them apart, but the question `required` answers is whether `lint` will report the file's absence, and for both the answer is no. `description` and `body` come from the directory's `ESPALIER.MD`.

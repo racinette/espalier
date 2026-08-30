@@ -4,12 +4,12 @@
 
 `espalier` is an architecture compiler for agent-driven software development.
 
-It takes a single source-of-truth description of how a project should be shaped — where code goes, what it looks like, how it's written — and emits everything an agent needs to build and maintain that project correctly:
+It takes a single source-of-truth description of how a project should be shaped — where code goes, what it looks like, how it's written — and provides the two parts of a development loop:
 
 - **documentation** placed where agent tools already look, describing what belongs where and how it should be written
-- **linters** for catching drift deterministically when it happens
+- **deterministic validation** that catches drift when it happens
 
-Both are generated from the same source. They cannot get out of sync, because they are not independently authored.
+Both derive from the same rule modules. The guidance states the rules before a change; the linter runs their checks afterwards.
 
 ## The problem
 
@@ -54,7 +54,7 @@ From this single source, `espalier` produces two things:
 
 **Documentation**, written into the repository by `espalier build`:
 
-> Each directory that declares something gets an `AGENTS.MD` describing what may exist there, which files are required, and the conventions each must follow. Agents pick these up from the directory they are working in — the one behaviour every tool shares. The repository root carries the full project map.
+> Espalier places generated guidance at stable points in the repository tree. Each `AGENTS.MD` shows only the files and directories at its own level, then describes the rules placed there. A reader starts at the root and follows the nearest generated document as it moves into a subtree.
 
 **Linters**, run deterministically against the working tree by `espalier lint`:
 
@@ -76,7 +76,21 @@ Guidance steers; the linter corrects. Either half failing degrades the loop's ef
 
 ## Quick start
 
-Define an `espalier/` directory at your project root. A minimal example:
+Install Espalier in a project running Node.js 20 or later:
+
+```bash
+npm install --save-dev espalier
+```
+
+Initialize it. This command reads the project's existing `.gitignore`; use
+`--no-ignore-file` only when the repository deliberately has none.
+
+```bash
+npx espalier init --lang javascript
+```
+
+`init` writes `espalier.config.yaml`, `.espalierignore`, and an empty
+`espalier/` source directory. Add a minimal structural rule:
 
 ```text
 espalier
@@ -100,16 +114,16 @@ export async function lint({ read, emit }) {
 }
 ```
 
-Validate the repository:
-
-```bash
-espalier lint
-```
-
 Generate the documentation your agent reads:
 
 ```bash
-espalier build
+npx espalier build
+```
+
+Validate the repository:
+
+```bash
+npx espalier lint
 ```
 
 The generated documentation is a build artifact. The espalier itself is the source of truth.
@@ -210,51 +224,29 @@ async function lint({ path, pattern, captures, read, emit }) {
 
 Rules execute independently, in unspecified order, with no shared state. A rule may read other files via the runner's APIs, but must not assume any other rule has or has not run.
 
-## The project map
+## The project layout
 
-`espalier build` generates a repository-wide architectural overview deterministically from the structural portion of the espalier, and writes it into the document at the repository root, under `## Structure`:
+`espalier build` writes a deterministic `## Project layout` into each generated
+document. The root shows only its own level:
 
 ```text
+    ./
     ├─ clients/
-    │  │
-    │  └─ [apiProviderDirectory]/            (zero or more, any name)
-    │     │
-    │     └─ [apiProviderImplementation].ts  an HTTP client implementation (zero
-    │                                        or more, any name)
-    │
     ├─ components/
-    │  ├─ buttons/
-    │  │  │
-    │  │  └─ [button].tsx                    a button component (zero or more,
-    │  │                                     any name)
-    │  │
-    │  ├─ dropdowns/
-    │  │  │
-    │  │  └─ [dropdown].tsx                  a dropdown component (zero or more,
-    │  │                                     any name)
-    │  │
-    │  └─ layouts/
-    │     │
-    │     └─ [layout].tsx                    a layout component (zero or more,
-    │                                        any name)
-    │
     ├─ endpoints/
-    │  │
-    │  └─ [endpoint].ts                      an endpoint implementation (zero or
-    │                                        more, any name)
-    │
     ├─ models/
-    │  │
-    │  └─ [domain].ts                        a domain model (zero or more, any
-    │                                        name)
-    │
-    └─ main.ts                               the application entry point
-                                             (required)
+    └─ main.ts      the application entry point (required)
 ```
 
-Names are the authored form, and each line carries, in parentheses, what is true of it and of nothing else: whether the file is `(required)` or `(optional)`, whether a placeholder means `(zero or more, any name)`, and which capture a `{brace}` repeats. Siblings are ordered directories first, then by specificity, then lexicographically — the same order the matcher resolves them in, so a document listing them one way while ownership resolves them another is not possible.
+Entering `components/` moves the reader to that subtree's generated document,
+whose map starts at `components/` and lists `buttons/`, `dropdowns/`, and
+`layouts/`. Rule headings beneath it are relative to that established scope.
 
-This is the architectural map: small, stable, and sufficient to orient any decision about where new code should go. It stays small because it carries a description and nothing more — no rule bodies, no examples. The conventions themselves live in the documentation written into each directory, so an agent working in `src/clients/` picks up the rules for `src/clients/` and pays nothing for the rest of the repository.
+Names remain in authored form. Each entry states whether a static file is
+required or optional, whether a placeholder accepts any name, and which capture
+a back-reference repeats. Siblings use the same deterministic order as the
+matcher. Each map stays small because deeper structure and rule bodies live in
+the guidance nearest to that work.
 
 See [docs/cli/build/README.MD](docs/cli/build/README.MD) for how files are placed and what each contains.
 
@@ -263,7 +255,7 @@ See [docs/cli/build/README.MD](docs/cli/build/README.MD) for how files are place
 This catches the case where the espalier changed but the committed documentation did not, preventing agents from being guided by stale guidance.
 
 ```bash
-espalier build --check
+npx espalier build --check
 ```
 
 ## Who changes the espalier
@@ -277,7 +269,11 @@ So the espalier is not the agent's to change. The two roles are separate:
 - **The architect** — a human, or an agent explicitly acting in that role — decides what the project's shape is and edits `espalier/`.
 - **The developer** — usually an agent — builds within that shape. When a task does not fit the declared structure, the correct move is to stop and report the gap, not to widen the pattern.
 
-`espalier build` writes this instruction into every file it generates, in the imperative, so the agent reads it in the same breath as the rules it is being asked to follow.
+The generated root document explains this workflow once. Nested Espalier roots
+state their independent governance boundary, while ordinary placement documents
+inherit that context instead of repeating it. Every generated document points
+from its `Other repository paths` table to the corresponding `ESPALIER.MD` to
+modify or create when its persistent guidance must change.
 
 That is as far as the tool goes, and deliberately so. `espalier` cannot stop an agent editing `espalier/`, and a warning it emitted afterwards would be worse than nothing. The architect widening a pattern and an agent widening a pattern are the same edit; a check that fired on both would fire constantly on the intended workflow and be muted within a week. Telling them apart means reconstructing the previous espalier and diffing what each one legalises — a real mechanism, but one whose only output is a note in a log that nobody is obliged to read.
 

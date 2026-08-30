@@ -83,7 +83,7 @@ Plus `espalier/`, holding a `.gitkeep`.
 
 `.espalierignore` is `ignores/_common.gitignore`, copied verbatim, comments and all. It holds what belongs to no language and to no `.gitignore`: version control directories, the repository metadata that is committed on purpose, CI definitions, licence files, and editor droppings. Every entry is a line you can read and delete.
 
-Verbatim includes the comments, and that now costs something to get wrong. `espalier build` writes each comment into the documentation for the directory the entry sits in — see [cli/build/README.MD](../build/README.MD#not-described-here) — so a shipped list is also the wording an agent reads when it asks why `node_modules/` is not described. The comments in `ignores/` are written to be read twice: once by the person editing the file, once by whoever the documents are for.
+Verbatim includes the comments, and that now costs something to get wrong. `espalier build` writes each comment into the documentation for the directory the entry sits in — see [cli/build/README.MD](../build/README.MD#other-repository-paths) — so a shipped list is also the wording an agent reads beside materialized paths outside the project layout. The comments in `ignores/` are written to be read twice: once by the person editing the file, once by whoever the documents are for.
 
 The VCS entries are the reason it is written unconditionally. `.gitignore` does not list `.git/` — git has no need to ignore itself — so it is the one exclusion no external file supplies. Delete that line and `espalier` walks several tens of thousands of objects and reports every one of them, which is a mistake you will notice within a second.
 
