@@ -1,0 +1,12 @@
+{
+  "adopt": {
+    "exit": 2,
+    "args": ["area"],
+    "report": [
+      {
+        "kind": "failure",
+        "code": "unmarked_documentation"
+      }
+    ]
+  }
+}

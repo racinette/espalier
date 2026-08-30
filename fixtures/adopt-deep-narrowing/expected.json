@@ -1,0 +1,16 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": ["tests/unit/query/fixtures"],
+    "report": [
+      {
+        "kind": "written",
+        "path": "espalier/tests/unit/query/fixtures/query.sql.mjs"
+      },
+      {
+        "kind": "narrowed",
+        "path": ".espalierignore"
+      }
+    ]
+  }
+}

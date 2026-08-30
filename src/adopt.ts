@@ -91,6 +91,13 @@ interface Inferred {
 
 interface Inference {
   leaves: Inferred[];
+  /** Existing files at locations the configured build owns. */
+  documentation: string[];
+}
+
+interface BuildOutput {
+  filename: string;
+  inline: boolean;
 }
 
 /** One sibling's contribution to the union: the entry, and who has it. */
@@ -116,6 +123,7 @@ function infer(
   name: string,
   out: Inference,
   outside: Set<string>,
+  build: BuildOutput,
   optional = false,
 ): void {
   // What this espalier does not describe is not evidence of a shape either: two
@@ -124,9 +132,14 @@ function infer(
   // how a whole tree collapses into a placeholder nobody chose.
   // docs/cli/adopt/README.MD "What it refuses" and "Nested espaliers".
   const listings = real.map((directory) =>
-    entries(path.join(root, directory)).filter(
-      (entry) => !outside.has(directory === "" ? entry.name : `${directory}/${entry.name}`),
-    ),
+    entries(path.join(root, directory)).filter((entry) => {
+      const relative = directory === "" ? entry.name : `${directory}/${entry.name}`;
+      if (!entry.directory && ownsDocumentation(at, entry.name, build)) {
+        out.documentation.push(relative);
+        return false;
+      }
+      return !outside.has(relative);
+    }),
   );
 
   // The union of every sibling's contents, not the intersection. A name only
@@ -178,11 +191,12 @@ function infer(
       singular(name),
       out,
       outside,
+      build,
       optional,
     );
   } else {
     for (const member of shared) {
-      infer(root, member.holders, under(at, member.name), member.name, out, outside, optional);
+      infer(root, member.holders, under(at, member.name), member.name, out, outside, build, optional);
     }
   }
 
@@ -190,7 +204,7 @@ function infer(
   // join a family: the shape they would be claiming to share is one nobody
   // observed twice.
   for (const member of directories.filter((entry) => entry.optional)) {
-    infer(root, member.holders, under(at, member.name), member.name, out, outside, true);
+    infer(root, member.holders, under(at, member.name), member.name, out, outside, build, true);
   }
 
   const byExtension = new Map<string, Member[]>();
@@ -259,6 +273,17 @@ function infer(
 }
 
 /**
+ * Distributed output is written only along the inferred static spine. A file
+ * inside a dynamic instance remains an ordinary repository file because one
+ * generated document cannot be written into every matching directory.
+ */
+function ownsDocumentation(at: string, name: string, build: BuildOutput): boolean {
+  if (name !== build.filename) return false;
+  if (build.inline) return at === "";
+  return at.split("/").every((segment) => !segment.startsWith("["));
+}
+
+/**
  * Whether an exclusion keeps anything inside this area out of scope.
  *
  * Not the same question as "is this directory ignored". A `components/**`
@@ -298,6 +323,26 @@ function narrow(root: string, ignorePath: string, target: string): boolean {
 
     changed = true;
     const base = pattern.replace(/\/\*\*$/, "");
+
+    // `init --ignore-all` writes `<top-level>/**`. Replacing that broad rule
+    // must preserve siblings at every ancestor between it and a deeply adopted
+    // target, not merely the first segment below the ignored base.
+    if (pattern.endsWith("/**")) {
+      const baseDepth = base === "" ? 0 : base.split("/").length;
+      const targetParts = target.split("/");
+
+      for (let depth = baseDepth; depth < targetParts.length; depth += 1) {
+        const parent = targetParts.slice(0, depth).join("/");
+        const inside = targetParts[depth]!;
+        for (const entry of entries(path.join(root, parent))) {
+          if (entry.name === inside) continue;
+          const at = parent === "" ? entry.name : `${parent}/${entry.name}`;
+          replaced.push(entry.directory ? `${at}/**` : at);
+        }
+      }
+      continue;
+    }
+
     const inside = target.startsWith(`${base}/`) ? target.slice(base.length + 1).split("/")[0]! : null;
     if (inside === null) continue;
 
@@ -355,13 +400,28 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
     );
   }
 
-  const found: Inference = { leaves: [] };
+  const found: Inference = { leaves: [], documentation: [] };
   const name = target === "" ? "" : target.split("/").pop()!;
   // Everything this espalier does not describe: the subtrees it gave to a child,
   // and its own machinery.
   const configRelative = path.relative(root, configPath).split(path.sep).join("/");
   const outside = new Set([...repository.children, espalierRoot, configRelative]);
-  infer(root, [target], target, name, found, outside);
+  infer(root, [target], target, name, found, outside, repository.config.build);
+
+  // A provenance-marked document is already build machinery and is simply not
+  // inferred. A hand-written collision cannot be made durable by `adopt`: stop
+  // atomically and give the same migration direction as `build`.
+  const documentation = [...new Set(found.documentation)].sort().find(
+    (at) => repository.ungoverned(at) !== "espalier",
+  );
+  if (documentation !== undefined) {
+    const directory = path.posix.dirname(documentation);
+    const source = directory === "." ? "ESPALIER.MD" : `${directory}/ESPALIER.MD`;
+    fail(
+      "unmarked_documentation",
+      `${documentation} is reserved for generated guidance; move its durable guidance to ${source}, then build with --force to replace it`,
+    );
+  }
 
   const written: { path: string; optional: boolean }[] = [];
   const skipped: string[] = [];

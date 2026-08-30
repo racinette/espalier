@@ -1,0 +1,4 @@
+FIXTURE.MD
+expected.json
+expected-adopt/**
+tests/**
