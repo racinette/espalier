@@ -5,7 +5,7 @@
     docs/
     └─ guide.md  the user guide (required)
 
-## docs/guide.md — the user guide
+## `guide.md` — the user guide
 
 Explain how to use the application.
 

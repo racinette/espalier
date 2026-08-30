@@ -12,9 +12,9 @@ lie, and a section further down does not retract it. It says who governs them
 and not what they contain.
 
 **Each child renders in its own frame.** `packages/web/AGENTS.MD` says
-`source: espalier` and closes with "under this directory", because a document
-cannot know where it sits in an outer tree and a package is neither a
-repository nor a root. `packages/api` uses
+`source: espalier`, states the governance boundary, and closes its account with
+"under this directory". It does not repeat the root's development loop.
+`packages/api` uses
 `build.filename: PACKAGE.MD`, which is its setting and reaches nothing else.
 
 **The outer run does not sweep the child's document.** `packages/web/AGENTS.MD`

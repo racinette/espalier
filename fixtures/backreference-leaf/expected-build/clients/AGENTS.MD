@@ -10,11 +10,11 @@
        │
        └─ [helper].ts    a helper (zero or more, any name)
 
-## clients/[provider]/{provider}.ts — the provider's entry point
+## `[provider]/{provider}.ts` — the provider's entry point
 
 Export a single factory named after the file.
 
-## clients/[provider]/[helper].ts — a helper
+## `[provider]/[helper].ts` — a helper
 
 Anything the entry point needs and nobody else does.
 

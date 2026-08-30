@@ -13,7 +13,7 @@ the repository root.
     │
     └─ main.ts             the application entry point (required)
 
-## main.ts — the application entry point
+## `main.ts` — the application entry point
 
 Wire up the application and start it.
 
@@ -26,9 +26,9 @@ These paths are part of the repository but serve specific purposes outside the p
 | `.espalierignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
 | `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
 
-## components/buttons/
+## `components/buttons/`
 
-### components/buttons/[button].tsx — a button component
+### `[button].tsx` — a button component
 
 Default-export a single component named after the file.
 

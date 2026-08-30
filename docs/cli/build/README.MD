@@ -72,8 +72,9 @@ from anything an author writes.
 **Node prose** — the body of the directory's `ESPALIER.MD`, if it has one.
 
 **Operational guidance** — the root document introduces Espalier, explains how
-its generated guidance aids development, and gives the working loop. Placement
-documents below it inherit that guidance rather than repeating a footer. See
+its generated guidance aids development, and gives the working loop. A nested
+Espalier root instead states its governance boundary; placement documents below
+either root inherit the applicable guidance rather than repeating a footer. See
 [README.MD](../../../README.MD#who-changes-the-espalier).
 
 The root file additionally carries the project preamble.
@@ -96,11 +97,12 @@ The document is assembled in a fixed order. A section with nothing to say is omi
 
 ```text
 provenance marker
-# <name> — <path>/            the heading, when the config names the project
+# <name> — `<path>/`          the heading, when the config names the project
 node prose                    the ESPALIER.MD body, verbatim
+## Governance boundary       nested Espalier root only
 ## Project layout             the tree
 ## Governed elsewhere         child espaliers below this point, when any
-## <rule> — <description>     one per structural rule placed here
+## `<path>` — <description>   one per structural rule placed here
 ## Constraints                grouped by extension, then one rule section each
 ## Other repository paths     one Paths/Purpose table, then the complete account
 ## Working with Espalier      root file only
@@ -110,7 +112,11 @@ Text `espalier` composes — the map's own text and the complete-account sentenc
 
 ### The heading
 
-`# <name>` in the document at the espalier's own root, and `# <name> — <path>/` in every document below it, where `name` is the config's [`name`](../../CONFIG.MD#name) and `path` is the directory the document was written into, relative to that root.
+`# <name>` in the document at the espalier's own root, and
+`# <name> — \`<path>/\`` in every document below it, where `name` is the
+config's [`name`](../../CONFIG.MD#name) and `path` is the directory the document
+was written into, relative to that root. The path is rendered as code so it is
+visually distinct from the project name.
 
 Both halves earn their place, and neither on its own would. A document is read in the directory it sits in, by a reader who arrived there and not by one who navigated down from the root — so the path says which directory's rules these are, and the name says which project that directory belongs to. In a monorepo the second question is a real one, and a `src/` heading answers it in a way that is right in every package at once.
 
@@ -126,6 +132,12 @@ is not used there: it names the project, not necessarily its directory.
 
 Every other directory also carries a trailing `/`. Names are authored form, so
 a dynamic node appears as `[provider]/` or `[button].tsx`.
+
+Structural rule headings are relative to the placement point that contains
+them. A document headed `src/` therefore describes `cache.ts`, not
+`src/cache.ts`; an inline `src/` section establishes the same scope before its
+rule headings. Espalier keeps repository-relative paths internally and changes
+only their presentation.
 
 In distributed output, a map includes the directory where a deeper generated
 document takes over and stops that branch there. If the next document is
@@ -343,7 +355,7 @@ is valid for that purpose without becoming a destination for unrelated work.
 ### Rule sections
 
 ```markdown
-## src/clients/[provider]/client.ts — an integration with an external API
+## `src/clients/[provider]/client.ts` — an integration with an external API
 
 <the rule body, verbatim>
 
@@ -371,9 +383,9 @@ export default function Submit() { … }
 One or the other, never both — [TYPES.MD](../../TYPES.MD#example-and-examplesource) rejects a module setting each.
 
 Constraints are grouped by their extension set. Known extensions use the
-language names in the renderer's alias map; an unknown extension falls back to
-its literal dotted form. The group states its scope in prose, and individual
-rules render one level beneath it:
+language names in the renderer's case-insensitive alias map; an unknown
+extension falls back to its authored dotted form rendered as code. The group
+states its scope in prose, and individual rules render one level beneath it:
 
 ```markdown
 ## Constraints
@@ -389,8 +401,8 @@ These rules apply to all TypeScript files in this project.
 
 ### Operational guidance
 
-The root document ends with an operational introduction, where the former
-checking and amendment sections would otherwise have appeared:
+The repository root document ends with an operational introduction, where the
+former checking and amendment sections would otherwise have appeared:
 
 ```markdown
 ## Working with Espalier
@@ -416,6 +428,23 @@ Otherwise, if the work has no valid place or conflicts with a rule, report the
 design gap instead of weakening the espalier. Use `espalier build --force` only
 to restore a generated file whose provenance marker was removed; it authorizes
 overwriting an unmarked document at a planned output path.
+```
+
+A nested Espalier root does not repeat that introduction. After its node prose
+and before its project layout it states only what changes at the boundary:
+
+```markdown
+## Governance boundary
+
+This directory is governed by an independent Espalier. The parent Espalier
+delegates this subtree: its structural rules, exclusions, and generated-document
+ownership stop here.
+
+The repository root remains the source of shared project context and the
+development workflow. Within this subtree, this document and its descendants
+are authoritative for file placement and local constraints. This Espalier may
+govern only paths beneath this directory; it cannot redefine its parent or
+sibling subtrees.
 ```
 
 ## Example
@@ -470,12 +499,12 @@ nothing outside src/clients/ performs HTTP requests directly.
 Every path under src/clients/ must fit the project layout or a documented
 repository-specific purpose.
 
-## src/clients/[provider]/handlers/webhook.ts — an inbound webhook handler
+## `src/clients/[provider]/handlers/webhook.ts` — an inbound webhook handler
 
 Verify the provider's signature before parsing the body. Return 2xx only
 after the event is durably recorded.
 
-## src/clients/[provider]/client.ts — an integration with an external API
+## `src/clients/[provider]/client.ts` — an integration with an external API
 
 Export a single `create<Provider>Client(config)` factory. All requests go
 through the shared helper in `src/clients/request.ts`; do not call fetch
@@ -483,7 +512,7 @@ directly.
 
 Example: src/clients/stripe/client.ts
 
-## src/clients/[provider]/requestModels.ts — request payload types
+## `src/clients/[provider]/requestModels.ts` — request payload types
 
 Export one interface per endpoint the client calls.
 
@@ -498,10 +527,11 @@ A directory holding an `espalier.config.yaml` of its own is a child espalier, an
 The outer run places no document inside a child's subtree and sweeps nothing there — the subtree is not its to describe. Each child is then built as its own run, with its own `build.filename` and `build.inline`, so a monorepo can keep distributed documents at the root and one inline document inside a package that prefers it. Neither run can see the other's output, which is why neither can delete it.
 
 Each child renders exactly as if it had been run alone: its `source:` marker,
-its Espalier introduction and its complete account are all relative to the
-child's own root, because that is the frame a reader standing in the package is
-in. Only the report is re-rooted — its paths are relative to where the command
-was invoked, and each line's `espalier` names the run that produced it.
+governance boundary and complete account are all relative to the child's own
+root, because that is the frame a reader standing in the package is in. Nested
+status comes from the ancestor configuration, not from which command discovered
+the child. Only the report is re-rooted — its paths are relative to where the
+command was invoked, and each line's `espalier` names the run that produced it.
 
 **Nothing is written unless every espalier planned successfully.** Each one is rendered in memory, the whole set is checked, and only then does anything reach the filesystem. A child that will not compile means no documents at all — not the root's, not a healthy sibling's.
 
@@ -585,7 +615,7 @@ The document is the root document with the other placement points folded into it
 Outbound API integrations. Every upstream provider gets its own directory;
 nothing outside src/clients/ performs HTTP requests directly.
 
-### src/clients/[provider]/client.ts — an integration with an external API
+### `src/clients/[provider]/client.ts` — an integration with an external API
 ```
 
 **A folded point contributes its prose and its rule sections, and nothing else.** Everything shifts one heading level down, and the rule bodies are the same bytes they would have been distributed.

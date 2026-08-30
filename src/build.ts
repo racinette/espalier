@@ -13,7 +13,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fail } from "./errors.js";
-import { IGNORE_FILENAME } from "./config.js";
+import { hasAncestorConfig, IGNORE_FILENAME } from "./config.js";
 import { collectCandidates, PROVENANCE } from "./files.js";
 import { ignores, type IgnoreRule } from "./ignore.js";
 import type { Reporter } from "./output.js";
@@ -267,6 +267,7 @@ function planFor(
 ): Plan {
   const { root, build: settings } = repository.config;
   const inline = options.inline || settings.inline;
+  const nested = hasAncestorConfig(root);
 
   const points = plan(repository.espalier);
 
@@ -284,6 +285,7 @@ function planFor(
         repository.config.name,
         repository.children,
         outside,
+        nested,
       ),
     );
   } else {
@@ -299,6 +301,7 @@ function planFor(
           repository.config.name,
           assigned.get(point.at) ?? [],
           outside.get(point.at) ?? { exclusions: [], toolOwned: [] },
+          nested,
         ),
       );
     }

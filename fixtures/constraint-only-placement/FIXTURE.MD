@@ -14,13 +14,15 @@ That is the general rule from cli/build/README.MD — "A section with nothing to
 say is omitted entirely, along with its heading" — in the one place where it
 removes something substantial rather than an `Example:` line.
 
-## The generated description
+## Generated extension labels
 
 `no-fetch.ts.mjs` exports no `description`, so `espalier` writes one from the
 pattern: **applies to TypeScript files under backend/**. This is the only
-fixture exercising the alias table, and the only one exercising the prefixed
-form — every other constraint in the suite sits at the root and reads
-"throughout the project".
+fixture exercising the alias table, including an uppercase known extension and
+an unknown extension. Known-extension lookup is case-insensitive, while an
+unknown extension retains its authored spelling and is rendered as code. It is
+also the only fixture exercising the prefixed form — every other constraint in
+the suite sits at the root and reads "throughout the project".
 
 Pins: cli/build/README.MD "Where files go", "Rendering"; TYPES.MD
 "`description`".

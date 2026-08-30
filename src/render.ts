@@ -33,6 +33,18 @@ design gap instead of weakening the espalier. Use \`espalier build --force\` onl
 to restore a generated file whose provenance marker was removed; it authorizes
 overwriting an unmarked document at a planned output path.`;
 
+export const BOUNDARY = `## Governance boundary
+
+This directory is governed by an independent Espalier. The parent Espalier
+delegates this subtree: its structural rules, exclusions, and generated-document
+ownership stop here.
+
+The repository root remains the source of shared project context and the
+development workflow. Within this subtree, this document and its descendants
+are authoritative for file placement and local constraints. This Espalier may
+govern only paths beneath this directory; it cannot redefine its parent or
+sibling subtrees.`;
+
 const WIDTH = 80;
 
 /**
@@ -538,12 +550,15 @@ export interface Outside {
  * rule from one that does not have a rule yet.
  * docs/cli/build/README.MD "Other repository paths".
  */
-function markdownCode(value: string): string {
-  const escaped = value.replace(/\|/g, "\\|");
-  const runs = escaped.match(/`+/g) ?? [];
+function codeSpan(value: string): string {
+  const runs = value.match(/`+/g) ?? [];
   const fence = "`".repeat(Math.max(0, ...runs.map((run) => run.length)) + 1);
-  const content = escaped.startsWith("`") || escaped.endsWith("`") ? ` ${escaped} ` : escaped;
+  const content = value.startsWith("`") || value.endsWith("`") ? ` ${value} ` : value;
   return `${fence}${content}${fence}`;
+}
+
+function markdownCode(value: string): string {
+  return codeSpan(value.replace(/\|/g, "\\|"));
 }
 
 function tableText(value: string): string {
@@ -600,11 +615,16 @@ function renderClosedSet(point: Placement): string | null {
   return wrap(closedSet(point.at));
 }
 
+/** A reader-facing language name, or the authored extension as Markdown code. */
+function extensionLabel(extension: string): string {
+  return ALIASES[extension.toLowerCase()] ?? codeSpan(`.${extension}`);
+}
+
 /** `**​/*.ts` and `**​/*.tsx` → "applies to TypeScript files throughout the project". */
 function describeConstraint(constraint: Constraint, extensions: string[]): string {
   if (constraint.module.description !== null) return constraint.module.description;
 
-  const named = [...new Set(extensions.map((entry) => ALIASES[entry] ?? `.${entry}`))];
+  const named = [...new Set(extensions.map(extensionLabel))];
   const where = staticPrefix(constraint.directory);
   return `applies to ${list(named)} files ${where === "" ? "throughout the project" : `under ${where}/`}`;
 }
@@ -658,6 +678,13 @@ export function constraintGroups(espalier: Espalier): ConstraintGroup[] {
 
 export { isDirectory, subtree };
 
+/** A structural path as seen from the document section that introduces it. */
+function displayPath(point: Placement, at: string): string {
+  if (point.at === "") return at;
+  const prefix = `${point.at}/`;
+  return at.startsWith(prefix) ? at.slice(prefix.length) : at;
+}
+
 function renderSections(espalier: Espalier, point: Placement, level: number): string[] {
   const hashes = "#".repeat(level);
   const blocks: string[] = [];
@@ -665,7 +692,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
   for (const section of point.sections) {
     if (section.kind === "directory") {
       const heading = section.doc.description === null ? "" : ` — ${section.doc.description}`;
-      blocks.push(`${hashes} ${section.at}/${heading}`, section.doc.body);
+      blocks.push(`${hashes} ${codeSpan(`${displayPath(point, section.at)}/`)}${heading}`, section.doc.body);
       continue;
     }
 
@@ -687,7 +714,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
     if (body.length === 0) continue;
 
     const heading = module.description === null ? "" : ` — ${module.description}`;
-    blocks.push(`${hashes} ${section.at}${heading}`, ...body);
+    blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${heading}`, ...body);
   }
 
   if (point.constraints.length > 0) {
@@ -705,7 +732,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
     }
 
     for (const bucket of extensionGroups.values()) {
-      const known = [...new Set(bucket.extensions.map((extension) => ALIASES[extension] ?? `.${extension}`))];
+      const known = [...new Set(bucket.extensions.map(extensionLabel))];
       const kinds = `${list(known)} files`;
       const where = point.at === "" ? "in this project" : "under this directory";
       blocks.push(`${"#".repeat(level + 1)} ${kinds}`, `These rules apply to all ${kinds} ${where}.`);
@@ -735,7 +762,7 @@ function marker(espalierRoot: string, at: string): string {
  */
 function heading(name: string | null, at: string): string[] {
   if (name === null) return [];
-  return [at === "" ? `# ${name}` : `# ${name} — ${at}/`];
+  return [at === "" ? `# ${name}` : `# ${name} — ${codeSpan(`${at}/`)}`];
 }
 
 /** The body every document shares: prose, project layout, sections and other paths. */
@@ -747,10 +774,12 @@ function core(
   outside: Outside,
   stopAt: readonly string[] = [],
   close = true,
+  nested = false,
 ): string[] {
   const blocks: string[] = [];
 
   if (point.doc !== null && point.doc.body !== "") blocks.push(point.doc.body);
+  if (nested && point.at === "") blocks.push(BOUNDARY);
 
   const map = renderMap(espalier, point, stopAt);
   const closed = renderClosedSet(point);
@@ -774,6 +803,7 @@ export function renderDistributed(
   name: string | null,
   named: string[] = [],
   outside: Outside = { exclusions: [], toolOwned: [] },
+  nested = false,
 ): string {
   const prefix = point.at === "" ? "" : `${point.at}/`;
   const stopAt = points
@@ -782,9 +812,9 @@ export function renderDistributed(
   const blocks = [
     marker(espalierRoot, point.at),
     ...heading(name, point.at),
-    ...core(espalier, point, 2, named, outside, stopAt),
+    ...core(espalier, point, 2, named, outside, stopAt, true, nested),
   ];
-  if (point.at === "") blocks.push(QUICKSTART);
+  if (point.at === "" && !nested) blocks.push(QUICKSTART);
   return `${blocks.join("\n\n")}\n`;
 }
 
@@ -801,6 +831,7 @@ export function renderInline(
   name: string | null,
   children: string[] = [],
   outside: Map<string, Outside> = new Map(),
+  nested = false,
 ): string {
   const root = points.find((point) => point.at === "")!;
   const assigned = assignChildren(points, children);
@@ -815,6 +846,7 @@ export function renderInline(
       outside.get("") ?? { exclusions: [], toolOwned: [] },
       [],
       false,
+      nested,
     ),
   ];
 
@@ -834,11 +866,11 @@ export function renderInline(
     if (body.length === 0) continue;
 
     const heading = point.doc?.description == null ? "" : ` — ${point.doc.description}`;
-    blocks.push(`## ${point.at}/${heading}`, ...body);
+    blocks.push(`## ${codeSpan(`${point.at}/`)}${heading}`, ...body);
   }
 
   const closed = renderClosedSet(root);
   if (closed !== null) blocks.push(closed);
-  blocks.push(QUICKSTART);
+  if (!nested) blocks.push(QUICKSTART);
   return `${blocks.join("\n\n")}\n`;
 }

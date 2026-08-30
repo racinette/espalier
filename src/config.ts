@@ -45,6 +45,17 @@ function findConfig(from: string): string {
   }
 }
 
+/** Whether the config rooted at `from` sits beneath another Espalier config. */
+export function hasAncestorConfig(from: string): boolean {
+  let at = path.dirname(path.resolve(from));
+  for (;;) {
+    if (existsSync(path.join(at, CONFIG_FILENAME))) return true;
+    const up = path.dirname(at);
+    if (up === at) return false;
+    at = up;
+  }
+}
+
 function asString(value: unknown, key: string): string {
   if (typeof value !== "string") {
     fail("config_invalid_value", `${key} must be a string`);

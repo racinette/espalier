@@ -5,7 +5,7 @@
     generated/
     └─ manifest.json  the reviewed generated manifest (required)
 
-## generated/manifest.json — the reviewed generated manifest
+## `manifest.json` — the reviewed generated manifest
 
 Keep the reviewed manifest under structural governance.
 

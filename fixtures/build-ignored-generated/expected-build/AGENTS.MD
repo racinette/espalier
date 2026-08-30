@@ -5,7 +5,7 @@
     ./
     └─ main.ts  the application entry point (required)
 
-## main.ts — the application entry point
+## `main.ts` — the application entry point
 
 Wire up the application and start it.
 

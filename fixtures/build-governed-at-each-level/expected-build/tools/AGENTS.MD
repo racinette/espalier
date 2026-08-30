@@ -13,7 +13,7 @@ Scripts run by hand or by CI. Nothing here is imported by the application.
 
 Read the documentation inside it.
 
-## tools/[tool].ts — a developer tool
+## `[tool].ts` — a developer tool
 
 Runnable with node, with no build step.
 

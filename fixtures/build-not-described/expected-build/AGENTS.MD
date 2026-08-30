@@ -9,7 +9,7 @@ One rule, and rather more that no rule reaches.
     │
     └─ main.ts     the entry point (required)
 
-## main.ts — the entry point
+## `main.ts` — the entry point
 
 Start the server.
 

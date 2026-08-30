@@ -124,6 +124,9 @@ Taken while writing the `build` fixtures, and now in the documents:
 - **`build --force` overwrites only unmarked planned targets.** The default
   still protects hand-written documentation; force does not turn unmarked
   orphans into deletion candidates.
+- **Nested roots state only their governance boundary.** They inherit shared
+  context and the development loop from the repository root, while parent
+  structural authority stops at their directory.
 - **The cardinality paragraph covers the whole subtree the map covers**, not
   just as far as the next placement point. A closed set that stopped early
   would not be closed.

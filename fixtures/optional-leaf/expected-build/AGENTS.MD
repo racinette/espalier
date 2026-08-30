@@ -13,19 +13,19 @@
     │
     └─ notes.md       developer notes (optional)
 
-## [client]/client.ts — a client
+## `[client]/client.ts` — a client
 
 Export a single factory named after the directory.
 
-## [client]/webhook.ts — a webhook
+## `[client]/webhook.ts` — a webhook
 
 Verify the signature before doing anything else.
 
-## main.ts — the entry point
+## `main.ts` — the entry point
 
 Wire the clients together and start the server.
 
-## notes.md — developer notes
+## `notes.md` — developer notes
 
 Scratch space. Anything that is not a decision belongs here.
 

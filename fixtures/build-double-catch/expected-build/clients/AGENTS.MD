@@ -9,11 +9,11 @@
     │
     └─ [summary].ts  a one-file summary of a provider (zero or more, any name)
 
-## clients/[provider]/client.ts — an integration with an external API
+## `[provider]/client.ts` — an integration with an external API
 
 One factory export, named after the provider.
 
-## clients/[summary].ts — a one-file summary of a provider
+## `[summary].ts` — a one-file summary of a provider
 
 Re-export types only. No transport code.
 

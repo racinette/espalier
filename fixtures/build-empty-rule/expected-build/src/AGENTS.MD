@@ -7,7 +7,7 @@
     │
     └─ [module].ts  a module (zero or more, any name)
 
-## src/registry.ts — the module registry
+## `registry.ts` — the module registry
 
 Example: src/registry.ts
 

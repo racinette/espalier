@@ -15,7 +15,7 @@
 
 Read the documentation inside it.
 
-## main.ts — the application entry point
+## `main.ts` — the application entry point
 
 Wire up the application and start it.
 
@@ -28,11 +28,11 @@ These paths are part of the repository but serve specific purposes outside the p
 | `.espalierignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
 | `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Create [`ESPALIER.MD`](espalier/ESPALIER.MD) to add persistent guidance to this document. |
 
-## tools/ — developer tooling
+## `tools/` — developer tooling
 
 Scripts run by hand or by CI. Nothing here is imported by the application.
 
-### tools/[tool].ts — a developer tool
+### `[tool].ts` — a developer tool
 
 Runnable with node, with no build step.
 

@@ -13,7 +13,7 @@
 
 Read the documentation inside it.
 
-## main.ts — the application entry point
+## `main.ts` — the application entry point
 
 Wire up the application and start it.
 

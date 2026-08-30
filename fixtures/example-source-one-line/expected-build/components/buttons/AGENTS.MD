@@ -5,7 +5,7 @@
     components/buttons/
     └─ [button].tsx  a button component (zero or more, any name)
 
-## components/buttons/[button].tsx — a button component
+## `[button].tsx` — a button component
 
 Default-export a single component named after the file.
 

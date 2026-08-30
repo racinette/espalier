@@ -24,13 +24,13 @@ the two still point at each other, rather than checking style.
     │
     └─ README.MD   the front page (required)
 
-## HANDOFF.MD — the record of what was decided and why
+## `HANDOFF.MD` — the record of what was decided and why
 
 Every decision that cost an argument is written down here,
 struck through rather than deleted when it is superseded. A reversal that
 leaves no trace is a decision that will be made again.
 
-## README.MD — the front page
+## `README.MD` — the front page
 
 Opens with a level-one heading, and links into `docs/` for
 anything it only summarizes. The front page is allowed to be shorter than the

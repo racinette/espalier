@@ -7,11 +7,11 @@
     │
     └─ main.ts        the source entry point (required)
 
-## src/important.log — the retained log example
+## `important.log` — the retained log example
 
 Keep the stable example used by tests.
 
-## src/main.ts — the source entry point
+## `main.ts` — the source entry point
 
 Implement the application entry point.
 

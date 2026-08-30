@@ -2,6 +2,14 @@
 
 ## Constraints
 
+### Markdown files
+
+These rules apply to all Markdown files under this directory.
+
+#### document-heading
+
+Open with a heading.
+
 ### TypeScript files
 
 These rules apply to all TypeScript files under this directory.
@@ -9,6 +17,14 @@ These rules apply to all TypeScript files under this directory.
 #### no-fetch
 
 Call the shared client, never fetch directly.
+
+### `.WEIRD` files
+
+These rules apply to all `.WEIRD` files under this directory.
+
+#### opaque-format
+
+Keep the opaque format readable.
 
 ## Other repository paths
 

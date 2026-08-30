@@ -7,13 +7,13 @@
     │
     └─ [migration].sql  a migration (zero or more, any name)
 
-## src/schema.sql — the canonical schema
+## `schema.sql` — the canonical schema
 
 One CREATE TABLE per entity, in dependency order.
 
 Example: src/schema.sql
 
-## src/[migration].sql — a migration
+## `[migration].sql` — a migration
 
 Forward-only. Never edit a migration that has been applied.
 
