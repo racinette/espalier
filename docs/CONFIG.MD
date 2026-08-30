@@ -126,20 +126,24 @@ It also decides what is *not* a child espalier. See [Nested espaliers](#nested-e
 
 **Only a pattern naming the directory prunes it.** `dist/` and `dist` do; `dist/**` does not, because it says what is inside is ignored rather than that the directory is. Both report the same paths and the difference is otherwise invisible, which is why it is worth stating: `dist/**` is the form a negation can reach into, and `dist/` is the form that costs nothing to skip. A path that cannot be read is the other place it shows — see [Symlinks](#symlinks).
 
-Most of this arrives written — from `ignoreFiles`, and from what `espalier init` put here. What you add by hand should be specific to this project, and a long list of those is a signal that the espalier describes less of the repository than it claims to.
+Most of this arrives written by `espalier init`. What you add by hand should be specific to this project, and a long list of those is a signal that the espalier describes less of the repository than it claims to.
 
 A list this long is easy to let grow, and a growing one means the espalier describes less of the repository than it claims to. The comments are what keep that reviewable: each entry says why it is there, `build` puts those reasons in front of whoever reads the documentation, and an entry nobody can justify is one somebody can delete.
 
 ## `ignoreFiles`
 
-Other files holding ignore patterns, read and prepended to `.espalierignore`. Empty by default; `espalier init` writes `.gitignore` into it.
+External files that define the filesystem Espalier receives as input. Empty by default; `espalier init` records `.gitignore` when the repository has one.
 
 ```yaml
 ignoreFiles:
   - .gitignore
 ```
 
-Paths are relative to the repository root. Each is read in order, its contents parsed the same way, and the result placed **before** `.espalierignore` — so your own list is what wins a disagreement. Their comments are read as comments and go no further: only `.espalierignore` supplies the reasons `build` writes down.
+Paths are relative to the repository root and read in order using gitignore semantics. Matching paths are removed before Espalier discovers structure, nested configurations, or materialized `.espalierignore` exclusions. They do not appear in generated exclusion tables: from Espalier's perspective they are not repository paths at all.
+
+When the root `.gitignore` is named, Espalier discovers nested `.gitignore` files as it enters directories. Their patterns are relative to the directory containing them, apply only below it, and override earlier files. A `.gitignore` beneath a hidden directory is never discovered because the directory itself does not exist in Espalier's input.
+
+Matching is implemented inside Espalier; no Git executable, index, global excludes, or repository metadata is consulted. Character classes, escapes, negation, anchoring, and directory rules follow gitignore syntax. Matching is deliberately case-sensitive on every platform because Git's `core.ignoreCase` is machine configuration, not repository input.
 
 **A file named here must exist.** A missing one is `ignore_file_missing` and the run stops. The alternative — contributing nothing and carrying on — turns a typo or a deleted file into a repository that governs everything and reports thousands of paths, with the cause several steps removed from the symptom. A configuration that names a file is a configuration that depends on it.
 
@@ -147,15 +151,13 @@ That is also why the key is empty rather than defaulting to `.gitignore`. A defa
 
 Every repository already maintains a list of paths that are not source: build output, dependency directories, caches, editor droppings. Keeping a second copy of it inside `espalier.config.yaml` would be a list that goes stale the first time someone adds a bundler, and staleness here is expensive — an entry missing from `espalier`'s copy is a directory it walks and a thousand paths it reports.
 
-**It answers a different question from `.espalierignore`.** A `.gitignore` says what is a file in this repository; `.espalierignore` says what `espalier` governs. The two questions are genuinely separate, which is why each keeps its own answer — and reading the first one directly rather than asking git for it means no second binary has to be installed before `espalier` knows what a file is.
-
-**It is read as `espalier`'s syntax, not as git's.** No compatibility is claimed and none should be relied on. Concretely: nested `.gitignore` files in subdirectories are not read, only the paths you list; character classes (`[a-z]`) and backslash escapes are unsupported. `espalier` is not a git client and a second, silently different implementation of gitignore is exactly what this was meant to avoid. What it reads is a list of patterns in a well-known shape.
+**It answers a different question from `.espalierignore`.** A `.gitignore` says what is a file in this repository; `.espalierignore` says which visible repository paths Espalier deliberately does not govern. The layers are sequential rather than merged, so an `.espalierignore` negation cannot restore a path hidden by an external ignore file.
 
 `espalier init --no-ignore-file` writes an empty list for a repository that genuinely has none, and `--no-common-ignore` declines the entries `init` would otherwise write. See [cli/init/README.MD](cli/init/README.MD#--ignore-file-and---no-ignore-file).
 
 **It does not cover files that are tracked on purpose.** `package.json`, `Cargo.toml`, `pnpm-lock.yaml` and `tsconfig.json` appear in no `.gitignore` anywhere, because they are meant to be committed — and they are also not architecture, so no rule should have to declare them. That list has no upstream to defer to; it is `espalier`'s own opinion, and `espalier init --lang` writes it into `.espalierignore` where you can read it. See [cli/init/README.MD](cli/init/README.MD#--lang).
 
-One consequence worth knowing. A path your `.gitignore` names and your espalier declares is a contradiction, and contradictions are `ignored_required_path` — an error, not a silent winner. A repository that commits something out of `dist/` and wants it governed re-includes it, which is possible because `.espalierignore` is layered after `ignoreFiles`:
+One consequence worth knowing. A path your `.gitignore` names and your espalier requires is a contradiction, and contradictions are `ignored_required_path` — an error, not a silent winner. A repository that deliberately keeps something under an otherwise hidden directory must re-include it in the external ignore policy itself:
 
 `espalier.config.yaml`:
 
@@ -164,33 +166,31 @@ ignoreFiles:
   - .gitignore
 ```
 
-`.espalierignore`:
+`.gitignore`:
 
 ```
-# `dist/index.js` is committed on purpose and the espalier declares it.
-# All three lines are load-bearing; see below.
-!dist/
-dist/**
+# Build output is hidden except for the committed public entrypoint.
+dist/*
 !dist/index.js
 ```
 
-**All three lines are needed**, and the first is the one that is easy to miss. A `.gitignore` almost always spells this `dist/`, which excludes the directory itself — and a directory that is excluded is never entered, so nothing under it is ever looked at and `!dist/index.js` alone matches nothing. That is git's rule as much as this one's, and it is why the negation has to un-prune the directory before it can say anything about a file inside.
+`dist/` cannot be used here because excluding the directory prevents any rule from reaching inside it. `dist/*` leaves the directory traversable, and the later negation restores the declared file.
 
 The failure when you skip it is `ignored_required_path`, which names the leaf rather than the parent that shadowed it. Read it as: something above this path is pruned.
 
 ### What is ignored without being configured
 
-Five things are invisible unconditionally, because `espalier` reporting on its own machinery is a bug rather than a finding:
+Five kinds of path are invisible unconditionally, because `espalier` reporting on its own machinery is a bug rather than a finding:
 
 - `espalier.config.yaml` itself
-- `.espalierignore`
-- every file `ignoreFiles` names
+- every `.espalierignore` Espalier discovers
+- every external ignore file Espalier reads, including nested `.gitignore` files
 - the `root` directory
 - every file `espalier build` generated
 
 `.espalierignore` is on the list for the same reason the config is, and could not be anywhere else: it is dot-prefixed, so no rule can declare it — see [MATCHING.MD](MATCHING.MD#node-kinds) — and a file that cannot be declared and is not invisible is a file every run reports forever.
 
-`ignoreFiles` entries are on that list for the same reason the config is: they are configuration this run read. With the default name it never showed, because the common list `init` writes covers `.gitignore` anyway — but a project naming `.customignore` should not then have to ignore it as well.
+External ignore files are on that list for the same reason the config is: they are configuration this run read. A project naming `.customignore`, or using a nested `.gitignore`, does not have to describe that control file structurally as well.
 
 These cannot be un-ignored. Generated documentation is identified by its provenance header, not by path, because `build` distributes files through the tree rather than confining them to one directory.
 
@@ -198,15 +198,19 @@ The VCS directory is **not** on this list. `.git/` is excluded by an entry `espa
 
 ### What counts as a file
 
-`espalier` walks the filesystem from the repository root, and does not descend into a directory an exclusion matches. That walk is the whole definition: there is no second code path, no query to another tool, and nothing that behaves differently depending on what is installed.
+`espalier` walks the filesystem from the repository root. External ignore files first remove paths from that walk; `.espalierignore` then excludes visible paths from governance. Both layers prune matching directories before reading their contents.
 
-The consequence to keep in mind is that **excluding nothing means a total walk.** A configuration that names nothing will enumerate `.git/`, `node_modules/` and every build directory, and report each file in them as `unexpected_path`. That failure is slow and extremely loud, which is the intended shape: a repository's exclusions live in a file you can read, and their absence is obvious rather than compensated for.
+The consequence to keep in mind is that **configuring neither layer means a total walk.** A configuration that names no external ignore file and has no `.espalierignore` will enumerate `.git/`, `node_modules/` and every build directory, and report each file in them as `unexpected_path`.
 
-Untracked files are candidates. The file an agent created ten seconds ago and has not committed is linted, because it is there.
+Untracked files are candidates unless an external ignore file hides them. The file an agent created ten seconds ago is linted because it is there; Git's index has no bearing on the answer.
 
 Every candidate is a file to be read, and reading means UTF-8. There is no binary detection and no extension list: a PNG handed to a rule arrives as the characters UTF-8 decoding produces, replacement characters and all. Rules match on paths, so a rule only sees what its own pattern claimed — and a directory of binaries is a directory to exclude, which is the same answer as for anything else nothing declares.
 
-Nothing here consults git. Asking it would mean two definitions of candidacy — one for a git-backed root and one for everywhere else — agreeing most of the time and parting where nobody would look: a committed `node_modules` is tracked, so git would list it and the walk would not. No git compliance is promised, and one walk, in one language, is what a linter can explain.
+Nothing consults Git. The command applies configured files directly with one
+filesystem walk, so linting and generated documentation receive the same input
+whether or not Git is installed. Global excludes are intentionally absent: a
+machine-local path that must not affect checked-in output belongs in the
+repository's own `.gitignore`.
 
 ### Symlinks
 

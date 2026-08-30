@@ -10,6 +10,7 @@ import { fail } from "./errors.js";
 import { collectCandidates, isGenerated, matchGlob } from "./files.js";
 import { compileIgnore, excludedBy, ignores, type IgnoreRule } from "./ignore.js";
 import { isOwnership, resolve, unconditionallyRequired, type Ownership, type Recognition } from "./match.js";
+import { compileVisibility, hiddenBy, type VisibilityRules } from "./visibility.js";
 
 export interface Repository {
   config: Config;
@@ -19,6 +20,8 @@ export interface Repository {
   visibleSet: Set<string>;
   /** User `ignore` only; the default list is a heuristic a declaration overrides. */
   ignoreRules: IgnoreRule[];
+  /** External ignore files defining which filesystem paths Espalier can see. */
+  visibilityRules: VisibilityRules[];
   /** Ignore rules that finally exclude at least one encountered entry. */
   activeIgnoreRules: IgnoreRule[];
   /** Repo-relative directories holding an espalier of their own, sorted. */
@@ -108,19 +111,14 @@ export async function open(configOption: string | undefined, cwd: string): Promi
   const espalier = await compile(config.root, config.espalierRoot);
   validateExamples(config.root, espalier);
 
-  // Patterns from `ignoreFiles` first, `.espalierignore` last: later rules win,
-  // so your own list settles a disagreement with another tool's file. Their
-  // comments are read as comments and go no further — only `.espalierignore`
-  // supplies the reasons `build` writes down.
-  const ignoreRules = [
-    ...config.ignoreFiles.flatMap((entry) =>
-      compileIgnore(readIgnoreFile(config.root, entry), entry).map((rule) => ({
-        ...rule,
-        comment: null,
-      })),
-    ),
-    ...compileIgnore(config.ignore),
-  ];
+  // External ignore files define the repository presented to Espalier.
+  // `.espalierignore` is a separate, subsequent governance decision and alone
+  // supplies the exclusions `build` explains to readers.
+  const visibilityRules = config.ignoreFiles.map((entry) =>
+    compileVisibility(readIgnoreFile(config.root, entry), entry),
+  );
+  const ignoreRules = compileIgnore(config.ignore);
+  const discoverGitignores = config.ignoreFiles.includes(".gitignore");
 
   const espalierPrefix = `${config.espalierRoot}/`;
   const configRelative = path.relative(config.root, config.configPath).split(path.sep).join("/");
@@ -133,9 +131,16 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     (absolute, at) => {
       const origin = `${at}/${IGNORE_FILENAME}`;
       if (!existsSync(path.join(absolute, IGNORE_FILENAME))) return [];
+      if (hiddenBy(visibilityRules, origin) !== null) return [];
       return compileIgnore(readNestedIgnoreFile(config.root, origin), origin, at);
     },
     observedIgnoreRules,
+    visibilityRules,
+    (absolute, at) => {
+      if (!discoverGitignores || !existsSync(path.join(absolute, ".gitignore"))) return [];
+      const origin = `${at}/.gitignore`;
+      return [compileVisibility(readNestedIgnoreFile(config.root, origin), origin, at)];
+    },
   );
   const children = findChildren(candidates, configRelative, ignoreRules);
   const childPrefixes = children.map((child) => `${child}/`);
@@ -164,7 +169,15 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     // input — and `_common` covering `.gitignore` only ever hid that for the
     // default name.
     if (config.ignoreFiles.includes(candidate)) return "espalier";
+    if (visibilityRules.some((rule) => rule.origin === candidate)) return "espalier";
     if (candidate === config.espalierRoot || candidate.startsWith(espalierPrefix)) return "espalier";
+
+    // External ignores define the input universe. `explain` still names the
+    // source for a path explicitly requested by the user, but the path never
+    // reaches structure matching or generated exclusion documentation.
+    const hidden =
+      hiddenBy(visibilityRules, candidate) ?? hiddenBy(visibilityRules, candidate, true);
+    if (hidden !== null) return hidden.origin;
 
     // A child espalier's subtree is not this espalier's to describe. Checked
     // before anything else it could be, because the answer is not that this
@@ -187,7 +200,7 @@ export async function open(configOption: string | undefined, cwd: string): Promi
   // Ignoring is not declaring. A path both required and ignored is a
   // configuration that asks for both and gets neither.
   for (const required of unconditionallyRequired(espalier)) {
-    if (ignores(ignoreRules, required)) {
+    if (hiddenBy(visibilityRules, required) !== null || ignores(ignoreRules, required)) {
       fail(
         "ignored_required_path",
         `${required} is required by the espalier and also matched by \`ignore\``,
@@ -202,6 +215,7 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     visible,
     visibleSet: new Set(visible),
     ignoreRules,
+    visibilityRules,
     activeIgnoreRules: ignoreRules.filter((rule) => observedIgnoreRules.has(rule)),
     children,
     resolve: lookup,

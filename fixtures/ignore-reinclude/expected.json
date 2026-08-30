@@ -14,7 +14,7 @@
       "exit": 1,
       "object": {
         "path": "bundle/other.js",
-        "ignoredBy": ".espalierignore",
+        "ignoredBy": ".gitignore.fixture",
         "rule": null
       }
     }

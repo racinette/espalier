@@ -1,24 +1,24 @@
 # config: re-including one file out of an ignored directory
 
-`.gitignore.fixture` says `bundle/`, which is how a repository almost always
-spells it. The espalier declares `bundle/index.js`, which is committed on purpose.
-Three lines in `ignore` are what reconciles them, and all three are load-bearing:
+`.gitignore.fixture` hides the contents of `bundle/`, while the espalier
+declares `bundle/index.js`, which is committed on purpose. The exception must
+live in the external ignore source itself:
 
-- `!bundle/` stops the directory being pruned, so the walk enters it at all.
-- `bundle/**` ignores what is inside without pruning the directory.
-- `!bundle/index.js` re-includes the one file.
+- `bundle/*` hides the directory's children without pruning `bundle/` itself.
+- `!bundle/index.js` re-includes the declared file.
 
-Drop the first and the walk never enters `bundle/`, so nothing under it is ever
-looked at and the last line matches nothing — the run fails with
-`ignored_required_path`, naming a leaf whose parent was the problem. Drop the
-second and `bundle/other.js` and `bundle/nested/deep.js` become `unexpected_path`.
+Spelling the first rule as `bundle/` would prune the directory, preventing the
+negation from reaching `index.js`; the run would fail with
+`ignored_required_path`. Putting the negation in `.espalierignore` would fail
+for the same reason at a different layer: paths hidden by the external policy
+never reach Espalier governance.
 
 The distinction that makes this work is between a pattern naming a directory and
-one naming its contents: `bundle/` prunes, `bundle/**` does not. Both report the same
+one naming its contents: `bundle/` prunes, `bundle/*` does not. Both report the same
 paths in the ordinary case, so nothing else in the suite can tell them apart.
 
 The directory is `bundle/` rather than the `dist/` the documentation uses,
 because this repository's own `.gitignore` says `dist/` and would keep the
 fixture out of every clone.
 
-Pins: CONFIG.MD "ignore", CONFIG.MD "ignoreFiles".
+Pins: CONFIG.MD "ignoreFiles".

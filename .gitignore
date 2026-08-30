@@ -1,6 +1,7 @@
 LEGACY_README.MD
 node_modules/
 dist/
+.claude/
 
 # espalier writes one per espalier, including inside fixtures.
 .cache/

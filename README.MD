@@ -82,8 +82,9 @@ Install Espalier in a project running Node.js 20 or later:
 npm install --save-dev espalier
 ```
 
-Initialize it. This command reads the project's existing `.gitignore`; use
-`--no-ignore-file` only when the repository deliberately has none.
+Initialize it. This command uses the project's existing `.gitignore` to define
+the filesystem Espalier can see; use `--no-ignore-file` only when the repository
+deliberately has none.
 
 ```bash
 npx espalier init --lang javascript
@@ -300,7 +301,7 @@ That is as far as the tool goes, and deliberately so. `espalier` cannot stop an 
 
 `espalier` is strict by default and provides exactly one escape hatch per concern.
 
-- The structural model is strict. Files not matching the espalier are violations. Exemptions go in `espalier.config.yaml`, in gitignore syntax, and your `.gitignore` is read into them.
+- The structural model is strict. Visible files not matching the espalier are violations. `.gitignore` defines visibility; `.espalierignore` documents repository paths that remain visible but sit outside the project layout.
 - Severity is decided by the rule, not by configuration. Reusable checks ship as library functions that expose severity as an argument; the project's rule file passes the value it wants. Policy lives where the rule lives.
 - Issue codes are free-form strings. `espalier` does not validate uniqueness or namespace them automatically. Projects adopt their own conventions.
 

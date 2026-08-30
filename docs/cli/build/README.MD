@@ -264,19 +264,27 @@ the common policy inherited by their descendants; declarations are not copied
 into every descendant.
 
 Configured `ignoreFiles` remain repository-root-relative external sources. They
-are not discovered per directory.
+define the repository presented to Espalier rather than governance exclusions.
+When `.gitignore` is configured, nested `.gitignore` files are discovered per
+directory and use Git's relative, ordered semantics. Paths they hide do not
+appear in this section at all.
 
 One reader-facing table accounts for paths outside the project layout. Its
-materialized rows come from entries encountered during this build; its generated
-guidance and configuration rows are independent of repository contents.
+materialized rows come from repository candidates encountered during this
+build; its generated guidance and configuration rows are independent of
+repository contents.
 
 #### Materialized paths
 
-Only positive rules that are the final winning exclusion for at least one file
-or directory encountered by the repository walk. Exact declarations whose path
-is absent, glob declarations with no finally excluded match, superseded positive
-rules and all negations are omitted. A retained path is governed by the
-structure or rejected by its closed set; it is not an exclusion to explain.
+Only positive `.espalierignore` rules that are the final winning exclusion for
+at least one visible repository candidate. External ignore files have already
+removed their matches, so neither their patterns nor overlapping
+`.espalierignore` declarations are materialized here.
+
+Exact declarations whose path is absent, glob declarations with no finally
+excluded match, superseded positive rules and all negations are omitted. A
+retained path is governed by the structure or rejected by its closed set; it is
+not an exclusion to explain.
 
 The table quotes each winning declaration once and never enumerates the paths
 that caused a glob to appear.

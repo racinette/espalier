@@ -19,7 +19,6 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `logs/` | — |
 | `.gitignore.fixture` | — |
 | `/vendor/` | Third-party source. Not ours to shape. |
 | `package.json`<br>`tsconfig.json` | Not this project's architecture. Their shape is dictated by the tools that read them, and changing one is a conversation with that tool rather than with this repository. |

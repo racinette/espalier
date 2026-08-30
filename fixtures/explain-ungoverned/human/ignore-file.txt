@@ -1,3 +1,3 @@
 vendor/lib.ts is not governed by espalier.
 
-  Excluded by a pattern from .gitignore.fixture, read because `ignoreFiles` names it.
+  Not visible to espalier because of a pattern from .gitignore.fixture.

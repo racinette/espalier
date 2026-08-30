@@ -4,6 +4,7 @@ import { readdirSync, readFileSync, statSync, type Dirent } from "node:fs";
 import path from "node:path";
 import { fail } from "./errors.js";
 import { excludedBy, type IgnoreRule } from "./ignore.js";
+import { hiddenBy, type VisibilityRules } from "./visibility.js";
 
 /**
  * The opening of the header `espalier build` writes into every file it
@@ -110,6 +111,7 @@ function identify(absolute: string): string {
  * directory this process cannot open, which it does not if the walk goes looking.
  */
 export type IgnoreLoader = (absolute: string, relativePath: string) => IgnoreRule[];
+export type VisibilityLoader = (absolute: string, relativePath: string) => VisibilityRules[];
 
 export function collectCandidates(
   root: string,
@@ -117,6 +119,8 @@ export function collectCandidates(
   skip?: string,
   loadIgnore?: IgnoreLoader,
   observed?: Set<IgnoreRule>,
+  visibility: VisibilityRules[] = [],
+  loadVisibility?: VisibilityLoader,
 ): string[] {
   const found: string[] = [];
   // The directories on the way down from the root, by `dev:ino`. A link is a
@@ -125,11 +129,15 @@ export function collectCandidates(
   const ancestors = new Set<string>([identify(root)]);
   const ignored = (relative: string, asDirectory = false): boolean =>
     excludedBy(rules, relative, asDirectory, observed) !== null;
+  const hidden = (relative: string, asDirectory = false): boolean =>
+    hiddenBy(visibility, relative, asDirectory) !== null;
 
   const descend = (absolute: string, prefix: string): void => {
-    // Like git, learn a directory's local rules before considering anything
-    // inside it. Rules from siblings remain harmless because each carries the
-    // directory it is relative to.
+    // Visibility is established first. A gitignored `.espalierignore` is not
+    // part of Espalier's input and therefore cannot govern the directory.
+    if (prefix !== "" && loadVisibility !== undefined) {
+      visibility.push(...loadVisibility(absolute, prefix));
+    }
     if (prefix !== "" && loadIgnore !== undefined) rules.push(...loadIgnore(absolute, prefix));
 
     for (const entry of readEntries(absolute, prefix)) {
@@ -141,13 +149,17 @@ export function collectCandidates(
       // fail. The rules are consulted first, under both interpretations: which
       // one applies is precisely what resolving would have answered, and a
       // broken link nobody can fix must stay excludable.
-      if (entry.isSymbolicLink() && (ignored(relative, true) || ignored(relative))) {
+      if (
+        entry.isSymbolicLink() &&
+        (hidden(relative, true) || hidden(relative) || ignored(relative, true) || ignored(relative))
+      ) {
         continue;
       }
 
       const resolved = inspect(entry, at, relative);
 
       if (resolved.kind === "directory") {
+        if (hidden(relative, true)) continue;
         if (ignored(relative, true)) continue;
         // Only an ancestor is refused, not every directory reached twice.
         // Two links to one directory are two paths, and both of them exist —
@@ -159,6 +171,7 @@ export function collectCandidates(
         descend(at, relative);
         ancestors.delete(resolved.id!);
       } else if (resolved.kind === "file") {
+        if (hidden(relative)) continue;
         // Ignored files remain candidates so `explain` can name the rule that
         // excluded them. Observing the decision here also drives build's concise
         // exclusion table without a second filesystem walk.

@@ -23,6 +23,7 @@ import path from "node:path";
 import { OperationalError } from "../src/errors.js";
 import { collectCandidates } from "../src/files.js";
 import { compileIgnore } from "../src/ignore.js";
+import { compileVisibility, hiddenBy } from "../src/visibility.js";
 
 function tree(): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-walk-"));
@@ -88,6 +89,67 @@ test("an ignored file is still a candidate", () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("external ignore files remove paths before Espalier exclusions", () => {
+  const root = tree();
+  try {
+    writeFileSync(path.join(root, ".gitignore"), "*.log\n");
+    writeFileSync(path.join(root, "hidden.log"), "");
+    writeFileSync(path.join(root, "src", "hidden.log"), "");
+    writeFileSync(path.join(root, "src", "keep.log"), "");
+    writeFileSync(path.join(root, "src", ".gitignore"), "!keep.log\n");
+
+    const visibility = [compileVisibility(["*.log"], ".gitignore")];
+    const candidates = collectCandidates(
+        root,
+        [],
+        undefined,
+        undefined,
+        undefined,
+        visibility,
+        (absolute, at) => {
+          const filename = path.join(absolute, ".gitignore");
+          if (!existsSync(filename)) return [];
+          return [
+            compileVisibility(readFileSync(filename, "utf8").split("\n"), `${at}/.gitignore`, at),
+          ];
+        },
+      );
+    assert.deepEqual(candidates, [
+      ".gitignore",
+      "src/.gitignore",
+      "src/a.ts",
+      "src/keep.log",
+      "top.ts",
+      "vendor/deep/b.ts",
+    ]);
+
+    assert.equal(spawnSync("git", ["init", "-q"], { cwd: root }).status, 0);
+    for (const candidate of ["hidden.log", "src/hidden.log", "src/keep.log"]) {
+      const git = spawnSync(
+        "git",
+        ["-c", "core.excludesFile=/dev/null", "check-ignore", "-q", "--", candidate],
+        { cwd: root },
+      );
+      assert.equal(
+        candidates.includes(candidate),
+        git.status !== 0,
+        `${candidate}: Espalier and git disagree about visibility`,
+      );
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("external ignore files use gitignore pattern semantics", () => {
+  const visibility = [
+    compileVisibility(["report-[0-9].log", "literal\\!.txt"], ".gitignore"),
+  ];
+  assert.equal(hiddenBy(visibility, "report-4.log")?.origin, ".gitignore");
+  assert.equal(hiddenBy(visibility, "report-x.log"), null);
+  assert.equal(hiddenBy(visibility, "literal!.txt")?.origin, ".gitignore");
 });
 
 // Symlinks. docs/CONFIG.MD "Symlinks". The fixtures cover what a run reports

@@ -42,12 +42,11 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `node_modules/`<br>`dist/` | — |
 | `.git/` | Version control metadata. `.gitignore` never lists `.git/` — git has no need to ignore itself — so this is the one exclusion no other file supplies. |
 | `.gitignore` | Repository metadata. Tracked on purpose, and dictated by the tool that reads them rather than by this project's architecture. |
 | `.github/` | Continuous integration. |
 | `LICENSE` | Licence and legal. |
-| `.claude/`<br>`.cursor/` | Editor and operating system droppings. |
+| `.cursor/` | Editor and operating system droppings. |
 | `package.json`<br>`package-lock.json` | Manifests and lockfiles. |
 | `tsconfig.json` | Tool configuration. The tool decides the filename; the project only decides the contents. |
 | `fixtures/**` | espalier's own fixtures are data: sixty configs, several deliberately invalid, and a root run executing all sixty is not what anyone means by it. |

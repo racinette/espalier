@@ -91,7 +91,7 @@ export interface UngovernedAnswer {
   espalier?: string | null;
   /**
    * `"ignore"`, `"espalier"`, `"child"`, or the repo-relative path of the
-   * `ignoreFiles` entry whose pattern excluded it.
+   * external ignore file whose pattern hid it.
    */
   ignoredBy: string;
   rule: null;
@@ -245,9 +245,9 @@ export function renderExplanation(answer: Explanation): string {
         espalier: "Invisible unconditionally: espalier does not report on its own machinery.",
         child: "Inside an espalier of its own, which is what answers for this path.",
       }[answer.ignoredBy] ??
-      // Anything else is the path of the `ignoreFiles` entry that held the
-      // winning pattern — a file the reader can open and edit.
-      `Excluded by a pattern from ${answer.ignoredBy}, read because \`ignoreFiles\` names it.`;
+      // Anything else is the external ignore file that removed the path from
+      // the repository Espalier receives as input.
+      `Not visible to espalier because of a pattern from ${answer.ignoredBy}.`;
     const whose = answeredBy === null ? "" : `${answeredBy}\n\n`;
     return `${answer.path} is not governed by espalier.\n\n${whose}  ${reason}\n`;
   }

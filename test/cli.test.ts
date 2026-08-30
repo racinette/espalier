@@ -305,6 +305,30 @@ test("build.espalierGuidance omits only Espalier's canned operational guidance",
   });
 });
 
+test("build does not materialize exclusions for paths hidden by an external ignore file", () => {
+  scratch((root) => {
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
+    );
+    writeFileSync(path.join(root, ".gitignore"), ".local/\n");
+    writeFileSync(
+      path.join(root, ".espalierignore"),
+      "# Local tooling.\n.local/\n.kept/\n",
+    );
+    mkdirSync(path.join(root, ".local"), { recursive: true });
+    mkdirSync(path.join(root, ".kept"), { recursive: true });
+    writeFileSync(path.join(root, ".local", "settings.json"), "{}\n");
+    writeFileSync(path.join(root, ".kept", "policy.json"), "{}\n");
+
+    const result = run(root, ["build"]);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const document = readFileSync(path.join(root, "AGENTS.MD"), "utf8");
+    assert.match(document, /`\.kept\/`/);
+    assert.doesNotMatch(document, /`\.local\/`/);
+  });
+});
+
 test("build --check writes nothing and reports the drift", () => {
   scratch((root) => {
     writeFileSync(

@@ -167,11 +167,11 @@ The three cases read:
 
 ```text
   Excluded by a pattern in .espalierignore.
-  Excluded by a pattern from .gitignore, read because `ignoreFiles` names it.
+  Not visible to espalier because of a pattern from .gitignore.
   Invisible unconditionally: espalier does not report on its own machinery.
 ```
 
-Every exclusion is now a line in a file you can open. Naming the file rather than a built-in list is the point of `ignoreFiles` and of `init --lang` writing what it writes — see [CONFIG.MD](../../CONFIG.MD#ignorefiles).
+Every decision is still traceable to a file: `.espalierignore` records a governance exclusion, while an external ignore file records that the path was never part of Espalier's input. See [CONFIG.MD](../../CONFIG.MD#ignorefiles).
 
 ## Nested espaliers
 
@@ -229,7 +229,7 @@ Carries the owning rule, the normalized pattern that matched, the captures, and 
 
 ### A path espalier does not govern
 
-`ignoredBy` names what excluded it — the path of the file the winning pattern came from, `.espalierignore` or an `ignoreFiles` entry alike, or `espalier` for the five things that are invisible unconditionally. Every pattern now reports a file a reader can open, which is what reading these lists from files rather than from a key inside the tool was for:
+`ignoredBy` names what removed it from governance: `.espalierignore`, the external ignore file that hid it, or `espalier` for machinery that is invisible unconditionally. The field remains compact for compatibility; the human explanation distinguishes hidden input from an Espalier exclusion:
 
 ```json
 {"kind":"explanation","path":"package.json","ignoredBy":".espalierignore","rule":null,"pattern":null,"captures":{},"constraints":[]}

@@ -233,6 +233,11 @@ function outsideAt(
     const target = inline ? points[0]! : pointFor(points, path.posix.dirname(rule.origin));
     localMachinery.get(target.at)!.add(path.posix.relative(target.at || ".", rule.origin));
   }
+  for (const source of repository.visibilityRules) {
+    if (source.base === "") continue;
+    const target = inline ? points[0]! : pointFor(points, source.base);
+    localMachinery.get(target.at)!.add(path.posix.relative(target.at || ".", source.origin));
+  }
   const found = new Map<string, Outside>();
   for (const point of points) {
     if (inline && point.at !== "") continue;
@@ -315,7 +320,14 @@ function planFor(
   // and so would hide the very files this is looking for.
   const childPrefixes = repository.children.map((child) => `${child}/`);
   const existing = new Map<string, string>();
-  for (const candidate of collectCandidates(root, repository.ignoreRules, repository.config.espalierRoot)) {
+  for (const candidate of collectCandidates(
+    root,
+    repository.ignoreRules,
+    repository.config.espalierRoot,
+    undefined,
+    undefined,
+    repository.visibilityRules,
+  )) {
     if (path.basename(candidate) !== settings.filename) continue;
     // A child espalier's subtree is not this run's to read, describe or delete.
     if (childPrefixes.some((prefix) => candidate.startsWith(prefix))) continue;

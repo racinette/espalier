@@ -46,7 +46,7 @@ The name is reserved: `espalier/src/clients/ESPALIER.MD` describes the directory
 
 **Dotfiles are the exception, and are skipped entirely.** A `.gitkeep` holding an otherwise-empty espalier root, a `.DS_Store` a file browser left behind — neither is a rule module, and failing the whole run over one is a bad trade. A dotfile that was meant to be a rule module is a mistake you find immediately, because nothing it declares takes effect.
 
-Skipping applies to directories too, and that has a consequence worth stating plainly: **a repository path with a dot-prefixed segment cannot be declared.** Governing `.cursor/rules/backwards-compat.mdc` would need a module at `espalier/.cursor/rules/backwards-compat.mdc.mjs`, which the compiler never reads. Such a path has exactly one legal resting place, `.espalierignore` — which is where `.github/`, `.vscode/` and `.idea/` arrive from, whether by way of your `.gitignore` or by way of what `espalier init --lang` wrote — and `adopt` refuses a dot-prefixed target rather than writing a module that would never load.
+Skipping applies to directories too, and that has a consequence worth stating plainly: **a visible repository path with a dot-prefixed segment cannot be declared.** Governing `.cursor/rules/backwards-compat.mdc` would need a module at `espalier/.cursor/rules/backwards-compat.mdc.mjs`, which the compiler never reads. Such a path belongs in `.espalierignore`; paths already hidden by `.gitignore` never reach matching at all. `adopt` refuses a dot-prefixed target rather than writing a module that would never load.
 
 ## Classification
 
@@ -312,11 +312,11 @@ There is no syntax for "at least one." If a file is mandatory, declare it static
 
 ## Files espalier does not see
 
-Five things are invisible unconditionally, because espalier reporting on its own machinery is a bug rather than a finding: `espalier.config.yaml`, `.espalierignore`, every file `ignoreFiles` names, the espalier source root, and every file `espalier build` generated.
+Five kinds of path are invisible unconditionally, because espalier reporting on its own machinery is a bug rather than a finding: `espalier.config.yaml`, discovered `.espalierignore` files, external ignore files Espalier reads, the espalier source root, and files `espalier build` generated.
 
 The VCS directory is **not** among them. `.git/` is an `.espalierignore` entry that `espalier init` writes like any other, so it is visible, appealable and deletable — see [CONFIG.MD](CONFIG.MD#what-is-ignored-without-being-configured).
 
-Everything else in the repository is governed. Files you do not want governed are listed in `.espalierignore` — see [CONFIG.MD](CONFIG.MD#espalierignore).
+External ignore files first define which paths exist to Espalier. Everything remaining is governed unless `.espalierignore` assigns it a documented purpose outside the project layout — see [CONFIG.MD](CONFIG.MD#espalierignore).
 
 Symlinks are not a fifth thing. A link is followed, and what it points at is governed under the path the link occupies — see [CONFIG.MD](CONFIG.MD#symlinks).
 

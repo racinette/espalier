@@ -79,7 +79,7 @@ LICENSE
 
 Plus `espalier/`, holding a `.gitkeep`.
 
-`ignoreFiles` has no default — an empty key is what a hand-written config gets. `init` is where the choice is made, and writing it down is the whole of making it: a file quietly excluding paths is otherwise something you discover months later, wondering why a check never ran.
+`ignoreFiles` has no default — an empty key is what a hand-written config gets. `init` is where the visibility boundary is chosen, and writing it down is the whole of making it: a file quietly removing paths from Espalier's input is otherwise something you discover months later, wondering why a check never ran.
 
 `.espalierignore` is `ignores/_common.gitignore`, copied verbatim, comments and all. It holds what belongs to no language and to no `.gitignore`: version control directories, the repository metadata that is committed on purpose, CI definitions, licence files, and editor droppings. Every entry is a line you can read and delete.
 
@@ -98,7 +98,7 @@ espalier: .gitignore is not here. Name another with --ignore-file, or
 decline one with --no-ignore-file.  (ignore_file_missing)
 ```
 
-Nothing is written. A repository without a `.gitignore` is unusual rather than wrong, so this is not a judgement about how you keep your repository — it is that `ignoreFiles` is what stops `espalier` walking `node_modules/`, and a config claiming a file that is not there governs everything while looking correct. The failure belongs at the moment the claim is made, not at the first `lint` on somebody else's machine.
+Nothing is written. A repository without a `.gitignore` is unusual rather than wrong, so this is not a judgement about how you keep your repository — it is that `ignoreFiles` defines the visible filesystem and normally stops `espalier` walking `node_modules/`. A config claiming a file that is not there sees a different repository while looking correct, so the failure belongs at the moment the claim is made.
 
 Both ways out are one flag:
 
@@ -128,7 +128,7 @@ ignoreFiles:
   - .gitignore
 ```
 
-Use it when the common list is wrong for this repository — a project that genuinely governs its CI definitions, or one whose exclusions are all in `.gitignore` already and wants no second copy.
+Use it when the common list is wrong for this repository — a project that genuinely governs its CI definitions, or one whose visible non-architectural paths need a different documented policy.
 
 **The consequence to know before reaching for it.** `.git/` is in that block, and no `.gitignore` names it, so a config without either walks several tens of thousands of objects and reports every one of them. That is loud and immediate rather than subtle, and one `ignore` line fixes it — but it is yours to write.
 
@@ -196,7 +196,7 @@ test/**
 main.ts
 ```
 
-Paths already covered by `ignoreFiles` or by `--lang` are left out; so is the espalier root.
+Paths hidden by `ignoreFiles` or already covered by `--lang` are left out; so is the espalier root.
 
 Use it when you are introducing `espalier` to a repository that is already in CI and a red build would be a problem. The list is a **backlog, not a junk drawer**: entries arrive generated and leave by hand, and the list shrinking is what progress looks like.
 

@@ -1,5 +1,2 @@
 FIXTURE.MD
 expected.json
-!bundle/
-bundle/**
-!bundle/index.js
