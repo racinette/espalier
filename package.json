@@ -25,7 +25,7 @@
   },
   "files": [
     "dist/src",
-    "ignores"
+    "ignores/*.gitignore"
   ],
   "scripts": {
     "prepublishOnly": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && npm test",
