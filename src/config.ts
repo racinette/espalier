@@ -23,11 +23,11 @@ export interface Config {
   ignore: string[];
   /** Repo-relative path to the addons module, or null. */
   addons: string | null;
-  build: { filename: string; inline: boolean };
+  build: { filename: string; inline: boolean; espalierGuidance: boolean };
 }
 
 const KNOWN = new Set(["version", "name", "root", "ignoreFiles", "addons", "build"]);
-const KNOWN_BUILD = new Set(["filename", "inline"]);
+const KNOWN_BUILD = new Set(["filename", "inline", "espalierGuidance"]);
 
 function findConfig(from: string): string {
   let at = path.resolve(from);
@@ -178,6 +178,7 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
 
   let filename = "AGENTS.MD";
   let inline = false;
+  let espalierGuidance = true;
   if ("build" in values && values["build"] !== null) {
     const build = values["build"];
     if (typeof build !== "object" || Array.isArray(build)) {
@@ -191,6 +192,9 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     }
     if ("filename" in entries) filename = asString(entries["filename"], "build.filename");
     if ("inline" in entries) inline = asBoolean(entries["inline"], "build.inline");
+    if ("espalierGuidance" in entries) {
+      espalierGuidance = asBoolean(entries["espalierGuidance"], "build.espalierGuidance");
+    }
   }
 
   const espalierAbsolute = path.join(root, espalierRoot);
@@ -206,6 +210,6 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     ignoreFiles,
     ignore,
     addons,
-    build: { filename, inline },
+    build: { filename, inline, espalierGuidance },
   };
 }

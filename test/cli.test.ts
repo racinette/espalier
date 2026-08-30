@@ -271,6 +271,40 @@ test("build.inline in the config means what --inline means", () => {
   });
 });
 
+test("build.espalierGuidance omits only Espalier's canned operational guidance", () => {
+  scratch((root) => {
+    writeFileSync(
+      path.join(root, "espalier", "ESPALIER.MD"),
+      "---\ndescription: the repository\n---\n\nPersistent root guidance.\n",
+    );
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nbuild:\n  inline: true\n  espalierGuidance: false\n",
+    );
+
+    mkdirSync(path.join(root, "package", "espalier"), { recursive: true });
+    writeFileSync(
+      path.join(root, "package", "espalier", "ESPALIER.MD"),
+      "---\ndescription: the package\n---\n\nPersistent package guidance.\n",
+    );
+    writeFileSync(
+      path.join(root, "package", "espalier.config.yaml"),
+      "version: 1\nroot: espalier\nbuild:\n  espalierGuidance: false\n",
+    );
+
+    const result = run(root, ["build"]);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+
+    const rootDocument = readFileSync(path.join(root, "AGENTS.MD"), "utf8");
+    assert.match(rootDocument, /Persistent root guidance\./);
+    assert.doesNotMatch(rootDocument, /## Working with Espalier/);
+
+    const childDocument = readFileSync(path.join(root, "package", "AGENTS.MD"), "utf8");
+    assert.match(childDocument, /Persistent package guidance\./);
+    assert.doesNotMatch(childDocument, /## Governance boundary/);
+  });
+});
+
 test("build --check writes nothing and reports the drift", () => {
   scratch((root) => {
     writeFileSync(

@@ -429,6 +429,8 @@ Use this loop:
    governed.
 3. Make the change without working around the declared structure.
 4. Run `espalier lint` and follow the rule text attached to each finding.
+5. Run `espalier build`, review and include any generated guidance changes,
+   then run `espalier build --check` immediately before committing.
 
 Generated guidance files are outputs, not edit targets. When a task explicitly
 changes the architecture, update the corresponding `ESPALIER.MD` for guidance
@@ -455,6 +457,10 @@ are authoritative for file placement and local constraints. This Espalier may
 govern only paths beneath this directory; it cannot redefine its parent or
 sibling subtrees.
 ```
+
+Set `build.espalierGuidance: false` to omit both canned sections. The setting
+does not suppress provenance, structural maps, exclusions, rule bodies, or
+authored `ESPALIER.MD` guidance.
 
 ## Example
 

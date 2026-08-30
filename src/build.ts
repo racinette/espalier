@@ -286,6 +286,7 @@ function planFor(
         repository.children,
         outside,
         nested,
+        settings.espalierGuidance,
       ),
     );
   } else {
@@ -302,6 +303,7 @@ function planFor(
           assigned.get(point.at) ?? [],
           outside.get(point.at) ?? { exclusions: [], toolOwned: [] },
           nested,
+          settings.espalierGuidance,
         ),
       );
     }

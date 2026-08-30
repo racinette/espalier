@@ -128,6 +128,14 @@ npx espalier lint
 
 The generated documentation is a build artifact. The espalier itself is the source of truth.
 
+Projects that want only repository-specific guidance can omit Espalier's canned
+operational sections:
+
+```yaml
+build:
+  espalierGuidance: false
+```
+
 ## Rule types
 
 `espalier` distinguishes between two kinds of rules.

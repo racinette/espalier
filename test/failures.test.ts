@@ -250,6 +250,11 @@ const cases: Case[] = [
     code: "config_invalid_value",
     config: "version: 1\nroot: espalier\nbuild:\n  inline: yes please\n",
   },
+  {
+    what: "an Espalier-guidance setting that is not a boolean",
+    code: "config_invalid_value",
+    config: "version: 1\nroot: espalier\nbuild:\n  espalierGuidance: sometimes\n",
+  },
 
   // Addons. docs/CONFIG.MD "addons".
   {

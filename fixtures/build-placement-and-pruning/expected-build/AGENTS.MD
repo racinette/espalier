@@ -57,6 +57,8 @@ Use this loop:
    governed.
 3. Make the change without working around the declared structure.
 4. Run `espalier lint` and follow the rule text attached to each finding.
+5. Run `espalier build`, review and include any generated guidance changes,
+   then run `espalier build --check` immediately before committing.
 
 Generated guidance files are outputs, not edit targets. When a task explicitly
 changes the architecture, update the corresponding `ESPALIER.MD` for guidance

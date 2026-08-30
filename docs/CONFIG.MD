@@ -17,6 +17,7 @@ addons: ./espalier.addons.mjs
 build:
   filename: AGENTS.MD
   inline: false
+  espalierGuidance: true
 ```
 
 ```
@@ -252,10 +253,17 @@ The object must be safe for concurrent use by many rules in unspecified order. I
 |---|---|---|
 | `filename` | `AGENTS.MD` | name of the generated documentation file |
 | `inline` | `false` | write one document at the root instead of distributing files |
+| `espalierGuidance` | `true` | include Espalier's operational guidance in generated root documents |
 
 `filename` exists because tools disagree about what to call the file they read — `AGENTS.MD` is converging, but a project whose tooling wants `CLAUDE.md` changes one string rather than gaining a second output format.
 
 `inline` is for tools that read only the repository root. See [cli/build/README.MD](cli/build/README.MD).
+
+`espalierGuidance: false` omits the canned `Working with Espalier` introduction
+from an outer root and the `Governance boundary` explanation from a nested
+Espalier root. It does not remove provenance, project structure, exclusions,
+rule text, persistent `ESPALIER.MD` prose, or guidance about the generated
+document's edit target.
 
 ### Ownership
 

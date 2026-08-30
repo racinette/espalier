@@ -45,6 +45,7 @@ These paths are part of the repository but serve specific purposes outside the p
 | `node_modules/`<br>`dist/` | — |
 | `.git/` | Version control metadata. `.gitignore` never lists `.git/` — git has no need to ignore itself — so this is the one exclusion no other file supplies. |
 | `.gitignore` | Repository metadata. Tracked on purpose, and dictated by the tool that reads them rather than by this project's architecture. |
+| `.github/` | Continuous integration. |
 | `LICENSE` | Licence and legal. |
 | `.claude/`<br>`.cursor/` | Editor and operating system droppings. |
 | `package.json`<br>`package-lock.json` | Manifests and lockfiles. |
@@ -71,6 +72,8 @@ Use this loop:
    governed.
 3. Make the change without working around the declared structure.
 4. Run `espalier lint` and follow the rule text attached to each finding.
+5. Run `espalier build`, review and include any generated guidance changes,
+   then run `espalier build --check` immediately before committing.
 
 Generated guidance files are outputs, not edit targets. When a task explicitly
 changes the architecture, update the corresponding `ESPALIER.MD` for guidance

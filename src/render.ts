@@ -24,6 +24,8 @@ Use this loop:
    governed.
 3. Make the change without working around the declared structure.
 4. Run \`espalier lint\` and follow the rule text attached to each finding.
+5. Run \`espalier build\`, review and include any generated guidance changes,
+   then run \`espalier build --check\` immediately before committing.
 
 Generated guidance files are outputs, not edit targets. When a task explicitly
 changes the architecture, update the corresponding \`ESPALIER.MD\` for guidance
@@ -791,11 +793,12 @@ function core(
   stopAt: readonly string[] = [],
   close = true,
   nested = false,
+  espalierGuidance = true,
 ): string[] {
   const blocks: string[] = [];
 
   if (point.doc !== null && point.doc.body !== "") blocks.push(point.doc.body);
-  if (nested && point.at === "") blocks.push(BOUNDARY);
+  if (espalierGuidance && nested && point.at === "") blocks.push(BOUNDARY);
 
   const map = renderMap(espalier, point, stopAt);
   const closed = renderClosedSet(point);
@@ -820,6 +823,7 @@ export function renderDistributed(
   named: string[] = [],
   outside: Outside = { exclusions: [], toolOwned: [] },
   nested = false,
+  espalierGuidance = true,
 ): string {
   const prefix = point.at === "" ? "" : `${point.at}/`;
   const stopAt = points
@@ -828,9 +832,9 @@ export function renderDistributed(
   const blocks = [
     marker(espalierRoot, point.at),
     ...heading(name, point.at),
-    ...core(espalier, point, 2, named, outside, stopAt, true, nested),
+    ...core(espalier, point, 2, named, outside, stopAt, true, nested, espalierGuidance),
   ];
-  if (point.at === "" && !nested) blocks.push(QUICKSTART);
+  if (espalierGuidance && point.at === "" && !nested) blocks.push(QUICKSTART);
   return `${blocks.join("\n\n")}\n`;
 }
 
@@ -848,6 +852,7 @@ export function renderInline(
   children: string[] = [],
   outside: Map<string, Outside> = new Map(),
   nested = false,
+  espalierGuidance = true,
 ): string {
   const root = points.find((point) => point.at === "")!;
   const assigned = assignChildren(points, children);
@@ -863,6 +868,7 @@ export function renderInline(
       [],
       false,
       nested,
+      espalierGuidance,
     ),
   ];
 
@@ -887,6 +893,6 @@ export function renderInline(
 
   const closed = renderClosedSet(root);
   if (closed !== null) blocks.push(closed);
-  if (!nested) blocks.push(QUICKSTART);
+  if (espalierGuidance && !nested) blocks.push(QUICKSTART);
   return `${blocks.join("\n\n")}\n`;
 }
