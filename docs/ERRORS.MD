@@ -97,8 +97,8 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | Code | |
 |---|---|
 | `path_outside_repository` | `explain` was given a path outside the root |
-| `invalid_adopt_target` | `adopt` was given a path that is not a directory inside the repository, is the espalier root, or has a dot-prefixed segment and so cannot be declared |
-| `unmarked_documentation` | `build` found a planned documentation file with no provenance marker; `--force` is required to overwrite it |
+| `invalid_adopt_target` | `adopt` was given a path that is outside the repository, is not a directory, is excluded by repository policy, is the espalier root, or has a dot-prefixed segment and so cannot be declared |
+| `unmarked_documentation` | a build-owned documentation path contains an unmarked file; `build --force` may overwrite it, while `adopt --force` first preserves its contents in the corresponding `ESPALIER.MD` |
 | `missing_argument` | a command was invoked without an argument it needs |
 
 ## The runner itself
