@@ -12,7 +12,7 @@ ten conformance fixtures pass.** This document is the brief for what comes next.
 
 `espalier init`, `espalier adopt`, `espalier lint`, `espalier build` and
 `espalier explain`.
-Node 20+, ESM,
+Node 24+, ESM,
 TypeScript, `node:test`, one runtime dependency (`yaml`).
 
 ```text
@@ -412,6 +412,25 @@ Taken while writing the `explain` fixtures:
    checks, and addons are pure by contract — the process is stateful, its
    answers are not — so there was nothing to keep warm. What the reason was
    actually describing is the cache.
+
+   The cache now closes the implementation-module gap as well. A synchronous
+   Node loader hook observes the final `file:` URLs resolved from rule and addon
+   modules, including transitive and dynamic imports, and the cache header
+   stamps that global set alongside package metadata, lockfiles, the Node
+   version and resolution conditions. The hook delegates first, so an earlier
+   loader such as `tsx` still owns resolution and transformation. Node 24 is the
+   minimum runtime: its in-thread hooks avoid turning cache correctness into a
+   message-channel race, and Node 20 was already end-of-life when this changed.
+
+   `unobservedImplementationDependencies` is the deliberately long escape
+   hatch for worker and child-process code, native or WebAssembly payloads, and
+   files a library opens internally. Its repository-relative positive globs
+   see ignored paths but grant no read or reporting ability. Valid partial runs
+   merge implementation dependencies rather than replacing them, so a dynamic
+   import learned by a complete run survives a later replay. Repeated `check()`
+   calls receive distinct per-run module identities as well: invalidating the
+   disk cache but executing Node's old in-memory module would only exchange one
+   stale cache for another.
 
 12. ~~Candidacy without git.~~ **Done.** One walk that prunes with `ignore`,
    `ignoreFiles` reading `.gitignore`, and the shipped lists under `ignores/`

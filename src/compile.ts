@@ -27,6 +27,7 @@ export interface RuleModule {
   optional?: unknown;
   aggregate?: unknown;
   targets?: unknown;
+  unobservedImplementationDependencies?: unknown;
 }
 
 export interface LoadedModule {
@@ -40,6 +41,8 @@ export interface LoadedModule {
   /** docs/TYPES.MD "aggregate". Always false for structural rules. */
   aggregate: boolean;
   targets: string[] | null;
+  /** Explicit cache inputs that ordinary module observation cannot see. */
+  unobservedImplementationDependencies: string[];
 }
 
 /**
@@ -217,6 +220,23 @@ async function loadModule(absolute: string, modulePath: string, kind: ModuleKind
       `${modulePath}: \`targets\` must be a non-empty array of non-empty relative positive glob strings`
     );
   }
+  if (
+    loaded.unobservedImplementationDependencies !== undefined &&
+    (!Array.isArray(loaded.unobservedImplementationDependencies) ||
+      loaded.unobservedImplementationDependencies.some(
+        (dependency) =>
+          typeof dependency !== "string" ||
+          dependency.length === 0 ||
+          dependency.startsWith("!") ||
+          path.isAbsolute(dependency) ||
+          dependency.split(/[\\/]/).includes(".."),
+      ))
+  ) {
+    fail(
+      "module_invalid_export",
+      `${modulePath}: \`unobservedImplementationDependencies\` must be an array of non-empty relative positive glob strings`,
+    );
+  }
   if (loaded.aggregate !== undefined && kind !== "constraint") {
     fail(
       "module_invalid_export",
@@ -242,6 +262,12 @@ async function loadModule(absolute: string, modulePath: string, kind: ModuleKind
       loaded.targets === undefined
         ? null
         : [...new Set(loaded.targets as string[])].sort((left, right) => left.localeCompare(right)),
+    unobservedImplementationDependencies:
+      loaded.unobservedImplementationDependencies === undefined
+        ? []
+        : [...new Set(loaded.unobservedImplementationDependencies as string[])].sort((left, right) =>
+            left.localeCompare(right),
+          ),
   };
 }
 

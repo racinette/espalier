@@ -1,3 +1,7 @@
+// Generated-artifact merge invariants: paths cannot collide and artifacts must
+// identify their producing target. These are unit tests because the invariants
+// belong to the in-memory build transaction rather than repository fixtures.
+
 import assert from "node:assert/strict";
 import test from "node:test";
 

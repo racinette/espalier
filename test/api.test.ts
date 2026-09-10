@@ -245,6 +245,21 @@ test("runRule rejects something that is not a rule module", async () => {
   await rejects(() => runRule({ rule: "anything" } as never, { path: "a.ts" }), "module_missing_export");
 });
 
+test("runRule validates unobserved implementation dependency declarations", async () => {
+  await rejects(
+    () =>
+      runRule(
+        {
+          rule: "anything",
+          lint() {},
+          unobservedImplementationDependencies: ["../outside.wasm"],
+        },
+        { path: "a.ts" },
+      ),
+    "module_invalid_export",
+  );
+});
+
 test("runRule refuses something that is not a module", () => {
   // The API takes a module the caller imported, so it can be handed anything.
   // Both refusals are the ones compilation makes, said again at the boundary

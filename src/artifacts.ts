@@ -1,3 +1,5 @@
+// The target-neutral model for generated artifacts and their build-time merge.
+
 export interface GeneratedArtifact {
   target: string;
   path: string;

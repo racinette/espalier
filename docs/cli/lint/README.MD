@@ -84,17 +84,53 @@ This is what makes running `lint` whole affordable. A hook does not need to work
 
 ### What is remembered
 
-The unit is one rule invocation — a module, the pattern that matched, and the path it ran against. For each, the cache holds the paths it read, the globs it listed, and the issues it emitted. An invocation is replayed when all three still hold:
+The unit is one rule invocation — a module, the pattern that matched, and the path it ran against. For each, the cache holds the paths it read, the globs it listed, and the issues it emitted. The cache header also holds the implementation modules and explicit implementation inputs that contributed anywhere in the run. An invocation is replayed when all four still hold:
 
 - every path it read has the same size and modification time
 - every `files` glob still returns the same list
 - the espalier is unchanged
+- every recorded rule and addon implementation dependency is unchanged
 
 **The file being linted counts as a path it read**, whether or not the rule opened it. Its contents are what the rule was asked about, and a rule that answered without looking is still answering about that file. The alternative reading is the dangerous one: a rule deciding on `path` and `captures` alone would keep its verdict across every edit to the file it was judging.
 
-**Nothing is hashed.** Size and modification time come from the file's inode, so a warm run opens no source file at all — its whole I/O is listing the repository, reading the cache, and one `stat` per path some rule depended on. What this leaves open is a file edited within the same second to the same length. Closing it would mean reading every file in the repository on every run, which is the cost being avoided.
+**Nothing outside the espalier is hashed.** Size and modification time identify lint inputs and implementation dependencies, so a warm run opens none of them — its whole I/O is listing the repository, reading the cache, and one `stat` per recorded path. What this leaves open is a file edited within the same second to the same length. Closing it would mean reading every dependency on every run, which is the cost being avoided.
 
-**The espalier is all-or-nothing.** Any change under `root`, or to the config, discards the cache entirely. One comparison covers a rule edit, a module the rules import, a renamed node and a changed setting, where tracking them apart would mean walking the module graph. The architect changes the espalier far less often than the repository changes under it. The `addons` module counts as well, since what it returns decides what rules are told. A module *it* imports does not: it lives outside the espalier, where there is no directory to hash and no bound on what could be reached. Editing one is the one change that needs a `--no-cache` run to take effect.
+**The espalier is all-or-nothing.** Any change under `root`, or to the config, discards the cache entirely. One comparison covers a rule edit, a renamed node and a changed setting. The architect changes the espalier far less often than the repository changes under it.
+
+### Implementation dependencies
+
+Rule modules are ordinary ES modules, and every local `file:` module loaded by
+a rule or addon helps determine its answer. Espalier observes Node's real
+module resolution while importing rules, setting up and disposing addons, and
+executing `lint`, including transitive and dynamic imports. The resolved files,
+relevant package metadata, dependency lockfiles, Node version and resolution
+conditions live in the cache header. If any cannot be validated, the complete
+cache is discarded and the rules execute.
+
+Observation follows loader chaining, so a loader installed before Espalier —
+such as `tsx` supplied through `node --import tsx` — remains responsible for
+resolution and transformation while Espalier records its final local URL.
+Workers and child processes are separate runtimes and are not observed.
+
+For those and other inputs the module loader cannot see, a rule or addon may
+declare an explicit escape hatch:
+
+```js
+export const unobservedImplementationDependencies = [
+  "src/query/worker/**/*",
+  "src/query/**/*.wasm",
+];
+```
+
+These positive globs are relative to the repository root and deliberately see
+ignored and ungoverned paths. They affect cache validity only: they do not make
+the files available to `read`, add them to `files`, or change where an issue
+may be attached. Ordinary imports do not belong in this export.
+
+Implementation dependencies are global in the first implementation. One
+change reruns every cached invocation. A narrowed run retains the dependencies
+learned by an earlier complete run, including dynamic imports it did not
+execute itself.
 
 **A constraint is an invocation like any other.** A file with a structural owner and two constraints reaching it carries three entries, one per module, each with its own reads and globs — so a constraint that listed something notices when that listing changes, and a rule that listed nothing does not re-run because a constraint beside it did.
 
@@ -106,9 +142,9 @@ The unit is one rule invocation — a module, the pattern that matched, and the 
 
 A `lint` function must be a function of what it is handed: `path`, `pattern`, `captures`, and whatever `read` and `files` return. One that consults the clock, the network, or the environment will be replayed with an answer it would no longer give, and the failure is silent — a stale pass, not an error. See [TYPES.MD](../../TYPES.MD#execution).
 
-The governed set bounds this. `read` refuses a path the espalier does not govern, with `read_ungoverned`, and `files` never returns one — an ignored or invisible path is one nothing stamps, so a rule that depended on one would be replayed unchanged after it changed. A rule that needs to consult such a file is a rule whose espalier should stop ignoring it.
+The governed set bounds lint data. `read` refuses a path the espalier does not govern, with `read_ungoverned`, and `files` never returns one. An implementation module may itself be ignored or ungoverned and is still stamped, but that does not turn it into data the rule may read. A rule that needs to inspect such a file rather than execute it is a rule whose espalier should stop ignoring it.
 
-`addons` are held to the same standard, with one addition: **an addon must not read the repository itself.** A parser handed a path opens a file the run never saw, and that dependency goes unrecorded. Hand it contents, or `read` the path first and throw the string away.
+`addons` are held to the same standard, with one addition: **an addon must not read the repository itself.** A parser handed a path opens lint data outside the rule context. Hand it contents, or `read` the path first and throw the string away. Files that are part of the addon's implementation but cannot be observed as modules belong in `unobservedImplementationDependencies` instead.
 
 ### The cache
 
@@ -116,7 +152,7 @@ The governed set bounds this. `read` refuses a path the espalier does not govern
 
 **A cache that cannot be used is not an error.** Missing, unreadable, unwritable, corrupt, or written by a version that no longer applies: the run discards it, does the work, and says nothing. A linter that fails over its own bookkeeping is worse than a slow one.
 
-**Entries are merged, never pruned.** A run narrowed by `--rule` or by path arguments leaves invocations unvisited, and an unvisited invocation cannot be told from one that no longer exists. Only a run that is neither drops what it no longer sees.
+**Entries are merged, never pruned.** A run narrowed by `--rule` or by path arguments leaves invocations unvisited, and an unvisited invocation cannot be told from one that no longer exists. Only a run that is neither drops what it no longer sees. A valid narrowed run also retains the global implementation dependencies learned previously.
 
 **`--no-cache`** does the work regardless and writes nothing. There is no config key for it. A project that permanently distrusts the cache is a project whose rules are not pure, and that is something to fix rather than to settle into.
 

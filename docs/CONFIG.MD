@@ -4,7 +4,7 @@
 
 ```yaml
 version: 1
-pin: 0.1.0
+pin: 0.2.0
 
 name: acme-web
 
@@ -42,7 +42,7 @@ The exact Espalier CLI version this repository expects:
 
 ```yaml
 version: 1
-pin: 0.1.0
+pin: 0.2.0
 ```
 
 `version` describes the configuration schema; `pin` describes the implementation interpreting it. `espalier init` records the running package version, and every later command compares itself with that value before compiling the espalier or reading repository files.
@@ -259,13 +259,30 @@ export async function setup() {
 }
 ```
 
+An addon whose implementation uses files Node's module loader cannot observe
+declares them with the same deliberately conspicuous escape hatch available to
+rules:
+
+```js
+export const unobservedImplementationDependencies = [
+  "tools/parser-worker/**/*",
+  "grammars/**/*.wasm",
+];
+```
+
+Ordinary direct and transitive imports are observed automatically. The export
+is for worker or child-process code, native and WebAssembly payloads, and files
+opened internally by a dependency. Its positive globs are repository-relative
+and may match ignored paths; they affect cache validity without making those
+paths lint inputs.
+
 `setup` runs once before any rule, the returned object is passed to every `lint` invocation, and disposal runs after the run completes — including when it fails. A `setup` that throws is an operational failure: `espalier` exits `2` and lints nothing.
 
 Addons exist for **expensive out-of-process resources**: a language server, an AST parser in another language, anything whose startup cost cannot be paid per file. Anything available as a package should simply be imported by the rule module that needs it — rule modules are ordinary ES modules, and routing an npm dependency through a config indirection buys nothing.
 
 The object must be safe for concurrent use by many rules in unspecified order. Internal state is fine — a parser is stateful — but nothing a rule does through an addon may change what another rule sees.
 
-**An addon must not read the repository.** A parser handed a path opens a file the run never saw, and `lint` caches what each rule depended on: an unrecorded read becomes a stale pass. Hand it contents, as the example does. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
+**An addon must not read the repository.** A parser handed a path opens lint data outside the rule context. Hand it contents, as the example does. Declaring the parser's own support files as implementation dependencies does not make arbitrary repository reads valid. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
 
 ## `build`
 

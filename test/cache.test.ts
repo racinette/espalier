@@ -24,11 +24,13 @@ import {
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { check } from "../src/api.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cli = path.join(path.resolve(here, "..", ".."), "dist", "src", "cli.js");
+const tsx = createRequire(import.meta.url).resolve("tsx");
 
 const token = 'process.env.ESPALIER_TEST_TOKEN ?? "unset"';
 
@@ -52,7 +54,7 @@ const CACHE = path.join("espalier", ".cache", "lint.jsonl");
 function repository(rule = EMITS): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-cache-"));
   mkdirSync(path.join(root, "espalier"));
-  writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.1.0\nroot: espalier\n");
+  writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.2.0\nroot: espalier\n");
   writeFileSync(path.join(root, "espalier", "[file].ts.mjs"), rule);
   writeFileSync(path.join(root, "a.ts"), "export const a = 1;\n");
   writeFileSync(path.join(root, "b.ts"), "export const b = 2;\n");
@@ -65,8 +67,8 @@ interface Run {
   failures: Record<string, unknown>[];
 }
 
-function run(root: string, value: string, args: string[] = []): Run {
-  const result = spawnSync(process.execPath, [cli, "lint", "--format", "jsonl", ...args], {
+function run(root: string, value: string, args: string[] = [], nodeArgs: string[] = []): Run {
+  const result = spawnSync(process.execPath, [...nodeArgs, cli, "lint", "--format", "jsonl", ...args], {
     cwd: root,
     encoding: "utf8",
     env: { ...process.env, ESPALIER_TEST_TOKEN: value },
@@ -86,8 +88,13 @@ function run(root: string, value: string, args: string[] = []): Run {
 }
 
 /** Lints, insisting the run was clean, and returns each path's message. */
-function lint(root: string, value: string, args: string[] = []): Record<string, string> {
-  const result = run(root, value, args);
+function lint(
+  root: string,
+  value: string,
+  args: string[] = [],
+  nodeArgs: string[] = [],
+): Record<string, string> {
+  const result = run(root, value, args, nodeArgs);
   assert.equal(result.status, 0, `lint exited ${result.status}`);
 
   const reported: Record<string, string> = {};
@@ -191,7 +198,7 @@ test("a child espalier keeps its own cache", () => {
   try {
     const child = path.join(root, "packages", "web");
     mkdirSync(path.join(child, "espalier"), { recursive: true });
-    writeFileSync(path.join(child, "espalier.config.yaml"), "version: 1\npin: 0.1.0\nroot: espalier\n");
+    writeFileSync(path.join(child, "espalier.config.yaml"), "version: 1\npin: 0.2.0\nroot: espalier\n");
     writeFileSync(path.join(child, "espalier", "[file].ts.mjs"), EMITS);
     writeFileSync(path.join(child, "c.ts"), "export const c = 3;\n");
 
@@ -346,7 +353,7 @@ test("files never lists a path the espalier does not govern", () => {
     writeFileSync(path.join(root, "notes.txt"), "not governed\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.1.0\nroot: espalier\n",
+      "version: 1\npin: 0.2.0\nroot: espalier\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
 
@@ -368,7 +375,7 @@ test("read refuses a path the espalier does not govern", () => {
     writeFileSync(path.join(root, "notes.txt"), "not governed\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.1.0\nroot: espalier\n",
+      "version: 1\npin: 0.2.0\nroot: espalier\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
 
@@ -393,7 +400,7 @@ test("an edited config discards the cache", () => {
     // under the old one describes a run that no longer exists.
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.1.0\nroot: espalier\n",
+      "version: 1\npin: 0.2.0\nroot: espalier\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
 
@@ -414,7 +421,7 @@ test("an edited ignore file discards the cache", () => {
     writeFileSync(path.join(root, ".gitignore"), ".gitignore\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.1.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
+      "version: 1\npin: 0.2.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
     );
     assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
 
@@ -475,7 +482,7 @@ test("an edited addons module discards the cache", () => {
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.1.0\nroot: espalier\naddons: espalier.addons.mjs\n",
+      "version: 1\npin: 0.2.0\nroot: espalier\naddons: espalier.addons.mjs\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "espalier.addons.mjs\n");
     writeFileSync(
@@ -683,7 +690,7 @@ test("an ignore file that appears discards the cache", () => {
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.1.0\nroot: espalier\nignoreFiles:\n  - .espalierignore\n",
+      "version: 1\npin: 0.2.0\nroot: espalier\nignoreFiles:\n  - .espalierignore\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "");
     assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
@@ -730,7 +737,7 @@ test("an edit to an ungoverned file leaves every entry replayed", () => {
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.1.0\nroot: espalier\n",
+      "version: 1\npin: 0.2.0\nroot: espalier\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
     writeFileSync(path.join(root, "notes.txt"), "one\n");
@@ -938,7 +945,7 @@ test("a glob never sees an ignored path, so one appearing changes nothing", () =
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.1.0\nroot: espalier\n",
+      "version: 1\npin: 0.2.0\nroot: espalier\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "vendor/\n");
     assert.equal(lint(root, "first")["a.ts"], "a.ts,b.ts:first");
@@ -967,6 +974,22 @@ test("a header that is not this tool's is discarded", () => {
       path.join(root, CACHE),
       [JSON.stringify({ kind: "notes", version: 1 }), ...lines.slice(1)].join("\n"),
     );
+    assert.deepEqual(lint(root, "second"), { "a.ts": "second", "b.ts": "second" });
+  } finally {
+    discard(root);
+  }
+});
+
+test("a cache from the previous format is discarded", () => {
+  const root = repository();
+  try {
+    lint(root, "first");
+    const at = path.join(root, CACHE);
+    const lines = readFileSync(at, "utf8").trimEnd().split("\n");
+    const header = JSON.parse(lines[0]!) as Record<string, unknown>;
+    header["version"] = 1;
+    writeFileSync(at, `${[JSON.stringify(header), ...lines.slice(1)].join("\n")}\n`);
+
     assert.deepEqual(lint(root, "second"), { "a.ts": "second", "b.ts": "second" });
   } finally {
     discard(root);
@@ -1022,7 +1045,7 @@ function nested(): { root: string; child: string } {
   const root = repository();
   const child = path.join(root, "packages", "web");
   mkdirSync(path.join(child, "espalier"), { recursive: true });
-  writeFileSync(path.join(child, "espalier.config.yaml"), "version: 1\npin: 0.1.0\nroot: espalier\n");
+  writeFileSync(path.join(child, "espalier.config.yaml"), "version: 1\npin: 0.2.0\nroot: espalier\n");
   writeFileSync(path.join(child, "espalier", "[file].ts.mjs"), EMITS);
   writeFileSync(path.join(child, "c.ts"), "export const c = 3;\n");
   return { root, child };
@@ -1196,6 +1219,251 @@ test("an issue attached to another file replays against that file", () => {
     // emitted it: `a.ts` is what that invocation depended on.
     writeFileSync(path.join(root, "b.ts"), "export const b = 999;\n");
     assert.deepEqual(lint(root, "third"), { "b.ts": "first" });
+  } finally {
+    discard(root);
+  }
+});
+
+// Implementation dependencies are global cache inputs. These cases cannot be
+// fixtures: their observable output is deliberately the same shape before and
+// after replay, and the edit between two real processes is the behavior under
+// test.
+
+function importedRule(importStatement: string, expression: string): string {
+  return `${importStatement}
+
+export const description = "a source file";
+export const rule = \`Nothing this test cares about.\`;
+
+export async function lint({ emit }) {
+  emit({ code: "implementation", message: ${expression}, severity: "warning" });
+}
+`;
+}
+
+test("editing a directly imported helper outside the espalier discards the cache", () => {
+  const root = repository(importedRule('import { answer } from "../helper.mjs";', "answer"));
+  try {
+    writeFileSync(path.join(root, ".espalierignore"), "helper.mjs\n");
+    writeFileSync(path.join(root, "helper.mjs"), 'export const answer = "first";\n');
+    assert.deepEqual(lint(root, "unused"), { "a.ts": "first", "b.ts": "first" });
+
+    writeFileSync(path.join(root, "helper.mjs"), 'export const answer = "second answer";\n');
+    assert.deepEqual(lint(root, "unused"), {
+      "a.ts": "second answer",
+      "b.ts": "second answer",
+    });
+
+    rmSync(path.join(root, "helper.mjs"));
+    const missing = run(root, "unused");
+    assert.equal(missing.status, 2);
+    assert.equal(missing.failures[0]?.["code"], "module_import_failed");
+  } finally {
+    discard(root);
+  }
+});
+
+test("check reloads changed implementation modules within one process", async () => {
+  const root = repository(importedRule('import { answer } from "../helper.mjs";', "answer"));
+  try {
+    writeFileSync(path.join(root, ".espalierignore"), "helper.mjs\n");
+    writeFileSync(path.join(root, "helper.mjs"), 'export const answer = "first";\n');
+    assert.deepEqual((await check({ cwd: root })).map((issue) => issue.message), ["first", "first"]);
+
+    writeFileSync(path.join(root, "helper.mjs"), 'export const answer = "changed in process";\n');
+    assert.deepEqual(
+      (await check({ cwd: root })).map((issue) => issue.message),
+      ["changed in process", "changed in process"],
+    );
+  } finally {
+    discard(root);
+  }
+});
+
+test("editing a transitively imported helper outside the espalier discards the cache", () => {
+  const root = repository(importedRule('import { answer } from "../helper.mjs";', "answer"));
+  try {
+    writeFileSync(path.join(root, ".espalierignore"), "helper.mjs\ndeep.mjs\n");
+    writeFileSync(path.join(root, "helper.mjs"), 'export { answer } from "./deep.mjs";\n');
+    writeFileSync(path.join(root, "deep.mjs"), 'export const answer = "first";\n');
+    assert.equal(lint(root, "unused")["a.ts"], "first");
+
+    writeFileSync(path.join(root, "deep.mjs"), 'export const answer = "changed transitively";\n');
+    assert.equal(lint(root, "unused")["a.ts"], "changed transitively");
+  } finally {
+    discard(root);
+  }
+});
+
+test("a helper shared by several rules is tracked despite Node's module cache", () => {
+  const root = repository(importedRule('import { answer } from "../helper.mjs";', "answer"));
+  try {
+    writeFileSync(path.join(root, ".espalierignore"), "helper.mjs\n");
+    writeFileSync(path.join(root, "helper.mjs"), 'export const answer = "first";\n');
+    mkdirSync(path.join(root, "espalier", "[...path]"));
+    writeFileSync(
+      path.join(root, "espalier", "[...path]", "shared.ts.mjs"),
+      `import { answer } from "../../helper.mjs";
+export const rule = \`Nothing this test cares about.\`;
+export async function lint({ emit }) {
+  emit({ code: "shared", message: answer, severity: "warning" });
+}
+`,
+    );
+    assert.ok(run(root, "unused").issues.every((issue) => issue["message"] === "first"));
+
+    writeFileSync(path.join(root, "helper.mjs"), 'export const answer = "changed shared";\n');
+    const changed = run(root, "unused");
+    assert.equal(changed.status, 0);
+    assert.equal(changed.issues.length, 4);
+    assert.ok(changed.issues.every((issue) => issue["message"] === "changed shared"));
+  } finally {
+    discard(root);
+  }
+});
+
+test("a dynamic implementation dependency survives a narrowed warm run", () => {
+  const root = repository(
+    module(`  const { answer } = await import("../helper.mjs");
+  emit({ code: "implementation", message: \`\${answer}:\${${token}}\`, severity: "warning" });`),
+  );
+  try {
+    writeFileSync(path.join(root, ".espalierignore"), "helper.mjs\n");
+    writeFileSync(path.join(root, "helper.mjs"), 'export const answer = "first";\n');
+    assert.equal(lint(root, "cold")["a.ts"], "first:cold");
+
+    assert.equal(lint(root, "narrow", ["a.ts"])["a.ts"], "first:cold");
+    writeFileSync(path.join(root, "helper.mjs"), 'export const answer = "changed dynamically";\n');
+    assert.deepEqual(lint(root, "warm"), {
+      "a.ts": "changed dynamically:warm",
+      "b.ts": "changed dynamically:warm",
+    });
+  } finally {
+    discard(root);
+  }
+});
+
+test("an addon transitive dependency discards the cache", () => {
+  const root = repository(
+    module(`  emit({ code: "implementation", message: context.addons.answer, severity: "warning" });`),
+  );
+  try {
+    writeFileSync(path.join(root, ".espalierignore"), "espalier.addons.mjs\naddon-helper.mjs\n");
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\npin: 0.2.0\nroot: espalier\naddons: espalier.addons.mjs\n",
+    );
+    writeFileSync(
+      path.join(root, "espalier.addons.mjs"),
+      'import { answer } from "./addon-helper.mjs";\nexport function setup() { return { answer }; }\n',
+    );
+    writeFileSync(path.join(root, "addon-helper.mjs"), 'export const answer = "first";\n');
+    assert.equal(lint(root, "unused")["a.ts"], "first");
+
+    writeFileSync(path.join(root, "addon-helper.mjs"), 'export const answer = "changed addon";\n');
+    assert.equal(lint(root, "unused")["a.ts"], "changed addon");
+  } finally {
+    discard(root);
+  }
+});
+
+test("unobserved implementation declarations include ignored files", () => {
+  const root = repository(`${EMITS}
+export const unobservedImplementationDependencies = ["engine/**/*.wasm"];
+`);
+  try {
+    mkdirSync(path.join(root, "engine"));
+    writeFileSync(path.join(root, "engine", "analyzer.wasm"), "first\n");
+    writeFileSync(path.join(root, ".gitignore"), "engine/\n");
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "version: 1\npin: 0.2.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
+    );
+    assert.equal(lint(root, "cold")["a.ts"], "cold");
+    assert.equal(lint(root, "warm")["a.ts"], "cold");
+
+    writeFileSync(path.join(root, "engine", "analyzer.wasm"), "changed payload\n");
+    assert.equal(lint(root, "changed")["a.ts"], "changed");
+  } finally {
+    discard(root);
+  }
+});
+
+test("package exports metadata is an implementation dependency", () => {
+  const root = repository(importedRule('import { answer } from "engine";', "answer"));
+  try {
+    writeFileSync(path.join(root, ".espalierignore"), "node_modules/\n");
+    const engine = path.join(root, "node_modules", "engine");
+    mkdirSync(engine, { recursive: true });
+    writeFileSync(
+      path.join(engine, "package.json"),
+      '{"name":"engine","type":"module","exports":"./first.mjs"}\n',
+    );
+    writeFileSync(path.join(engine, "first.mjs"), 'export const answer = "first";\n');
+    writeFileSync(path.join(engine, "second.mjs"), 'export const answer = "second export";\n');
+    assert.equal(lint(root, "unused")["a.ts"], "first");
+
+    writeFileSync(
+      path.join(engine, "package.json"),
+      '{"name":"engine","type":"module","exports":"./second.mjs"}\n',
+    );
+    assert.equal(lint(root, "unused")["a.ts"], "second export");
+  } finally {
+    discard(root);
+  }
+});
+
+test("module observation composes with tsx", () => {
+  const root = repository(importedRule('import { answer } from "../analyzer.ts";', "answer"));
+  const loader = ["--import", tsx];
+  try {
+    writeFileSync(path.join(root, ".espalierignore"), "analyzer.ts\n");
+    writeFileSync(path.join(root, "analyzer.ts"), 'export const answer: string = "first";\n');
+    assert.equal(lint(root, "unused", [], loader)["a.ts"], "first");
+
+    writeFileSync(
+      path.join(root, "analyzer.ts"),
+      'export const answer: string = "changed TypeScript";\n',
+    );
+    assert.equal(lint(root, "unused", [], loader)["a.ts"], "changed TypeScript");
+  } finally {
+    discard(root);
+  }
+});
+
+test("an unverifiable implementation URL is never cached", () => {
+  const root = repository(
+    module(`  const { answer } = await import("virtual:answer");
+  emit({ code: "implementation", message: answer, severity: "warning" });`),
+  );
+  const register = path.join(root, "register-loader.mjs");
+  try {
+    writeFileSync(path.join(root, ".espalierignore"), "register-loader.mjs\n");
+    writeFileSync(
+      register,
+      `import { registerHooks } from "node:module";
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier === "virtual:answer") return { url: specifier, shortCircuit: true };
+    return nextResolve(specifier, context);
+  },
+  load(url, context, nextLoad) {
+    if (url === "virtual:answer") {
+      return {
+        format: "module",
+        source: \`export const answer = process.env.ESPALIER_TEST_TOKEN;\`,
+        shortCircuit: true,
+      };
+    }
+    return nextLoad(url, context);
+  },
+});
+`,
+    );
+
+    assert.equal(lint(root, "first", [], ["--import", register])["a.ts"], "first");
+    assert.equal(lint(root, "second", [], ["--import", register])["a.ts"], "second");
+    assert.equal(existsSync(path.join(root, CACHE)), false);
   } finally {
     discard(root);
   }

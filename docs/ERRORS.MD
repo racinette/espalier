@@ -90,6 +90,7 @@ See [CONFIG.MD](CONFIG.MD#addons).
 |---|---|
 | `addons_import_failed` | the addons module threw while being imported |
 | `addons_missing_setup` | it exports no `setup` function |
+| `addons_invalid_export` | its `unobservedImplementationDependencies` export is malformed |
 | `addons_setup_failed` | `setup` threw. Nothing is linted |
 
 ## Command-specific

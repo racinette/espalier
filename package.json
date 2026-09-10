@@ -1,6 +1,6 @@
 {
   "name": "espalier",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "An architecture compiler for agent-driven development",
   "license": "MIT",
   "author": "Andrei Karavatski",
@@ -12,7 +12,7 @@
   "bugs": "https://github.com/racinette/espalier/issues",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "bin": {
     "espalier": "dist/src/cli.js"
@@ -40,7 +40,8 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.0",
+    "@types/node": "^22.20.2",
+    "tsx": "^4.23.13",
     "typescript": "^5.9.0"
   }
 }

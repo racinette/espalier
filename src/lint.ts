@@ -5,14 +5,16 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { dependencies, listing, open as openCache, stored, type Dependencies } from "./cache.js";
 import type { Constraint, StructuralRule } from "./compile.js";
+import { loadConfig } from "./config.js";
 import { createEmit, within } from "./context.js";
 import { fail, OperationalError } from "./errors.js";
 import { matchGlob } from "./files.js";
+import { observeImplementations, type ImplementationObserver } from "./implementation.js";
 import { admitsTarget, targetPatterns } from "./targets.js";
 import { constraintCaptures, isOwnership, requiredFiles, type CaptureValue } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
 import { eachChild } from "./nested.js";
-import { open, type Repository } from "./repository.js";
+import { openConfig, type Repository } from "./repository.js";
 import { ignores } from "./ignore.js";
 
 export interface LintOptions {
@@ -25,7 +27,10 @@ export interface LintOptions {
   cache: boolean;
 }
 
-async function startAddons(repository: Repository): Promise<{
+async function startAddons(
+  repository: Repository,
+  implementations: ImplementationObserver,
+): Promise<{
   addons: Record<string, unknown>;
   dispose: () => Promise<void>;
 }> {
@@ -33,15 +38,34 @@ async function startAddons(repository: Repository): Promise<{
   if (config.addons === null) return { addons: {}, dispose: async () => {} };
 
   const absolute = path.resolve(config.root, config.addons);
-  let module: { setup?: unknown };
+  let module: { setup?: unknown; unobservedImplementationDependencies?: unknown };
   try {
-    module = (await import(pathToFileURL(absolute).href)) as { setup?: unknown };
+    module = (await import(pathToFileURL(absolute).href)) as typeof module;
   } catch (cause) {
     fail("addons_import_failed", `addons module could not be imported: ${(cause as Error).message}`);
   }
   if (typeof module.setup !== "function") {
     fail("addons_missing_setup", "the addons module must export a `setup` function");
   }
+  const declared = module.unobservedImplementationDependencies;
+  if (
+    declared !== undefined &&
+    (!Array.isArray(declared) ||
+      declared.some(
+        (dependency) =>
+          typeof dependency !== "string" ||
+          dependency.length === 0 ||
+          dependency.startsWith("!") ||
+          path.isAbsolute(dependency) ||
+          dependency.split(/[\\/]/).includes(".."),
+      ))
+  ) {
+    fail(
+      "addons_invalid_export",
+      "the addons module's `unobservedImplementationDependencies` must be an array of non-empty relative positive glob strings",
+    );
+  }
+  implementations.declare((declared ?? []) as string[]);
 
   let addons: Record<string, unknown>;
   try {
@@ -68,7 +92,16 @@ async function startAddons(repository: Repository): Promise<{
  * different root. A child the scope does not reach is not run at all.
  */
 export async function lint(options: LintOptions, reporter: Reporter): Promise<number> {
-  const repository = await open(options.config, options.cwd);
+  const config = loadConfig(options.config, options.cwd);
+  const implementations = observeImplementations(config.root, config.espalierRoot, config.addons);
+  let repository: Repository;
+  let here: number;
+  try {
+    repository = await openConfig(config);
+    here = await lintOne(repository, { ...options, paths: options.paths }, reporter, implementations);
+  } finally {
+    implementations.close();
+  }
   const { root } = repository.config;
 
   const absolute = options.paths.map((entry) => path.resolve(options.cwd, entry));
@@ -77,8 +110,6 @@ export async function lint(options: LintOptions, reporter: Reporter): Promise<nu
     const at = path.join(root, child);
     return absolute.some((target) => target === at || target.startsWith(`${at}${path.sep}`) || at.startsWith(`${target}${path.sep}`));
   };
-
-  const here = await lintOne(repository, { ...options, paths: absolute }, reporter);
 
   const below = await eachChild(root, repository.children.filter(reaches), reporter, (childRoot, childReporter) =>
     lint({ ...options, cwd: childRoot, config: undefined, paths: absolute }, childReporter),
@@ -91,6 +122,7 @@ async function lintOne(
   repository: Repository,
   options: LintOptions,
   reporter: Reporter,
+  implementations: ImplementationObserver,
 ): Promise<number> {
   const { config, espalier } = repository;
 
@@ -168,12 +200,23 @@ async function lintOne(
     builtin(required.path, "missing_required_file", "this file is required but does not exist", {});
   }
 
-  const { addons, dispose } = await startAddons(repository);
+  const declaredModules = new Set<StructuralRule["module"]>();
+  const collect = (node: (typeof espalier)["root"]): void => {
+    if (node.rule !== null) declaredModules.add(node.rule.module);
+    for (const child of node.children.values()) collect(child);
+  };
+  collect(espalier.root);
+  for (const constraint of espalier.constraints) declaredModules.add(constraint.module);
+  for (const module of declaredModules) {
+    implementations.declare(module.unobservedImplementationDependencies);
+  }
+
+  const { addons, dispose } = await startAddons(repository, implementations);
 
   const globOf = (pattern: string): string =>
     listing(repository.visible.filter((target) => matchGlob(pattern, target)));
 
-  const cache = openCache(config, options.cache, globOf);
+  const cache = openCache(config, options.cache, globOf, implementations);
 
   // What the invocation currently running has looked at. Rules run one at a
   // time, so one slot is enough; it is null while nothing is running, and the

@@ -76,7 +76,7 @@ Guidance steers; the linter corrects. Either half failing degrades the loop's ef
 
 ## Quick start
 
-Install the CLI on a machine running Node.js 20 or later:
+Install the CLI on a machine running Node.js 24 or later:
 
 ```bash
 npm install --global espalier

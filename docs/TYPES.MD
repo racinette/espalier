@@ -33,6 +33,7 @@ export async function lint(context) {
 | `optional` | no | whether this file has to exist |
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs that narrow the governed files admitted by a constraint |
+| `unobservedImplementationDependencies` | no | explicit implementation inputs that module observation cannot see |
 
 ### `description`
 
@@ -126,6 +127,31 @@ the extension-wide behavior.
 
 The same selector semantics apply to ordinary and aggregate constraints.
 Existing constraint captures are preserved for every selected path.
+
+### `unobservedImplementationDependencies`
+
+```js
+export const unobservedImplementationDependencies = [
+  "src/query/worker/**/*",
+  "src/query/**/*.wasm",
+];
+```
+
+This is an explicit escape hatch for implementation inputs Node's module
+loader cannot observe: worker and child-process code, native or WebAssembly
+payloads, grammars and configuration opened internally by a library, and
+similar support files. Ordinary JavaScript and TypeScript imports do not belong
+here; Espalier observes those, including transitive and dynamic imports.
+
+Patterns are positive globs relative to the repository root. They may match
+ignored or otherwise ungoverned paths because implementation inputs are not
+lint data. Espalier records both the matching path set and each member's size
+and modification time. A change invalidates the complete lint cache.
+
+The export grants no read or reporting capability. `read` remains limited to
+governed files, and issue paths remain repository-relative. The deliberately
+long name is a reminder that this is exceptional bookkeeping, not the ordinary
+way for a rule to consume repository data.
 
 ### `aggregate`
 
@@ -359,9 +385,9 @@ Rules execute independently, in unspecified order, with no shared state. An aggr
 
 **Visible is the whole of what a rule may see.** `read` refuses a path outside the governed set with `read_ungoverned`, and `files` never returns one. This is not tidiness: an ungoverned path is one nothing stamps, so a rule that depended on one would be replayed unchanged after it changed. A rule that needs to consult an ignored file is a rule whose espalier should stop ignoring it.
 
-**A `lint` function must be pure.** Its answer must follow from what it is handed — `path`, `pattern`, `captures`, and whatever `read` and `files` return — and from nothing else. The clock, the network and the environment are not inputs the runner can see, so a rule that consults one will be replayed from cache with an answer it would no longer give. The failure is silent: a stale pass, not an error. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
+**A `lint` function must be pure.** Its answer must follow from what it is handed — `path`, `pattern`, `captures`, and whatever `read` and `files` return — plus its observed or explicitly declared implementation dependencies, and from nothing else. The clock, the network and the environment are not inputs the runner can see, so a rule that consults one will be replayed from cache with an answer it would no longer give. The failure is silent: a stale pass, not an error. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
 
-`addons` are held to the same standard and carry one obligation of their own: **an addon must not read the repository.** A parser handed a path opens a file the run never saw, and that dependency goes unrecorded. Hand it contents, or `read` the path first and throw the string away. The process behind an addon may hold state; its answers must not depend on any.
+`addons` are held to the same standard and carry one obligation of their own: **an addon must not read the repository.** A parser handed a path opens lint data outside the rule context. Hand it contents, or `read` the path first and throw the string away. The addon's own worker, native, WebAssembly or internally opened support files may be declared with `unobservedImplementationDependencies`. The process behind an addon may hold state; its answers must not depend on any unrecorded input.
 
 
 A `lint` function that throws is a bug in the rule, not a finding about the repository: the run fails with exit `2` and reports `rule_threw`. See [cli/lint/README.MD](cli/lint/README.MD) and [ERRORS.MD](ERRORS.MD).

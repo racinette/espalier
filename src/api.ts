@@ -4,6 +4,7 @@
 // issues. That is the whole difference, and it is what makes rule modules
 // testable without espalier owning a test framework.
 
+import path from "node:path";
 import type { RuleModule } from "./compile.js";
 import { createEmit } from "./context.js";
 import { fail, OperationalError } from "./errors.js";
@@ -124,6 +125,26 @@ function validateTargets(targets: unknown, caller: string): void {
   }
 }
 
+function validateImplementationDependencies(dependencies: unknown, caller: string): void {
+  if (
+    dependencies !== undefined &&
+    (!Array.isArray(dependencies) ||
+      dependencies.some(
+        (dependency) =>
+          typeof dependency !== "string" ||
+          dependency.length === 0 ||
+          dependency.startsWith("!") ||
+          path.isAbsolute(dependency) ||
+          dependency.split(/[\\/]/).includes(".."),
+      ))
+  ) {
+    fail(
+      "module_invalid_export",
+      `${caller}: \`unobservedImplementationDependencies\` must be an array of non-empty relative positive glob strings`,
+    );
+  }
+}
+
 /**
  * Runs one module's `lint` against a context you supply. No config, no espalier
  * tree, no repository on disk: a module's position in the tree is the matcher's
@@ -137,6 +158,7 @@ export async function runRule(module: RuleModule, context: RuleContext): Promise
     fail("module_missing_export", "the module must export a `lint` function");
   }
   validateTargets(module.targets, "runRule");
+  validateImplementationDependencies(module.unobservedImplementationDependencies, "runRule");
   if (module.aggregate !== undefined && typeof module.aggregate !== "boolean") {
     fail("module_invalid_export", "`aggregate` must be a boolean");
   }
@@ -214,6 +236,7 @@ export async function runAggregate(
     fail("module_missing_export", "the module must export a `lint` function");
   }
   validateTargets(module.targets, "runAggregate");
+  validateImplementationDependencies(module.unobservedImplementationDependencies, "runAggregate");
   if (module.aggregate !== true) {
     fail("module_invalid_export", "runAggregate expects a module exporting `aggregate = true`");
   }

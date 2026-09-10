@@ -106,8 +106,7 @@ function readNestedIgnoreFile(root: string, entry: string): string[] {
   }
 }
 
-export async function open(configOption: string | undefined, cwd: string): Promise<Repository> {
-  const config = loadConfig(configOption, cwd);
+export async function openConfig(config: Config): Promise<Repository> {
   const espalier = await compile(config.root, config.espalierRoot);
   validateExamples(config.root, espalier);
 
@@ -220,4 +219,8 @@ export async function open(configOption: string | undefined, cwd: string): Promi
     resolve: lookup,
     ungoverned,
   };
+}
+
+export async function open(configOption: string | undefined, cwd: string): Promise<Repository> {
+  return openConfig(loadConfig(configOption, cwd));
 }

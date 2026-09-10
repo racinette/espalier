@@ -19,52 +19,61 @@ place is a list that stops matching the modules.
 ## Project layout
 
     src/
-    ├─ adopt.ts        the adopt command (required)
+    ├─ adopt.ts           the adopt command (required)
     │
-    ├─ api.ts          the programmatic surface (required)
+    ├─ api.ts             the programmatic surface (required)
     │
-    ├─ artifacts.ts    the target-neutral generated artifact model (required)
+    ├─ artifacts.ts       the target-neutral generated artifact model (required)
     │
-    ├─ build.ts        the build command (required)
+    ├─ build.ts           the build command (required)
     │
-    ├─ cache.ts        the incremental lint cache (required)
+    ├─ cache.ts           the incremental lint cache (required)
     │
-    ├─ children.ts     finding where one espalier's authority ends (required)
+    ├─ children.ts        finding where one espalier's authority ends (required)
     │
-    ├─ cli.ts          argument parsing and dispatch (required)
+    ├─ cli.ts             argument parsing and dispatch (required)
     │
-    ├─ compile.ts      reading the espalier tree into a matcher (required)
+    ├─ compile.ts         reading the espalier tree into a matcher (required)
     │
-    ├─ config.ts       finding and validating the configuration (required)
+    ├─ config.ts          finding and validating the configuration (required)
     │
-    ├─ context.ts      the lint context handed to rules (required)
+    ├─ context.ts         the lint context handed to rules (required)
     │
-    ├─ errors.ts       operational failures (required)
+    ├─ errors.ts          operational failures (required)
     │
-    ├─ explain.ts      the explain command (required)
+    ├─ explain.ts         the explain command (required)
     │
-    ├─ explainText.ts  the human layout for explain (required)
+    ├─ explainText.ts     the human layout for explain (required)
     │
-    ├─ files.ts        walking the repository (required)
+    ├─ files.ts           walking the repository (required)
     │
-    ├─ ignore.ts       gitignore-syntax matching (required)
+    ├─ ignore.ts          gitignore-syntax matching (required)
     │
-    ├─ init.ts         the init command (required)
+    ├─ implementation.ts  rule implementation dependency observation (required)
     │
-    ├─ lint.ts         the lint command (required)
+    ├─ init.ts            the init command (required)
     │
-    ├─ match.ts        ownership, requiredness, and the deepest recognized node
-    │                  (required)
+    ├─ lint.ts            the lint command (required)
     │
-    ├─ nested.ts       running the espaliers below this one (required)
+    ├─ match.ts           ownership, requiredness, and the deepest recognized
+    │                     node (required)
     │
-    ├─ output.ts       formats and destinations (required)
+    ├─ nested.ts          running the espaliers below this one (required)
     │
-    ├─ pattern.ts      path segments and what they match (required)
+    ├─ output.ts          formats and destinations (required)
     │
-    ├─ render.ts       turning the espalier into documentation (required)
+    ├─ pattern.ts         path segments and what they match (required)
     │
-    └─ repository.ts   what lint and explain both work from (required)
+    ├─ render.ts          turning the espalier into documentation (required)
+    │
+    ├─ repository.ts      what lint and explain both work from (required)
+    │
+    ├─ targets.ts         constraint target selection (required)
+    │
+    ├─ version.ts         the running package version (required)
+    │
+    └─ visibility.ts      filesystem visibility from external ignore files
+                          (required)
 
 ## `artifacts.ts` — the target-neutral generated artifact model
 
@@ -94,6 +103,10 @@ Holds `fail()`, which every operational failure goes through. A code it raises
 that `docs/ERRORS.MD` does not list fails the suite, and so does a documented
 code nothing raises.
 
+## `implementation.ts` — rule implementation dependency observation
+
+Observes the modules loaded by rules and addons without changing how Node resolves or loads them. An observation that cannot be validated disables cache replay; uncertainty is never a cache hit.
+
 ## `output.ts` — formats and destinations
 
 Owns every format and every destination, so no other module writes to a stream
@@ -105,6 +118,24 @@ Joins the config, the walk and the compiled espalier into one object: the
 visible set, what excluded everything else, and who owns each path. Nothing
 below it reaches back up, and a change that would need it to is a change to
 think about twice.
+
+## `targets.ts` — constraint target selection
+
+Derive narrowed target patterns from the compiled constraint and
+apply them identically in lint and explain. Target selection filters candidates; it
+does not change structural ownership.
+
+## `version.ts` — the running package version
+
+Read the exact running version from the installed package manifest.
+The CLI, configuration validation and generated pins must share that one source of
+truth.
+
+## `visibility.ts` — filesystem visibility from external ignore files
+
+Model what the repository exposes to Espalier through external
+ignore files. Apply sources in discovery order so deeper rules may override earlier
+ones, and keep visibility distinct from governance exclusions.
 
 ## Constraints
 

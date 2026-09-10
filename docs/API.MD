@@ -140,6 +140,11 @@ specific path.
 As with `runRule`, `runAggregate` validates `targets` but treats the supplied
 sorted match set as already selected.
 
+Both rule-testing functions also validate
+`unobservedImplementationDependencies` when it is present. They do not expand
+the patterns because they do not open or cache a repository; the export only
+has runtime meaning to `check` and `lint`.
+
 ## Coverage
 
 `espalier` does not report which rules have tests. A rule with no test is a module nothing imports, and every language already has tooling that finds those — the same tooling the rest of the project's coverage runs through. A bespoke report would only cover rule modules, only when someone remembered to run it, and would be one more thing to keep true.
