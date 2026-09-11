@@ -144,7 +144,7 @@ Nothing is inferred from `path`. A rule reading a file it was not given gets `re
 
 ### What comes back
 
-The same `Issue` objects `check` returns, with the same fields, so an assertion written against one transfers to the other. `pattern`, `captures` and `rule` echo the context; `ruleText`, `description` and `example` come off the module.
+The same `Issue` objects `check` returns, with the same fields, so an assertion written against one transfers to the other. `pattern`, `captures` and `rule` echo the context; `ruleText`, `description`, `referenceImplementation`, and `referenceImplementationSource` come off the module.
 
 `emit` is the runner's own, with the runner's validation. A rule emitting an issue with no `code`, an unknown `severity`, or an absolute `path` fails here for the same reason and with the same code it would fail for in production — which is most of the value of testing through this rather than by calling `lint` with a hand-written stub.
 

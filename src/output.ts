@@ -34,8 +34,8 @@ export interface Issue {
   espalier?: string | null;
   /** Not reported; carried so the human formatter can show it. */
   description?: string | null;
-  example?: string | null;
-  exampleSource?: string | null;
+  referenceImplementation?: string | null;
+  referenceImplementationSource?: string | null;
 }
 
 export type Format = "human" | "jsonl";
@@ -318,11 +318,13 @@ class HumanReporter implements Reporter {
         // is indented like the rule body — interpolating it into a sentence
         // breaks the indentation a fixed layout exists to keep.
         // docs/cli/lint/README.MD "human".
-        if (issue.example != null) {
-          this.destination.write(`\n    Reference implementation: ${issue.example}\n`);
-        } else if (issue.exampleSource != null) {
+        if (issue.referenceImplementation != null) {
           this.destination.write(
-            `\n    Reference implementation:\n${indent(issue.exampleSource, "      ")}\n`,
+            `\n    Reference implementation: ${issue.referenceImplementation}\n`,
+          );
+        } else if (issue.referenceImplementationSource != null) {
+          this.destination.write(
+            `\n    Reference implementation:\n${indent(issue.referenceImplementationSource, "      ")}\n`,
           );
         }
       }

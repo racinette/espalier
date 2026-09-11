@@ -648,8 +648,8 @@ export interface ConstraintGroup {
   patterns: string[];
   description: string;
   ruleText: string;
-  example: string | null;
-  exampleSource: string | null;
+  referenceImplementation: string | null;
+  referenceImplementationSource: string | null;
   /** The longest static prefix of the directory the constraint applies under. */
   prefix: string;
   members: Constraint[];
@@ -677,8 +677,8 @@ export function constraintGroups(espalier: Espalier): ConstraintGroup[] {
         members.map((entry) => entry.extension),
       ),
       ruleText: first.module.rule.trim(),
-      example: first.module.example,
-      exampleSource: first.module.exampleSource,
+      referenceImplementation: first.module.referenceImplementation,
+      referenceImplementationSource: first.module.referenceImplementationSource,
       prefix: staticPrefix(first.directory),
       members,
       aggregate: first.module.aggregate,
@@ -714,9 +714,13 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
 
     // A path reads as one line; source gets a fence, however many lines it has.
     // docs/cli/build/README.MD "Rule sections".
-    if (module.example !== null) body.push(`Example: ${module.example}`);
-    if (module.exampleSource !== null) {
-      body.push(`Example:\n\n\`\`\`\n${module.exampleSource.trim()}\n\`\`\``);
+    if (module.referenceImplementation !== null) {
+      body.push(`Reference implementation: ${module.referenceImplementation}`);
+    }
+    if (module.referenceImplementationSource !== null) {
+      body.push(
+        `Reference implementation:\n\n\`\`\`\n${module.referenceImplementationSource.trim()}\n\`\`\``,
+      );
     }
 
     // A section with nothing to say is omitted entirely, along with its

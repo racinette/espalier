@@ -21,8 +21,8 @@ export interface ConstraintAnswer {
   patterns: string[];
   description: string;
   ruleText: string;
-  example: string | null;
-  exampleSource: string | null;
+  referenceImplementation: string | null;
+  referenceImplementationSource: string | null;
   captures?: Record<string, CaptureValue>;
   aggregate?: true;
   targets?: string[];
@@ -34,8 +34,8 @@ export interface RuleAnswer {
   rule: string;
   description: string | null;
   ruleText: string;
-  example: string | null;
-  exampleSource: string | null;
+  referenceImplementation: string | null;
+  referenceImplementationSource: string | null;
   required: boolean;
 }
 
@@ -66,8 +66,8 @@ export interface OwnedAnswer {
   captures: Record<string, CaptureValue>;
   description: string | null;
   ruleText: string;
-  example: string | null;
-  exampleSource: string | null;
+  referenceImplementation: string | null;
+  referenceImplementationSource: string | null;
   constraints: ConstraintAnswer[];
 }
 
@@ -152,17 +152,23 @@ function describeCaptures(captures: Record<string, CaptureValue>, indent: string
   );
 }
 
-/** The `Rule` and `Example` blocks a rule and a constraint share. */
-function body(ruleText: string, example: string | null, source: string | null): string[] {
+/** The rule and reference-implementation blocks a rule and constraint share. */
+function body(
+  ruleText: string,
+  referenceImplementation: string | null,
+  source: string | null,
+): string[] {
   const blocks: string[] = [];
   if (ruleText !== "") {
     blocks.push(`  Rule\n${ruleText.split("\n").map((line) => `    ${line}`).join("\n")}`);
   }
-  // One heading and one indent for both: the reader wants the example, not the
+  // One heading and one indent for both: the reader wants the reference, not the
   // mechanism that supplied it. docs/cli/explain/README.MD "Human layout".
-  const shown = example ?? source;
+  const shown = referenceImplementation ?? source;
   if (shown !== null) {
-    blocks.push(`  Example\n${shown.trim().split("\n").map((line) => `    ${line}`).join("\n")}`);
+    blocks.push(
+      `  Reference implementation\n${shown.trim().split("\n").map((line) => `    ${line}`).join("\n")}`,
+    );
   }
   return blocks;
 }
@@ -231,7 +237,13 @@ export function renderExplanation(answer: Explanation): string {
     for (const rule of answer.rules) {
       blocks.push(section(rule.path));
       if (rule.description !== null) blocks.push(`  ${rule.description}`);
-      blocks.push(...body(rule.ruleText, rule.example, rule.exampleSource));
+      blocks.push(
+        ...body(
+          rule.ruleText,
+          rule.referenceImplementation,
+          rule.referenceImplementationSource,
+        ),
+      );
     }
 
     blocks.push(...constraintBlocks(answer.constraints, `under ${shown}`));
@@ -280,7 +292,13 @@ export function renderExplanation(answer: Explanation): string {
       ...describeCaptures(answer.captures, " ".repeat(12)),
     ].join("\n"),
   );
-  blocks.push(...body(answer.ruleText, answer.example, answer.exampleSource));
+  blocks.push(
+    ...body(
+      answer.ruleText,
+      answer.referenceImplementation,
+      answer.referenceImplementationSource,
+    ),
+  );
   blocks.push(...constraintBlocks(answer.constraints, `to ${answer.path}`));
 
   return `${blocks.join("\n\n")}\n`;

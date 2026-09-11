@@ -36,8 +36,8 @@ export interface EmitOptions {
   /** The module's `rule` text, or null when the caller suppressed it. */
   ruleText: string | null;
   description?: string | null;
-  example?: string | null;
-  exampleSource?: string | null;
+  referenceImplementation?: string | null;
+  referenceImplementationSource?: string | null;
   record: (issue: Issue) => void;
 }
 
@@ -80,8 +80,8 @@ export function createEmit(options: EmitOptions): (raw: unknown) => void {
       metadata: (issue["metadata"] ?? {}) as Record<string, unknown>,
       ruleText: options.ruleText,
       description: options.description,
-      example: options.example,
-      exampleSource: options.exampleSource,
+      referenceImplementation: options.referenceImplementation,
+      referenceImplementationSource: options.referenceImplementationSource,
     });
   };
 }

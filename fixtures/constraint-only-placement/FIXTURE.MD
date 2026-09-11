@@ -12,7 +12,7 @@ closed-set sentence over an empty set, would be inventing an answer.
 
 That is the general rule from cli/build/README.MD — "A section with nothing to
 say is omitted entirely, along with its heading" — in the one place where it
-removes something substantial rather than an `Example:` line.
+removes something substantial rather than a `Reference implementation:` line.
 
 ## Generated extension labels
 

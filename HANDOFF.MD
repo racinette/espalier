@@ -534,8 +534,8 @@ Open, both raised by dogfooding:
   last run wrote. Pinned by `build-ignored-generated` and
   `nested-build-per-child`.
 - ~~**Nothing documents how the two forms of `example` are told apart.**~~
-  **Closed**, by making them two exports. `example` is a path and is checked;
-  `exampleSource` is source and is not. Deciding by inspection was the problem
+  **Closed**, by making them two exports. At the time they were named `example`
+  for a checked path and `exampleSource` for unchecked source. Deciding by inspection was the problem
   rather than the documentation of it: with one export told apart by "contains
   a newline", the single-line value printed in TYPES.MD's own illustration was
   read as a path and exited `2` saying the file did not exist. Setting both is
@@ -701,11 +701,11 @@ and contriving one would pin the contrivance rather than the rule. The tier is
 still there, because the map must list siblings in the order ownership
 resolves them.
 
-The inline form of `example` was the last of the others,
+The inline reference-implementation form was the last of the others,
 and `example-inline` now pins both halves of what makes it a second form: it is
 exempt from the existence and pattern checks the path form gets, and it renders
 as a fenced block rather than a line. The four before it — `addons` setup and
-disposal, the compile-time `example` validation from `TYPES.MD`, the generated
+disposal, the compile-time reference validation from `TYPES.MD`, the generated
 description for a constraint module that exports none (`ALIASES` in
 `src/render.ts`), and a placement point that exists only because a constraint
 was assigned to it — are covered by `addons-shared-resource`,
@@ -959,3 +959,22 @@ defaults describe the truthful common contract; a rule may specialize them
 when it wants stronger local types. Aggregate execution still comes solely
 from `export const aggregate = true`, so typing does not acquire a second way
 to change behavior.
+
+## Reference implementations say what they are
+
+The rule-level `example` export was useful but too vague, especially once
+template schemas acquired an unrelated `examples` field. It is now
+`referenceImplementation`, with no compatibility alias. The inline counterpart
+is correspondingly `referenceImplementationSource`. The generated guidance,
+human explanations, issue context, and JSON fields use the same terminology so
+the old generic name does not survive as a second public vocabulary.
+
+A path reference is a promise that the named file is a maintained exemplar, not
+merely a suggestion to open a string. Repository opening therefore proves the
+whole promise: the path exists, is a visible governed file, and resolves back
+to the structural rule declaring it. For a constraint it must actually be
+covered by one of that module's patterns and admitted by its `targets`.
+Existence plus glob matching was insufficient—a more specific structural rule
+could own the path, or ignore policy and target selection could prevent the
+declaring rule from ever linting it. Any broken promise exits `2` as
+`invalid_reference_implementation` before a linter runs.

@@ -63,7 +63,7 @@ See [TYPES.MD](TYPES.MD).
 | `module_import_failed` | the module threw while being imported |
 | `module_missing_export` | no `rule`, no `lint`, or no `description` on a structural rule |
 | `module_invalid_export` | an export of the wrong type |
-| `invalid_example` | an `example` that does not exist, or that this rule's own pattern does not match |
+| `invalid_reference_implementation` | a `referenceImplementation` that is absent, is not a visible governed file, or is not actually owned or covered by its rule |
 
 ## Configuration against the espalier
 

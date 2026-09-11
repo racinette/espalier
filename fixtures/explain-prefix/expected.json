@@ -16,7 +16,7 @@
             "rule": "components/buttons/[button].tsx.mjs",
             "description": "a button component",
             "ruleText": "Default-export a single component named after the file.",
-            "example": "components/buttons/SubmitButton.tsx",
+            "referenceImplementation": "components/buttons/SubmitButton.tsx",
             "required": false
           },
           {
@@ -24,7 +24,7 @@
             "pattern": "components/layouts/*.tsx",
             "rule": "components/layouts/[layout].tsx.mjs",
             "description": "a layout component",
-            "example": null,
+            "referenceImplementation": null,
             "required": false
           }
         ],
@@ -77,7 +77,7 @@
         "captures": {},
         "description": "the application entry point",
         "ruleText": "Wire up the application and start it.",
-        "example": null,
+        "referenceImplementation": null,
         "constraints": [
           {
             "name": "no-as-any",

@@ -52,7 +52,7 @@ generated documents while both descendant maps begin at the handoff directory
 and remain complete, the alignment column
 (longest map-internal line plus two, before the code block's own indent), the
 80-column greedy wrap of a map line's text, section headings carrying
-the full path from the repository root, the `Example:` line appearing only
+the full path from the repository root, the `Reference implementation:` line appearing only
 where a module exports one, and the two fixed texts.
 
 Pins: cli/build/README.MD "Where files go", "Generation", "Rendering",

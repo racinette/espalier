@@ -13,10 +13,10 @@ visible feature was its own incompleteness.
 Two nodes, because "nothing to say" and "an empty `rule`" are not the same
 claim:
 
-- `[module].ts` has an empty `rule` and no `example`. Its section is omitted,
+- `[module].ts` has an empty `rule` and no `referenceImplementation`. Its section is omitted,
   heading and all, and only the map still names it.
-- `registry.ts` has a whitespace-only `rule` and an `example`. Its section
-  survives with the example alone, so the fix cannot be "drop any section whose
+- `registry.ts` has a whitespace-only `rule` and a `referenceImplementation`. Its section
+  survives with the reference alone, so the fix cannot be "drop any section whose
   rule is empty".
 
 The map is unaffected either way. What a node

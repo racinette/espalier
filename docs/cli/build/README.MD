@@ -364,7 +364,7 @@ is valid for that purpose without becoming a destination for unrelated work.
 
 <the rule body, verbatim>
 
-Example: src/clients/stripe/client.ts
+Reference implementation: src/clients/stripe/client.ts
 ```
 
 A directory below the placement point may have prose too — a dynamic directory is never a placement point, so its `ESPALIER.MD` body has nowhere of its own to go. It takes the same section, headed by its path with a trailing `/`:
@@ -375,17 +375,17 @@ A directory below the placement point may have prose too — a dynamic directory
 <the ESPALIER.MD body, verbatim>
 ```
 
-Sections appear in map order, so the map doubles as a table of contents, and a directory's section precedes the sections of everything inside it. The heading is the rule's full path from the repository root, not from the placement point — an agent reading `src/clients/AGENTS.MD` is being told where the file goes, and a relative fragment makes it guess. The `Example:` line carries `example`, the path, and is omitted when the module exports none. A module exporting `exampleSource` instead gets the source as a fenced block under the same heading:
+Sections appear in map order, so the map doubles as a table of contents, and a directory's section precedes the sections of everything inside it. The heading is the rule's full path from the repository root, not from the placement point — an agent reading `src/clients/AGENTS.MD` is being told where the file goes, and a relative fragment makes it guess. The `Reference implementation:` line carries `referenceImplementation`, the path, and is omitted when the module exports none. A module exporting `referenceImplementationSource` instead gets the source as a fenced block under the same heading:
 
 ```markdown
-Example:
+Reference implementation:
 
 ```
 export default function Submit() { … }
 ```
 ```
 
-One or the other, never both — [TYPES.MD](../../TYPES.MD#example-and-examplesource) rejects a module setting each.
+One or the other, never both — [TYPES.MD](../../TYPES.MD#referenceimplementation-and-referenceimplementationsource) rejects a module setting each.
 
 Constraints are grouped by their extension set. Known extensions use the
 language names in the renderer's case-insensitive alias map; an unknown
@@ -533,7 +533,7 @@ Export a single `create<Provider>Client(config)` factory. All requests go
 through the shared helper in `src/clients/request.ts`; do not call fetch
 directly.
 
-Example: src/clients/stripe/client.ts
+Reference implementation: src/clients/stripe/client.ts
 
 ## `[provider]/requestModels.ts` — request payload types
 

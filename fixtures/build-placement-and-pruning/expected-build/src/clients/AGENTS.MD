@@ -32,7 +32,7 @@ Verify the signature before parsing the body.
 
 Export a single `create<Provider>Client(config)` factory.
 
-Example: src/clients/stripe/client.ts
+Reference implementation: src/clients/stripe/client.ts
 
 ## `[provider]/requestModels.ts` — request payload types
 

@@ -92,7 +92,7 @@ test("runRule returns what the module emitted, in the runner's shape", async () 
   const module = {
     description: "a button component",
     rule: "Name the component after its file.",
-    example: "components/Button.tsx",
+    referenceImplementation: "components/Button.tsx",
     lint({ path: target, captures, emit }: any) {
       emit({ code: "name_mismatch", message: `${target} is not ${captures["name"]}`, line: 3 });
     },
@@ -119,8 +119,8 @@ test("runRule returns what the module emitted, in the runner's shape", async () 
       metadata: {},
       ruleText: "Name the component after its file.",
       description: "a button component",
-      example: "components/Button.tsx",
-      exampleSource: null,
+      referenceImplementation: "components/Button.tsx",
+      referenceImplementationSource: null,
     },
   ]);
 });

@@ -235,8 +235,14 @@ export async function runRule(module: RuleModule, context: RuleContext): Promise
     captures: context.captures ?? {},
     ruleText: typeof module.rule === "string" ? module.rule : null,
     description: typeof module.description === "string" ? module.description : null,
-    example: typeof module.example === "string" ? module.example : null,
-    exampleSource: typeof module.exampleSource === "string" ? module.exampleSource : null,
+    referenceImplementation:
+      typeof module.referenceImplementation === "string"
+        ? module.referenceImplementation
+        : null,
+    referenceImplementationSource:
+      typeof module.referenceImplementationSource === "string"
+        ? module.referenceImplementationSource
+        : null,
     record: (issue) => void issues.push(issue),
   });
 
@@ -316,8 +322,14 @@ export async function runAggregate(
     captures: {},
     ruleText: typeof module.rule === "string" ? module.rule : null,
     description: typeof module.description === "string" ? module.description : null,
-    example: typeof module.example === "string" ? module.example : null,
-    exampleSource: typeof module.exampleSource === "string" ? module.exampleSource : null,
+    referenceImplementation:
+      typeof module.referenceImplementation === "string"
+        ? module.referenceImplementation
+        : null,
+    referenceImplementationSource:
+      typeof module.referenceImplementationSource === "string"
+        ? module.referenceImplementationSource
+        : null,
     record: (issue) => void issues.push(issue),
   });
 

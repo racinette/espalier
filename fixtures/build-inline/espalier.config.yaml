@@ -1,5 +1,5 @@
 version: 1
-pin: 0.3.0
+pin: 0.4.0
 root: espalier
 build:
   inline: true

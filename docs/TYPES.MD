@@ -11,7 +11,7 @@ Every rule module — structural or constraint — exports the same base shape.
 ```js
 export const description = "a button component";
 
-export const example = "components/buttons/SubmitButton.tsx";
+export const referenceImplementation = "components/buttons/SubmitButton.tsx";
 
 export const rule = `
 Default-export a single component named after the file.
@@ -44,8 +44,8 @@ aggregate form.
 | `description` | structural only | what this file is, in one phrase |
 | `rule` | yes | the natural-language conventions, in markdown |
 | `lint` | yes | deterministic validation |
-| `example` | no | a path to a canonical conforming file |
-| `exampleSource` | no | source for one, when no conforming file exists yet |
+| `referenceImplementation` | no | a path to a canonical conforming file |
+| `referenceImplementationSource` | no | source for one, when no conforming file exists yet |
 | `optional` | no | whether this file has to exist |
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs that narrow the governed files admitted by a constraint |
@@ -89,25 +89,40 @@ export const rule = String.raw`File names must match ^[A-Z][a-zA-Z0-9]*$.`;
 
 The `rule` is **mode-invariant**: the same text applies whether the file is being created or edited. Exporters render it for each surface; they never rewrite it. It is also what a violation carries back to the agent, so write it as guidance rather than as a description of the check.
 
-### `example` and `exampleSource`
+### `referenceImplementation` and `referenceImplementationSource`
 
 One file that gets this right. Models follow an example far more reliably than they follow prose, and exported documentation is the only guidance available before a file is written.
 
 ```js
-export const example = "components/buttons/SubmitButton.tsx";
+export const referenceImplementation = "components/buttons/SubmitButton.tsx";
 ```
 
-**`example` is a path, and it is the form to reach for**, because it cannot drift. The file it names is a real file in the repository, linted by this very rule on every run — if it stops conforming you get an ordinary issue on it, and nothing extra is needed to keep it honest. `espalier` checks at compile time that the path exists and that this rule's own pattern matches it; a rule whose example does not is a specification error and exits `2`.
+**`referenceImplementation` is a path, and it is the form to reach for**,
+because it cannot drift. The file it names must exist, be visible and governed,
+and actually be owned by this structural rule or covered by this constraint. It
+is therefore linted by the rule on every full run; if it stops conforming you
+get an ordinary issue on it. Espalier validates those conditions whenever it
+opens the repository. A broken reference is a specification error and exits
+`2` with `invalid_reference_implementation`.
 
 ```js
-export const exampleSource = String.raw`
+export const referenceImplementationSource = String.raw`
 export default function Submit() { … }
 `;
 ```
 
-**`exampleSource` is the source itself**, for the case the path form cannot serve: no conforming file exists yet. It carries none of the guarantees — there is no file to check, nothing to lint, and nothing that notices when it goes stale. Replace it with a path as soon as one file conforms.
+**`referenceImplementationSource` is the source itself**, for the case the path
+form cannot serve: no conforming file exists yet. It carries none of the
+guarantees—there is no file to check, nothing to lint, and nothing that notices
+when it goes stale. Replace it with `referenceImplementation` as soon as one
+file conforms.
 
-They are two exports rather than one because a value has to say which it is. Deciding by inspection means a rule that looks like a path is a path, and a mistyped path then becomes a code sample nobody validates — trading a compile-time error for a silent one. **Setting both is a specification error**: two examples that could disagree is worse than either, and the run exits `2` with `module_invalid_export`.
+They are two exports rather than one because a value has to say which it is.
+Deciding by inspection means a reference that looks like a path is a path, and
+a mistyped path then becomes source nobody validates—trading an immediate error
+for a silent one. **Setting both is a specification error**: two references
+that could disagree are worse than either, and the run exits `2` with
+`module_invalid_export`.
 
 ### `template`
 

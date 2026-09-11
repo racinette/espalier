@@ -9,7 +9,7 @@
 
 Default-export a single component named after the file.
 
-Example:
+Reference implementation:
 
 ```
 export default function Submit() { … }

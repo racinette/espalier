@@ -11,7 +11,7 @@
 
 Default-export a single component named after the file.
 
-Example: components/buttons/SubmitButton.tsx
+Reference implementation: components/buttons/SubmitButton.tsx
 
 ## Other repository paths
 

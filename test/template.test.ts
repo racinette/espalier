@@ -37,7 +37,7 @@ function write(root: string, relative: string, contents: string): void {
 
 function repository(rule: string, modulePath = "src/[name].ts.mjs"): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-template-"));
-  write(root, "espalier.config.yaml", "version: 1\npin: 0.3.0\nroot: espalier\n");
+  write(root, "espalier.config.yaml", "version: 1\npin: 0.4.0\nroot: espalier\n");
   write(root, `espalier/${modulePath}`, rule);
   return root;
 }
@@ -455,7 +455,7 @@ test("create delegates a target to its nearest child espalier", () => {
     write(
       root,
       "packages/web/espalier.config.yaml",
-      "version: 1\npin: 0.3.0\nroot: espalier\n",
+      "version: 1\npin: 0.4.0\nroot: espalier\n",
     );
     write(root, "packages/web/espalier/src/[name].ts.mjs", SCHEMA_TEMPLATE);
 

@@ -257,9 +257,9 @@ clients/stripe/client.ts:12:3
 2 errors
 ```
 
-Built-in issues have no rule behind them, so they show the deepest recognized node instead of rule text. Issues from rule modules show the rule body and its example.
+Built-in issues have no rule behind them, so they show the deepest recognized node instead of rule text. Issues from rule modules show the rule body and its reference implementation.
 
-`example` is one line and reads as one: `Reference implementation: <path>`. `exampleSource` is source, so it goes under its own heading and is indented like the rule body rather than interpolated into a sentence — a multi-line value in a `Reference implementation:` line breaks the report's indentation, which is the one thing a fixed layout is for.
+`referenceImplementation` is one line and reads as one: `Reference implementation: <path>`. `referenceImplementationSource` is source, so it goes under its own heading and is indented like the rule body rather than interpolated into a sentence — a multi-line value in a `Reference implementation:` line breaks the report's indentation, which is the one thing a fixed layout is for.
 
 ```text
     Reference implementation:

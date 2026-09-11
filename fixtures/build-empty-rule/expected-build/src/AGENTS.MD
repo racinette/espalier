@@ -9,7 +9,7 @@
 
 ## `registry.ts` — the module registry
 
-Example: src/registry.ts
+Reference implementation: src/registry.ts
 
 ## Other repository paths
 

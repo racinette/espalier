@@ -4,12 +4,25 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { findChildren } from "./children.js";
-import { compile, type Espalier } from "./compile.js";
+import {
+  compile,
+  type Constraint,
+  type Espalier,
+  type StructuralRule,
+} from "./compile.js";
 import { IGNORE_FILENAME, loadConfig, type Config } from "./config.js";
 import { fail } from "./errors.js";
-import { collectCandidates, isGenerated, matchGlob } from "./files.js";
+import { collectCandidates, isGenerated } from "./files.js";
 import { compileIgnore, excludedBy, ignores, type IgnoreRule } from "./ignore.js";
-import { isOwnership, resolve, unconditionallyRequired, type Ownership, type Recognition } from "./match.js";
+import {
+  constraintCaptures,
+  isOwnership,
+  resolve,
+  unconditionallyRequired,
+  type Ownership,
+  type Recognition,
+} from "./match.js";
+import { admitsTarget } from "./targets.js";
 import { compileVisibility, hiddenBy, type VisibilityRules } from "./visibility.js";
 
 export interface Repository {
@@ -36,14 +49,25 @@ export interface Repository {
   ungoverned(filePath: string, asDirectory?: boolean): string | null;
 }
 
-function validateExamples(root: string, espalier: Espalier): void {
-  const patterns = new Map<string, { patterns: string[]; example: string | null }>();
+interface ReferenceRule {
+  referenceImplementation: string | null;
+  structural: StructuralRule | null;
+  constraints: Constraint[];
+}
+
+function validateReferenceImplementations(
+  root: string,
+  espalier: Espalier,
+  visible: Set<string>,
+): void {
+  const rules = new Map<string, ReferenceRule>();
 
   const walk = (node: (typeof espalier)["root"]): void => {
     if (node.rule !== null) {
-      patterns.set(node.rule.modulePath, {
-        patterns: [node.rule.pattern],
-        example: node.rule.module.example,
+      rules.set(node.rule.modulePath, {
+        referenceImplementation: node.rule.module.referenceImplementation,
+        structural: node.rule,
+        constraints: [],
       });
     }
     for (const child of node.children.values()) walk(child);
@@ -51,29 +75,56 @@ function validateExamples(root: string, espalier: Espalier): void {
   walk(espalier.root);
 
   for (const constraint of espalier.constraints) {
-    const entry = patterns.get(constraint.modulePath);
+    const entry = rules.get(constraint.modulePath);
     if (entry === undefined) {
-      patterns.set(constraint.modulePath, {
-        patterns: [constraint.pattern],
-        example: constraint.module.example,
+      rules.set(constraint.modulePath, {
+        referenceImplementation: constraint.module.referenceImplementation,
+        structural: null,
+        constraints: [constraint],
       });
     } else {
-      entry.patterns.push(constraint.pattern);
+      entry.constraints.push(constraint);
     }
   }
 
-  for (const [modulePath, { patterns: globs, example }] of patterns) {
-    // `exampleSource` is source and has no file behind it; only `example` is a
-    // path, and only a path can be checked. docs/TYPES.MD.
-    if (example === null) continue;
+  for (const [modulePath, rule] of rules) {
+    const reference = rule.referenceImplementation;
+    if (reference === null) continue;
 
-    if (!existsSync(path.join(root, example))) {
-      fail("invalid_example", `${modulePath}: example "${example}" does not exist`);
-    }
-    if (!globs.some((glob) => matchGlob(glob, example))) {
+    if (!existsSync(path.join(root, reference))) {
       fail(
-        "invalid_example",
-        `${modulePath}: example "${example}" is not matched by this rule's own pattern`,
+        "invalid_reference_implementation",
+        `${modulePath}: reference implementation "${reference}" does not exist`,
+      );
+    }
+    if (!visible.has(reference)) {
+      fail(
+        "invalid_reference_implementation",
+        `${modulePath}: reference implementation "${reference}" is not a visible governed file`,
+      );
+    }
+
+    if (rule.structural !== null) {
+      const owner = resolve(espalier, reference);
+      if (!isOwnership(owner) || owner.rule.modulePath !== modulePath) {
+        fail(
+          "invalid_reference_implementation",
+          `${modulePath}: reference implementation "${reference}" is not owned by this rule`,
+        );
+      }
+      continue;
+    }
+
+    if (
+      !rule.constraints.some(
+        (constraint) =>
+          constraintCaptures(constraint, reference) !== null &&
+          admitsTarget(constraint, reference),
+      )
+    ) {
+      fail(
+        "invalid_reference_implementation",
+        `${modulePath}: reference implementation "${reference}" is not covered by this rule`,
       );
     }
   }
@@ -108,7 +159,6 @@ function readNestedIgnoreFile(root: string, entry: string): string[] {
 
 export async function openConfig(config: Config): Promise<Repository> {
   const espalier = await compile(config.root, config.espalierRoot);
-  validateExamples(config.root, espalier);
 
   // External ignore files define the repository presented to Espalier.
   // `.espalierignore` is a separate, subsequent governance decision and alone
@@ -194,6 +244,7 @@ export async function openConfig(config: Config): Promise<Repository> {
   for (const candidate of candidates) {
     if (ungoverned(candidate) === null) visible.push(candidate);
   }
+  validateReferenceImplementations(config.root, espalier, new Set(visible));
 
   // Ignoring is not declaring. A path both required and ignored is a
   // configuration that asks for both and gets neither.

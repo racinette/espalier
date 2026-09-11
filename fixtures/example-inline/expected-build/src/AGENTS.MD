@@ -11,13 +11,13 @@
 
 One CREATE TABLE per entity, in dependency order.
 
-Example: src/schema.sql
+Reference implementation: src/schema.sql
 
 ## `[migration].sql` — a migration
 
 Forward-only. Never edit a migration that has been applied.
 
-Example:
+Reference implementation:
 
 ```
 -- 001_initial.sql

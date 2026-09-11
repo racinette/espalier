@@ -27,8 +27,8 @@ export interface RuleModule {
   description?: unknown;
   rule?: unknown;
   lint?: unknown;
-  example?: unknown;
-  exampleSource?: unknown;
+  referenceImplementation?: unknown;
+  referenceImplementationSource?: unknown;
   optional?: unknown;
   aggregate?: unknown;
   targets?: unknown;
@@ -40,8 +40,8 @@ export interface LoadedModule {
   description: string | null;
   rule: string;
   lint: (context: unknown) => unknown;
-  example: string | null;
-  exampleSource: string | null;
+  referenceImplementation: string | null;
+  referenceImplementationSource: string | null;
   /** docs/TYPES.MD "optional". Always false for anything but a static leaf. */
   optional: boolean;
   /** docs/TYPES.MD "aggregate". Always false for structural rules. */
@@ -179,18 +179,40 @@ async function loadModule(absolute: string, modulePath: string, kind: ModuleKind
   if (loaded.description !== undefined && typeof loaded.description !== "string") {
     fail("module_invalid_export", `${modulePath}: \`description\` must be a string`);
   }
-  if (loaded.example !== undefined && typeof loaded.example !== "string") {
-    fail("module_invalid_export", `${modulePath}: \`example\` must be a string`);
-  }
-  if (loaded.exampleSource !== undefined && typeof loaded.exampleSource !== "string") {
-    fail("module_invalid_export", `${modulePath}: \`exampleSource\` must be a string`);
-  }
-  // Two examples that could disagree is worse than either, and nothing decides
-  // between them. docs/TYPES.MD "`example` and `exampleSource`".
-  if (typeof loaded.example === "string" && typeof loaded.exampleSource === "string") {
+  if ("example" in loaded || "exampleSource" in loaded) {
     fail(
       "module_invalid_export",
-      `${modulePath}: set \`example\` or \`exampleSource\`, not both`,
+      `${modulePath}: \`example\` and \`exampleSource\` were renamed to \`referenceImplementation\` and \`referenceImplementationSource\``,
+    );
+  }
+  if (
+    loaded.referenceImplementation !== undefined &&
+    typeof loaded.referenceImplementation !== "string"
+  ) {
+    fail(
+      "module_invalid_export",
+      `${modulePath}: \`referenceImplementation\` must be a string`,
+    );
+  }
+  if (
+    loaded.referenceImplementationSource !== undefined &&
+    typeof loaded.referenceImplementationSource !== "string"
+  ) {
+    fail(
+      "module_invalid_export",
+      `${modulePath}: \`referenceImplementationSource\` must be a string`,
+    );
+  }
+  // Two references that could disagree are worse than either, and nothing decides
+  // between them. docs/TYPES.MD "`referenceImplementation` and
+  // `referenceImplementationSource`".
+  if (
+    typeof loaded.referenceImplementation === "string" &&
+    typeof loaded.referenceImplementationSource === "string"
+  ) {
+    fail(
+      "module_invalid_export",
+      `${modulePath}: set \`referenceImplementation\` or \`referenceImplementationSource\`, not both`,
     );
   }
   if (loaded.optional !== undefined && typeof loaded.optional !== "boolean") {
@@ -274,8 +296,14 @@ async function loadModule(absolute: string, modulePath: string, kind: ModuleKind
     description: typeof loaded.description === "string" ? loaded.description : null,
     rule: loaded.rule,
     lint: loaded.lint as (context: unknown) => unknown,
-    example: typeof loaded.example === "string" ? loaded.example : null,
-    exampleSource: typeof loaded.exampleSource === "string" ? loaded.exampleSource : null,
+    referenceImplementation:
+      typeof loaded.referenceImplementation === "string"
+        ? loaded.referenceImplementation
+        : null,
+    referenceImplementationSource:
+      typeof loaded.referenceImplementationSource === "string"
+        ? loaded.referenceImplementationSource
+        : null,
     optional: loaded.optional === true,
     aggregate: loaded.aggregate === true,
     targets:

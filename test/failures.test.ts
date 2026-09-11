@@ -47,7 +47,7 @@ const cli = path.join(
 );
 const api = pathToFileURL(path.join(packageRoot, "dist", "src", "api.js")).href;
 
-const VALID_CONFIG = "version: 1\npin: 0.3.0\nroot: espalier\n";
+const VALID_CONFIG = "version: 1\npin: 0.4.0\nroot: espalier\n";
 
 interface Case {
   /** What the run is refusing, in a few words. */
@@ -88,7 +88,7 @@ const cases: Case[] = [
   {
     what: "a config that is not YAML",
     code: "config_malformed",
-    config: "version: 1\npin: 0.3.0\n  root: [unclosed\n",
+    config: "version: 1\npin: 0.4.0\n  root: [unclosed\n",
   },
   {
     what: "a config that is valid YAML and not a mapping",
@@ -98,7 +98,7 @@ const cases: Case[] = [
   {
     what: "a key that does not exist — the typo this key exists for",
     code: "config_unknown_key",
-    config: "version: 1\npin: 0.3.0\nroot: espalier\nignoreFile: .gitignore\n",
+    config: "version: 1\npin: 0.4.0\nroot: espalier\nignoreFile: .gitignore\n",
   },
   {
     what: "no version at all",
@@ -123,29 +123,29 @@ const cases: Case[] = [
   {
     what: "a key holding the wrong type",
     code: "config_invalid_value",
-    config: "version: 1\npin: 0.3.0\nroot: [espalier]\n",
+    config: "version: 1\npin: 0.4.0\nroot: [espalier]\n",
   },
   {
     what: "a root that escapes the repository",
     code: "config_invalid_value",
-    config: "version: 1\npin: 0.3.0\nroot: ../elsewhere\n",
+    config: "version: 1\npin: 0.4.0\nroot: ../elsewhere\n",
   },
   {
     // A heading is one line, so a name is one line. An empty one would head
     // every document with a bare `#`.
     what: "a name that is not a single line",
     code: "config_invalid_value",
-    config: 'version: 1\npin: 0.3.0\nname: "a\\nb"\nroot: espalier\n',
+    config: 'version: 1\npin: 0.4.0\nname: "a\\nb"\nroot: espalier\n',
   },
   {
     what: "a name that is empty",
     code: "config_invalid_value",
-    config: 'version: 1\npin: 0.3.0\nname: "   "\nroot: espalier\n',
+    config: 'version: 1\npin: 0.4.0\nname: "   "\nroot: espalier\n',
   },
   {
     what: "a root that is not there",
     code: "espalier_root_missing",
-    config: "version: 1\npin: 0.3.0\nroot: absent\n",
+    config: "version: 1\npin: 0.4.0\nroot: absent\n",
   },
   {
     // Normalized, not rejected — `./espalier/` is `espalier`, and
@@ -154,7 +154,7 @@ const cases: Case[] = [
     // make every path invisible, which is not a configuration with a meaning.
     what: "a root that names the repository itself",
     code: "config_invalid_value",
-    config: "version: 1\npin: 0.3.0\nroot: .\n",
+    config: "version: 1\npin: 0.4.0\nroot: .\n",
   },
 
   // The espalier tree. docs/MATCHING.MD.
@@ -254,20 +254,70 @@ export const template = createTemplate(() => "");
     },
   },
   {
-    what: "an `example` that is not a string",
+    what: "a `referenceImplementation` that is not a string",
     code: "module_invalid_export",
     espalier: {
       "src/[name].ts.mjs":
-        'export const description = "a file";\nexport const example = 1;\nexport const rule = `R`;\nexport async function lint() {}\n',
+        'export const description = "a file";\nexport const referenceImplementation = 1;\nexport const rule = `R`;\nexport async function lint() {}\n',
     },
   },
   {
-    what: "an `exampleSource` that is not a string",
+    what: "a `referenceImplementationSource` that is not a string",
     code: "module_invalid_export",
     espalier: {
       "src/[name].ts.mjs":
-        'export const description = "a file";\nexport const exampleSource = 1;\nexport const rule = `R`;\nexport async function lint() {}\n',
+        'export const description = "a file";\nexport const referenceImplementationSource = 1;\nexport const rule = `R`;\nexport async function lint() {}\n',
     },
+  },
+  {
+    what: "a removed `example` export",
+    code: "module_invalid_export",
+    espalier: {
+      "src/[name].ts.mjs": `${INERT}export const example = "src/reference.ts";\n`,
+    },
+  },
+  {
+    what: "a missing reference implementation",
+    code: "invalid_reference_implementation",
+    espalier: {
+      "src/[name].ts.mjs":
+        `${INERT}export const referenceImplementation = "src/missing.ts";\n`,
+    },
+  },
+  {
+    what: "a reference implementation excluded from governance",
+    code: "invalid_reference_implementation",
+    espalier: {
+      "src/[name].ts.mjs":
+        `${INERT}export const referenceImplementation = "src/reference.ts";\n`,
+    },
+    files: {
+      ".espalierignore": "src/reference.ts\n",
+      "src/reference.ts": "export {};\n",
+    },
+  },
+  {
+    what: "a reference implementation owned by a more specific rule",
+    code: "invalid_reference_implementation",
+    espalier: {
+      "src/[name].ts.mjs":
+        `${INERT}export const referenceImplementation = "src/special.ts";\n`,
+      "src/special.ts.mjs": INERT,
+    },
+    files: { "src/special.ts": "export {};\n" },
+  },
+  {
+    what: "a constraint reference implementation excluded by its targets",
+    code: "invalid_reference_implementation",
+    espalier: {
+      "src/[name].ts.mjs": INERT,
+      "[...path]/no-x.ts.mjs": `export const rule = \`No x.\`;
+export const targets = ["src/allowed.ts"];
+export const referenceImplementation = "src/reference.ts";
+export async function lint() {}
+`,
+    },
+    files: { "src/reference.ts": "export {};\n" },
   },
   {
     what: "an `optional` that is not a boolean",
@@ -296,30 +346,30 @@ export const template = createTemplate(() => "");
   {
     what: "a config boolean that is not a boolean",
     code: "config_invalid_value",
-    config: "version: 1\npin: 0.3.0\nroot: espalier\nbuild:\n  inline: yes please\n",
+    config: "version: 1\npin: 0.4.0\nroot: espalier\nbuild:\n  inline: yes please\n",
   },
   {
     what: "an Espalier-guidance setting that is not a boolean",
     code: "config_invalid_value",
-    config: "version: 1\npin: 0.3.0\nroot: espalier\nbuild:\n  espalierGuidance: sometimes\n",
+    config: "version: 1\npin: 0.4.0\nroot: espalier\nbuild:\n  espalierGuidance: sometimes\n",
   },
 
   // Addons. docs/CONFIG.MD "addons".
   {
     what: "an addons module that is not there",
     code: "addons_import_failed",
-    config: "version: 1\npin: 0.3.0\nroot: espalier\naddons: missing.addons.mjs\n",
+    config: "version: 1\npin: 0.4.0\nroot: espalier\naddons: missing.addons.mjs\n",
   },
   {
     what: "an addons module exporting no setup",
     code: "addons_missing_setup",
-    config: "version: 1\npin: 0.3.0\nroot: espalier\naddons: espalier.addons.mjs\n",
+    config: "version: 1\npin: 0.4.0\nroot: espalier\naddons: espalier.addons.mjs\n",
     files: { "espalier.addons.mjs": "export const teardown = () => {};\n" },
   },
   {
     what: "an addons module with malformed implementation dependencies",
     code: "addons_invalid_export",
-    config: "version: 1\npin: 0.3.0\nroot: espalier\naddons: espalier.addons.mjs\n",
+    config: "version: 1\npin: 0.4.0\nroot: espalier\naddons: espalier.addons.mjs\n",
     files: {
       "espalier.addons.mjs":
         'export const unobservedImplementationDependencies = "worker.wasm";\nexport function setup() { return {}; }\n',
@@ -328,7 +378,7 @@ export const template = createTemplate(() => "");
   {
     what: "an addons setup that throws — nothing is linted",
     code: "addons_setup_failed",
-    config: "version: 1\npin: 0.3.0\nroot: espalier\naddons: espalier.addons.mjs\n",
+    config: "version: 1\npin: 0.4.0\nroot: espalier\naddons: espalier.addons.mjs\n",
     files: {
       "espalier.addons.mjs": 'export async function setup() { throw new Error("no parser"); }\n',
     },

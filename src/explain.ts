@@ -199,8 +199,8 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
         rule: visit.node.rule!.modulePath,
         description: visit.node.rule!.module.description,
         ruleText: visit.node.rule!.module.rule.trim(),
-        example: visit.node.rule!.module.example,
-        exampleSource: visit.node.rule!.module.exampleSource,
+        referenceImplementation: visit.node.rule!.module.referenceImplementation,
+        referenceImplementationSource: visit.node.rule!.module.referenceImplementationSource,
         required: required.has(visit.at),
       }));
 
@@ -292,8 +292,8 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     captures: owner.captures,
     description: owner.rule.module.description,
     ruleText: owner.rule.module.rule.trim(),
-    example: owner.rule.module.example,
-    exampleSource: owner.rule.module.exampleSource,
+    referenceImplementation: owner.rule.module.referenceImplementation,
+    referenceImplementationSource: owner.rule.module.referenceImplementationSource,
     constraints,
   });
 
