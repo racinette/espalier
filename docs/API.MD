@@ -5,13 +5,71 @@
 That is the whole difference, and it is what makes rule modules testable. There is no `espalier test` command and there will not be one: assertions, fixtures, reporting and watch mode are what a test framework already does, and reimplementing them inside a linter would produce a worse version of `node:test` with none of the tooling around it. What only `espalier` can supply is the lint context, so that is what it supplies.
 
 ```js
-import { check, runAggregate, runRule } from "espalier";
+import {
+  check,
+  createAggregateLinter,
+  createLinter,
+  createTemplate,
+  runAggregate,
+  runRule,
+} from "espalier";
 ```
 
 Three entry points answer three questions. **Does this repository conform?** is
 `check`. **Does this per-file rule catch what it was written to catch?** is
 `runRule`. **Does this collective rule analyze its group correctly?** is
 `runAggregate`.
+
+`createTemplate` is the definition helper rule modules use for the separate
+`espalier create` command; it performs no filesystem operation itself.
+
+`createLinter` and `createAggregateLinter` are identity helpers that provide
+contextual types to rule callbacks. They do not run a rule or change its
+runtime contract; their complete type surface is documented in
+[TYPES.MD](TYPES.MD#typed-linter-helpers).
+
+## `createTemplate`
+
+Defines the optional `template` export on a structural rule module. With a
+schema, its keys are inferred into the renderer argument:
+
+```js
+import { createTemplate } from "espalier";
+
+export const template = createTemplate(
+  {
+    name: {
+      type: "string",
+      required: true,
+      description: "Name to place in the generated source",
+      examples: ["answer", "result"],
+    },
+    exported: {
+      type: "flag",
+      description: "Export the declaration",
+      includeInExample: true,
+    },
+  },
+  ({ name, exported }, { path }) =>
+    `${exported ? "export " : ""}const name = ${JSON.stringify(name)}; // ${path}\n`,
+);
+```
+
+Without template arguments, omit the schema. The renderer receives only the
+concrete path and structural captures:
+
+```js
+export const template = createTemplate(
+  ({ captures }) => `export const name = ${JSON.stringify(captures.name)};\n`,
+);
+```
+
+Both renderers may return either a string or `Promise<string>`, and may ignore
+the context when it is unnecessary. `examples` is documentation metadata used
+to render an invocation; it never acts as a default. The complete schema
+contract and its CLI mapping are specified in
+[TYPES.MD](TYPES.MD#template); path selection and write safety are specified in
+[`espalier create`](cli/create/README.MD).
 
 ## `check(options)`
 

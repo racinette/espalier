@@ -39,6 +39,8 @@ place is a list that stops matching the modules.
     │
     ├─ context.ts         the lint context handed to rules (required)
     │
+    ├─ create.ts          the create command (required)
+    │
     ├─ errors.ts          operational failures (required)
     │
     ├─ explain.ts         the explain command (required)
@@ -55,6 +57,8 @@ place is a list that stops matching the modules.
     │
     ├─ lint.ts            the lint command (required)
     │
+    ├─ linter.ts          contextual typing helpers for rule linters (required)
+    │
     ├─ match.ts           ownership, requiredness, and the deepest recognized
     │                     node (required)
     │
@@ -69,6 +73,8 @@ place is a list that stops matching the modules.
     ├─ repository.ts      what lint and explain both work from (required)
     │
     ├─ targets.ts         constraint target selection (required)
+    │
+    ├─ template.ts        file-creation template definitions (required)
     │
     ├─ version.ts         the running package version (required)
     │
@@ -87,15 +93,22 @@ linter that fails over its own bookkeeping is worse than a slow one.
 
 ## `cli.ts` — argument parsing and dispatch
 
-Carries the flags every command accepts, and each one is also written into
-that command's page under `docs/cli/`. The duplication is deliberate: a reader
-looking up a command should not have to read the parser.
+Carries each command's grammar, and each one is also written into that
+command's page under `docs/cli/`. The duplication is deliberate: a reader
+looking up a command should not have to read the parser. Create reserves only
+the positional `help` action; its long flags belong to the selected template.
 
 ## `context.ts` — the lint context handed to rules
 
 Built once and used by both the runner and the programmatic API, because
 `docs/API.MD` promises a rule fails under test for the reason it fails in
 production. Two implementations would make that a coincidence.
+
+## `create.ts` — the create command
+
+Creates only absent files declared by structural rules,
+using an exported template when present and an empty file otherwise. Never
+overwrites source.
 
 ## `errors.ts` — operational failures
 
@@ -106,6 +119,12 @@ code nothing raises.
 ## `implementation.ts` — rule implementation dependency observation
 
 Observes the modules loaded by rules and addons without changing how Node resolves or loads them. An observation that cannot be validated disables cache replay; uncertainty is never a cache hit.
+
+## `linter.ts` — contextual typing helpers for rule linters
+
+Exports identity helpers and the context types they apply.
+Plain lint functions remain valid; typing helpers must not introduce a second
+runtime protocol.
 
 ## `output.ts` — formats and destinations
 
@@ -124,6 +143,14 @@ think about twice.
 Derive narrowed target patterns from the compiled constraint and
 apply them identically in lint and explain. Target selection filters candidates; it
 does not change structural ownership.
+
+## `template.ts` — file-creation template definitions
+
+Owns the public template schema and factory independently
+of command dispatch. The schema is flat because it maps to flat CLI flags;
+examples document invocations but never become runtime defaults. Renderers
+receive the concrete owned path and its structural captures so they can derive
+names from the destination instead of asking callers to repeat them.
 
 ## `version.ts` — the running package version
 

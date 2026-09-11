@@ -23,6 +23,22 @@ export async function lint(context) {
 }
 ```
 
+The function export above is the complete runtime contract and remains valid.
+For contextual TypeScript and editor types, the package also exports identity
+helpers:
+
+```js
+import { createLinter } from "espalier";
+
+export const lint = createLinter(async ({ path, captures, read, files, emit, addons }) => {
+  const source = await read();
+  // Every context member and emitted issue is typed here.
+});
+```
+
+See [Typed linter helpers](#typed-linter-helpers) for specialization and the
+aggregate form.
+
 | Export | Required | |
 |---|---|---|
 | `description` | structural only | what this file is, in one phrase |
@@ -34,6 +50,7 @@ export async function lint(context) {
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs that narrow the governed files admitted by a constraint |
 | `unobservedImplementationDependencies` | no | explicit implementation inputs that module observation cannot see |
+| `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
 
 ### `description`
 
@@ -91,6 +108,114 @@ export default function Submit() { … }
 **`exampleSource` is the source itself**, for the case the path form cannot serve: no conforming file exists yet. It carries none of the guarantees — there is no file to check, nothing to lint, and nothing that notices when it goes stale. Replace it with a path as soon as one file conforms.
 
 They are two exports rather than one because a value has to say which it is. Deciding by inspection means a rule that looks like a path is a path, and a mistyped path then becomes a code sample nobody validates — trading a compile-time error for a silent one. **Setting both is a specification error**: two examples that could disagree is worse than either, and the run exits `2` with `module_invalid_export`.
+
+### `template`
+
+A structural rule may export a file-creation template:
+
+```js
+import { createTemplate, type TemplateContext } from "espalier";
+
+interface ComponentCaptures {
+  name: string;
+}
+
+export const template = createTemplate(
+  {
+    style: {
+      type: "string",
+      choices: ["css", "module", "none"],
+      default: "module",
+      description: "Styling strategy",
+      examples: ["module", "css"],
+    },
+    "with-story": {
+      type: "flag",
+      description: "Create a Storybook story",
+      includeInExample: true,
+    },
+  },
+  (
+    { style, "with-story": withStory },
+    { captures }: TemplateContext<ComponentCaptures>,
+  ) =>
+    `export function ${captures.name}() { return null; }\n` +
+    `// style: ${style}; story: ${withStory}\n`,
+);
+```
+
+`espalier create <path>` resolves the concrete path to its structural owner and
+uses that rule's template. A template returns the file contents only; the
+structural rule decides where the file may go. This keeps creation inside the
+same ownership model that `lint`, `explain`, and generated documentation use.
+When `template` is absent, `create` writes an empty file: every declared file
+has a safe baseline creation behavior, while the export is reserved for rules
+with a meaningful starting point or arguments. Constraints may not export
+templates because they apply to files owned by structural rules and declare no
+destination of their own.
+
+The schema is a flat object because command-line flags are flat. Every key is
+the exact long flag name: no camel-case or kebab-case conversion takes place.
+Keys contain letters, numbers, and hyphens and begin with a letter. Every option
+has a non-empty `description`, which is shown by
+`espalier create <path> help`. Help is a positional action rather than a flag,
+so no long flag names are reserved by the create command.
+
+String options support:
+
+| Field | Default | |
+|---|---|---|
+| `type` | required | `"string"` |
+| `description` | required | help text |
+| `required` | `false` | require the flag; cannot be combined with a default |
+| `default` | none | a string, or an array when `multiple` is true |
+| `examples` | none | a non-empty list of documentation-only values |
+| `choices` | unrestricted | a non-empty list of accepted strings |
+| `multiple` | `false` | collect repeated flags into an array |
+| `metavar` | `"value"` | value name displayed by help; choices replace it when no metavar is set |
+
+Presence-only options use `type: "flag"`, not `"boolean"`: the CLI accepts
+`--with-export`, not a boolean value. A flag accepts `description` and optional
+`includeInExample: true`; it has no configurable default. Its absence supplies
+`false` to the renderer and its presence supplies `true`, so it is always
+present in the renderer arguments. A repeated string is always an array. A
+required string and a string with a default are also always present. An
+optional string without a default may be absent.
+
+Examples affect help only and never supply renderer arguments. When any option
+has an example—or a required string needs a placeholder—creation help adds an
+`Example:` invocation in schema order. A scalar string uses the first entry in
+`examples`; a repeated option repeats its flag once for every entry; and
+`includeInExample: true` includes a presence-only flag. Help displays every
+declared example. Required strings without examples use their metavar, choices,
+or `value` between angle brackets. Examples must be non-empty and must satisfy
+`choices` when present.
+
+The renderer's final argument is `{ path, captures }`. `path` is the concrete
+path relative to the repository that owns the rule. `captures` contains the
+values bound by that rule's structural placeholders, so a rule stored at
+`components/[name].tsx.mjs` can derive `AccountCard` directly from a request for
+`components/AccountCard.tsx`. Repeated captures are arrays, as they are for a
+linter, and backreferences bind no additional value.
+
+The renderer may be synchronous or asynchronous and must return a string.
+Espalier writes it verbatim. A template with no options uses the overload that
+omits the schema and the template-arguments object; its sole argument is still
+the creation context:
+
+```js
+export const template = createTemplate(
+  ({ captures }) => `export const name = ${JSON.stringify(captures.name)};\n`,
+);
+```
+
+A zero-parameter callback remains valid when the template needs neither
+arguments nor context.
+
+`createTemplate` brands the definition so an arbitrary object that merely
+resembles one is rejected as `module_invalid_export`. Schema contradictions,
+unknown descriptor keys, invalid defaults, and a template exported from a
+constraint are rejected at module compilation for the same reason.
 
 ### `optional`
 
@@ -187,6 +312,85 @@ As with any issue, `emit({ path })` may attach it somewhere more specific.
 All extensions in one constraint leaf form one group. A module named
 `coverage.{ts,tsx}.mjs` receives the combined TypeScript and TSX match set, not
 one invocation per extension.
+
+## Typed linter helpers
+
+`createLinter` supplies the ordinary per-file context type and returns the exact
+function it receives:
+
+```js
+import { createLinter } from "espalier";
+
+export const lint = createLinter(async ({
+  path,
+  pattern,
+  captures,
+  read,
+  files,
+  emit,
+  addons,
+}) => {
+  // ...
+});
+```
+
+It is optional and has no runtime protocol of its own. A previously written
+`export async function lint(context) {}` remains valid, and compilation still
+checks only that `lint` is a function.
+
+`createAggregateLinter` supplies the distinct aggregate context:
+
+```js
+export const aggregate = true;
+
+export const lint = createAggregateLinter(async ({
+  matches,
+  pattern,
+  read,
+  files,
+  emit,
+  addons,
+}) => {
+  // ...
+});
+```
+
+The `aggregate = true` export remains the runtime declaration. The helper does
+not infer or alter execution mode; using the ordinary or aggregate helper is a
+typing choice, while the module export is what the compiler obeys.
+
+Both helpers accept two optional type parameters, captures first and addons
+second:
+
+```ts
+interface ProjectAddons {
+  parser: Parser;
+}
+
+export const lint = createLinter<
+  { component: string },
+  ProjectAddons
+>(async ({ captures, addons }) => {
+  captures.component; // string
+  addons.parser;       // Parser
+});
+```
+
+Capture names come from the rule module's filename at runtime, which a
+TypeScript declaration imported from `espalier` cannot inspect. The default is
+therefore `Record<string, string | string[]>`; specializing it states what the
+module's own path already promises. Addons similarly default to
+`Record<string, unknown>` because their shape belongs to the configured addons
+module rather than to Espalier.
+
+The exported type surface is:
+
+- `LintIssue` and `EmitIssue`
+- `ReadFile`, `AggregateReadFile`, and `ListFiles`
+- `LintContext<Captures, Addons>` and `Linter<Captures, Addons>`
+- `LintMatch<Captures>`
+- `AggregateLintContext<Captures, Addons>` and
+  `AggregateLinter<Captures, Addons>`
 
 ## Captures
 

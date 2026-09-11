@@ -36,16 +36,18 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
+const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const cli = path.join(
-  path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".."),
+  packageRoot,
   "dist",
   "src",
   "cli.js",
 );
+const api = pathToFileURL(path.join(packageRoot, "dist", "src", "api.js")).href;
 
-const VALID_CONFIG = "version: 1\npin: 0.2.0\nroot: espalier\n";
+const VALID_CONFIG = "version: 1\npin: 0.3.0\nroot: espalier\n";
 
 interface Case {
   /** What the run is refusing, in a few words. */
@@ -72,12 +74,21 @@ function write(root: string, relative: string, contents: string): void {
 /** A rule module that is valid and does nothing, for the cases about something else. */
 const INERT = 'export const description = "a file";\nexport const rule = `Nothing.`;\nexport async function lint() {}\n';
 
+function templated(definition: string): string {
+  return `import { createTemplate } from ${JSON.stringify(api)};
+export const description = "a generated file";
+export const rule = \`Generated.\`;
+export async function lint() {}
+export const template = ${definition};
+`;
+}
+
 const cases: Case[] = [
   // Configuration. docs/CONFIG.MD.
   {
     what: "a config that is not YAML",
     code: "config_malformed",
-    config: "version: 1\npin: 0.2.0\n  root: [unclosed\n",
+    config: "version: 1\npin: 0.3.0\n  root: [unclosed\n",
   },
   {
     what: "a config that is valid YAML and not a mapping",
@@ -87,7 +98,7 @@ const cases: Case[] = [
   {
     what: "a key that does not exist — the typo this key exists for",
     code: "config_unknown_key",
-    config: "version: 1\npin: 0.2.0\nroot: espalier\nignoreFile: .gitignore\n",
+    config: "version: 1\npin: 0.3.0\nroot: espalier\nignoreFile: .gitignore\n",
   },
   {
     what: "no version at all",
@@ -112,29 +123,29 @@ const cases: Case[] = [
   {
     what: "a key holding the wrong type",
     code: "config_invalid_value",
-    config: "version: 1\npin: 0.2.0\nroot: [espalier]\n",
+    config: "version: 1\npin: 0.3.0\nroot: [espalier]\n",
   },
   {
     what: "a root that escapes the repository",
     code: "config_invalid_value",
-    config: "version: 1\npin: 0.2.0\nroot: ../elsewhere\n",
+    config: "version: 1\npin: 0.3.0\nroot: ../elsewhere\n",
   },
   {
     // A heading is one line, so a name is one line. An empty one would head
     // every document with a bare `#`.
     what: "a name that is not a single line",
     code: "config_invalid_value",
-    config: 'version: 1\npin: 0.2.0\nname: "a\\nb"\nroot: espalier\n',
+    config: 'version: 1\npin: 0.3.0\nname: "a\\nb"\nroot: espalier\n',
   },
   {
     what: "a name that is empty",
     code: "config_invalid_value",
-    config: 'version: 1\npin: 0.2.0\nname: "   "\nroot: espalier\n',
+    config: 'version: 1\npin: 0.3.0\nname: "   "\nroot: espalier\n',
   },
   {
     what: "a root that is not there",
     code: "espalier_root_missing",
-    config: "version: 1\npin: 0.2.0\nroot: absent\n",
+    config: "version: 1\npin: 0.3.0\nroot: absent\n",
   },
   {
     // Normalized, not rejected — `./espalier/` is `espalier`, and
@@ -143,7 +154,7 @@ const cases: Case[] = [
     // make every path invisible, which is not a configuration with a meaning.
     what: "a root that names the repository itself",
     code: "config_invalid_value",
-    config: "version: 1\npin: 0.2.0\nroot: .\n",
+    config: "version: 1\npin: 0.3.0\nroot: .\n",
   },
 
   // The espalier tree. docs/MATCHING.MD.
@@ -212,6 +223,25 @@ const cases: Case[] = [
     },
   },
   {
+    what: "a template-shaped object not created by the public factory",
+    code: "module_invalid_export",
+    espalier: {
+      "src/[name].ts.mjs": `${INERT}export const template = { schema: null, render() { return ""; } };\n`,
+    },
+  },
+  {
+    what: "a template exported from a constraint",
+    code: "module_invalid_export",
+    espalier: {
+      "src/[name].ts.mjs": INERT,
+      "[...path]/generated.ts.mjs": `import { createTemplate } from ${JSON.stringify(api)};
+export const rule = \`Generated.\`;
+export async function lint() {}
+export const template = createTemplate(() => "");
+`,
+    },
+  },
+  {
     // On a constraint, where `description` is optional. A structural module
     // missing one is `module_missing_export`, and that check runs first — so
     // this branch is reachable only through the kind that does not require it.
@@ -266,30 +296,30 @@ const cases: Case[] = [
   {
     what: "a config boolean that is not a boolean",
     code: "config_invalid_value",
-    config: "version: 1\npin: 0.2.0\nroot: espalier\nbuild:\n  inline: yes please\n",
+    config: "version: 1\npin: 0.3.0\nroot: espalier\nbuild:\n  inline: yes please\n",
   },
   {
     what: "an Espalier-guidance setting that is not a boolean",
     code: "config_invalid_value",
-    config: "version: 1\npin: 0.2.0\nroot: espalier\nbuild:\n  espalierGuidance: sometimes\n",
+    config: "version: 1\npin: 0.3.0\nroot: espalier\nbuild:\n  espalierGuidance: sometimes\n",
   },
 
   // Addons. docs/CONFIG.MD "addons".
   {
     what: "an addons module that is not there",
     code: "addons_import_failed",
-    config: "version: 1\npin: 0.2.0\nroot: espalier\naddons: missing.addons.mjs\n",
+    config: "version: 1\npin: 0.3.0\nroot: espalier\naddons: missing.addons.mjs\n",
   },
   {
     what: "an addons module exporting no setup",
     code: "addons_missing_setup",
-    config: "version: 1\npin: 0.2.0\nroot: espalier\naddons: espalier.addons.mjs\n",
+    config: "version: 1\npin: 0.3.0\nroot: espalier\naddons: espalier.addons.mjs\n",
     files: { "espalier.addons.mjs": "export const teardown = () => {};\n" },
   },
   {
     what: "an addons module with malformed implementation dependencies",
     code: "addons_invalid_export",
-    config: "version: 1\npin: 0.2.0\nroot: espalier\naddons: espalier.addons.mjs\n",
+    config: "version: 1\npin: 0.3.0\nroot: espalier\naddons: espalier.addons.mjs\n",
     files: {
       "espalier.addons.mjs":
         'export const unobservedImplementationDependencies = "worker.wasm";\nexport function setup() { return {}; }\n',
@@ -298,7 +328,7 @@ const cases: Case[] = [
   {
     what: "an addons setup that throws — nothing is linted",
     code: "addons_setup_failed",
-    config: "version: 1\npin: 0.2.0\nroot: espalier\naddons: espalier.addons.mjs\n",
+    config: "version: 1\npin: 0.3.0\nroot: espalier\naddons: espalier.addons.mjs\n",
     files: {
       "espalier.addons.mjs": 'export async function setup() { throw new Error("no parser"); }\n',
     },
@@ -349,6 +379,54 @@ export async function lint(context) {
     what: "adopt, given nothing to adopt",
     code: "missing_argument",
     args: ["adopt"],
+  },
+  {
+    what: "create, given a path no structural rule declares",
+    code: "invalid_create_target",
+    espalier: { "src/[name].ts.mjs": templated('createTemplate(() => "")') },
+    args: ["create", "elsewhere/new.ts"],
+  },
+  {
+    what: "create, missing one required template flag",
+    code: "invalid_template_arguments",
+    espalier: {
+      "src/[name].ts.mjs": templated(
+        'createTemplate({ name: { type: "string", required: true, description: "Name" } }, ({ name }) => name)',
+      ),
+    },
+    args: ["create", "src/new.ts"],
+  },
+  {
+    what: "create, whose target already exists",
+    code: "create_target_exists",
+    espalier: { "src/[name].ts.mjs": templated('createTemplate(() => "generated")') },
+    files: { "src/existing.ts": "preserve me\n" },
+    args: ["create", "src/existing.ts"],
+  },
+  {
+    what: "create, whose template renderer throws",
+    code: "template_threw",
+    espalier: {
+      "src/[name].ts.mjs": templated(
+        'createTemplate(() => { throw new Error("cannot render"); })',
+      ),
+    },
+    args: ["create", "src/new.ts"],
+  },
+  {
+    what: "create, whose template renderer returns a non-string",
+    code: "template_invalid_result",
+    espalier: { "src/[name].ts.mjs": templated("createTemplate(() => 42)") },
+    args: ["create", "src/new.ts"],
+  },
+  {
+    what: "create, whose parent path is a file",
+    code: "create_write_failed",
+    espalier: {
+      "blocked/[name].ts.mjs": templated('createTemplate(() => "generated")'),
+    },
+    files: { blocked: "not a directory\n" },
+    args: ["create", "blocked/new.ts"],
   },
   {
     what: "init, where a configuration already is",
@@ -428,24 +506,33 @@ for (const example of cases) {
         write(root, at, contents);
       }
 
-      const result = spawnSync(
-        process.execPath,
-        [cli, ...(example.args ?? ["lint"]), "--format", "jsonl"],
-        { cwd: path.join(root, example.cwd ?? "."), encoding: "utf8" },
-      );
+      const args = example.args ?? ["lint"];
+      const create = args[0] === "create";
+      const result = spawnSync(process.execPath, [cli, ...args, ...(create ? [] : ["--format", "jsonl"])], {
+        cwd: path.join(root, example.cwd ?? "."),
+        encoding: "utf8",
+      });
       if (result.error) throw result.error;
 
-      const failures = result.stdout
-        .split("\n")
-        .filter((line) => line.trim() !== "")
-        .map((line) => JSON.parse(line) as Record<string, unknown>)
-        .filter((line) => line["kind"] === "failure");
+      if (create) {
+        assert.match(
+          result.stdout,
+          new RegExp(`\\(${example.code}\\)\\n$`),
+          `stdout was:\n${result.stdout}${result.stderr}`,
+        );
+      } else {
+        const failures = result.stdout
+          .split("\n")
+          .filter((line) => line.trim() !== "")
+          .map((line) => JSON.parse(line) as Record<string, unknown>)
+          .filter((line) => line["kind"] === "failure");
 
-      assert.deepEqual(
-        failures.map((line) => line["code"]),
-        [example.code],
-        `stdout was:\n${result.stdout}${result.stderr}`,
-      );
+        assert.deepEqual(
+          failures.map((line) => line["code"]),
+          [example.code],
+          `stdout was:\n${result.stdout}${result.stderr}`,
+        );
+      }
       // The exit code is the authority on whether the output means anything.
       assert.equal(result.status, 2);
     } finally {

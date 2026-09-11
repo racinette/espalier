@@ -4,7 +4,7 @@
 
 ```yaml
 version: 1
-pin: 0.2.0
+pin: 0.3.0
 
 name: acme-web
 
@@ -42,7 +42,7 @@ The exact Espalier CLI version this repository expects:
 
 ```yaml
 version: 1
-pin: 0.2.0
+pin: 0.3.0
 ```
 
 `version` describes the configuration schema; `pin` describes the implementation interpreting it. `espalier init` records the running package version, and every later command compares itself with that value before compiling the espalier or reading repository files.
@@ -55,7 +55,10 @@ The pin does not dictate how the CLI is installed. A global installation, a loca
 
 `espalier` walks upward from the working directory until it finds `espalier.config.yaml`. **The directory containing that file is the repository root**, and every path in the config, every path in an issue, and every path in the espalier tree is relative to it.
 
-`--config <path>` overrides discovery. The root becomes that file's directory, regardless of where the command was invoked.
+For commands that accept it, `--config <path>` overrides discovery. The root
+becomes that file's directory, regardless of where the command was invoked.
+`create` deliberately has no framework flags after its path, so it always uses
+discovery and leaves every long option name available to the selected template.
 
 If no config is found, `espalier` exits `2`. There is no implicit default configuration, because guessing a repository root is a good way to lint someone's home directory.
 
@@ -232,7 +235,7 @@ repository's own `.gitignore`.
 
 **A symlink is followed.** A link to a file is a file, a link to a directory is walked, and neither is a category of its own.
 
-Skipping them would make a sixth thing invisible unconditionally, and it would be the only one invisible without anybody having decided so. `espalier` never writes to the files it governs, so a link is nothing more than a second path to something it reads. A link you do not want governed is an `.espalierignore` entry, like everything else you do not want governed.
+Skipping them would make a sixth thing invisible unconditionally, and it would be the only one invisible without anybody having decided so. For linting, a link is nothing more than a second path to something read. `espalier create` writes only a concrete path the caller requested, and follows a link in that path as the filesystem does. A link you do not want governed or written through is an `.espalierignore` entry, like everything else you do not want governed.
 
 The consequence is worth stating plainly: **a link pointing outside the repository brings what it points at into the governed set.** Its content is linted under the path the link occupies, and a rule can `read` it there. That is the link's doing rather than `espalier`'s, and it is undone the way any other unwanted path is.
 

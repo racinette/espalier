@@ -6,6 +6,7 @@
 import { parseArgs } from "node:util";
 import { adopt } from "./adopt.js";
 import { build } from "./build.js";
+import { create } from "./create.js";
 import { OperationalError } from "./errors.js";
 import { explain } from "./explain.js";
 import { init } from "./init.js";
@@ -17,9 +18,12 @@ const USAGE = `espalier <command> [options]
   init                  write the configuration and create the espalier root
   build                 generate the repository's agent-facing documentation
   adopt <path>          infer a directory's shape and write stub rule modules
+  create <path>         create a structurally declared absent file
+  create <path> help    show how that file will be created
   lint [paths...]       validate the repository against the espalier
   explain <path>        what the espalier says about a path
 
+  options shared by every command except create:
   --format human|jsonl  output format (default: human)
   --out <dest>          stdout, stderr, or a file path (default: stdout)
   --config <path>       use this config file instead of discovering one
@@ -46,6 +50,31 @@ const USAGE = `espalier <command> [options]
   --no-cache            re-run every rule, and write no cache
 `;
 
+async function runCreate(argv: string[]): Promise<number> {
+  const reporter = createReporter("human", "stdout", process.cwd(), "create");
+  try {
+    const target = argv[0];
+    if (target === undefined || target.startsWith("-")) {
+      reporter.failure("missing_argument", "create needs a file path");
+      return 2;
+    }
+    return await create({
+      cwd: process.cwd(),
+      target,
+      args: argv.slice(1),
+    }, reporter);
+  } catch (cause) {
+    if (cause instanceof OperationalError) {
+      reporter.failure(cause.code, cause.message, cause.detail);
+    } else {
+      reporter.failure("internal_error", (cause as Error).stack ?? String(cause));
+    }
+    return 2;
+  } finally {
+    reporter.finish();
+  }
+}
+
 async function main(): Promise<number> {
   const argv = process.argv.slice(2);
   const command = argv[0];
@@ -55,11 +84,13 @@ async function main(): Promise<number> {
     return command === undefined ? 2 : 0;
   }
 
-  const COMMANDS = new Set(["lint", "explain", "build", "init", "adopt"]);
+  const COMMANDS = new Set(["lint", "explain", "build", "init", "adopt", "create"]);
   if (!COMMANDS.has(command)) {
     process.stderr.write(`espalier: unknown command "${command}"\n\n${USAGE}`);
     return 2;
   }
+
+  if (command === "create") return await runCreate(argv.slice(1));
 
   let values: Record<string, unknown>;
   let positionals: string[];

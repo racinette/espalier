@@ -8,6 +8,11 @@ import { parse as parseYaml } from "yaml";
 import { fail } from "./errors.js";
 import { inspect, readEntries } from "./files.js";
 import {
+  isTemplateDefinition,
+  templateDefinitionProblem,
+  type TemplateDefinition,
+} from "./template.js";
+import {
   backrefNames,
   captureNames,
   intersects,
@@ -28,6 +33,7 @@ export interface RuleModule {
   aggregate?: unknown;
   targets?: unknown;
   unobservedImplementationDependencies?: unknown;
+  template?: unknown;
 }
 
 export interface LoadedModule {
@@ -43,6 +49,8 @@ export interface LoadedModule {
   targets: string[] | null;
   /** Explicit cache inputs that ordinary module observation cannot see. */
   unobservedImplementationDependencies: string[];
+  /** A file-creation template, available only on structural rules. */
+  template: TemplateDefinition | null;
 }
 
 /**
@@ -237,6 +245,18 @@ async function loadModule(absolute: string, modulePath: string, kind: ModuleKind
       `${modulePath}: \`unobservedImplementationDependencies\` must be an array of non-empty relative positive glob strings`,
     );
   }
+  if (loaded.template !== undefined) {
+    const problem = templateDefinitionProblem(loaded.template);
+    if (problem !== null) {
+      fail("module_invalid_export", `${modulePath}: \`template\` ${problem}`);
+    }
+    if (!structural) {
+      fail(
+        "module_invalid_export",
+        `${modulePath}: \`template\` has no meaning on a constraint; templates create structurally owned files`,
+      );
+    }
+  }
   if (loaded.aggregate !== undefined && kind !== "constraint") {
     fail(
       "module_invalid_export",
@@ -268,6 +288,7 @@ async function loadModule(absolute: string, modulePath: string, kind: ModuleKind
         : [...new Set(loaded.unobservedImplementationDependencies as string[])].sort((left, right) =>
             left.localeCompare(right),
           ),
+    template: isTemplateDefinition(loaded.template) ? loaded.template : null,
   };
 }
 

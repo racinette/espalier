@@ -49,8 +49,10 @@ Each `.mjs` file declares:
 - a **content description** — what kind of file this represents
 - a **rule** — the natural-language conventions that file must follow
 - a **lint function** — the deterministic check that verifies adherence
+- optionally, a **template** — a typed, documented way to create that kind of file
 
-From this single source, `espalier` produces two things:
+From this single source, `espalier` produces two standing surfaces and an
+optional construction entry point:
 
 **Documentation**, written into the repository by `espalier build`:
 
@@ -60,7 +62,21 @@ From this single source, `espalier` produces two things:
 
 > After the agent writes or edits a file, `espalier lint` verifies the result. Violations are emitted as machine-readable issues, each carrying the rule text it violated. The agent revises until validation succeeds.
 
+**Creation**, invoked for any structural rule by `espalier create`:
+
+> Given a concrete absent path, Espalier selects its structural owner and writes
+> either its rendered template or an empty file. A custom template's schema
+> becomes CLI flags, and creation never overwrites an existing file.
+
 Guidance steers and the linter corrects. Both describe the same conventions, because both derive from the same rule module.
+
+`espalier create <path>` can create any structurally declared absent file. The
+concrete path selects its owner; a custom template supplies initial contents and
+a small schema of documented CLI flags, while a rule without one creates an
+empty file. A renderer receives that concrete path and the owning rule's
+placeholder captures. `espalier create <path> help` describes either behavior
+without writing. See
+[`espalier create`](docs/cli/create/README.MD).
 
 ## The convergence loop
 
@@ -216,10 +232,17 @@ export const rule = String.raw`
 The natural-language guidance. Markdown is supported.
 `;
 
-export async function lint(context) {
+import { createLinter } from "espalier";
+
+export const lint = createLinter(async (context) => {
   // deterministic validation
-}
+});
 ```
+
+`createLinter` provides contextual editor and TypeScript types and returns the
+same function unchanged. It is optional: ordinary `export function lint(...)`
+rules remain valid. Aggregate constraints have the corresponding
+`createAggregateLinter` helper.
 
 The `description` is one line, and it is what appears in the project map beside the path. Because the map is the part of the documentation that is always in context, write it in the vocabulary of the task rather than of the architecture — an agent asked to add a `User` type will not necessarily connect that to the phrase "a domain model."
 

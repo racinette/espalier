@@ -43,6 +43,9 @@ export function delegated(reporter: Reporter, at: string): Reporter {
           : { path: under(at, answer.path) };
       reporter.explanation({ ...answer, ...where, espalier: origin(answer.espalier) });
     },
+    help(text: string): void {
+      reporter.help(text);
+    },
     record(entry: BuildEntry): void {
       reporter.record({
         ...entry,

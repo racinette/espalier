@@ -274,7 +274,7 @@ test("a config that names no ignore file reads none", () => {
     // so a hand-written config assumes nothing and a `.gitignore` sitting in
     // the repository does not quietly become policy.
     writeFileSync(path.join(root, ".gitignore"), "main.ts\n.gitignore\n");
-    writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.2.0\nroot: espalier\n");
+    writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.3.0\nroot: espalier\n");
 
     const run = espalier(root, ["lint", "--format", "jsonl"]);
     assert.equal(run.status, 1);
@@ -388,7 +388,7 @@ test("a config naming an ignore file that is gone fails every command", () => {
     writeFileSync(path.join(root, ".gitignore"), "dist/\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.2.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
+      "version: 1\npin: 0.3.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
     );
     assert.equal(espalier(root, ["lint"]).status, 1, "a present ignore file stopped the run");
 
@@ -409,7 +409,7 @@ test("a file ignoreFiles names is invisible, not merely ignored", () => {
     writeFileSync(path.join(root, ".customignore"), "dist/\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.2.0\nroot: espalier\nignoreFiles:\n  - .customignore\n",
+      "version: 1\npin: 0.3.0\nroot: espalier\nignoreFiles:\n  - .customignore\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "main.ts\n");
 
@@ -433,7 +433,7 @@ test("explain and lint agree about a path under a pruned directory", () => {
     writeFileSync(path.join(root, "vendor", "deep", "lib.ts"), "");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.2.0\nroot: espalier\n",
+      "version: 1\npin: 0.3.0\nroot: espalier\n",
     );
     writeFileSync(
       path.join(root, ".espalierignore"),
@@ -459,7 +459,7 @@ test("a back-reference needs every instance, not two of them", () => {
     writeFileSync(path.join(root, ".gitignore"), "");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.2.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
+      "version: 1\npin: 0.3.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
     );
     writeFileSync(
       path.join(root, ".espalierignore"),

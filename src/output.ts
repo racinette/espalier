@@ -1,8 +1,10 @@
 // Formats and destinations. docs/cli/lint/README.MD "Output".
 //
-// `--format` chooses the encoding and `--out` the destination, independently.
-// Everything the run has to say goes through both: issues, the partial-run
-// warning, an operational failure. There is no second channel.
+// For commands that expose them, `--format` chooses the encoding and `--out`
+// the destination, independently. Everything such a run has to say goes
+// through both: issues, the partial-run warning, an operational failure. There
+// is no second channel. `create` fixes these to human/stdout so its argument
+// namespace belongs entirely to the template.
 
 import { closeSync, openSync, writeSync } from "node:fs";
 import path from "node:path";
@@ -43,7 +45,7 @@ export type Format = "human" | "jsonl";
  * "3 files written" and "no issues" are not interchangeable closing lines, and
  * only the caller knows which question was asked.
  */
-export type Mode = "lint" | "build" | "explain" | "init" | "adopt";
+export type Mode = "lint" | "build" | "explain" | "init" | "adopt" | "create";
 
 export type DriftState = "missing" | "changed" | "stale";
 
@@ -87,6 +89,7 @@ export interface Reporter {
     espalier?: string | null,
   ): void;
   explanation(answer: Explanation): void;
+  help(text: string): void;
   record(entry: BuildEntry): void;
   finish(): void;
 }
@@ -154,6 +157,10 @@ class JsonlReporter implements Reporter {
     this.destination.write(`${JSON.stringify(answer)}\n`);
   }
 
+  help(text: string): void {
+    this.destination.write(`${JSON.stringify({ kind: "help", text })}\n`);
+  }
+
   record(entry: BuildEntry): void {
     this.destination.write(`${JSON.stringify({ espalier: null, ...entry })}\n`);
   }
@@ -207,6 +214,10 @@ class HumanReporter implements Reporter {
     this.destination.write(renderExplanation(answer));
   }
 
+  help(text: string): void {
+    this.destination.write(text);
+  }
+
   record(entry: BuildEntry): void {
     this.records.push(entry);
   }
@@ -243,7 +254,12 @@ class HumanReporter implements Reporter {
       return;
     }
 
-    if (this.mode === "build" || this.mode === "init" || this.mode === "adopt") {
+    if (
+      this.mode === "build" ||
+      this.mode === "init" ||
+      this.mode === "adopt" ||
+      this.mode === "create"
+    ) {
       this.summarizeBuild();
       // Warnings outlive the tally here as they do for `lint`: advice about
       // what was written rather than part of the record of it. No writing

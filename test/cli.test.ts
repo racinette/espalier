@@ -44,7 +44,7 @@ function repo(): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-cli-"));
   mkdirSync(path.join(root, "espalier", "src"), { recursive: true });
   mkdirSync(path.join(root, "src"));
-  writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.2.0\nroot: espalier\n");
+  writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.3.0\nroot: espalier\n");
   writeFileSync(path.join(root, "espalier", "src", "[name].ts.mjs"), RULE);
   writeFileSync(path.join(root, "src", "a.ts"), "export const a = 1;\n");
   writeFileSync(path.join(root, "stray.txt"), "stray\n");
@@ -157,7 +157,7 @@ test("--out a file leaves both streams empty", () => {
 
 test("an operational failure goes to --out as well: there is no second channel", () => {
   scratch((root) => {
-    writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.2.0\nroot: espalier\nnope: 1\n");
+    writeFileSync(path.join(root, "espalier.config.yaml"), "version: 1\npin: 0.3.0\nroot: espalier\nnope: 1\n");
 
     const sent = run(root, ["lint", "--format", "jsonl", "--out", "report.jsonl"]);
     assert.equal(sent.stdout, "");
@@ -256,7 +256,7 @@ test("build.inline in the config owns document placement", () => {
 
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.2.0\nroot: espalier\nbuild:\n  inline: true\n",
+      "version: 1\npin: 0.3.0\nroot: espalier\nbuild:\n  inline: true\n",
     );
     assert.equal(run(root, ["build"]).status, 0);
     assert.ok(existsSync(path.join(root, "AGENTS.MD")));
@@ -280,7 +280,7 @@ test("adopt --force migrates conflicting guidance idempotently", () => {
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.2.0\nroot: espalier\nbuild:\n  filename: PACKAGE.MD\n",
+      "version: 1\npin: 0.3.0\nroot: espalier\nbuild:\n  filename: PACKAGE.MD\n",
     );
     mkdirSync(path.join(root, "area"), { recursive: true });
     writeFileSync(path.join(root, "area", "PACKAGE.MD"), "# Legacy guidance\n");
@@ -307,7 +307,7 @@ test("build.espalierGuidance omits only Espalier's canned operational guidance",
     );
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.2.0\nroot: espalier\nbuild:\n  inline: true\n  espalierGuidance: false\n",
+      "version: 1\npin: 0.3.0\nroot: espalier\nbuild:\n  inline: true\n  espalierGuidance: false\n",
     );
 
     mkdirSync(path.join(root, "package", "espalier"), { recursive: true });
@@ -317,7 +317,7 @@ test("build.espalierGuidance omits only Espalier's canned operational guidance",
     );
     writeFileSync(
       path.join(root, "package", "espalier.config.yaml"),
-      "version: 1\npin: 0.2.0\nroot: espalier\nbuild:\n  espalierGuidance: false\n",
+      "version: 1\npin: 0.3.0\nroot: espalier\nbuild:\n  espalierGuidance: false\n",
     );
 
     const result = run(root, ["build"]);
@@ -337,7 +337,7 @@ test("build does not materialize exclusions for paths hidden by an external igno
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "version: 1\npin: 0.2.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
+      "version: 1\npin: 0.3.0\nroot: espalier\nignoreFiles:\n  - .gitignore\n",
     );
     writeFileSync(path.join(root, ".gitignore"), ".local/\n");
     writeFileSync(

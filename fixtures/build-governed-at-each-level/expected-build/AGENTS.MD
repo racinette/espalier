@@ -42,9 +42,12 @@ Use this loop:
    in the nearest directory.
 2. Run `espalier explain <path>` when you need to understand how a path is
    governed.
-3. Make the change without working around the declared structure.
-4. Run `espalier lint` and follow the rule text attached to each finding.
-5. Run `espalier build`, review and include any generated guidance changes,
+3. Inspect new-file options with `espalier create <path> help`, then create the
+   declared file with `espalier create <path>`. Without a custom template, it
+   creates an empty file.
+4. Make the remaining change without working around the declared structure.
+5. Run `espalier lint` and follow the rule text attached to each finding.
+6. Run `espalier build`, review and include any generated guidance changes,
    then run `espalier build --check` immediately before committing.
 
 Generated guidance files are outputs, not edit targets. When a task explicitly

@@ -12,10 +12,36 @@ import { matchGlob } from "./files.js";
 import { lint as runLint } from "./lint.js";
 import type { CaptureValue } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
+import { templateDefinitionProblem } from "./template.js";
 
 export type { Issue } from "./output.js";
 export type { CaptureValue } from "./match.js";
 export { OperationalError } from "./errors.js";
+export {
+  createAggregateLinter,
+  createLinter,
+  type AggregateLintContext,
+  type AggregateLinter,
+  type AggregateReadFile,
+  type EmitIssue,
+  type LintContext,
+  type Linter,
+  type LintIssue,
+  type LintMatch,
+  type ListFiles,
+  type ReadFile,
+} from "./linter.js";
+export {
+  createTemplate,
+  type FlagTemplateOption,
+  type StringTemplateOption,
+  type TemplateArguments,
+  type TemplateContext,
+  type TemplateDefinition,
+  type TemplateOption,
+  type TemplateResult,
+  type TemplateSchema,
+} from "./template.js";
 
 export interface CheckOptions {
   /** Where config discovery starts. */
@@ -47,6 +73,7 @@ function collector(into: Issue[], failures: OperationalError[]): Reporter {
         new OperationalError(code, espalier == null ? message : `${espalier}: ${message}`, detail),
       ),
     explanation: () => {},
+    help: () => {},
     record: () => {},
     finish: () => {},
   };
@@ -145,6 +172,14 @@ function validateImplementationDependencies(dependencies: unknown, caller: strin
   }
 }
 
+function validateTemplate(template: unknown, caller: string): void {
+  if (template === undefined) return;
+  const problem = templateDefinitionProblem(template);
+  if (problem !== null) {
+    fail("module_invalid_export", `${caller}: \`template\` ${problem}`);
+  }
+}
+
 /**
  * Runs one module's `lint` against a context you supply. No config, no espalier
  * tree, no repository on disk: a module's position in the tree is the matcher's
@@ -159,6 +194,7 @@ export async function runRule(module: RuleModule, context: RuleContext): Promise
   }
   validateTargets(module.targets, "runRule");
   validateImplementationDependencies(module.unobservedImplementationDependencies, "runRule");
+  validateTemplate(module.template, "runRule");
   if (module.aggregate !== undefined && typeof module.aggregate !== "boolean") {
     fail("module_invalid_export", "`aggregate` must be a boolean");
   }
@@ -237,6 +273,13 @@ export async function runAggregate(
   }
   validateTargets(module.targets, "runAggregate");
   validateImplementationDependencies(module.unobservedImplementationDependencies, "runAggregate");
+  validateTemplate(module.template, "runAggregate");
+  if (module.template !== undefined) {
+    fail(
+      "module_invalid_export",
+      "runAggregate: `template` has no meaning on a constraint; templates create structurally owned files",
+    );
+  }
   if (module.aggregate !== true) {
     fail("module_invalid_export", "runAggregate expects a module exporting `aggregate = true`");
   }
