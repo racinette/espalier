@@ -64,18 +64,19 @@ optional construction entry point:
 
 **Creation**, invoked for any structural rule by `espalier create`:
 
-> Given a concrete absent path, Espalier selects its structural owner and writes
-> either its rendered template or an empty file. A custom template's schema
-> becomes CLI flags, and creation never overwrites an existing file.
+> Given a concrete absent path, Espalier creates either its structurally owned
+> file or its complete declared directory. File templates supply source and CLI
+> flags; a directory composes the templates of all its required files. Creation
+> never overwrites an existing path.
 
 Guidance steers and the linter corrects. Both describe the same conventions, because both derive from the same rule module.
 
-`espalier create <path>` can create any structurally declared absent file. The
-concrete path selects its owner; a custom template supplies initial contents and
-a small schema of documented CLI flags, while a rule without one creates an
-empty file. A renderer receives that concrete path and the owning rule's
-placeholder captures. `espalier create <path> help` describes either behavior
-without writing. See
+`espalier create <path>` can create any structurally declared absent file or
+directory. A file selects its owning template; a directory creates every
+required descendant and namespaces each file's flags with its relative path.
+A rule without a template creates an empty file. Every renderer receives its
+concrete path and the owning rule's placeholder captures.
+`espalier create <path> help` describes either operation without writing. See
 [`espalier create`](docs/cli/create/README.MD).
 
 ## The convergence loop

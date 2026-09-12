@@ -120,7 +120,6 @@ test("runRule returns what the module emitted, in the runner's shape", async () 
       ruleText: "Name the component after its file.",
       description: "a button component",
       referenceImplementation: "components/Button.tsx",
-      referenceImplementationSource: null,
     },
   ]);
 });

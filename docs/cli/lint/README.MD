@@ -259,12 +259,9 @@ clients/stripe/client.ts:12:3
 
 Built-in issues have no rule behind them, so they show the deepest recognized node instead of rule text. Issues from rule modules show the rule body and its reference implementation.
 
-`referenceImplementation` is one line and reads as one: `Reference implementation: <path>`. `referenceImplementationSource` is source, so it goes under its own heading and is indented like the rule body rather than interpolated into a sentence — a multi-line value in a `Reference implementation:` line breaks the report's indentation, which is the one thing a fixed layout is for.
-
-```text
-    Reference implementation:
-      export default function Submit() { … }
-```
+`referenceImplementation` is a repository path and reads as one line:
+`Reference implementation: <path>`. Inline source is deliberately unsupported;
+the report only points to validated code in the repository.
 
 ### `jsonl`
 

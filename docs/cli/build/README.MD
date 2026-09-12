@@ -375,17 +375,14 @@ A directory below the placement point may have prose too — a dynamic directory
 <the ESPALIER.MD body, verbatim>
 ```
 
-Sections appear in map order, so the map doubles as a table of contents, and a directory's section precedes the sections of everything inside it. The heading is the rule's full path from the repository root, not from the placement point — an agent reading `src/clients/AGENTS.MD` is being told where the file goes, and a relative fragment makes it guess. The `Reference implementation:` line carries `referenceImplementation`, the path, and is omitted when the module exports none. A module exporting `referenceImplementationSource` instead gets the source as a fenced block under the same heading:
-
-```markdown
-Reference implementation:
-
-```
-export default function Submit() { … }
-```
-```
-
-One or the other, never both — [TYPES.MD](../../TYPES.MD#referenceimplementation-and-referenceimplementationsource) rejects a module setting each.
+Sections appear in map order, so the map doubles as a table of contents, and a
+directory's section precedes the sections of everything inside it. The heading
+is the rule's full path from the repository root, not from the placement point
+— an agent reading `src/clients/AGENTS.MD` is being told where the file goes,
+and a relative fragment makes it guess. The `Reference implementation:` line
+carries the repository path from `referenceImplementation` and is omitted when
+the module exports none. Inline source is deliberately unsupported: an
+unvalidated duplicate inside the rule module could drift from real code.
 
 Constraints are grouped by their extension set. Known extensions use the
 language names in the renderer's case-insensitive alias map; an unknown
@@ -432,9 +429,9 @@ Use this loop:
    in the nearest directory.
 2. Run `espalier explain <path>` when you need to understand how a path is
    governed.
-3. Inspect new-file options with `espalier create <path> help`, then create the
-   declared file with `espalier create <path>`. Without a custom template, it
-   creates an empty file.
+3. Inspect creation options with `espalier create <path> help`, then create the
+   declared file or complete required directory with `espalier create <path>`.
+   A required file without a custom template starts empty.
 4. Make the remaining change without working around the declared structure.
 5. Run `espalier lint` and follow the rule text attached to each finding.
 6. Run `espalier build`, review and include any generated guidance changes,

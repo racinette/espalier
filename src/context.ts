@@ -37,7 +37,6 @@ export interface EmitOptions {
   ruleText: string | null;
   description?: string | null;
   referenceImplementation?: string | null;
-  referenceImplementationSource?: string | null;
   record: (issue: Issue) => void;
 }
 
@@ -81,7 +80,6 @@ export function createEmit(options: EmitOptions): (raw: unknown) => void {
       ruleText: options.ruleText,
       description: options.description,
       referenceImplementation: options.referenceImplementation,
-      referenceImplementationSource: options.referenceImplementationSource,
     });
   };
 }

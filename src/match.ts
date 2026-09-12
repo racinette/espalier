@@ -14,6 +14,13 @@ export interface Ownership {
   captures: Record<string, CaptureValue>;
 }
 
+export interface DirectoryOwnership {
+  node: TrieNode;
+  /** Authored directory path, e.g. `clients/[provider]`; empty at the root. */
+  path: string;
+  captures: Record<string, CaptureValue>;
+}
+
 /** How far the espalier recognized a path before it stopped. */
 export interface Recognition {
   /** Authored form, e.g. `clients/[provider]`. Null when the walk reached only the root. */
@@ -119,10 +126,95 @@ export function isOwnership(result: Ownership | Recognition): result is Ownershi
   return "rule" in result;
 }
 
+/** Resolves one concrete directory to the structural node that declares its contents. */
+export function resolveDirectory(
+  espalier: Espalier,
+  directoryPath: string,
+): DirectoryOwnership | Recognition {
+  if (directoryPath === "") return { node: espalier.root, path: "", captures: {} };
+
+  const segments = directoryPath.split("/");
+  const walked: string[] = [];
+  const captures: Record<string, CaptureValue> = {};
+  let node = espalier.root;
+
+  for (const segment of segments) {
+    const usable = (child: TrieNode): boolean => child.children.size > 0;
+    let next = node.children.get(segment);
+    if (next !== undefined && (next.segment.dynamic || next.segment.resolved || !usable(next))) {
+      next = undefined;
+    }
+    let bound: Record<string, string> = {};
+
+    if (next === undefined) {
+      for (const child of node.children.values()) {
+        if (!child.segment.resolved || !usable(child)) continue;
+        if (resolveSegment(child.segment, captures) === segment) {
+          next = child;
+          break;
+        }
+      }
+    }
+
+    if (next === undefined) {
+      for (const child of node.children.values()) {
+        if (!child.segment.dynamic || !usable(child)) continue;
+        const found = matchSegment(child.segment, segment, captures);
+        if (found !== null) {
+          next = child;
+          bound = found;
+          break;
+        }
+      }
+    }
+
+    if (next === undefined) return stopped(node, walked, captures);
+    node = next;
+    walked.push(node.display);
+    Object.assign(captures, bound);
+  }
+
+  return { node, path: walked.join("/"), captures };
+}
+
+export function isDirectoryOwnership(
+  result: DirectoryOwnership | Recognition,
+): result is DirectoryOwnership {
+  return "node" in result;
+}
+
 export interface RequiredFile {
   path: string;
   rule: StructuralRule;
   captures: Record<string, CaptureValue>;
+}
+
+/** Required leaves beneath one concrete directory, without inventing dynamic instances. */
+export function requiredDescendants(
+  node: TrieNode,
+  prefix: string,
+  captures: Record<string, CaptureValue>,
+): RequiredFile[] {
+  const required: RequiredFile[] = [];
+
+  const descend = (parent: TrieNode, at: string): void => {
+    for (const child of parent.children.values()) {
+      if (child.segment.dynamic) continue;
+      const name = child.segment.resolved
+        ? resolveSegment(child.segment, captures)
+        : child.display;
+      if (name === null) continue;
+      const childPath = at === "" ? name : `${at}/${name}`;
+
+      if (child.rule !== null && !child.rule.module.optional) {
+        required.push({ path: childPath, rule: child.rule, captures: { ...captures } });
+      }
+      if (child.children.size > 0) descend(child, childPath);
+    }
+  };
+
+  descend(node, prefix);
+  return required.sort((left, right) => left.path.localeCompare(right.path));
 }
 
 /**

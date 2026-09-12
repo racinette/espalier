@@ -199,11 +199,9 @@ Fixed, so the output is scannable and diffable:
 
 The root prefix displays as `./`.
 
-Both forms share the `Reference implementation` heading and the same four-space
-indent: `referenceImplementation` is one line under it, while
-`referenceImplementationSource` occupies as many lines as it has. Nothing else
-distinguishes them in the layout because the reader wants the reference, not
-the mechanism that supplied it.
+`referenceImplementation` is a repository path and appears on one line beneath
+the `Reference implementation` heading. Inline source is not a second form;
+when no validated implementation exists, the rule simply has no reference yet.
 
 ## Output
 

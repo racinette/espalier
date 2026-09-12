@@ -101,12 +101,12 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | `invalid_adopt_target` | `adopt` was given a path that is outside the repository, is not a directory, is excluded by repository policy, is the espalier root, or has a dot-prefixed segment and so cannot be declared |
 | `unmarked_documentation` | a build-owned documentation path contains an unmarked file; `build --force` may overwrite it, while `adopt --force` first preserves its contents in the corresponding `ESPALIER.MD` |
 | `missing_argument` | a command was invoked without an argument it needs |
-| `invalid_create_target` | `create` was given a path outside the repository, excluded by repository policy, or not declared by a structural rule |
+| `invalid_create_target` | `create` was given a path outside the repository, excluded by repository policy, or not structurally declared as a file or directory |
 | `invalid_template_arguments` | template arguments are unknown, missing, outside the choices declared by the schema, or supplied after the `help` action |
-| `create_target_exists` | the requested output already exists; `create` never overwrites |
+| `create_target_exists` | the requested file or directory already exists; `create` never overwrites |
 | `template_threw` | a template renderer threw instead of producing source |
 | `template_invalid_result` | a template renderer returned something other than a string |
-| `create_write_failed` | the rendered source could not be written to its requested path |
+| `create_write_failed` | the rendered file or staged directory could not be written to its requested path |
 
 ## The runner itself
 

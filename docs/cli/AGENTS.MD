@@ -27,7 +27,7 @@ up a command should not have to read the parser.
     │
     ├─ build/    generating the agent-facing documentation
     │
-    ├─ create/   creating a structurally declared file
+    ├─ create/   creating a structurally declared file or directory
     │
     ├─ explain/  answering what the espalier says about a path
     │

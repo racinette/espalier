@@ -533,18 +533,6 @@ Open, both raised by dogfooding:
   was needed: both answers are about who owns the path, not about what the
   last run wrote. Pinned by `build-ignored-generated` and
   `nested-build-per-child`.
-- ~~**Nothing documents how the two forms of `example` are told apart.**~~
-  **Closed**, by making them two exports. At the time they were named `example`
-  for a checked path and `exampleSource` for unchecked source. Deciding by inspection was the problem
-  rather than the documentation of it: with one export told apart by "contains
-  a newline", the single-line value printed in TYPES.MD's own illustration was
-  read as a path and exited `2` saying the file did not exist. Setting both is
-  `module_invalid_export` — two examples that could disagree is worse than
-  either. The formatters follow: a path is one line, source is fenced in
-  `build` and indented under its heading in `lint` and `explain`. Pinned by
-  `example-inline`, `example-source-one-line` — which also holds the lint
-  report layout byte for byte — and `invalid-example-both`.
-
 - ~~`cli/adopt/README.MD` contradicts itself.~~ **Dissolved.** The worked
   example and the Output table disagreed about a `declared` kind, and the
   answer turned out not to be either of them: with optional leaves `adopt` has
@@ -701,15 +689,11 @@ and contriving one would pin the contrivance rather than the rule. The tier is
 still there, because the map must list siblings in the order ownership
 resolves them.
 
-The inline reference-implementation form was the last of the others,
-and `example-inline` now pins both halves of what makes it a second form: it is
-exempt from the existence and pattern checks the path form gets, and it renders
-as a fenced block rather than a line. The four before it — `addons` setup and
-disposal, the compile-time reference validation from `TYPES.MD`, the generated
+The compile-time reference validation from `TYPES.MD`, the generated
 description for a constraint module that exports none (`ALIASES` in
 `src/render.ts`), and a placement point that exists only because a constraint
-was assigned to it — are covered by `addons-shared-resource`,
-`addons-disposed-on-failure`, `invalid-example` and `constraint-only-placement`.
+was assigned to it are covered by `invalid-example` and
+`constraint-only-placement`.
 
 `ESPALIER.MD` frontmatter now reaches the renderer through `Espalier.nodes`, a
 map beside the trie rather than fields on it. Putting a directory's prose on a
@@ -944,6 +928,14 @@ governed path already reads through it. The caller named that path explicitly;
 `.espalierignore` remains how a repository removes a link it does not want
 governed or written through.
 
+Creation help does not interpolate the structural `description` after
+“Creates.” That field is a retrieval-oriented description of the rule and need
+not be a grammatical name for the object being constructed. Help instead says
+`Creates <concrete path>.`, then renders `Owned by:` with the authored
+structural path and its description. The relationship is explicit without
+inventing another template-description field or imposing a second language
+contract on the existing one.
+
 ## Linter helpers add types, not a runtime protocol
 
 `createLinter` and `createAggregateLinter` are identity functions. They provide
@@ -964,10 +956,10 @@ to change behavior.
 
 The rule-level `example` export was useful but too vague, especially once
 template schemas acquired an unrelated `examples` field. It is now
-`referenceImplementation`, with no compatibility alias. The inline counterpart
-is correspondingly `referenceImplementationSource`. The generated guidance,
-human explanations, issue context, and JSON fields use the same terminology so
-the old generic name does not survive as a second public vocabulary.
+`referenceImplementation`, with no compatibility alias. It is always a
+repository-relative path. The generated guidance, human explanations, issue
+context, and JSON fields use the same terminology so the old generic name does
+not survive as a second public vocabulary.
 
 A path reference is a promise that the named file is a maintained exemplar, not
 merely a suggestion to open a string. Repository opening therefore proves the
@@ -978,3 +970,37 @@ Existence plus glob matching was insufficient—a more specific structural rule
 could own the path, or ignore policy and target selection could prevent the
 declaring rule from ever linting it. Any broken promise exits `2` as
 `invalid_reference_implementation` before a linter runs.
+
+Source text does not belong in this export. Keeping an implementation-shaped
+copy in a rule module would pollute the architecture definition with code the
+rule cannot validate and allow the supposed exemplar to drift from production.
+If no valid file exists yet, the rule omits the reference and its `template`
+bootstraps the first implementation; only a real linted file can become the
+reference afterwards.
+
+## Directory creation composes required file templates
+
+`espalier create` accepts a concrete structural directory as well as a file.
+The directory operation creates exactly the descendants the requiredness model
+says must exist: static and capture-resolved leaves recursively beneath the
+selected instance. Optional leaves and dynamic collections are not silently
+invented. This logic lives beside ownership and requiredness matching so create
+cannot develop a separate meaning of a complete directory from lint.
+
+Template inputs remain owned by individual file rules. Directory creation
+forms its CLI schema by prefixing every option with the required file's literal
+relative path and a colon: `--client.ts:transport` or
+`--models/error.ts:withDocs`. Hyphen-flattening the path would lose information
+and repeat the casing conversion the template API deliberately avoids. The
+prefix exists only at the composite CLI boundary; each renderer receives its
+original local argument object and its ordinary concrete path and captures.
+Identically named options on two files remain independent.
+
+Creation still means a new target, not repair. An existing directory is refused
+before arguments are rendered. All required renderers complete first, then an
+exclusive directory creation reserves the still-absent target. Any subsequent
+write failure removes the directory created by this operation. A normal rename
+was rejected as the commit point because POSIX permits it to replace a
+concurrently created empty directory, violating the no-overwrite promise. If
+one structural spelling can denote both a file and a directory, its plain form
+retains file creation and a trailing slash selects the directory explicitly.

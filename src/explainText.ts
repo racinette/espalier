@@ -22,7 +22,6 @@ export interface ConstraintAnswer {
   description: string;
   ruleText: string;
   referenceImplementation: string | null;
-  referenceImplementationSource: string | null;
   captures?: Record<string, CaptureValue>;
   aggregate?: true;
   targets?: string[];
@@ -35,7 +34,6 @@ export interface RuleAnswer {
   description: string | null;
   ruleText: string;
   referenceImplementation: string | null;
-  referenceImplementationSource: string | null;
   required: boolean;
 }
 
@@ -67,7 +65,6 @@ export interface OwnedAnswer {
   description: string | null;
   ruleText: string;
   referenceImplementation: string | null;
-  referenceImplementationSource: string | null;
   constraints: ConstraintAnswer[];
 }
 
@@ -156,18 +153,14 @@ function describeCaptures(captures: Record<string, CaptureValue>, indent: string
 function body(
   ruleText: string,
   referenceImplementation: string | null,
-  source: string | null,
 ): string[] {
   const blocks: string[] = [];
   if (ruleText !== "") {
     blocks.push(`  Rule\n${ruleText.split("\n").map((line) => `    ${line}`).join("\n")}`);
   }
-  // One heading and one indent for both: the reader wants the reference, not the
-  // mechanism that supplied it. docs/cli/explain/README.MD "Human layout".
-  const shown = referenceImplementation ?? source;
-  if (shown !== null) {
+  if (referenceImplementation !== null) {
     blocks.push(
-      `  Reference implementation\n${shown.trim().split("\n").map((line) => `    ${line}`).join("\n")}`,
+      `  Reference implementation\n    ${referenceImplementation}`,
     );
   }
   return blocks;
@@ -238,11 +231,7 @@ export function renderExplanation(answer: Explanation): string {
       blocks.push(section(rule.path));
       if (rule.description !== null) blocks.push(`  ${rule.description}`);
       blocks.push(
-        ...body(
-          rule.ruleText,
-          rule.referenceImplementation,
-          rule.referenceImplementationSource,
-        ),
+        ...body(rule.ruleText, rule.referenceImplementation),
       );
     }
 
@@ -293,11 +282,7 @@ export function renderExplanation(answer: Explanation): string {
     ].join("\n"),
   );
   blocks.push(
-    ...body(
-      answer.ruleText,
-      answer.referenceImplementation,
-      answer.referenceImplementationSource,
-    ),
+    ...body(answer.ruleText, answer.referenceImplementation),
   );
   blocks.push(...constraintBlocks(answer.constraints, `to ${answer.path}`));
 

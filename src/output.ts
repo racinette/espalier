@@ -35,7 +35,6 @@ export interface Issue {
   /** Not reported; carried so the human formatter can show it. */
   description?: string | null;
   referenceImplementation?: string | null;
-  referenceImplementationSource?: string | null;
 }
 
 export type Format = "human" | "jsonl";
@@ -321,10 +320,6 @@ class HumanReporter implements Reporter {
         if (issue.referenceImplementation != null) {
           this.destination.write(
             `\n    Reference implementation: ${issue.referenceImplementation}\n`,
-          );
-        } else if (issue.referenceImplementationSource != null) {
-          this.destination.write(
-            `\n    Reference implementation:\n${indent(issue.referenceImplementationSource, "      ")}\n`,
           );
         }
       }

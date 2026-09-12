@@ -5,13 +5,17 @@
 // what the espalier says.
 
 import path from "node:path";
-import type { Espalier, TrieNode } from "./compile.js";
 import { fail } from "./errors.js";
 import type { ConstraintAnswer, RuleAnswer } from "./explainText.js";
-import { constraintCaptures, isOwnership, type CaptureValue, stopped } from "./match.js";
+import {
+  constraintCaptures,
+  isDirectoryOwnership,
+  isOwnership,
+  resolveDirectory,
+  type Recognition,
+} from "./match.js";
 import type { Reporter } from "./output.js";
-import { matchSegment, resolveSegment } from "./pattern.js";
-import { closedSet, constraintGroups, isDirectory, mapEntries, requiredUnder, subtree } from "./render.js";
+import { closedSet, constraintGroups, mapEntries, requiredUnder, subtree } from "./render.js";
 import { delegated } from "./nested.js";
 import { open } from "./repository.js";
 import { admitsTarget } from "./targets.js";
@@ -20,72 +24,6 @@ export interface ExplainOptions {
   cwd: string;
   config: string | undefined;
   target: string;
-}
-
-interface Descent {
-  /** The deepest node reached, which is the root when nothing matched. */
-  node: TrieNode;
-  /** Authored segments, e.g. `clients/[provider]` for a query about `clients/stripe`. */
-  authored: string[];
-  captures: Record<string, CaptureValue>;
-  /** How many segments were recognized. Short of the query, the walk stopped. */
-  reached: number;
-}
-
-/**
- * Walks a concrete directory path into the trie. Every segment must resolve to
- * a directory, which is what distinguishes `clients/stripe` — a prefix — from
- * `clients/stripe/client.ts`, a file.
- */
-function descend(espalier: Espalier, segments: string[]): Descent {
-  let node = espalier.root;
-  const authored: string[] = [];
-  const captures: Record<string, CaptureValue> = {};
-
-  for (const segment of segments) {
-    // static > resolved > dynamic, the same specificity order ownership
-    // resolves by. A directory naming itself after the instance above it is a
-    // directory the espalier declares, and answering "not declared" about one
-    // would be this command disagreeing with `lint`.
-    let next = node.children.get(segment);
-    if (
-      next !== undefined &&
-      (next.segment.dynamic || next.segment.resolved || !isDirectory(next))
-    ) {
-      next = undefined;
-    }
-
-    // A resolved node is keyed by its authored form, so it is never the exact
-    // hit above; it becomes a literal only once the captures collected on the
-    // way down are substituted in.
-    if (next === undefined) {
-      for (const child of node.children.values()) {
-        if (!child.segment.resolved || !isDirectory(child)) continue;
-        if (resolveSegment(child.segment, captures) === segment) {
-          next = child;
-          break;
-        }
-      }
-    }
-
-    if (next === undefined) {
-      for (const child of node.children.values()) {
-        if (!child.segment.dynamic || !isDirectory(child)) continue;
-        const bound = matchSegment(child.segment, segment, captures);
-        if (bound !== null) {
-          next = child;
-          Object.assign(captures, bound);
-          break;
-        }
-      }
-    }
-
-    if (next === undefined) return { node, authored, captures, reached: authored.length };
-    node = next;
-    authored.push(node.display);
-  }
-
-  return { node, authored, captures, reached: authored.length };
 }
 
 /**
@@ -131,11 +69,8 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
   }
 
   const groups = constraintGroups(espalier);
-  const segments = target === "" ? [] : target.split("/");
-  const walk = descend(espalier, segments);
-  // A prefix the espalier declares. Short of that, the walk stopped somewhere
-  // above, and what it reached is the answer rather than the prefix.
-  const found = walk.reached === segments.length ? walk : null;
+  const directoryAnswer = resolveDirectory(espalier, target);
+  const found = isDirectoryOwnership(directoryAnswer) ? directoryAnswer : null;
 
   // A trailing slash always means a prefix. Without one, it is a prefix if the
   // espalier recognizes a directory there and no structural rule owns the path
@@ -172,7 +107,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     // a structural rule owns, and nothing here owns anything.
     // docs/cli/explain/README.MD "A prefix the espalier does not recognize".
     if (found === null) {
-      const recognition = stopped(walk.node, walk.authored, walk.captures);
+      const recognition = directoryAnswer as Recognition;
       reporter.explanation({
         kind: "explanation",
         espalier: null,
@@ -188,7 +123,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     }
 
     const prefix = target === "" ? "" : `${target}/`;
-    const doc = espalier.nodes.get(found.authored.join("/"));
+    const doc = espalier.nodes.get(found.path);
     const required = new Set(requiredUnder(found.node));
 
     const rules: RuleAnswer[] = [...subtree(found.node)]
@@ -200,7 +135,6 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
         description: visit.node.rule!.module.description,
         ruleText: visit.node.rule!.module.rule.trim(),
         referenceImplementation: visit.node.rule!.module.referenceImplementation,
-        referenceImplementationSource: visit.node.rule!.module.referenceImplementationSource,
         required: required.has(visit.at),
       }));
 
@@ -212,7 +146,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
       body: doc?.body ?? "",
       captures: found.captures,
       rules,
-      map: mapEntries(espalier, found.node, found.authored.join("/")),
+      map: mapEntries(espalier, found.node, found.path),
       closedSet: closedSet(target),
       // Named for the reason a generated document names them: the sentence
       // above is absolute, and a boundary the reader can see has to be one the
@@ -293,7 +227,6 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     description: owner.rule.module.description,
     ruleText: owner.rule.module.rule.trim(),
     referenceImplementation: owner.rule.module.referenceImplementation,
-    referenceImplementationSource: owner.rule.module.referenceImplementationSource,
     constraints,
   });
 

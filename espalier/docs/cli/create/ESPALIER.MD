@@ -1,3 +1,3 @@
 ---
-description: creating a structurally declared file
+description: creating a structurally declared file or directory
 ---

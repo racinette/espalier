@@ -45,7 +45,6 @@ aggregate form.
 | `rule` | yes | the natural-language conventions, in markdown |
 | `lint` | yes | deterministic validation |
 | `referenceImplementation` | no | a path to a canonical conforming file |
-| `referenceImplementationSource` | no | source for one, when no conforming file exists yet |
 | `optional` | no | whether this file has to exist |
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs that narrow the governed files admitted by a constraint |
@@ -89,7 +88,7 @@ export const rule = String.raw`File names must match ^[A-Z][a-zA-Z0-9]*$.`;
 
 The `rule` is **mode-invariant**: the same text applies whether the file is being created or edited. Exporters render it for each surface; they never rewrite it. It is also what a violation carries back to the agent, so write it as guidance rather than as a description of the check.
 
-### `referenceImplementation` and `referenceImplementationSource`
+### `referenceImplementation`
 
 One file that gets this right. Models follow an example far more reliably than they follow prose, and exported documentation is the only guidance available before a file is written.
 
@@ -105,24 +104,12 @@ get an ordinary issue on it. Espalier validates those conditions whenever it
 opens the repository. A broken reference is a specification error and exits
 `2` with `invalid_reference_implementation`.
 
-```js
-export const referenceImplementationSource = String.raw`
-export default function Submit() { … }
-`;
-```
-
-**`referenceImplementationSource` is the source itself**, for the case the path
-form cannot serve: no conforming file exists yet. It carries none of the
-guarantees—there is no file to check, nothing to lint, and nothing that notices
-when it goes stale. Replace it with `referenceImplementation` as soon as one
-file conforms.
-
-They are two exports rather than one because a value has to say which it is.
-Deciding by inspection means a reference that looks like a path is a path, and
-a mistyped path then becomes source nobody validates—trading an immediate error
-for a silent one. **Setting both is a specification error**: two references
-that could disagree are worse than either, and the run exits `2` with
-`module_invalid_export`.
+The value is always a repository-relative path, never inline source. Source
+embedded in a rule module would duplicate an implementation without subjecting
+that copy to the rule's linter, allowing the supposed reference to drift. When
+no conforming file exists yet, omit `referenceImplementation` and use
+`template` to create the first one. It may become the reference after it exists
+and passes lint.
 
 ### `template`
 
@@ -168,6 +155,13 @@ has a safe baseline creation behavior, while the export is reserved for rules
 with a meaningful starting point or arguments. Constraints may not export
 templates because they apply to files owned by structural rules and declare no
 destination of their own.
+
+When the concrete path is a directory, `create` composes the templates of every
+required descendant. Each schema key appears at the CLI as
+`--<relative-file>:<schema-key>` and is stripped back to its original key before
+that file's renderer runs. The template definition and its inferred argument
+type therefore remain local to one file; directory creation adds no second
+renderer protocol and does not couple same-named options from different files.
 
 The schema is a flat object because command-line flags are flat. Every key is
 the exact long flag name: no camel-case or kebab-case conversion takes place.

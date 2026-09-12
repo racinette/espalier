@@ -272,7 +272,6 @@ async function lintOne(
       ruleText: options.ruleText ? module.rule : null,
       description: module.description,
       referenceImplementation: module.referenceImplementation,
-      referenceImplementationSource: module.referenceImplementationSource,
     };
 
     const replayed = cache.replay(modulePath, pattern, target);
@@ -290,7 +289,6 @@ async function lintOne(
       ruleText: options.ruleText ? module.rule : null,
       description: module.description,
       referenceImplementation: module.referenceImplementation,
-      referenceImplementationSource: module.referenceImplementationSource,
       record: (issue) => {
         produced.push(stored(issue));
         record(issue);
@@ -395,7 +393,6 @@ async function lintOne(
       ruleText: options.ruleText ? aggregate.module.rule : null,
       description: aggregate.module.description,
       referenceImplementation: aggregate.module.referenceImplementation,
-      referenceImplementationSource: aggregate.module.referenceImplementationSource,
     };
 
     const replayed = cache.replay(aggregate.modulePath, pattern, target);
@@ -413,7 +410,6 @@ async function lintOne(
       ruleText: options.ruleText ? aggregate.module.rule : null,
       description: aggregate.module.description,
       referenceImplementation: aggregate.module.referenceImplementation,
-      referenceImplementationSource: aggregate.module.referenceImplementationSource,
       record: (issue) => {
         produced.push(stored(issue));
         record(issue);

@@ -18,8 +18,8 @@ const USAGE = `espalier <command> [options]
   init                  write the configuration and create the espalier root
   build                 generate the repository's agent-facing documentation
   adopt <path>          infer a directory's shape and write stub rule modules
-  create <path>         create a structurally declared absent file
-  create <path> help    show how that file will be created
+  create <path>         create a structurally declared absent file or directory
+  create <path> help    show what that creation will write
   lint [paths...]       validate the repository against the espalier
   explain <path>        what the espalier says about a path
 
@@ -55,7 +55,7 @@ async function runCreate(argv: string[]): Promise<number> {
   try {
     const target = argv[0];
     if (target === undefined || target.startsWith("-")) {
-      reporter.failure("missing_argument", "create needs a file path");
+      reporter.failure("missing_argument", "create needs a file or directory path");
       return 2;
     }
     return await create({

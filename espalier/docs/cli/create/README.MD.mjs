@@ -1,8 +1,8 @@
 export const description = "the reference page";
 
 export const rule = `Opens with the invocation as its level-one heading, then a
-\`## Usage\` block spelling the path-first create and help forms. A reader
-looking up a command should not have to read the parser.
+\`## Usage\` block spelling the path-first create and help forms for files and
+directories. A reader looking up a command should not have to read the parser.
 
 The page and the implementation are two halves of one claim. \`src/create.ts\`
 is what this page describes, and a page for a command nobody wrote is this tree

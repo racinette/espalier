@@ -2,6 +2,7 @@
   "build": {
     "exit": 0,
     "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
       { "kind": "deleted", "path": "src/legacy/AGENTS.MD" }
     ]
   }

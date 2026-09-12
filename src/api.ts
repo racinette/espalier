@@ -239,10 +239,6 @@ export async function runRule(module: RuleModule, context: RuleContext): Promise
       typeof module.referenceImplementation === "string"
         ? module.referenceImplementation
         : null,
-    referenceImplementationSource:
-      typeof module.referenceImplementationSource === "string"
-        ? module.referenceImplementationSource
-        : null,
     record: (issue) => void issues.push(issue),
   });
 
@@ -325,10 +321,6 @@ export async function runAggregate(
     referenceImplementation:
       typeof module.referenceImplementation === "string"
         ? module.referenceImplementation
-        : null,
-    referenceImplementationSource:
-      typeof module.referenceImplementationSource === "string"
-        ? module.referenceImplementationSource
         : null,
     record: (issue) => void issues.push(issue),
   });
