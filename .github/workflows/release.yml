@@ -89,9 +89,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Publish to npm
-        run: npm publish --provenance --access public --tag latest
-        env:
-          # Bootstrap the first release with a temporary token. Once the
-          # package exists, configure its trusted publisher and remove it.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish with npm trusted publishing
+        run: npm publish --access public

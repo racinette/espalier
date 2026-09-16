@@ -786,10 +786,14 @@ Settled while getting the tarball right:
   follows the working `tolk-inspect` setup: published non-prerelease GitHub
   releases, the `npm` environment, and npm CLI `11.6.2`. Stable `vX.Y.Z` tags
   must match the manifest. Validation on Node 24 and 26 precedes publishing
-  with provenance. Trusted publishing uses OIDC; a temporary
-  `NPM_TOKEN` bootstraps the first release because npm trust requires an
-  existing package. Remove and revoke it after configuring the package's
-  trusted publisher. `.github/RELEASING.md` records the account setup and
+  with provenance. ~~A temporary `NPM_TOKEN` bootstraps the first release;
+  remove and revoke it after configuring the package's trusted publisher.~~
+  The `tolk-inspect` transcript instead establishes a token-free bootstrap:
+  publish a separate placeholder `0.0.0` locally with npm login and 2FA, under
+  the `bootstrap` tag, then configure trusted publishing before the real
+  `0.1.0` GitHub release. The `npm` environment has no npm secrets and the
+  workflow authenticates only through OIDC, which automatically supplies
+  provenance. `.github/RELEASING.md` records the account setup and
   release procedure. Branch and tag pushes alone do not publish.
 
 - **MIT**, `LICENSE` written, `Copyright (c) 2026 Andrei Karavatski`. The
