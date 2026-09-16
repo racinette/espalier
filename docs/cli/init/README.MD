@@ -36,7 +36,7 @@ espalier init [--config <path>] [--root <dir>] [--lang <name>]...
 
 ```yaml
 version: 1
-pin: 0.6.0
+pin: 0.1.0
 
 name: acme-web
 
@@ -122,7 +122,7 @@ espalier init --no-common-ignore
 
 ```yaml
 version: 1
-pin: 0.6.0
+pin: 0.1.0
 
 root: espalier
 

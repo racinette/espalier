@@ -777,6 +777,21 @@ file the user owns instead of the name of a list inside the tool.
 
 Settled while getting the tarball right:
 
+- **First public version: `0.1.0`.** The unreleased `0.6.0` counted internal
+  development and has no npm releases or Git tags to preserve. The first
+  published version establishes the public baseline. Manifest, lockfile,
+  repository pin, documentation examples, tests and fixture pins move together
+  because the CLI requires an exact implementation version.
+- **GitHub release-driven npm publication.** `.github/workflows/release.yml`
+  follows the working `tolk-inspect` setup: published non-prerelease GitHub
+  releases, the `npm` environment, and npm CLI `11.6.2`. Stable `vX.Y.Z` tags
+  must match the manifest. Validation on Node 24 and 26 precedes publishing
+  with provenance. Trusted publishing uses OIDC; a temporary
+  `NPM_TOKEN` bootstraps the first release because npm trust requires an
+  existing package. Remove and revoke it after configuring the package's
+  trusted publisher. `.github/RELEASING.md` records the account setup and
+  release procedure. Branch and tag pushes alone do not publish.
+
 - **MIT**, `LICENSE` written, `Copyright (c) 2026 Andrei Karavatski`. The
   manifest had declared MIT for some time, so the file made true what was
   already claimed rather than choosing anything. Apache-2.0 was the only real

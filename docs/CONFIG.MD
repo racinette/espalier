@@ -4,7 +4,7 @@
 
 ```yaml
 version: 1
-pin: 0.6.0
+pin: 0.1.0
 
 name: acme-web
 
@@ -42,7 +42,7 @@ The exact Espalier CLI version this repository expects:
 
 ```yaml
 version: 1
-pin: 0.6.0
+pin: 0.1.0
 ```
 
 `version` describes the configuration schema; `pin` describes the implementation interpreting it. `espalier init` records the running package version, and every later command compares itself with that value before compiling the espalier or reading repository files.
