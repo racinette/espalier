@@ -795,6 +795,12 @@ Settled while getting the tarball right:
   workflow authenticates only through OIDC, which automatically supplies
   provenance. `.github/RELEASING.md` records the account setup and
   release procedure. Branch and tag pushes alone do not publish.
+- **Espalier's reservation already supplies the bootstrap.** The owner
+  registered `espalier@0.0.0` before release preparation. npm metadata confirms
+  that version exists, with `latest: 0.0.0` and no `bootstrap` dist-tag. The
+  release procedure begins by configuring trusted publishing for the existing
+  package, then publishes the real `0.1.0` through GitHub. A separate local
+  placeholder publication and bootstrap-tag cleanup are unnecessary.
 
 - **MIT**, `LICENSE` written, `Copyright (c) 2026 Andrei Karavatski`. The
   manifest had declared MIT for some time, so the file made true what was

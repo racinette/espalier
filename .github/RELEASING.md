@@ -13,12 +13,11 @@ provenance automatically for a public repository and package. The workflow
 requires no `NPM_TOKEN` or `NODE_AUTH_TOKEN` secret. Prerelease tags are
 rejected by this workflow.
 
-## First publication
+## First implementation release
 
-The package must exist on npm before its
-[trusted publisher](https://docs.npmjs.com/cli/v11/commands/npm-trust/#prerequisites)
-can be configured. Register it with a separate placeholder `0.0.0`, then
-publish the real `0.1.0` through GitHub Actions, as `tolk-inspect` does.
+The owner has already registered `espalier@0.0.0` on npm. The package therefore
+exists and its trusted publisher can be configured immediately. Publish the
+real implementation as `0.1.0` through GitHub Actions.
 
 1. Push the reviewed release preparation and wait for CI to pass:
 
@@ -28,41 +27,8 @@ publish the real `0.1.0` through GitHub Actions, as `tolk-inspect` does.
 
 2. Create the GitHub repository environment named exactly `npm`. Leave its
    secrets empty. Required reviewers are optional.
-3. Confirm that the unscoped name `espalier` is available to your npm account
-   and enable account 2FA. Log in locally, then publish a placeholder from a
-   temporary directory. These commands do not change the repository:
-
-   ```bash
-   npm login --registry=https://registry.npmjs.org/
-   npm whoami
-
-   (
-     set -e
-     espalier_bootstrap_dir="$(mktemp -d)"
-     cd "$espalier_bootstrap_dir" || exit
-     npm init --yes
-     npm pkg set \
-       name=espalier \
-       version=0.0.0 \
-       type=module \
-       license=MIT \
-       description='Bootstrap record for espalier trusted publishing'
-     npm pkg set \
-       repository.type=git \
-       repository.url=git+https://github.com/racinette/espalier.git
-     npm pkg delete main scripts
-     npm pack --dry-run
-     npm publish --registry=https://registry.npmjs.org/ --access public --tag bootstrap
-   )
-
-   npm view espalier name version dist-tags repository.url --json
-   ```
-
-   Complete npm's interactive 2FA confirmation for publication. The
-   placeholder contains no library implementation; the repository version
-   remains `0.1.0`.
-4. In npm's `espalier` package settings, add a GitHub Actions trusted publisher
-   with these exact fields:
+3. Enable npm account 2FA. In the existing `espalier` package settings, add a
+   GitHub Actions trusted publisher with these exact fields:
 
    | Field | Value |
    | --- | --- |
@@ -75,6 +41,7 @@ publish the real `0.1.0` through GitHub Actions, as `tolk-inspect` does.
    Alternatively, configure and verify it from the CLI:
 
    ```bash
+   npm login --registry=https://registry.npmjs.org/
    npx --yes npm@11.19.1 trust github espalier \
      --file release.yml \
      --repo racinette/espalier \
@@ -83,11 +50,12 @@ publish the real `0.1.0` through GitHub Actions, as `tolk-inspect` does.
    npx --yes npm@11.19.1 trust list espalier
    ```
 
+   If already configured, run only the `trust list` command to verify it.
    See [npm's trusted publishing setup](https://docs.npmjs.com/trusted-publishers/).
-5. Once the connection is configured, set npm Publishing access to
+4. Once the connection is configured, set npm Publishing access to
    **Require two-factor authentication and disallow tokens**. OIDC publishing
    continues to work with that setting.
-6. Create the real release as a draft targeting the reviewed commit:
+5. Create the real release as a draft targeting the reviewed commit:
 
    ```bash
    git tag -a v0.1.0 -m 'Release 0.1.0'
@@ -103,17 +71,28 @@ publish the real `0.1.0` through GitHub Actions, as `tolk-inspect` does.
 
    Publishing the GitHub release triggers validation and npm publication.
    Approve the `npm` environment deployment if you configured reviewers.
-7. After the workflow succeeds, verify the real release and retire the
-   bootstrap marker:
+6. Find and monitor the release workflow:
+
+   ```bash
+   gh run list --workflow release.yml --limit 1
+   gh run watch RUN_ID --exit-status
+   ```
+
+   Replace `RUN_ID` with the run ID displayed by the first command.
+7. After the workflow succeeds, verify the real release:
 
    ```bash
    npm view espalier version dist-tags --json
-   npm deprecate espalier@0.0.0 'Bootstrap-only release; install the latest version.'
-   npm dist-tag rm espalier bootstrap
    ```
 
-   The real release moves `latest` to `0.1.0`. Publish the GitHub release only
-   after the placeholder exists and trusted publishing is configured.
+   Expect version `0.1.0` and `latest: 0.1.0`. Optionally deprecate the
+   reservation release:
+
+   ```bash
+   npm deprecate espalier@0.0.0 'Reservation-only release; install the latest version.'
+   ```
+
+   Configure trusted publishing before publishing the GitHub release.
 
 ## Subsequent releases
 
