@@ -71,11 +71,11 @@ test("createLinter contextually types captures, addons, reads, listings, and iss
 
 test("createAggregateLinter gives every match its specialized captures", () => {
   createAggregateLinter<AggregateCaptures, Addons>(
-    async ({ matches, pattern, addons, read, files, emit }) => {
+    async ({ matches, patterns, addons, read, files, emit }) => {
       const pathValue: string = matches[0]?.path ?? ".";
       const directories: string[] = matches[0]?.captures.directory ?? [];
       const source: string = await read(pathValue);
-      const peers: string[] = await files(pattern);
+      const peers: string[] = await files(patterns[0] ?? "**/*");
       const parser: Parser = addons.parser;
       emit({ code: "aggregate_typed", message: directories.join("/"), metadata: { source, peers, parser } });
     },

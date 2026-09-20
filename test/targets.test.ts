@@ -68,7 +68,7 @@ export async function lint({ read, emit }) {
     );
     write(
       root,
-      "espalier/fixtures/[...fixture]/aggregate.sql.mjs",
+      "espalier/fixtures/[...fixture]/aggregate.mjs",
       `
 export const description = "queries together";
 export const rule = "queries together";
@@ -121,10 +121,15 @@ export async function lint({ matches, emit }) {
       encoding: "utf8",
     });
     assert.equal(built.status, 0, built.stdout + built.stderr);
-    assert.match(
-      readFileSync(path.join(root, "fixtures/AGENTS.MD"), "utf8"),
-      /Only governed paths matching `\*\/queries\.sql` under this constraint's scope are selected\./,
-    );
+    const guidance = readFileSync(path.join(root, "fixtures/AGENTS.MD"), "utf8");
+    assert.match(guidance, /## Per-file constraints/);
+    assert.match(guidance, /## Aggregate constraints/);
+    assert.match(guidance, /Scope: `fixtures\/\[\.\.\.fixture\]`\./);
+    assert.match(guidance, /Selected files: owned paths matching `\*\/queries\.sql` under `fixtures\/`\./);
+    assert.match(guidance, /Evaluation: once per selected file\./);
+    assert.match(guidance, /Evaluation: once over the complete selected population\./);
+    assert.doesNotMatch(guidance, /These rules apply to all/);
+    assert.doesNotMatch(guidance, /this constraint's scope/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -171,7 +176,7 @@ test("aggregate cache membership follows targets rather than the broad extension
     rmSync(path.join(root, "fixtures/beta"), { recursive: true, force: true });
     write(
       root,
-      "espalier/fixtures/[...fixture]/aggregate.sql.mjs",
+      "espalier/fixtures/[...fixture]/aggregate.mjs",
       `
 export const description = "queries together";
 export const rule = "queries together";

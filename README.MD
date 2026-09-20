@@ -173,22 +173,25 @@ This rule governs files matching `components/buttons/*.tsx`. The placeholder nam
 
 Structural rules define the project's architectural shape. They appear in the project map, they carry the conventions written into each directory's documentation, and they are what makes an undeclared file a violation.
 
-**Constraint rules** describe _how code is written_, regardless of position. They live on paths containing a recursive placeholder, and their filename is a rule name plus the extension they apply to:
+**Constraint rules** describe _how code is written_, regardless of position. They live on paths containing a recursive placeholder. An ordinary constraint's filename is a rule name plus the extension it applies to; an aggregate's filename is the rule name:
 
 ```text
 [...path]/no-as-any.ts.mjs
 backend/[...path]/no-fetch.ts.mjs
+src/[...path]/message-registry.mjs
 ```
 
-The first applies to every TypeScript file in the project; the second only within `backend/`. Constraint rules do not declare that anything exists — they describe how files that do exist must be written, and appear in the documentation for the subtree they cover.
+The first applies to every TypeScript file in the project; the second only within `backend/`. The third is one obligation over a selected population under `src/`. Constraint rules do not declare that anything exists — they describe how files that do exist must be written, and appear in the documentation for the subtree they cover.
 
-Every file in the repository is owned by exactly one structural rule, and by every constraint whose pattern matches it. Which rule wins, and which files are required to exist, is specified in [docs/MATCHING.MD](docs/MATCHING.MD).
+Every file in the repository is owned by exactly one structural rule, and by every constraint that admits it. Which rule wins, and which files are required to exist, is specified in [docs/MATCHING.MD](docs/MATCHING.MD).
 
 A constraint can export `targets = ["*/queries.sql"]` to narrow its governed
 candidates without redefining ownership or repository structure. The positive
-globs form a union and apply equally to ordinary and aggregate constraints.
+globs are relative to the prefix before `[...name]` and apply equally to
+ordinary and aggregate constraints. An aggregate without `targets` selects
+every owned governed file in its scope.
 
-A constraint exporting `aggregate = true` runs once over its complete matching
+A constraint exporting `aggregate = true` runs once over its complete selected
 set instead of once per file. This covers invariants that only exist at group
 scale: identifier uniqueness, translation parity, dependency cycles, or whether
 a fixture suite exercises every element often enough.

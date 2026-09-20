@@ -184,6 +184,11 @@ const cases: Case[] = [
     espalier: { "src/[...path]/no-fetch..mjs": INERT },
   },
   {
+    what: "an extension-free constraint leaf without aggregate",
+    code: "malformed_constraint_leaf",
+    espalier: { "src/[...path]/registry.mjs": INERT },
+  },
+  {
     what: "an ESPALIER.MD whose frontmatter will not parse",
     code: "malformed_node_description",
     espalier: {

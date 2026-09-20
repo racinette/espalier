@@ -64,13 +64,16 @@ clients/[provider]/client.ts   an integration with an external API
 
 An agent that needs to add a `User` type will not necessarily connect that to the phrase "a domain model."
 
-Constraint modules may omit it. When absent, `espalier` generates one from the pattern, using built-in aliases for common extensions:
+Constraint modules may omit it. When absent, `espalier` generates one from the
+constraint's scope and, for an ordinary constraint, its extensions, using
+built-in aliases for common extensions:
 
 ```text
 **/*.ts               applies to TypeScript files throughout the project
 backend/**/*.ts       applies to TypeScript files under backend/
 **/*.{ts,tsx}         applies to TypeScript files throughout the project
 **/*.zig              applies to .zig files throughout the project
+src/**/*              analyzes files together under src/
 ```
 
 Extensions sharing an alias collapse to one word, and an extension with no alias is named by its suffix. Supply your own `description` when the generated phrasing is wrong for the project.
@@ -246,21 +249,23 @@ Only structural leaves take it. A dynamic leaf is already a collection that may 
 export const targets = ["*/queries.sql"];
 ```
 
-A constraint normally admits every governed file matched by its structural
-scope and extension. `targets` narrows those candidates with positive globs.
-The patterns form an unordered union; Espalier deduplicates and sorts them.
-They cannot admit ignored, ungoverned, or extension-mismatched files, declare
-required paths, or otherwise change repository structure.
+An ordinary constraint normally admits every governed file matched by its
+structural scope and extension. An aggregate without `targets` admits every
+structurally owned, governed file in that scope. `targets` narrows those
+candidates with positive globs. The patterns form an unordered union; Espalier
+deduplicates and sorts them. They cannot admit ignored, ungoverned, or
+extension-mismatched files, declare required paths, or otherwise change
+repository structure.
 
-Patterns are relative to the root of the constraint's recursive reach. For a
-constraint at `fixtures/[...fixture]/query-count.sql.mjs`, the selector above
-matches `fixtures/alpha/queries.sql` but not `fixtures/alpha/schema.sql`.
+Patterns are relative to the compiled prefix before the recursive placeholder.
+For a constraint at `fixtures/[...fixture]/query-count.sql.mjs`, the selector
+above matches `fixtures/alpha/queries.sql` but not `fixtures/alpha/schema.sql`.
 `targets` must be a non-empty array of non-empty relative patterns. Negation,
-absolute patterns, and `..` segments are rejected. Omitting the export retains
-the extension-wide behavior.
+absolute patterns, and `..` segments are rejected.
 
-The same selector semantics apply to ordinary and aggregate constraints.
-Existing constraint captures are preserved for every selected path.
+The same selector origin applies to ordinary and aggregate constraints.
+Existing constraint captures are preserved for every selected path. See
+[MATCHING.MD](MATCHING.MD#target-selectors).
 
 ### `unobservedImplementationDependencies`
 
@@ -297,7 +302,7 @@ An ordinary constraint runs once per owned file it matches. An aggregate
 constraint runs once with the complete matching set:
 
 ```js
-export async function lint({ matches, read, emit }) {
+export async function lint({ matches, patterns, read, emit }) {
   const contents = await Promise.all(matches.map(({ path }) => read(path)));
   // Compare or summarize the group, then emit once.
 }
@@ -307,10 +312,19 @@ Only constraint modules take `aggregate`. Structural rules exist to describe
 and lint one owned file at a time, so setting it there is
 `module_invalid_export` rather than an execution mode with unclear ownership.
 
+An aggregate leaf is the rule name: the entire filename minus `.mjs`. Dots are
+legal and do not select a file type. Preferred spelling is
+`src/[...path]/message-registry.mjs`. A leftover
+`message-registry.tolk.mjs` is named `message-registry.tolk` and, without
+`targets`, admits every owned governed file in scope — a documented breaking
+change, not a silent widening of an old extension filter.
+
 `matches` is a sorted array of `{ path, captures }`. Captures belong to each
 match because a recursive placeholder usually binds a different value for every
-file in the group. The aggregate context itself has no singular `path` or
-`captures`; `read` therefore always requires a path.
+file in the group. The aggregate context itself has no singular `path`,
+`pattern`, or `captures`; `read` therefore always requires a path.
+`patterns` is the admission glob list: the compiled scope (`src/**/*`) when
+`targets` is omitted, otherwise the expanded selectors.
 
 The module runs once even when `matches` is empty. This lets a collective rule
 enforce minimum population rather than silently disappearing in precisely the
@@ -318,9 +332,8 @@ case it was meant to reject. Its default issue path is the constraint's longest
 static directory prefix, with a trailing slash, or `.` for a root constraint.
 As with any issue, `emit({ path })` may attach it somewhere more specific.
 
-All extensions in one constraint leaf form one group. A module named
-`coverage.{ts,tsx}.mjs` receives the combined TypeScript and TSX match set, not
-one invocation per extension.
+An issue's `pattern` field remains one string: the sole admission glob, or the
+sorted list joined with ` | ` when there are several.
 
 ## Typed linter helpers
 
@@ -354,7 +367,7 @@ export const aggregate = true;
 
 export const lint = createAggregateLinter(async ({
   matches,
-  pattern,
+  patterns,
   read,
   files,
   emit,
@@ -427,7 +440,7 @@ Matching `backend/deep/nested/example.ts` against the constraint `backend/[...di
 }
 ```
 
-A constraint's filename is a rule name and an extension rather than a placeholder, so the matched filename is not captured — read `context.path` for it.
+A constraint's filename is a rule name — plus an extension on an ordinary constraint — rather than a placeholder, so the matched filename is not captured. Read `context.path` on an ordinary constraint, or each match's `path` on an aggregate.
 
 Captures name values. They never constrain the relationship between them: both `stripe/stripe.ts` and `stripe/client.ts` match `[provider]/[implementation].ts`. If two captured values must agree, say so in `rule` and check it in `lint`.
 
@@ -583,8 +596,9 @@ An aggregate constraint instead receives:
  * @typedef {Object} AggregateLintContext
  * @property {AggregateMatch[]} matches
  * Sorted complete match set, possibly empty.
- * @property {string} pattern
- * The normalized aggregate glob. An extension list remains one brace glob.
+ * @property {string[]} patterns
+ * Admission globs. The compiled scope when `targets` is omitted, otherwise
+ * the expanded selectors.
  * @property {(path: string) => Promise<string>} read
  * @property {ListFiles} files
  * @property {EmitIssue} emit
@@ -598,7 +612,7 @@ Rules execute independently, in unspecified order, with no shared state. An aggr
 
 **Visible is the whole of what a rule may see.** `read` refuses a path outside the governed set with `read_ungoverned`, and `files` never returns one. This is not tidiness: an ungoverned path is one nothing stamps, so a rule that depended on one would be replayed unchanged after it changed. A rule that needs to consult an ignored file is a rule whose espalier should stop ignoring it.
 
-**A `lint` function must be pure.** Its answer must follow from what it is handed — `path`, `pattern`, `captures`, and whatever `read` and `files` return — plus its observed or explicitly declared implementation dependencies, and from nothing else. The clock, the network and the environment are not inputs the runner can see, so a rule that consults one will be replayed from cache with an answer it would no longer give. The failure is silent: a stale pass, not an error. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
+**A `lint` function must be pure.** Its answer must follow from what it is handed — `path`, `pattern`, `captures` on an ordinary constraint, or `matches` and `patterns` on an aggregate, and whatever `read` and `files` return — plus its observed or explicitly declared implementation dependencies, and from nothing else. The clock, the network and the environment are not inputs the runner can see, so a rule that consults one will be replayed from cache with an answer it would no longer give. The failure is silent: a stale pass, not an error. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
 
 `addons` are held to the same standard and carry one obligation of their own: **an addon must not read the repository.** A parser handed a path opens lint data outside the rule context. Hand it contents, or `read` the path first and throw the string away. The addon's own worker, native, WebAssembly or internally opened support files may be declared with `unobservedImplementationDependencies`. The process behind an addon may hold state; its answers must not depend on any unrecorded input.
 

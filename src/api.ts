@@ -120,8 +120,8 @@ export interface AggregateMatch {
 
 export interface AggregateRuleContext {
   matches: AggregateMatch[];
-  /** The aggregate glob. Defaults to the recursive all-files glob. */
-  pattern?: string;
+  /** Admission globs. Defaults to the recursive all-files glob. */
+  patterns?: string[];
   /** Default path for emitted issues. Defaults to `.`. */
   at?: string;
   tree?: Record<string, string>;
@@ -289,7 +289,8 @@ export async function runAggregate(
   const modulePath = context.rule ?? null;
   const whose = modulePath ?? "rule";
   const tree = context.tree ?? {};
-  const pattern = context.pattern ?? "**/*";
+  const patterns = context.patterns ?? ["**/*"];
+  const pattern = [...patterns].sort((left, right) => left.localeCompare(right)).join(" | ");
   const at = context.at ?? ".";
   const issues: Issue[] = [];
   const matches = context.matches
@@ -328,7 +329,7 @@ export async function runAggregate(
   try {
     await (module.lint as (context: unknown) => unknown)({
       matches,
-      pattern,
+      patterns,
       read,
       files,
       emit,

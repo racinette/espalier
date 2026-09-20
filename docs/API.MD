@@ -163,14 +163,14 @@ Runs one aggregate constraint over a complete match set supplied by the test:
 
 ```js
 import { runAggregate } from "espalier";
-import * as rule from "../espalier/fixtures/[...fixture]/frequency.json.mjs";
+import * as rule from "../espalier/fixtures/[...fixture]/frequency.mjs";
 
 const issues = await runAggregate(rule, {
   matches: [
     { path: "fixtures/a/case.json", captures: { fixture: ["a"] } },
     { path: "fixtures/b/case.json", captures: { fixture: ["b"] } },
   ],
-  pattern: "fixtures/**/*.json",
+  patterns: ["fixtures/**/*.json"],
   at: "fixtures/",
   tree: {
     "fixtures/a/case.json": "[]",
@@ -182,7 +182,7 @@ const issues = await runAggregate(rule, {
 | Field | Default | |
 |---|---|---|
 | `matches` | required | complete `{ path, captures }` set; sorted before `lint` runs |
-| `pattern` | `**/*` | aggregate glob recorded on issues |
+| `patterns` | `["**/*"]` | admission globs recorded on issues |
 | `at` | `.` | default issue path |
 | `tree` | `{}` | virtual repository backing `read` and `files` |
 | `read` | derived from `tree` | reader requiring an explicit path |

@@ -8,6 +8,7 @@
 import type { Constraint, Espalier, NodeDoc, StructuralRule, TrieNode } from "./compile.js";
 import { PROVENANCE } from "./files.js";
 import { backrefNames, parseSegment, type Segment } from "./pattern.js";
+import { admissionGlobs, authoredScope } from "./targets.js";
 
 export const QUICKSTART = `## Working with Espalier
 
@@ -629,11 +630,11 @@ function extensionLabel(extension: string): string {
 function describeConstraint(constraint: Constraint, extensions: string[]): string {
   if (constraint.module.description !== null) return constraint.module.description;
 
-  const named = [...new Set(extensions.map(extensionLabel))];
   const where = staticPrefix(constraint.directory);
-  const action = constraint.module.aggregate ? "analyzes" : "applies to";
-  const together = constraint.module.aggregate ? " together" : "";
-  return `${action} ${list(named)} files${together} ${where === "" ? "throughout the project" : `under ${where}/`}`;
+  const place = where === "" ? "throughout the project" : `under ${where}/`;
+  if (constraint.module.aggregate) return `analyzes files together ${place}`;
+  const named = [...new Set(extensions.map(extensionLabel))];
+  return `applies to ${list(named)} files ${place}`;
 }
 
 /**
@@ -670,10 +671,12 @@ export function constraintGroups(espalier: Espalier): ConstraintGroup[] {
     return {
       name: first.name,
       rule: first.modulePath,
-      patterns: members.map((entry) => entry.pattern),
+      patterns: [...new Set(members.flatMap(admissionGlobs))].sort((left, right) =>
+        left.localeCompare(right),
+      ),
       description: describeConstraint(
         first,
-        members.map((entry) => entry.extension),
+        members.flatMap((entry) => (entry.extension === null ? [] : [entry.extension])),
       ),
       ruleText: first.module.rule.trim(),
       referenceImplementation: first.module.referenceImplementation,
@@ -688,6 +691,33 @@ export function constraintGroups(espalier: Espalier): ConstraintGroup[] {
 export { isDirectory, subtree };
 
 /** A structural path as seen from the document section that introduces it. */
+function constraintHeading(group: ConstraintGroup, level: number): string[] {
+  const description = group.members[0]!.module.description;
+  const heading = description === null ? "" : ` — ${description}`;
+  return [`${"#".repeat(level)} ${group.name}${heading}`];
+}
+
+function constraintBody(group: ConstraintGroup): string[] {
+  return group.ruleText === "" ? [] : [group.ruleText];
+}
+
+function constraintAxes(group: ConstraintGroup): string[] {
+  const first = group.members[0]!;
+  const where = staticPrefix(first.directory);
+  const under = where === "" ? "in this project" : `under \`${where}/\``;
+  const selected =
+    group.targets === null
+      ? `every owned governed file ${under}`
+      : `owned paths matching ${list(group.targets.map((target) => `\`${target}\``))} ${under}`;
+  return [
+    [
+      `Scope: \`${authoredScope(first)}\`.`,
+      `Selected files: ${selected}.`,
+      `Evaluation: ${group.aggregate ? "once over the complete selected population" : "once per selected file"}.`,
+    ].join("\n"),
+  ];
+}
+
 function displayPath(point: Placement, at: string): string {
   if (point.at === "") return at;
   const prefix = `${point.at}/`;
@@ -726,39 +756,48 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
   }
 
   if (point.constraints.length > 0) {
-    blocks.push(`${hashes} Constraints`);
     const placed = new Set(point.constraints.map((constraint) => constraint.modulePath));
-    const extensionGroups = new Map<string, { extensions: string[]; rules: ConstraintGroup[] }>();
+    const groups = constraintGroups(espalier).filter((group) => placed.has(group.rule));
+    const perFile = groups.filter((group) => !group.aggregate);
+    const aggregates = groups.filter((group) => group.aggregate);
 
-    for (const group of constraintGroups(espalier)) {
-      if (!placed.has(group.rule)) continue;
-      const extensions = [...new Set(group.members.map((member) => member.extension))].sort();
-      const key = extensions.join("\0");
-      const bucket = extensionGroups.get(key);
-      if (bucket === undefined) extensionGroups.set(key, { extensions, rules: [group] });
-      else bucket.rules.push(group);
+    if (perFile.length > 0) {
+      blocks.push(`${hashes} Per-file constraints`);
+      const extensionGroups = new Map<string, { extensions: string[]; rules: ConstraintGroup[] }>();
+
+      for (const group of perFile.filter((entry) => entry.targets === null)) {
+        const extensions = [
+          ...new Set(group.members.flatMap((member) => (member.extension === null ? [] : [member.extension]))),
+        ].sort();
+        const key = extensions.join("\0");
+        const bucket = extensionGroups.get(key);
+        if (bucket === undefined) extensionGroups.set(key, { extensions, rules: [group] });
+        else bucket.rules.push(group);
+      }
+
+      for (const bucket of extensionGroups.values()) {
+        const known = [...new Set(bucket.extensions.map(extensionLabel))];
+        const kinds = `${list(known)} files`;
+        const where = point.at === "" ? "in this project" : `under ${codeSpan(`${point.at}/`)}`;
+        const heading = point.at === "" ? kinds : `${kinds} under ${codeSpan(`${point.at}/`)}`;
+        blocks.push(
+          `${"#".repeat(level + 1)} ${heading}`,
+          `These rules are evaluated once per selected file. They apply to every owned ${list(known)} file ${where}.`,
+        );
+        for (const group of bucket.rules) {
+          blocks.push(...constraintHeading(group, level + 2), ...constraintBody(group));
+        }
+      }
+
+      for (const group of perFile.filter((entry) => entry.targets !== null)) {
+        blocks.push(...constraintHeading(group, level + 1), ...constraintAxes(group), ...constraintBody(group));
+      }
     }
 
-    for (const bucket of extensionGroups.values()) {
-      const known = [...new Set(bucket.extensions.map(extensionLabel))];
-      const kinds = `${list(known)} files`;
-      const where = point.at === "" ? "in this project" : "under this directory";
-      blocks.push(`${"#".repeat(level + 1)} ${kinds}`, `These rules apply to all ${kinds} ${where}.`);
-
-      for (const group of bucket.rules) {
-        const description = group.members[0]!.module.description;
-        const heading = description === null ? "" : ` — ${description}`;
-        const collective = group.aggregate
-          ? "This constraint analyzes all matching files as one group."
-          : null;
-        const targeting =
-          group.targets === null
-            ? null
-            : `Only governed paths matching ${list(group.targets.map((target) => `\`${target}\``))} under this constraint's scope are selected.`;
-        blocks.push(
-          `${"#".repeat(level + 2)} ${group.name}${heading}`,
-          ...[targeting, collective, group.ruleText].filter((entry): entry is string => entry !== null),
-        );
+    if (aggregates.length > 0) {
+      blocks.push(`${hashes} Aggregate constraints`);
+      for (const group of aggregates) {
+        blocks.push(...constraintHeading(group, level + 1), ...constraintAxes(group), ...constraintBody(group));
       }
     }
   }

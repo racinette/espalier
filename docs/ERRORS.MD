@@ -44,7 +44,7 @@ See [MATCHING.MD](MATCHING.MD). All of these are detected before a single reposi
 |---|---|
 | `invalid_espalier_entry` | a file that is neither a `.mjs` module nor an `ESPALIER.MD` |
 | `malformed_placeholder` | an unclosed `[` or `{`, an unmatched `]`, or a name that is not an identifier |
-| `malformed_constraint_leaf` | a constraint filename that is not a rule name plus an extension |
+| `malformed_constraint_leaf` | an ordinary constraint filename that is not a rule name plus an extension |
 | `malformed_node_description` | an `ESPALIER.MD` whose frontmatter will not parse |
 | `multiple_recursive_placeholders` | more than one `[...name]` in one path |
 | `duplicate_placeholder_name` | the same capture name twice in one path |

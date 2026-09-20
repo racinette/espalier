@@ -15,14 +15,13 @@ import { fail } from "./errors.js";
 import { collectCandidates, isGenerated } from "./files.js";
 import { compileIgnore, excludedBy, ignores, type IgnoreRule } from "./ignore.js";
 import {
-  constraintCaptures,
   isOwnership,
   resolve,
   unconditionallyRequired,
   type Ownership,
   type Recognition,
 } from "./match.js";
-import { admitsTarget } from "./targets.js";
+import { admitConstraint } from "./targets.js";
 import { compileVisibility, hiddenBy, type VisibilityRules } from "./visibility.js";
 
 export interface Repository {
@@ -116,11 +115,7 @@ function validateReferenceImplementations(
     }
 
     if (
-      !rule.constraints.some(
-        (constraint) =>
-          constraintCaptures(constraint, reference) !== null &&
-          admitsTarget(constraint, reference),
-      )
+      !rule.constraints.some((constraint) => admitConstraint(constraint, reference) !== null)
     ) {
       fail(
         "invalid_reference_implementation",

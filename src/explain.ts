@@ -8,7 +8,6 @@ import path from "node:path";
 import { fail } from "./errors.js";
 import type { ConstraintAnswer, RuleAnswer } from "./explainText.js";
 import {
-  constraintCaptures,
   isDirectoryOwnership,
   isOwnership,
   resolveDirectory,
@@ -18,7 +17,7 @@ import type { Reporter } from "./output.js";
 import { closedSet, constraintGroups, mapEntries, requiredUnder, subtree } from "./render.js";
 import { delegated } from "./nested.js";
 import { open } from "./repository.js";
-import { admitsTarget } from "./targets.js";
+import { admitConstraint } from "./targets.js";
 
 export interface ExplainOptions {
   cwd: string;
@@ -205,8 +204,8 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
   const constraints: ConstraintAnswer[] = [];
   for (const { members, prefix: _prefix, aggregate, targets, ...summary } of groups) {
     for (const member of members) {
-      const captures = constraintCaptures(member, target);
-      if (captures === null || !admitsTarget(member, target)) continue;
+      const captures = admitConstraint(member, target);
+      if (captures === null) continue;
       constraints.push({
         ...summary,
         captures,

@@ -128,6 +128,11 @@ clients/stripe/client.ts                 an integration with an external API
     Never write as any. Narrow the type instead.
 ```
 
+A constraint is listed only when this path is admitted — the same directory
+match, ordinary extension, and `targets` selector `lint` uses. `patterns` are
+those admission globs, not a leftover filename extension. A targeted aggregate
+does not appear on an unselected sibling in the same scope.
+
 The path does not have to exist. Matching is pure, so `explain` answers "would this be legal, and what would apply" before the file is written — the same question `lint` answers afterwards, from the same source, so the two cannot disagree.
 
 For a path nothing declares, the answer is the deepest recognized node:

@@ -418,11 +418,14 @@ Taken while writing the `explain` fixtures:
    actually describing is the cache.
 
    The cache now closes the implementation-module gap as well. A synchronous
-   Node loader hook observes the final `file:` URLs resolved from rule and addon
+   Node loader hook observes the `file:` URLs resolved from rule and addon
    modules, including transitive and dynamic imports, and the cache header
    stamps that global set alongside package metadata, lockfiles, the Node
    version and resolution conditions. The hook delegates first, so an earlier
-   loader such as `tsx` still owns resolution and transformation. Node 24 is the
+   loader such as `tsx` still owns resolution and transformation. When a
+   loader encodes query identity into the pathname — tsx does this for CJS
+   interop on some Node versions — the source path is recovered if the
+   encoded path is not a file and a prefix before `?` is. Node 24 is the
    minimum runtime: its in-thread hooks avoid turning cache correctness into a
    message-channel race, and Node 20 was already end-of-life when this changed.
 
@@ -1029,3 +1032,41 @@ was rejected as the commit point because POSIX permits it to replace a
 concurrently created empty directory, violating the no-overwrite promise. If
 one structural spelling can denote both a file and a directory, its plain form
 retains file creation and a trailing slash selects the directory explicitly.
+
+## Aggregate population is not a leaf extension
+
+Aggregate constraints describe a population independently of a filename
+extension. Generated guidance states scope, selection, and evaluation as
+separate facts. The public matching contract is the specification; `build`,
+`lint`, and `explain` only report it.
+
+**Omitted selector.** An aggregate without `targets` selects every structurally
+owned, governed file in its constraint scope. Ignored, ungoverned, and
+unowned files never join. Ordinary constraints without `targets` still admit
+by path and extension.
+
+**Leaf grammar.** The entire aggregate leaf minus `.mjs` is the rule name.
+Dots are legal and meaningless: `element-frequency.json.mjs` is named
+`element-frequency.json` and does not filter JSON. That is a documented
+breaking change, not a dual grammar and not a reject. Ordinary constraints
+still require `name.ext.mjs` or `name.{ext,ext}.mjs`. An extension-free leaf
+without `aggregate = true` is `malformed_constraint_leaf`. Preferred new
+spelling is `message-registry.mjs`.
+
+**`patterns`.** Aggregate `lint` receives `patterns: string[]` and has no
+singular `pattern`. The array is the admission globs: the compiled scope
+(`src/**/*`) when `targets` is omitted, otherwise the expanded selectors.
+Ordinary `lint` keeps `pattern: string`. Issue `pattern` remains one string —
+the sole glob, or the sorted list joined with ` | `. Cache `FORMAT` was
+bumped. `runAggregate` and `createAggregateLinter` follow the same shape.
+
+**Selector origin.** `targets` are relative to the compiled prefix before
+`[...name]`, from directory segments, not by stripping `**/*.ext`. Trailing
+directories stay in candidate matching. Scoped `lint` and `explain` do not
+re-root selectors. Empty-population scoping still uses the static prefix.
+
+**Generated presentation.** `Per-file constraints` and `Aggregate constraints`
+are separate sections. Aggregates and targeted ordinary rules each state
+Scope, Selected files, and Evaluation with a concrete path or authored
+expression. Untargeted ordinary rules may share a truthful extension heading.
+A targeted rule never sits under an unqualified "all files" sentence.

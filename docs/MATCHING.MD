@@ -17,11 +17,12 @@ main.ts.mjs               governs  main.ts
 [button].tsx.mjs          governs  *.tsx  in this directory
 ```
 
-**Constraint rule modules** are `.mjs` files whose name is a rule name plus a target extension, plus `.mjs`. They appear only on paths containing a recursive placeholder:
+**Constraint rule modules** are `.mjs` files that sit on a path containing a recursive placeholder. An ordinary constraint's name is a rule name plus a target extension; an aggregate constraint's name is the whole leaf:
 
 ```text
-[...path]/no-as-any.ts.mjs           applies to  **/*.ts
-backend/[...path]/no-fetch.ts.mjs    applies to  backend/**/*.ts
+[...path]/no-as-any.ts.mjs              applies to  **/*.ts
+backend/[...path]/no-fetch.ts.mjs       applies to  backend/**/*.ts
+src/[...path]/message-registry.mjs      one obligation over the selected population under src/
 ```
 
 **Node descriptions** are files named `ESPALIER.MD`. They describe the directory they sit in rather than any file in the repository:
@@ -52,15 +53,16 @@ Skipping applies to directories too, and that has a consequence worth stating pl
 
 A rule module path that contains `[...name]` is a **constraint**. Every other rule module is **structural**.
 
-That single signal decides how the leaf is read:
+That single signal decides that the leaf is a constraint. How the leaf is then read depends on `aggregate`:
 
 ```text
-main.ts.mjs                    structural   leaf is a filename
-clients/[provider]/client.ts.mjs   structural   leaf is a filename
-[...path]/no-as-any.ts.mjs     constraint   leaf is <rule-name>.<extension>
+main.ts.mjs                         structural   leaf is a filename
+clients/[provider]/client.ts.mjs    structural   leaf is a filename
+[...path]/no-as-any.ts.mjs          ordinary     leaf is <rule-name>.<extension>
+src/[...path]/message-registry.mjs  aggregate    leaf is the rule name
 ```
 
-`main.ts.mjs` and `no-as-any.ts.mjs` are spelled the same way. They mean different things because one sits on a recursive path and the other does not.
+`main.ts.mjs` and `no-as-any.ts.mjs` are spelled the same way. They mean different things because one sits on a recursive path and the other does not. An aggregate leaf is an ordinary filename: dots are legal and do not select an extension. `element-frequency.json.mjs` with `aggregate = true` is named `element-frequency.json` and does not admit only JSON. A leaf with no extension and no `aggregate = true` is `malformed_constraint_leaf`.
 
 A path may contain at most one recursive placeholder.
 
@@ -119,7 +121,7 @@ Matching `backend/deep/nested/handler.ts` against `backend/[...path]/no-fetch.ts
 { path: ["deep", "nested"] }
 ```
 
-Constraint captures come only from the directory portion of the path. The leaf of a constraint is a rule name and an extension, not a placeholder, so the filename is not captured — read `context.path` for it.
+Constraint captures come only from the directory portion of the path. The leaf of a constraint is a rule name — plus an extension on an ordinary constraint — not a placeholder, so the filename is not captured. Read `context.path` on an ordinary constraint, or each match's `path` on an aggregate.
 
 ### Back-references
 
@@ -151,34 +153,53 @@ A constraint leaf may list extensions:
 
 This is shorthand for two patterns sharing one module, not glob brace expansion. It exists because a constraint that applies to `.ts` almost always applies to `.tsx`, and the alternative is two files with duplicated bodies that drift apart.
 
-Only constraint leaves may list extensions. A structural leaf names one file, and `main.{ts,tsx}.mjs` would be declaring that two files are each required — which is either two rules or a `[name]` placeholder, and is clearer written as whichever was meant. It is rejected as `extension_list_on_structural_leaf`.
+Only ordinary constraint leaves may list extensions. An aggregate leaf is a filename, so braces in it are part of the name rather than a union. A structural leaf names one file, and `main.{ts,tsx}.mjs` would be declaring that two files are each required — which is either two rules or a `[name]` placeholder, and is clearer written as whichever was meant. It is rejected as `extension_list_on_structural_leaf`.
 
 Braces therefore mean two things, and never in the same place:
 
 ```text
-braces in a constraint leaf     an extension list
-braces anywhere else            a back-reference
+braces in an ordinary constraint leaf     an extension list
+braces anywhere else                      a back-reference
 ```
 
-The two positions are disjoint, so nothing has to be disambiguated at read time. A constraint leaf is a rule name plus a target extension rather than a segment that matches a file, so a back-reference has nothing to refer to there; and a structural leaf names one file, so a list of extensions has nothing to mean. The comma survives only as a diagnostic: braces containing one, on a structural leaf, is someone expecting a union, and that is what the rejection says.
+The two positions are disjoint for ordinary leaves, so nothing has to be disambiguated at read time. An ordinary constraint leaf is a rule name plus a target extension rather than a segment that matches a file, so a back-reference has nothing to refer to there; and a structural leaf names one file, so a list of extensions has nothing to mean. The comma survives only as a diagnostic: braces containing one, on a structural leaf, is someone expecting a union, and that is what the rejection says.
 
 ### Target selectors
 
-The module export `targets` narrows a constraint after its path and extension
-have matched:
+The module export `targets` narrows a constraint after its directory — and, for
+an ordinary constraint, its extension — have matched:
 
 ```js
 export const targets = ["*/queries.sql"];
 ```
 
-The selector patterns are relative to the root of the recursive constraint
-path and form a positive union. They only reject candidates: they cannot claim
-an unowned path, override an ignore, change the constraint's extensions, or
-declare that a file must exist. Captures still come from the constraint path.
+The selector patterns are relative to the compiled prefix **before** the
+recursive placeholder, taken from directory segments. They form a positive
+union. They only reject candidates: they cannot claim an unowned path, override
+an ignore, change an ordinary constraint's extensions, or declare that a file
+must exist. Captures still come from the constraint path. Scoped `lint` and
+`explain` do not move that origin.
 
-For `fixtures/[...fixture]/query-count.sql.mjs`, the example selects
+```text
+[...path]/registry.mjs                      origin is the repository root
+backend/[...path]/registry.mjs             origin is backend/
+src/[area]/[...path]/registry.mjs           origin is src/*/
+backend/[...path]/handlers/registry.mjs    origin is backend/
+```
+
+Trailing directory segments stay in candidate matching, not in the origin.
+`backend/[...path]/handlers/registry.mjs` already admits only files matching
+`backend/**/handlers/*`; a selector `*/foo.ts` becomes `backend/*/foo.ts` and
+is then intersected with those candidates.
+
+For `fixtures/[...fixture]/query-count.sql.mjs`, `["*/queries.sql"]` selects
 `fixtures/alpha/queries.sql` while rejecting `fixtures/alpha/schema.sql`, even
 though both match the constraint's `fixtures/**/*.sql` pattern.
+
+An ordinary constraint without `targets` admits every owned file its path and
+extension match. An aggregate without `targets` admits every structurally
+owned, governed file in its constraint scope. Ignored, ungoverned, and
+structurally unowned files never join.
 
 ## Ownership
 

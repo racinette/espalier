@@ -1,10 +1,10 @@
 // Rule implementation dependency observation. docs/cli/lint/README.MD
 // "Implementation dependencies".
 
-import { globSync } from "node:fs";
+import { globSync, statSync } from "node:fs";
 import { registerHooks } from "node:module";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const LOCKFILES = [
   "bun.lock",
@@ -53,6 +53,42 @@ const graph = new Map<string, Set<string>>();
 let registration: ReturnType<typeof registerHooks> | null = null;
 let nextToken = 1;
 
+function isFile(filename: string): boolean {
+  try {
+    return statSync(filename).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Loaders such as tsx may append `%3F` plus query identity to a `file:`
+ * pathname so Node treats each CJS interop URL as a distinct module. That
+ * encoded path is not on disk. Prefer the longest prefix before `?` that is
+ * a real file, so stamps follow the source on Node versions that rewrite
+ * and on those that do not.
+ */
+function recoverSource(filename: string): string {
+  if (filename.indexOf("?") === -1 || isFile(filename)) return filename;
+  let best: string | null = null;
+  for (let cut = filename.indexOf("?"); cut !== -1; cut = filename.indexOf("?", cut + 1)) {
+    const candidate = filename.slice(0, cut);
+    if (isFile(candidate)) best = candidate;
+  }
+  return best ?? filename;
+}
+
+/** Absolute path for a resolved `file:` URL, after loader-identity recovery. */
+export function implementationFile(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "file:") return null;
+    return recoverSource(path.resolve(fileURLToPath(parsed)));
+  } catch {
+    return null;
+  }
+}
+
 function canonical(url: string | undefined): string | null {
   if (url === undefined) return null;
   try {
@@ -60,6 +96,10 @@ function canonical(url: string | undefined): string | null {
     if (parsed.protocol === "file:") {
       parsed.search = "";
       parsed.hash = "";
+      const filename = implementationFile(parsed.href);
+      if (filename === null) return parsed.href;
+      const naive = path.resolve(fileURLToPath(parsed));
+      return filename === naive ? parsed.href : pathToFileURL(filename).href;
     }
     return parsed.href;
   } catch {
@@ -68,12 +108,7 @@ function canonical(url: string | undefined): string | null {
 }
 
 function fileOf(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "file:" ? path.resolve(fileURLToPath(parsed)) : null;
-  } catch {
-    return null;
-  }
+  return implementationFile(url);
 }
 
 function inheritedToken(url: string | undefined): string | null {

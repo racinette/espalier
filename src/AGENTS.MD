@@ -167,11 +167,11 @@ Model what the repository exposes to Espalier through external
 ignore files. Apply sources in discovery order so deeper rules may override earlier
 ones, and keep visibility distinct from governance exclusions.
 
-## Constraints
+## Per-file constraints
 
-### TypeScript files
+### TypeScript files under `src/`
 
-These rules apply to all TypeScript files under this directory.
+These rules are evaluated once per selected file. They apply to every owned TypeScript file under `src/`.
 
 #### module-header — every implementation module opens with a header
 

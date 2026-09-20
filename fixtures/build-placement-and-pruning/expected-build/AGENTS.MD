@@ -20,11 +20,11 @@ renders.
 
 Wire up the application and start it. No business logic here.
 
-## Constraints
+## Per-file constraints
 
 ### TypeScript files
 
-These rules apply to all TypeScript files in this project.
+These rules are evaluated once per selected file. They apply to every owned TypeScript file in this project.
 
 #### no-as-any — applies to TypeScript files throughout the project
 

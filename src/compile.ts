@@ -79,12 +79,13 @@ export interface TrieNode {
 
 export interface Constraint {
   modulePath: string;
-  /** The rule name, e.g. `no-as-any`. */
+  /** The rule name, e.g. `no-as-any` or an aggregate leaf such as `message-registry`. */
   name: string;
   /** Directory segments, containing exactly one recursive placeholder. */
   directory: Segment[];
-  extension: string;
-  /** Normalized glob, e.g. `**​/*.ts`. */
+  /** Ordinary target extension; absent on an aggregate, whose leaf does not select a type. */
+  extension: string | null;
+  /** Normalized glob: `**​/*.ts` for an ordinary constraint, `src/**​/*` for an aggregate. */
   pattern: string;
   module: LoadedModule;
 }
@@ -490,14 +491,27 @@ export async function compile(root: string, espalierRoot: string): Promise<Espal
 
     const absoluteModule = path.join(absolute, modulePath);
 
-    // A path containing `[...name]` is a constraint. Everything else is
-    // structural. That single signal decides how the leaf is read.
+    // A path containing `[...name]` is a constraint. `aggregate` then decides
+    // whether the leaf is a filename or a rule name plus an extension.
     if (recursive.length === 1) {
       const directory = parsed.slice(0, -1);
-      const { name, extensions } = splitConstraintLeaf(authored[authored.length - 1]!, modulePath);
+      const leaf = authored[authored.length - 1]!;
       const module = await loadModule(absoluteModule, modulePath, "constraint");
       const prefix = directory.map((segment) => segment.shape).join("/");
 
+      if (module.aggregate) {
+        constraints.push({
+          modulePath,
+          name: leaf,
+          directory,
+          extension: null,
+          pattern: prefix === "" ? "**/*" : `${prefix}/*`,
+          module,
+        });
+        continue;
+      }
+
+      const { name, extensions } = splitConstraintLeaf(leaf, modulePath);
       for (const extension of extensions) {
         constraints.push({
           modulePath,

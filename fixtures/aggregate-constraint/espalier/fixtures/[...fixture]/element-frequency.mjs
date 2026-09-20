@@ -1,4 +1,5 @@
 export const aggregate = true;
+export const targets = ["**/*.json"];
 export const rule = `Exercise each element frequently across the fixture suite.`;
 
 export async function lint({ matches, read, emit }) {

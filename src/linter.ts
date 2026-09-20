@@ -44,7 +44,7 @@ export interface AggregateLintContext<
   Addons = Record<string, unknown>,
 > {
   matches: LintMatch<Captures>[];
-  pattern: string;
+  patterns: string[];
   read: AggregateReadFile;
   files: ListFiles;
   emit: EmitIssue;

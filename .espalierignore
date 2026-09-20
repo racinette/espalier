@@ -90,5 +90,10 @@ babel.config.*
 # invalid, and a root run executing all sixty is not what anyone means by it.
 fixtures/**
 
+# Maintainer planning documents. These describe proposed work rather than the
+# architecture of the implementation or the public specification.
+tasks/**
+ESPALIER_ADOPTION_REPORT.md
+
 # Not source, and not in .gitignore either.
 LEGACY_README.MD

@@ -327,8 +327,8 @@ export function unconditionallyRequired(espalier: Espalier): string[] {
 
 /**
  * Whether a constraint applies to a path, and what its directory portion
- * captures. The leaf of a constraint is a rule name and an extension, so the
- * filename is never captured.
+ * captures. The leaf is a rule name, not a placeholder, so the filename is
+ * never captured. An ordinary constraint also requires its target extension.
  */
 export function constraintCaptures(
   constraint: Constraint,
@@ -336,8 +336,10 @@ export function constraintCaptures(
 ): Record<string, CaptureValue> | null {
   const segments = filePath.split("/");
   const filename = segments[segments.length - 1]!;
-  if (!filename.endsWith(`.${constraint.extension}`)) return null;
-  if (filename.length <= constraint.extension.length + 1) return null;
+  if (constraint.extension !== null) {
+    if (!filename.endsWith(`.${constraint.extension}`)) return null;
+    if (filename.length <= constraint.extension.length + 1) return null;
+  }
 
   const directories = segments.slice(0, -1);
   const pattern = constraint.directory;

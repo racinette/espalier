@@ -10,8 +10,8 @@ import { createEmit, within } from "./context.js";
 import { fail, OperationalError } from "./errors.js";
 import { matchGlob } from "./files.js";
 import { observeImplementations, type ImplementationObserver } from "./implementation.js";
-import { admitsTarget, targetPatterns } from "./targets.js";
-import { constraintCaptures, isOwnership, requiredFiles, type CaptureValue } from "./match.js";
+import { admitConstraint, admissionGlobs, issuePattern } from "./targets.js";
+import { isOwnership, requiredFiles, type CaptureValue } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
 import { eachChild } from "./nested.js";
 import { openConfig, type Repository } from "./repository.js";
@@ -352,8 +352,8 @@ async function lintOne(
   for (const file of allOwned) {
     for (const aggregate of aggregates.values()) {
       for (const constraint of aggregate.constraints) {
-        const captures = constraintCaptures(constraint, file.path);
-        if (captures === null || !admitsTarget(constraint, file.path)) continue;
+        const captures = admitConstraint(constraint, file.path);
+        if (captures === null) continue;
         aggregate.matches.set(file.path, { path: file.path, captures });
         break;
       }
@@ -378,12 +378,10 @@ async function lintOne(
     if (options.rule !== undefined && options.rule !== aggregate.modulePath) return;
     if (!aggregateInScope(aggregate)) return;
 
-    const extensions = [...new Set(aggregate.constraints.map((constraint) => constraint.extension))];
-    const first = aggregate.constraints[0]!;
-    const pattern =
-      extensions.length === 1
-        ? first.pattern
-        : `${first.pattern.slice(0, -first.extension.length)}{${extensions.join(",")}}`;
+    const patterns = [...new Set(aggregate.constraints.flatMap((constraint) => admissionGlobs(constraint)))].sort(
+      (left, right) => left.localeCompare(right),
+    );
+    const pattern = issuePattern(patterns);
     const target = aggregate.prefix === "" ? "." : `${aggregate.prefix}/`;
     const captures: Record<string, CaptureValue> = {};
     const derived = {
@@ -417,19 +415,17 @@ async function lintOne(
     });
 
     const watched = dependencies();
-    for (const constraint of aggregate.constraints) {
-      for (const pattern of targetPatterns(constraint)) {
-        watched.globs.set(
-          pattern,
-          listing(repository.visible.filter((candidate) => matchGlob(pattern, candidate))),
-        );
-      }
+    for (const glob of patterns) {
+      watched.globs.set(
+        glob,
+        listing(repository.visible.filter((candidate) => matchGlob(glob, candidate))),
+      );
     }
     watching = watched;
     try {
       await aggregate.module.lint({
-        matches: [...aggregate.matches.values()],
-        pattern,
+        matches: [...aggregate.matches.values()].sort((left, right) => left.path.localeCompare(right.path)),
+        patterns,
         read: (where?: string) => {
           if (where === undefined) {
             fail("read_failed", `${aggregate.modulePath}: an aggregate constraint must name the file to read`);
@@ -458,8 +454,8 @@ async function lintOne(
   const applicable = (target: string): { constraint: Constraint; captures: Record<string, CaptureValue> }[] =>
     espalier.constraints.flatMap((constraint) => {
       if (constraint.module.aggregate) return [];
-      const captures = constraintCaptures(constraint, target);
-      return captures === null || !admitsTarget(constraint, target) ? [] : [{ constraint, captures }];
+      const captures = admitConstraint(constraint, target);
+      return captures === null ? [] : [{ constraint, captures }];
     });
 
   try {

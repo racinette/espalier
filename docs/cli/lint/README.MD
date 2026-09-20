@@ -36,16 +36,22 @@ Rules execute independently and in unspecified order. A rule may read any file t
 ## Constraint targets
 
 A constraint may export `targets`, a non-empty array of relative positive
-globs, to narrow the governed files matched by its scope and extension. The
-patterns form a union and cannot make an ignored, ungoverned, or
-extension-mismatched path admissible. Ordinary constraints run once per
-selected path; aggregate constraints receive the complete selected set.
+globs, to narrow the governed files admitted by its scope — and, for an
+ordinary constraint, its extension. The patterns are relative to the compiled
+prefix before the recursive placeholder, form a union, and cannot make an
+ignored, ungoverned, or extension-mismatched path admissible. Ordinary
+constraints run once per selected path; aggregate constraints receive the
+complete selected set. See [MATCHING.MD](../../MATCHING.MD#target-selectors).
 
 ## Aggregate constraints
 
-A constraint exporting `aggregate = true` runs once over every owned file its
-pattern matches, rather than once per file. Its sorted `matches` retain each
-file's captures, and the group may be empty. See [TYPES.MD](../../TYPES.MD#aggregate).
+A constraint exporting `aggregate = true` runs once over its complete selected
+population rather than once per file. Its leaf is the rule name and does not
+select a file type. Without `targets` the population is every structurally
+owned, governed file in the constraint's scope. Its sorted `matches` retain
+each file's captures, and the group may be empty. The callback receives
+`patterns`, the admission globs, rather than a singular `pattern`. See
+[TYPES.MD](../../TYPES.MD#aggregate).
 
 Aggregate execution is not a post hook. It cannot observe findings or mutable
 state from ordinary rules, whose order remains unspecified. It is one ordinary
@@ -109,8 +115,11 @@ cache is discarded and the rules execute.
 
 Observation follows loader chaining, so a loader installed before Espalier —
 such as `tsx` supplied through `node --import tsx` — remains responsible for
-resolution and transformation while Espalier records its final local URL.
-Workers and child processes are separate runtimes and are not observed.
+resolution and transformation. Espalier records the source file that loader
+resolved. If the loader encodes query identity into the `file:` pathname,
+the source path is recovered when that encoded path is not a file and a
+prefix before `?` is. Workers and child processes are separate runtimes and
+are not observed.
 
 For those and other inputs the module loader cannot see, a rule or addon may
 declare an explicit escape hatch:
@@ -140,7 +149,7 @@ execute itself.
 
 ### What this asks of a rule
 
-A `lint` function must be a function of what it is handed: `path`, `pattern`, `captures`, and whatever `read` and `files` return. One that consults the clock, the network, or the environment will be replayed with an answer it would no longer give, and the failure is silent — a stale pass, not an error. See [TYPES.MD](../../TYPES.MD#execution).
+A `lint` function must be a function of what it is handed: `path`, `pattern`, `captures` on an ordinary constraint, or `matches` and `patterns` on an aggregate, and whatever `read` and `files` return. One that consults the clock, the network, or the environment will be replayed with an answer it would no longer give, and the failure is silent — a stale pass, not an error. See [TYPES.MD](../../TYPES.MD#execution).
 
 The governed set bounds lint data. `read` refuses a path the espalier does not govern, with `read_ungoverned`, and `files` never returns one. An implementation module may itself be ignored or ungoverned and is still stamped, but that does not turn it into data the rule may read. A rule that needs to inspect such a file rather than execute it is a rule whose espalier should stop ignoring it.
 
@@ -182,7 +191,7 @@ An issue is one finding at one path. Fields come from the `emit` call, plus what
 | `severity` | `error`, `warning`, or `info`; defaults to `error` |
 | `rule` | espalier-relative module path, or `null` for built-in issues |
 | `espalier` | repo-relative directory of the espalier that reported it, or `null` for the one this command loaded |
-| `pattern` | the normalized glob that matched, or `null` |
+| `pattern` | the normalized glob that matched; for an aggregate, the admission glob, or the sorted list joined with ` | `, or `null` |
 | `captures` | values from placeholders in the matched pattern |
 | `line`, `column` | 1-based, or `null` |
 | `metadata` | arbitrary structured data from the rule |

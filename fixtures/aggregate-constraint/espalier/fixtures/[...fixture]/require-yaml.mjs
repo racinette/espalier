@@ -1,4 +1,5 @@
 export const aggregate = true;
+export const targets = ["**/*.yaml"];
 export const rule = `Keep at least one YAML fixture.`;
 
 export async function lint({ matches, emit }) {

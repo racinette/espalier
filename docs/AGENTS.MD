@@ -74,11 +74,11 @@ Covers the contract between a rule module and the runner: every export a module
 may declare, and every field of the context its `lint` is handed. Where such a
 file may sit, and which files it claims, is MATCHING.MD.
 
-## Constraints
+## Per-file constraints
 
-### Markdown files
+### Markdown files under `docs/`
 
-These rules apply to all Markdown files under this directory.
+These rules are evaluated once per selected file. They apply to every owned Markdown file under `docs/`.
 
 #### document-heading — every document opens with a level-one heading
 

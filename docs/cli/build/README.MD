@@ -100,7 +100,8 @@ node prose                    the ESPALIER.MD body, verbatim
 ## Project layout             the tree
 ## Governed elsewhere         child espaliers below this point, when any
 ## `<path>` — <description>   one per structural rule placed here
-## Constraints                grouped by extension, then one rule section each
+## Per-file constraints       untargeted extension groups, then targeted rules
+## Aggregate constraints      scope, selection, and evaluation, then the body
 ## Other repository paths     one Paths/Purpose table, then the complete account
 ## Working with Espalier      root file only
 ```
@@ -180,7 +181,7 @@ A line's text is the node's description, then its suffixes in parentheses. A fil
 
 **The parentheses are what separate the two voices.** The description is a sentence somebody wrote; the suffixes are the espalier's annotation of it. Joined by a comma they read as one clause, and a description that already contains commas — `ownership, requiredness, and the deepest recognized node` — swallows the annotation entirely. They are parenthesized on a line that carries no description too, since a bare `zero or more, any name` reads as prose an author chose.
 
-Constraints do not appear. They declare no file and permit none, so a map that listed them would be answering a question nobody asked of it. Their bodies render below, under `## Constraints`.
+Constraints do not appear. They declare no file and permit none, so a map that listed them would be answering a question nobody asked of it. Their bodies render below, under `## Per-file constraints` and `## Aggregate constraints`.
 
 ### Suffixes
 
@@ -384,31 +385,60 @@ carries the repository path from `referenceImplementation` and is omitted when
 the module exports none. Inline source is deliberately unsupported: an
 unvalidated duplicate inside the rule module could drift from real code.
 
-Constraints are grouped by their extension set. Known extensions use the
-language names in the renderer's case-insensitive alias map; an unknown
-extension falls back to its authored dotted form rendered as code. The group
-states its scope in prose, and individual rules render one level beneath it:
+Constraints render in two sections: **Per-file constraints** and **Aggregate
+constraints**. A section with nothing to say is omitted. Ordinary and
+aggregate obligations are never introduced under one heading.
 
-A constraint with `targets` states the relative positive globs that narrow its
-governed candidates. This selector guidance precedes the rule body and does not
-alter the structural map.
-
-An aggregate constraint stays in the same section because it governs the same
-files. Its rule body is preceded by `This constraint analyzes all matching
-files as one group.` so a reader does not mistake collective guidance for a
-per-file check.
+Untargeted ordinary constraints that share an extension set may share a
+truthful heading. Known extensions use the language names in the renderer's
+case-insensitive alias map; an unknown extension falls back to its authored
+dotted form rendered as code. The heading names the files and a concrete
+scope — a static path, or the authored constraint directories — never "this
+constraint's scope":
 
 ```markdown
-## Constraints
+## Per-file constraints
 
-### TypeScript files
+### TypeScript files under `src/`
 
-These rules apply to all TypeScript files in this project.
+These rules are evaluated once per selected file. They apply to every owned
+TypeScript file under `src/`.
 
 #### no-as-any — no `as any`
 
 <the rule body, verbatim>
 ```
+
+A rule with `targets` is never placed under an unqualified "all files"
+sentence. Each targeted ordinary constraint, and every aggregate, states
+scope, selection, and evaluation as separate lines before the rule body:
+
+```markdown
+## Per-file constraints
+
+### query-count — count queries
+
+Scope: `fixtures/[...fixture]`.
+Selected files: owned paths matching `*/queries.sql` under `fixtures/`.
+Evaluation: once per selected file.
+
+<the rule body, verbatim>
+
+## Aggregate constraints
+
+### message-registry — consistent incoming message registry
+
+Scope: `src/[...path]`.
+Selected files: owned paths matching `*/messages.tolk` or
+`*/operations/*/message.tolk` under `src/`.
+Evaluation: once over the complete selected population.
+
+<the rule body, verbatim>
+```
+
+An aggregate without `targets` states that it selects every owned governed
+file in that scope. The three lines use the authored path or its longest
+static prefix; they do not ask the reader to reconstruct placement rules.
 
 ### Operational guidance
 
