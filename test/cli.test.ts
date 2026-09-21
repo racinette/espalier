@@ -299,6 +299,16 @@ test("adopt --force migrates conflicting guidance idempotently", () => {
   });
 });
 
+test("root operational guidance names espalier help", () => {
+  scratch((root) => {
+    const result = run(root, ["build"]);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const document = readFileSync(path.join(root, "AGENTS.MD"), "utf8");
+    assert.match(document, /## Working with Espalier/);
+    assert.match(document, /`espalier help` prints this CLI version's manual/);
+  });
+});
+
 test("build.espalierGuidance omits only Espalier's canned operational guidance", () => {
   scratch((root) => {
     writeFileSync(

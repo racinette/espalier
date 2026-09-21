@@ -28,4 +28,6 @@ Spec first, then one page per command. The catalog is the list; adding a page is
 
 Choosing a rule's kind, keeping policy in the owning module, and testing it is `espalier help authoring`. The compact contract `init` vendors into `espalier/AGENTS.MD` names the same commands so an agent editing rules has an invocation, not a checkout path.
 
+Generated root documents name `espalier help` in Working with Espalier. The working loop is the cycle; this command is the rest of the manual.
+
 If the contract's example obligations are not enough, [`espalier examples`](../examples/README.MD) prints a worked tree packed with this version.

@@ -64,6 +64,9 @@ rules and `ESPALIER.MD` guidance into this generated document, then checks the
 working tree against them. Use it to place new code, discover the constraints on
 a path, and catch architectural drift while a change is still small.
 
+`espalier help` prints this CLI version's manual. With no page it lists every
+page.
+
 Use this loop:
 
 1. Find the intended path in **Project layout** and read the generated guidance

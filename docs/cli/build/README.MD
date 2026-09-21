@@ -450,7 +450,9 @@ Paths matching `backend/**/handlers/*`.
 ### Operational guidance
 
 The repository root document ends with an operational introduction, where the
-former checking and amendment sections would otherwise have appeared:
+former checking and amendment sections would otherwise have appeared. The
+introduction names `espalier help` as this CLI version's manual: the working
+loop is not the whole reference.
 
 ```markdown
 ## Working with Espalier
@@ -459,6 +461,9 @@ Espalier is the architecture compiler for this repository. It turns structural
 rules and `ESPALIER.MD` guidance into this generated document, then checks the
 working tree against them. Use it to place new code, discover the constraints on
 a path, and catch architectural drift while a change is still small.
+
+`espalier help` prints this CLI version's manual. With no page it lists every
+page.
 
 Use this loop:
 
