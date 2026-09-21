@@ -178,8 +178,6 @@ ones, and keep visibility distinct from governance exclusions.
 
 ### TypeScript files under `src/`
 
-These rules are evaluated once per selected file. They apply to every owned TypeScript file under `src/`.
-
 #### module-header — every implementation module opens with a header
 
 Opens with a comment naming what the module is and, where one

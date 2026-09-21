@@ -8,7 +8,7 @@
 import type { Constraint, Espalier, NodeDoc, StructuralRule, TrieNode } from "./compile.js";
 import { PROVENANCE } from "./files.js";
 import { backrefNames, parseSegment, type Segment } from "./pattern.js";
-import { admissionGlobs, authoredScope } from "./targets.js";
+import { admissionGlobs } from "./targets.js";
 
 export const QUICKSTART = `## Working with Espalier
 
@@ -112,6 +112,12 @@ export function wrap(text: string, width = WIDTH): string {
 function list(entries: string[]): string {
   if (entries.length <= 1) return entries[0] ?? "";
   return `${entries.slice(0, -1).join(", ")} and ${entries[entries.length - 1]!}`;
+}
+
+/** `a`, `a or b`, `a, b or c`. */
+function orList(entries: string[]): string {
+  if (entries.length <= 1) return entries[0] ?? "";
+  return `${entries.slice(0, -1).join(", ")} or ${entries[entries.length - 1]!}`;
 }
 
 function under(prefix: string, name: string): string {
@@ -701,21 +707,34 @@ function constraintBody(group: ConstraintGroup): string[] {
   return group.ruleText === "" ? [] : [group.ruleText];
 }
 
-function constraintAxes(group: ConstraintGroup): string[] {
+/** The directory is a static prefix plus a trailing recursive catch-all. */
+function entireSubtree(directory: Segment[]): boolean {
+  const last = directory[directory.length - 1];
+  if (last === undefined || last.recursive === null) return false;
+  return directory.slice(0, -1).every((segment) => !segment.dynamic);
+}
+
+function located(prefix: string): string {
+  return prefix === "" ? "in this project" : `under ${codeSpan(`${prefix}/`)}`;
+}
+
+function matching(globs: string[], suffix?: string): string {
+  const listed = orList(globs.map((glob) => codeSpan(glob)));
+  return suffix === undefined ? `Paths matching ${listed}.` : `Paths matching ${listed} ${suffix}.`;
+}
+
+function constraintSelection(group: ConstraintGroup): string[] {
   const first = group.members[0]!;
-  const where = staticPrefix(first.directory);
-  const under = where === "" ? "in this project" : `under \`${where}/\``;
-  const selected =
-    group.targets === null
-      ? `every owned governed file ${under}`
-      : `owned paths matching ${list(group.targets.map((target) => `\`${target}\``))} ${under}`;
-  return [
-    [
-      `Scope: \`${authoredScope(first)}\`.`,
-      `Selected files: ${selected}.`,
-      `Evaluation: ${group.aggregate ? "once over the complete selected population" : "once per selected file"}.`,
-    ].join("\n"),
-  ];
+  const prefix = staticPrefix(first.directory);
+  if (group.targets !== null) {
+    return [wrap(matching(group.targets, located(prefix)))];
+  }
+  if (entireSubtree(first.directory)) {
+    return [
+      wrap(prefix === "" ? "Every file in this project." : `Every file under ${codeSpan(`${prefix}/`)}.`),
+    ];
+  }
+  return [wrap(matching(group.patterns))];
 }
 
 function displayPath(point: Placement, at: string): string {
@@ -778,26 +797,33 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
       for (const bucket of extensionGroups.values()) {
         const known = [...new Set(bucket.extensions.map(extensionLabel))];
         const kinds = `${list(known)} files`;
-        const where = point.at === "" ? "in this project" : `under ${codeSpan(`${point.at}/`)}`;
         const heading = point.at === "" ? kinds : `${kinds} under ${codeSpan(`${point.at}/`)}`;
-        blocks.push(
-          `${"#".repeat(level + 1)} ${heading}`,
-          `These rules are evaluated once per selected file. They apply to every owned ${list(known)} file ${where}.`,
-        );
+        blocks.push(`${"#".repeat(level + 1)} ${heading}`);
         for (const group of bucket.rules) {
           blocks.push(...constraintHeading(group, level + 2), ...constraintBody(group));
         }
       }
 
       for (const group of perFile.filter((entry) => entry.targets !== null)) {
-        blocks.push(...constraintHeading(group, level + 1), ...constraintAxes(group), ...constraintBody(group));
+        blocks.push(
+          ...constraintHeading(group, level + 1),
+          ...constraintSelection(group),
+          ...constraintBody(group),
+        );
       }
     }
 
     if (aggregates.length > 0) {
-      blocks.push(`${hashes} Aggregate constraints`);
+      blocks.push(
+        `${hashes} Aggregate constraints`,
+        wrap("Each of these runs once over its matching files together."),
+      );
       for (const group of aggregates) {
-        blocks.push(...constraintHeading(group, level + 1), ...constraintAxes(group), ...constraintBody(group));
+        blocks.push(
+          ...constraintHeading(group, level + 1),
+          ...constraintSelection(group),
+          ...constraintBody(group),
+        );
       }
     }
   }

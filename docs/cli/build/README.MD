@@ -101,7 +101,7 @@ node prose                    the ESPALIER.MD body, verbatim
 ## Governed elsewhere         child espaliers below this point, when any
 ## `<path>` — <description>   one per structural rule placed here
 ## Per-file constraints       untargeted extension groups, then targeted rules
-## Aggregate constraints      scope, selection, and evaluation, then the body
+## Aggregate constraints      matching files, then the body
 ## Other repository paths     one Paths/Purpose table, then the complete account
 ## Working with Espalier      root file only
 ```
@@ -393,16 +393,12 @@ Untargeted ordinary constraints that share an extension set may share a
 truthful heading. Known extensions use the language names in the renderer's
 case-insensitive alias map; an unknown extension falls back to its authored
 dotted form rendered as code. The heading names the files and a concrete
-scope — a static path, or the authored constraint directories — never "this
-constraint's scope":
+directory — the placement path — never "this constraint's scope":
 
 ```markdown
 ## Per-file constraints
 
 ### TypeScript files under `src/`
-
-These rules are evaluated once per selected file. They apply to every owned
-TypeScript file under `src/`.
 
 #### no-as-any — no `as any`
 
@@ -410,35 +406,46 @@ TypeScript file under `src/`.
 ```
 
 A rule with `targets` is never placed under an unqualified "all files"
-sentence. Each targeted ordinary constraint, and every aggregate, states
-scope, selection, and evaluation as separate lines before the rule body:
+sentence. Each targeted ordinary constraint, and every aggregate, names its
+matching files in one sentence before the rule body. Aggregates open with
+one sentence that they run once over those files together:
 
 ```markdown
 ## Per-file constraints
 
 ### query-count — count queries
 
-Scope: `fixtures/[...fixture]`.
-Selected files: owned paths matching `*/queries.sql` under `fixtures/`.
-Evaluation: once per selected file.
+Paths matching `*/queries.sql` under `fixtures/`.
 
 <the rule body, verbatim>
 
 ## Aggregate constraints
 
+Each of these runs once over its matching files together.
+
 ### message-registry — consistent incoming message registry
 
-Scope: `src/[...path]`.
-Selected files: owned paths matching `*/messages.tolk` or
-`*/operations/*/message.tolk` under `src/`.
-Evaluation: once over the complete selected population.
+Paths matching `*/messages.tolk` or `*/operations/*/message.tolk` under `src/`.
 
 <the rule body, verbatim>
 ```
 
-An aggregate without `targets` states that it selects every owned governed
-file in that scope. The three lines use the authored path or its longest
-static prefix; they do not ask the reader to reconstruct placement rules.
+An aggregate without `targets` names the subtree when that sentence is true,
+and the compiled glob when it is not:
+
+```markdown
+Every file under `fixtures/`.
+```
+
+That form is for a recursive placeholder that ends the directory, with only
+static segments before it. A constraint at the espalier root says
+`Every file in this project.` Directories after `[...name]`, or a dynamic
+segment before it, would make "every file under the static prefix" false, so
+those name the compiled glob:
+
+```markdown
+Paths matching `backend/**/handlers/*`.
+```
 
 ### Operational guidance
 

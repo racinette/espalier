@@ -1037,9 +1037,10 @@ retains file creation and a trailing slash selects the directory explicitly.
 ## Aggregate population is not a leaf extension
 
 Aggregate constraints describe a population independently of a filename
-extension. Generated guidance states scope, selection, and evaluation as
-separate facts. The public matching contract is the specification; `build`,
-`lint`, and `explain` only report it.
+extension. Generated guidance names the matching files in one sentence, and
+aggregates add one sentence that they run once over those files together.
+The public matching contract is the specification; `build`, `lint`, and
+`explain` only report it.
 
 **Omitted selector.** An aggregate without `targets` selects every structurally
 owned, governed file in its constraint scope. Ignored, ungoverned, and
@@ -1067,10 +1068,13 @@ directories stay in candidate matching. Scoped `lint` and `explain` do not
 re-root selectors. Empty-population scoping still uses the static prefix.
 
 **Generated presentation.** `Per-file constraints` and `Aggregate constraints`
-are separate sections. Aggregates and targeted ordinary rules each state
-Scope, Selected files, and Evaluation with a concrete path or authored
-expression. Untargeted ordinary rules may share a truthful extension heading.
-A targeted rule never sits under an unqualified "all files" sentence.
+are separate sections. Aggregates and targeted ordinary rules name matching
+files in one sentence (`Paths matching \`*/case.json\` under \`fixtures/\`.`).
+An untargeted aggregate names the subtree (`Every file under \`fixtures/\`.`)
+when that is true, otherwise the compiled glob. Aggregates open with one
+sentence that they run once over those files together. Untargeted ordinary
+rules may share a truthful extension heading. A targeted rule never sits
+under an unqualified "all files" sentence.
 
 ## Pin is the only version; skip is how authoring files live in the tree
 

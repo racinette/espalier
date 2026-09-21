@@ -4,23 +4,17 @@
 
 ### Markdown files under `backend/`
 
-These rules are evaluated once per selected file. They apply to every owned Markdown file under `backend/`.
-
 #### document-heading
 
 Open with a heading.
 
 ### TypeScript files under `backend/`
 
-These rules are evaluated once per selected file. They apply to every owned TypeScript file under `backend/`.
-
 #### no-fetch
 
 Call the shared client, never fetch directly.
 
 ### `.WEIRD` files under `backend/`
-
-These rules are evaluated once per selected file. They apply to every owned `.WEIRD` file under `backend/`.
 
 #### opaque-format
 

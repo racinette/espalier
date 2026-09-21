@@ -76,6 +76,15 @@ export async function lint({ matches, patterns, emit }) {
     const scoped = issues(root, ["b.md"]);
     assert.equal(scoped.lines.find((line) => line["code"] === "inventory")?.["message"], "a.json,b.md@**/*");
 
+    const built = spawnSync(process.execPath, [cli, "build", "--force"], { cwd: root, encoding: "utf8" });
+    assert.equal(built.status, 0, built.stdout + built.stderr);
+    const guidance = readFileSync(path.join(root, "AGENTS.MD"), "utf8");
+    assert.match(guidance, /## Aggregate constraints/);
+    assert.match(guidance, /Each of these runs once over its matching files together\./);
+    assert.match(guidance, /Every file in this project\./);
+    assert.doesNotMatch(guidance, /Scope:/);
+    assert.doesNotMatch(guidance, /owned paths/);
+
     write(
       root,
       "espalier/[...path]/inventory.mjs",
@@ -148,9 +157,41 @@ export async function lint({ matches, patterns, emit }) {
     assert.equal(built.status, 0, built.stdout + built.stderr);
     const guidance = readFileSync(path.join(root, "backend/AGENTS.MD"), "utf8");
     assert.match(guidance, /## Aggregate constraints/);
-    assert.match(guidance, /Scope: `backend\/\[\.\.\.path\]\/handlers`\./);
-    assert.match(guidance, /Selected files: owned paths matching `\*\/handlers\/create\.ts` under `backend\/`\./);
+    assert.match(guidance, /Each of these runs once over its matching files together\./);
+    assert.match(guidance, /Paths matching `\*\/handlers\/create\.ts` under `backend\/`\./);
+    assert.doesNotMatch(guidance, /Scope:/);
     assert.doesNotMatch(guidance, /all TypeScript files/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("an untargeted aggregate with trailing directories names the compiled glob", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "espalier-aggregate-trailing-omitted-"));
+  try {
+    write(root, "espalier.config.yaml", "pin: 0.1.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(
+      root,
+      "espalier/backend/[area]/handlers/[name].ts.mjs",
+      'export const description = "a handler";\nexport const rule = `handler`;\nexport async function lint() {}\n',
+    );
+    write(
+      root,
+      "espalier/backend/[...path]/handlers/inventory.mjs",
+      `export const aggregate = true;
+export const rule = "handlers together";
+export async function lint() {}
+`,
+    );
+    write(root, "backend/orders/handlers/create.ts", "export {};\n");
+
+    const built = spawnSync(process.execPath, [cli, "build", "--force"], { cwd: root, encoding: "utf8" });
+    assert.equal(built.status, 0, built.stdout + built.stderr);
+    const guidance = readFileSync(path.join(root, "backend/AGENTS.MD"), "utf8");
+    assert.match(guidance, /Each of these runs once over its matching files together\./);
+    assert.match(guidance, /Paths matching `backend\/\*\*\/handlers\/\*`\./);
+    assert.doesNotMatch(guidance, /Every file under `backend\/`/);
+    assert.doesNotMatch(guidance, /Scope:/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

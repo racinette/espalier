@@ -88,8 +88,6 @@ file may sit, and which files it claims, is MATCHING.MD.
 
 ### Markdown files under `docs/`
 
-These rules are evaluated once per selected file. They apply to every owned Markdown file under `docs/`.
-
 #### document-heading — every document opens with a level-one heading
 
 Opens with a level-one heading naming its subject. A

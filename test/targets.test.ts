@@ -124,12 +124,14 @@ export async function lint({ matches, emit }) {
     const guidance = readFileSync(path.join(root, "fixtures/AGENTS.MD"), "utf8");
     assert.match(guidance, /## Per-file constraints/);
     assert.match(guidance, /## Aggregate constraints/);
-    assert.match(guidance, /Scope: `fixtures\/\[\.\.\.fixture\]`\./);
-    assert.match(guidance, /Selected files: owned paths matching `\*\/queries\.sql` under `fixtures\/`\./);
-    assert.match(guidance, /Evaluation: once per selected file\./);
-    assert.match(guidance, /Evaluation: once over the complete selected population\./);
+    assert.match(guidance, /Each of these runs once over its matching files together\./);
+    assert.match(guidance, /Paths matching `\*\/queries\.sql` under `fixtures\/`\./);
+    assert.doesNotMatch(guidance, /Scope:/);
+    assert.doesNotMatch(guidance, /Selected files:/);
+    assert.doesNotMatch(guidance, /Evaluation:/);
     assert.doesNotMatch(guidance, /These rules apply to all/);
     assert.doesNotMatch(guidance, /this constraint's scope/);
+    assert.doesNotMatch(guidance, /owned paths/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

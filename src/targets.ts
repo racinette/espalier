@@ -13,11 +13,6 @@ export function selectorOrigin(constraint: Constraint): string {
     .join("/");
 }
 
-/** Authored directory path, e.g. `src/[...path]` or `backend/[...path]/handlers`. */
-export function authoredScope(constraint: Constraint): string {
-  return constraint.directory.map((segment) => segment.source).join("/");
-}
-
 /**
  * Globs that describe the selected population. The compiled scope when
  * `targets` is omitted, otherwise each selector rooted at the origin.

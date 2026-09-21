@@ -20,8 +20,6 @@ Reference implementation: fixtures/alpha/case.json
 
 ### JSON files under `fixtures/`
 
-These rules are evaluated once per selected file. They apply to every owned JSON file under `fixtures/`.
-
 #### well-formed — each fixture case is locally well-formed
 
 Each selected fixture case is a JSON object with `kind`
@@ -30,11 +28,11 @@ non-negative integer `args`.
 
 ## Aggregate constraints
 
+Each of these runs once over its matching files together.
+
 ### corpus-mix — the fixture corpus stays mixed enough
 
-Scope: `fixtures/[...path]`.
-Selected files: owned paths matching `*/case.json` under `fixtures/`.
-Evaluation: once over the complete selected population.
+Paths matching `*/case.json` under `fixtures/`.
 
 The selected fixture cases together keep a mixed corpus:
 at least three cases, mutation share between one quarter and three quarters,
