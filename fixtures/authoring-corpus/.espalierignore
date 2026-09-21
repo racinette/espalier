@@ -1,0 +1,7 @@
+# Harness scaffolding, not the corpus.
+FIXTURE.MD
+expected.json
+expected-build/**
+
+# Analysis helpers are implementation, not architecture.
+helpers/**

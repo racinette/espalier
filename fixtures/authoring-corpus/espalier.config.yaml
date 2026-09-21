@@ -1,0 +1,8 @@
+pin: 0.1.0
+name: authoring-corpus
+root: espalier
+
+ignoreFiles: []
+
+skip:
+  - AGENTS.MD

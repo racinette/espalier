@@ -82,7 +82,7 @@ LICENSE
 # …
 ```
 
-Plus `espalier/`, holding a `.gitkeep`.
+Plus `espalier/`, holding a `.gitkeep` and the compact authoring contract at `AGENTS.MD`. That file is skipped, not compiled: it is what an agent editing the tree loads by convention. See [AUTHORING.MD](../../AUTHORING.MD).
 
 `ignoreFiles` and `skip` are required keys. An empty list is `[]`; omitting either is an error. `init` is where those decisions are written down: `ignoreFiles` is the visibility boundary, and `skip` is the instruction files that may sit inside the espalier without being compiled as rules. A file quietly removing paths from Espalier's input, or a name the compiler must not treat as a module, is otherwise something you discover months later.
 
@@ -93,6 +93,8 @@ Verbatim includes the comments, and that now costs something to get wrong. `espa
 The VCS entries are the reason it is written unconditionally. `.gitignore` does not list `.git/` — git has no need to ignore itself — so it is the one exclusion no external file supplies. Delete that line and `espalier` walks several tens of thousands of objects and reports every one of them, which is a mistake you will notice within a second.
 
 The `.gitkeep` is there because git does not track empty directories. Without it the espalier root vanishes on the first commit and the next person to clone gets `espalier_root_missing` before they have written a line. Dotfiles in the espalier are skipped rather than read, so it costs nothing — see [MATCHING.MD](../../MATCHING.MD#node-kinds).
+
+`AGENTS.MD` is the compact authoring contract. Skip lists that file, so the compiler does not treat it as a module. Delete the sentinel line at the top to keep a customized copy through later `migrate` runs.
 
 ## `--ignore-file` and `--no-ignore-file`
 

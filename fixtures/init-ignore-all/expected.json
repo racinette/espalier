@@ -20,6 +20,10 @@
       {
         "kind": "written",
         "path": "espalier/.gitkeep"
+      },
+      {
+        "kind": "written",
+        "path": "espalier/AGENTS.MD"
       }
     ]
   }

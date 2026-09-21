@@ -1,0 +1,23 @@
+{
+  "exit": 0,
+  "issues": [],
+  "ownership": {
+    "fixtures/alpha/case.json": "fixtures/[name]/case.json.mjs",
+    "fixtures/beta/case.json": "fixtures/[name]/case.json.mjs",
+    "fixtures/gamma/case.json": "fixtures/[name]/case.json.mjs",
+    "helpers/case.mjs": null
+  },
+  "explain": {
+    "fixtures/alpha/case.json": {
+      "exit": 0,
+      "object": { "rule": "fixtures/[name]/case.json.mjs" }
+    }
+  },
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
+      { "kind": "written", "path": "fixtures/AGENTS.MD" }
+    ]
+  }
+}

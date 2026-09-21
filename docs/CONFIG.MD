@@ -159,7 +159,7 @@ skip:
   - CLAUDE.md
 ```
 
-Omitting the key is an error. `[]` is the explicit decision to skip nothing. `espalier init` writes the three names above — the instruction files agents load by convention when they sit next to the rules they edit. [`espalier migrate`](cli/migrate/README.MD) inserts the same list when an older config omitted the key. A config that already has `skip` is left alone, empty list included.
+Omitting the key is an error. `[]` is the explicit decision to skip nothing. `espalier init` writes the three names above — the instruction files agents load by convention when they sit next to the rules they edit — and vendors the compact authoring contract to `espalier/AGENTS.MD`. [`espalier migrate`](cli/migrate/README.MD) inserts the same list when an older config omitted the key, and writes that root file when it is absent or still the marked shipped text. A config that already has `skip` is left alone, empty list included. A customized `AGENTS.MD` — sentinel removed — is left alone. Nested copies are the project's.
 
 A bare name matches at any depth, which is gitignore's rule and the reason one `AGENTS.MD` entry covers a file in every directory of the tree. Dot-prefixed names do not need this key: `.claude/`, `.codex/`, and `.gitkeep` are skipped with every other dotfile. See [MATCHING.MD](MATCHING.MD#node-kinds).
 

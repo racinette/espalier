@@ -123,7 +123,8 @@ test("a writing command prints a tally, and nothing when it wrote nothing", () =
     // but none of them was exercising it in human form.
     assert.match(written.stdout, /^written {3}espalier\.config\.yaml$/m);
     assert.match(written.stdout, /^written {3}\.espalierignore$/m);
-    assert.match(written.stdout, /\n3 written\n$/);
+    assert.match(written.stdout, /^written {3}espalier\/AGENTS\.MD$/m);
+    assert.match(written.stdout, /\n4 written\n$/);
 
     // "A build that had no work to do should not look like a build that did
     // some, so an empty run prints nothing at all." The first build writes the

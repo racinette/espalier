@@ -1,4 +1,4 @@
-// `espalier migrate`. docs/cli/migrate/README.MD.
+// `espalier migrate`. docs/cli/migrate/README.MD, docs/AUTHORING.MD.
 //
 // Rewrites the configuration for the running CLI. Every other command dies in
 // `loadConfig` on a pin mismatch; this one is allowed to see the old file,
@@ -14,6 +14,7 @@ import {
   locateConfig,
   readConfigFile,
 } from "./config.js";
+import { vendorAuthoring } from "./init.js";
 import { fail } from "./errors.js";
 import { collectCandidates } from "./files.js";
 import { compileIgnore } from "./ignore.js";
@@ -168,7 +169,22 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
     reporter.record({ kind: "written", path: reported });
   }
 
+  const written = typeof values["root"] === "string" ? values["root"] : "espalier";
+  const espalierRoot = path.posix
+    .normalize(written.split(path.sep).join("/"))
+    .replace(/\/+$/, "");
+  vendorAuthoring(root, espalierRoot, skipAfterRewrite(values), reporter, options.dryRun);
+
   return { root, children: discoverChildren(root, configPath, values) };
+}
+
+function skipAfterRewrite(values: Record<string, unknown>): string[] {
+  if (!("skip" in values)) return SHIPPED_SKIP;
+  const listed = values["skip"];
+  if (!Array.isArray(listed) || listed.some((entry) => typeof entry !== "string")) {
+    fail("config_invalid_value", "skip must be a list of strings");
+  }
+  return listed as string[];
 }
 
 export async function migrate(options: MigrateOptions, reporter: Reporter): Promise<number> {

@@ -32,23 +32,32 @@ this project; these pages are read by whoever is using it.
 ## Project layout
 
     docs/
-    ├─ cli/         one page per command
+    ├─ cli/          one page per command
     │
-    ├─ API.MD       using espalier as a library (required)
+    ├─ API.MD        using espalier as a library (required)
     │
-    ├─ CONFIG.MD    the configuration file and the ignore list (required)
+    ├─ AUTHORING.MD  how to write a rule module (required)
     │
-    ├─ ERRORS.MD    every operational failure and what it means (required)
+    ├─ CONFIG.MD     the configuration file and the ignore list (required)
     │
-    ├─ MATCHING.MD  how a rule module claims a file (required)
+    ├─ ERRORS.MD     every operational failure and what it means (required)
     │
-    └─ TYPES.MD     what a rule module exports and receives (required)
+    ├─ MATCHING.MD   how a rule module claims a file (required)
+    │
+    └─ TYPES.MD      what a rule module exports and receives (required)
 
 ## `API.MD` — using espalier as a library
 
 Covers the package: what it exports, what those functions return, and what a
 caller must build to test a rule. A rule module's own contract is TYPES.MD;
 this is the other side of that boundary.
+
+## `AUTHORING.MD` — how to write a rule module
+
+Routes an author to the compact contract `init` vendors
+into `espalier/AGENTS.MD`, and to the one worked example that contract
+describes. The four questions, the policy/helper split, and cache-safe reuse
+live in that contract, not as a second copy here.
 
 ## `CONFIG.MD` — the configuration file and the ignore list
 

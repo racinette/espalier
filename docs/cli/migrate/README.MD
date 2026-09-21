@@ -31,17 +31,17 @@ The file is edited as text so comments and key order survive. `migrate` does not
 
 **`skip`.** Inserted as `AGENTS.MD`, `AGENTS.md`, and `CLAUDE.md` when the key is absent. Those are the instruction files `init` writes, and the reason skip exists. A key that is already present, `[]` included, is left alone: `[]` is an explicit decline.
 
+**Root `espalier/AGENTS.MD`.** When `skip` would skip `AGENTS.MD` — the shipped list, or a list that already names it — and the espalier root exists, `migrate` writes the compact authoring contract there if the file is absent or still starts with the shipped sentinel. A customized copy (sentinel removed) is left alone. Nested `AGENTS.MD` files are the project's; migrate never creates or overwrites those. `skip: []` is an explicit decline, and no authoring file is written. See [AUTHORING.MD](../../AUTHORING.MD).
+
 Nothing else is inserted. Optional keys with defaults — `root`, `build.filename`, `build.inline` — stay omitted if they were omitted. Dumping those defaults into every file would fight the rule that they are optional.
 
-A config that is already current is reported `skipped` and not written.
+A config that is already current is reported `skipped` and not written. The authoring file is considered separately: a current config whose root `AGENTS.MD` is still missing can still be written.
 
 ## What it will not do
 
 **It will not downgrade.** If `pin` is newer than the running CLI, the run stops with `cannot_downgrade` and the file is not touched. Install the recorded version, or run migrate with that newer CLI.
 
 **It will not compile the espalier.** An older config may already hold an `AGENTS.MD` the current compiler would reject until `skip` is present. The rewrite is the whole of the command; `lint` and `build` run afterwards.
-
-**It will not write authoring files.** Nested `AGENTS.MD` files are the project's. A root `espalier/AGENTS.MD` vendored from the package is a later step, not this rewrite.
 
 Unknown keys other than `version` still fail. Migrate removes the one key this release dropped; it does not guess at typos.
 

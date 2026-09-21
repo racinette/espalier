@@ -3,11 +3,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { SHIPPED_SKIP } from "../src/config.js";
+import { SHIPPED_SKIP, shippedAuthoring, AUTHORING_SENTINEL } from "../src/config.js";
 import { rewriteConfigText } from "../src/migrate.js";
 import { VERSION } from "../src/version.js";
 
@@ -94,6 +94,9 @@ test("migrate rewrites an old config and is then loadable", () => {
       assert.match(written, new RegExp(`^ {2}- ${name}$`, "m"));
     }
 
+    const contract = readFileSync(path.join(root, "espalier", "AGENTS.MD"), "utf8");
+    assert.equal(contract, shippedAuthoring());
+
     const lint = run(root, ["lint", "--format", "jsonl"]);
     assert.equal(lint.status, 0, lint.stdout + lint.stderr);
   });
@@ -112,6 +115,7 @@ test("migrate --dry-run writes nothing", () => {
       readFileSync(path.join(root, "espalier.config.yaml"), "utf8"),
       "version: 1\npin: 0.1.0\nroot: espalier\n",
     );
+    assert.equal(existsSync(path.join(root, "espalier", "AGENTS.MD")), false);
   });
 });
 
@@ -130,6 +134,10 @@ test("migrate visits a child config", () => {
       readFileSync(path.join(root, "packages", "web", "espalier.config.yaml"), "utf8").includes("skip:"),
       true,
     );
+    assert.equal(
+      readFileSync(path.join(root, "packages", "web", "espalier", "AGENTS.MD"), "utf8"),
+      shippedAuthoring(),
+    );
   });
 });
 
@@ -142,5 +150,48 @@ test("a current config is skipped", () => {
     const migrated = run(root, ["migrate", "--format", "jsonl"]);
     assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
     assert.match(migrated.stdout, /"kind":"skipped"/);
+    assert.equal(existsSync(path.join(root, "espalier", "AGENTS.MD")), false);
+  });
+});
+
+test("migrate vendors a missing root AGENTS.MD when skip covers it", () => {
+  scratch((root) => {
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n`,
+    );
+    const migrated = run(root, ["migrate", "--format", "jsonl"]);
+    assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
+    assert.match(migrated.stdout, /espalier\/AGENTS\.MD/);
+    assert.equal(readFileSync(path.join(root, "espalier", "AGENTS.MD"), "utf8"), shippedAuthoring());
+  });
+});
+
+test("migrate leaves a customized AGENTS.MD alone", () => {
+  scratch((root) => {
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n`,
+    );
+    writeFileSync(path.join(root, "espalier", "AGENTS.MD"), "Local notes.\n");
+    const migrated = run(root, ["migrate", "--format", "jsonl"]);
+    assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
+    assert.equal(readFileSync(path.join(root, "espalier", "AGENTS.MD"), "utf8"), "Local notes.\n");
+  });
+});
+
+test("migrate updates a still-marked shipped AGENTS.MD", () => {
+  scratch((root) => {
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n`,
+    );
+    writeFileSync(
+      path.join(root, "espalier", "AGENTS.MD"),
+      `${AUTHORING_SENTINEL}\n\n# stale\n`,
+    );
+    const migrated = run(root, ["migrate", "--format", "jsonl"]);
+    assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
+    assert.equal(readFileSync(path.join(root, "espalier", "AGENTS.MD"), "utf8"), shippedAuthoring());
   });
 });

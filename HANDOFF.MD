@@ -1093,5 +1093,9 @@ names for omitted `skip`. An existing `skip` or `ignoreFiles`, empty list
 included, is left alone. Optional keys with defaults are not dumped into the
 file.
 
-Vendoring a root `espalier/AGENTS.MD` from the package is the next authoring
-step, not this rewrite.
+**Authoring contract.** `init` vendors `authoring/AGENTS.MD` to the espalier
+root. `migrate` writes that file when it is absent or still marked shipped,
+and only when `skip` would skip `AGENTS.MD`. Nested copies are the project's.
+The compact contract answers four axes, keeps policy in the owning module,
+and forbids helpers that remember repository contents. The worked example is
+`fixtures/authoring-corpus/`. Spec route: `docs/AUTHORING.MD`.

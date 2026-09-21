@@ -50,6 +50,7 @@ These paths are part of the repository but serve specific purposes outside the p
 | `package.json`<br>`package-lock.json` | Manifests and lockfiles. |
 | `tsconfig.json` | Tool configuration. The tool decides the filename; the project only decides the contents. |
 | `fixtures/**` | espalier's own fixtures are data: sixty configs, several deliberately invalid, and a root run executing all sixty is not what anyone means by it. |
+| `authoring/**` | Shipped authoring contract. `espalier init` copies it to the espalier root so agents editing rules load it by convention. It is data, like `ignores/`, not a file this repository's architecture places. |
 | `tasks/**`<br>`ESPALIER_ADOPTION_REPORT.md` | Maintainer planning documents. These describe proposed work rather than the architecture of the implementation or the public specification. |
 | `.espalierignore`<br>`.gitignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
 | `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |

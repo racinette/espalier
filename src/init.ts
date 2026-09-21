@@ -1,4 +1,4 @@
-// `espalier init`. docs/cli/init/README.MD.
+// `espalier init`. docs/cli/init/README.MD, docs/AUTHORING.MD.
 //
 // Writes the configuration and creates the espalier root. It describes nothing:
 // inferring shape from an existing tree is `espalier adopt`, one area at a time,
@@ -7,7 +7,15 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CONFIG_FILENAME, IGNORE_FILENAME, SHIPPED_SKIP } from "./config.js";
+import {
+  AUTHORING_FILENAME,
+  AUTHORING_SENTINEL,
+  CONFIG_FILENAME,
+  IGNORE_FILENAME,
+  SHIPPED_SKIP,
+  shippedAuthoring,
+  skipCoversAuthoring,
+} from "./config.js";
 import { fail } from "./errors.js";
 import { probe } from "./files.js";
 import { compileIgnore, ignores } from "./ignore.js";
@@ -153,6 +161,33 @@ function render(name: string, espalierRoot: string, ignoreFiles: string[]): stri
   return `${lines.join("\n")}\n`;
 }
 
+/**
+ * Write the shipped authoring contract at the espalier root when `skip` would
+ * actually skip it. Absent or still marked as shipped is replaced. A
+ * customized copy — sentinel removed — is left alone. Nested `AGENTS.MD`
+ * files are the project's; this never creates those.
+ */
+export function vendorAuthoring(
+  root: string,
+  espalierRoot: string,
+  skip: string[],
+  reporter: Reporter,
+  dryRun = false,
+): void {
+  if (!skipCoversAuthoring(skip)) return;
+  const directory = path.join(root, espalierRoot);
+  if (!existsSync(directory)) return;
+
+  const at = path.join(directory, AUTHORING_FILENAME);
+  const reported = `${espalierRoot}/${AUTHORING_FILENAME}`;
+  const existing = existsSync(at) ? readFileSync(at, "utf8") : null;
+  const shipped = shippedAuthoring();
+  if (existing === shipped) return;
+  if (existing !== null && !existing.startsWith(AUTHORING_SENTINEL)) return;
+  if (!dryRun) writeFileSync(at, shipped, "utf8");
+  reporter.record({ kind: "written", path: reported });
+}
+
 export function init(options: InitOptions, reporter: Reporter): number {
   const configPath =
     options.config === undefined
@@ -249,6 +284,7 @@ export function init(options: InitOptions, reporter: Reporter): number {
   // vanishes on the first commit and the next clone fails before anyone has
   // written a line. Dotfiles in the espalier are skipped rather than read.
   mkdirSync(path.join(root, espalierRoot), { recursive: true });
+  vendorAuthoring(root, espalierRoot, SHIPPED_SKIP, reporter);
   const keep = path.join(root, espalierRoot, ".gitkeep");
   if (!existsSync(keep)) {
     writeFileSync(keep, "", "utf8");

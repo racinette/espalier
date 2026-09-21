@@ -253,6 +253,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `ignore-files` | two named ignore files, and `.espalierignore` layered after both |
 | `ignore-reinclude` | un-pruning a directory to re-include one committed file out of it |
 | `shipped-ignore-lists` | what `--lang` writes covers, and what it deliberately does not |
+| `authoring-corpus` | a structural owner, a per-file constraint, and an aggregate over mix and averages |
 
 ## Adding one
 

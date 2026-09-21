@@ -28,6 +28,9 @@ It works because dotfiles in the espalier are skipped rather than read;
 `invalid_espalier_entry` and `init` would produce a repository that cannot be
 linted.
 
+`init` also writes `espalier/AGENTS.MD`, the compact authoring contract. That
+file is in `skip`, so it is not a module.
+
 ## `--no-ignore-file`
 
 This repository has no ignore file, so the run says so — `--no-ignore-file` is

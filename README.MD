@@ -113,8 +113,9 @@ deliberately has none.
 espalier init --lang javascript
 ```
 
-`init` writes `espalier.config.yaml`, `.espalierignore`, and an empty
-`espalier/` source directory. Add a minimal structural rule:
+`init` writes `espalier.config.yaml`, `.espalierignore`, and `espalier/`
+holding a `.gitkeep` and the compact authoring contract at `AGENTS.MD`. Add a
+minimal structural rule:
 
 ```text
 espalier
@@ -253,7 +254,7 @@ The `description` is one line, and it is what appears in the project map beside 
 
 The `rule` describes what the file must look like. It is _mode-invariant_: the same conventions apply whether the file is being created or edited, and the same text is written into the documentation and returned attached to a violation.
 
-The `lint` function receives a context with the matched `path`, normalized `pattern`, and named `captures`. See `docs/TYPES.MD` for the full shape.
+The `lint` function receives a context with the matched `path`, normalized `pattern`, and named `captures`. See `docs/TYPES.MD` for the full shape. Choosing a rule's kind, keeping policy in the owning module, and testing it is [docs/AUTHORING.MD](docs/AUTHORING.MD). `espalier init` writes the same compact contract to `espalier/AGENTS.MD`, which an agent editing rules loads by directory convention.
 
 ```js
 // structural rule (e.g. components/buttons/[button].tsx.mjs)

@@ -1,10 +1,12 @@
-// docs/CONFIG.MD. Discovery, validation, and the shape everything else reads.
+// docs/CONFIG.MD, docs/AUTHORING.MD. Discovery, validation, and the shape
+// everything else reads.
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { fail } from "./errors.js";
-import { compileIgnore, excludedBy } from "./ignore.js";
+import { compileIgnore, excludedBy, ignores } from "./ignore.js";
 import { VERSION } from "./version.js";
 
 export const CONFIG_FILENAME = "espalier.config.yaml";
@@ -40,6 +42,23 @@ const KNOWN_BUILD = new Set(["filename", "inline", "espalierGuidance"]);
 
 /** Instruction files `init` and `migrate` write into `skip`. docs/CONFIG.MD "`skip`". */
 export const SHIPPED_SKIP = ["AGENTS.MD", "AGENTS.md", "CLAUDE.md"];
+
+/** Root instruction file `init` vendors into the espalier. docs/AUTHORING.MD. */
+export const AUTHORING_FILENAME = "AGENTS.MD";
+
+/** First line of the shipped contract. Delete it to keep a customized copy. */
+export const AUTHORING_SENTINEL =
+  "<!-- shipped by espalier; delete this line to keep your own copy -->";
+
+/** The compact authoring contract shipped with the package. */
+export function shippedAuthoring(): string {
+  return readFileSync(fileURLToPath(new URL("../../authoring/AGENTS.MD", import.meta.url)), "utf8");
+}
+
+/** Whether `skip` would actually skip the root authoring file. */
+export function skipCoversAuthoring(skip: string[]): boolean {
+  return ignores(compileIgnore(skip, "skip"), AUTHORING_FILENAME);
+}
 
 /** Paths a `skip` pattern must not match, at the root or one directory down. */
 const GRAMMAR_PROBES = ["ESPALIER.MD", "placeholder.mjs", "nested/ESPALIER.MD", "nested/placeholder.mjs"];

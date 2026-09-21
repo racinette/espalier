@@ -60,6 +60,7 @@ test("the packed package installs and supports the quick start", () => {
     assert.ok(files.includes("dist/src/api.js"));
     assert.ok(files.includes("ignores/_common.gitignore"));
     assert.ok(files.includes("ignores/javascript.gitignore"));
+    assert.ok(files.includes("authoring/AGENTS.MD"));
     assert.ok(!files.includes("ignores/AGENTS.MD"));
     assert.ok(files.filter((entry) => entry.startsWith("ignores/")).every((entry) => entry.endsWith(".gitignore")));
 
