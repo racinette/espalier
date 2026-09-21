@@ -1,5 +1,0 @@
----
-alwaysApply: true
----
-
-Never preserve backwards compatibility, unless asked explicitly.
