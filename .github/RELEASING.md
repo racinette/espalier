@@ -98,9 +98,10 @@ real implementation as `0.1.0` through GitHub Actions.
 
 Update `package.json`, both root version fields in `package-lock.json`, the
 repository's `espalier.config.yaml` pin, and the package pins in documentation,
-tests, and fixtures together. The configuration schema's `version: 1` stays
-unchanged. Espalier requires an exact package version match, so changing only
-the manifest leaves the repository and fixtures unable to run.
+tests, and fixtures together. There is no separate configuration schema
+version; `pin` is the only version. Espalier requires an exact package version
+match, so changing only the manifest leaves the repository and fixtures unable
+to run until they are migrated or edited.
 
 Run the checks before committing:
 

@@ -133,7 +133,7 @@ function validateReferenceImplementations(
  * governs everything and reports thousands of paths, with the cause several
  * steps removed from the symptom. A config that names a file depends on it.
  */
-function readIgnoreFile(root: string, entry: string): string[] {
+export function readIgnoreFile(root: string, entry: string): string[] {
   try {
     return readFileSync(path.join(root, entry), "utf8").split("\n");
   } catch {
@@ -153,7 +153,7 @@ function readNestedIgnoreFile(root: string, entry: string): string[] {
 }
 
 export async function openConfig(config: Config): Promise<Repository> {
-  const espalier = await compile(config.root, config.espalierRoot);
+  const espalier = await compile(config.root, config.espalierRoot, config.skip);
 
   // External ignore files define the repository presented to Espalier.
   // `.espalierignore` is a separate, subsequent governance decision and alone

@@ -101,7 +101,8 @@ npm install --global espalier
 
 The global installation is only provisioning. `espalier init` records its exact
 version in the repository, and every later command refuses to run under a
-different version. Projects may instead provide the same pinned executable
+different version. `espalier migrate` rewrites the configuration for the CLI
+that is running. Projects may instead provide the same pinned executable
 through a local dependency, package runner, container, or system toolchain.
 
 Initialize it. This command uses the project's existing `.gitignore` to define

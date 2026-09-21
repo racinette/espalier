@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CONFIG_FILENAME, IGNORE_FILENAME } from "./config.js";
+import { CONFIG_FILENAME, IGNORE_FILENAME, SHIPPED_SKIP } from "./config.js";
 import { fail } from "./errors.js";
 import { probe } from "./files.js";
 import { compileIgnore, ignores } from "./ignore.js";
@@ -132,7 +132,6 @@ function render(name: string, espalierRoot: string, ignoreFiles: string[]): stri
   // rather than one buried in the tool. Without it every document `build`
   // writes would open with no heading. docs/cli/init/README.MD "`name`".
   const lines = [
-    "version: 1",
     `pin: ${VERSION}`,
     "",
     `name: ${quoted(name)}`,
@@ -146,6 +145,9 @@ function render(name: string, espalierRoot: string, ignoreFiles: string[]): stri
   lines.push(
     ignoreFiles.length === 0 ? "ignoreFiles: []" : "ignoreFiles:",
     ...ignoreFiles.map((entry) => `  - ${quoted(entry)}`),
+    "",
+    "skip:",
+    ...SHIPPED_SKIP.map((entry) => `  - ${quoted(entry)}`),
   );
 
   return `${lines.join("\n")}\n`;

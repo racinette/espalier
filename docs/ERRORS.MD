@@ -24,17 +24,19 @@ See [CONFIG.MD](CONFIG.MD).
 |---|---|
 | `config_not_found` | no `espalier.config.yaml` here or in any parent |
 | `config_malformed` | not valid YAML, or not a mapping |
-| `config_unknown_key` | a key `espalier` does not recognize — usually a typo |
-| `config_missing_version` | `version` is required |
-| `config_unsupported_version` | written for a release that means something different |
+| `config_unknown_key` | a key `espalier` does not recognize — usually a typo. A leftover `version` key is this: `pin` is the only version, and `espalier migrate` removes it |
 | `config_missing_pin` | `pin` is required so the repository cannot silently change tool versions |
-| `version_mismatch` | the running CLI is not the exact version recorded in `pin` |
+| `version_mismatch` | the running CLI is not the exact version recorded in `pin`. Install that version, or run `espalier migrate` |
+| `config_missing_ignore_files` | `ignoreFiles` is required. `[]` names none; omit is not a decision |
+| `config_missing_skip` | `skip` is required. `[]` skips nothing; omit is not a decision |
+| `skip_hides_grammar` | a `skip` pattern would hide a `.mjs` rule module or an `ESPALIER.MD` |
 | `config_invalid_value` | a key holds the wrong type, or `root` escapes the repository |
 | `espalier_root_missing` | the configured `root` is not a directory |
 | `ignore_file_missing` | a path in `ignoreFiles` is not there. A config that names a file depends on it |
 | `config_exists` | `init` only: a configuration is already here, and it will not be overwritten |
 | `unknown_language` | `init --lang` only: no shipped list by that name. The available names are reported with it |
 | `contradictory_flags` | two flags that cannot both be honoured — `init --no-ignore-file` with `--ignore-file` |
+| `cannot_downgrade` | `migrate` only: `pin` is newer than the running CLI, and migrate will not rewrite the config toward an older implementation |
 
 ## The espalier tree
 
@@ -42,7 +44,7 @@ See [MATCHING.MD](MATCHING.MD). All of these are detected before a single reposi
 
 | Code | |
 |---|---|
-| `invalid_espalier_entry` | a file that is neither a `.mjs` module nor an `ESPALIER.MD` |
+| `invalid_espalier_entry` | a file that is neither a `.mjs` module nor an `ESPALIER.MD`, and is not skipped |
 | `malformed_placeholder` | an unclosed `[` or `{`, an unmatched `]`, or a name that is not an identifier |
 | `malformed_constraint_leaf` | an ordinary constraint filename that is not a rule name plus an extension |
 | `malformed_node_description` | an `ESPALIER.MD` whose frontmatter will not parse |

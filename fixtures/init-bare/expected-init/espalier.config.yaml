@@ -1,4 +1,3 @@
-version: 1
 pin: 0.1.0
 
 name: init-bare
@@ -6,3 +5,8 @@ name: init-bare
 root: espalier
 
 ignoreFiles: []
+
+skip:
+  - AGENTS.MD
+  - AGENTS.md
+  - CLAUDE.md

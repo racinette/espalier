@@ -4,6 +4,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
 import { fail } from "./errors.js";
+import { compileIgnore, excludedBy } from "./ignore.js";
 import { VERSION } from "./version.js";
 
 export const CONFIG_FILENAME = "espalier.config.yaml";
@@ -22,6 +23,11 @@ export interface Config {
   espalierRoot: string;
   /** Repo-relative paths holding further ignore patterns, in order. */
   ignoreFiles: string[];
+  /**
+   * Gitignore-syntax patterns relative to the espalier root. Matching files
+   * are not compiled. docs/CONFIG.MD "`skip`".
+   */
+  skip: string[];
   /** Lines of `.espalierignore`, or none when the file is not there. */
   ignore: string[];
   /** Repo-relative path to the addons module, or null. */
@@ -29,11 +35,25 @@ export interface Config {
   build: { filename: string; inline: boolean; espalierGuidance: boolean };
 }
 
-const KNOWN = new Set(["version", "pin", "name", "root", "ignoreFiles", "addons", "build"]);
+const KNOWN = new Set(["pin", "name", "root", "ignoreFiles", "skip", "addons", "build"]);
 const KNOWN_BUILD = new Set(["filename", "inline", "espalierGuidance"]);
 
-function findConfig(from: string): string {
-  let at = path.resolve(from);
+/** Instruction files `init` and `migrate` write into `skip`. docs/CONFIG.MD "`skip`". */
+export const SHIPPED_SKIP = ["AGENTS.MD", "AGENTS.md", "CLAUDE.md"];
+
+/** Paths a `skip` pattern must not match, at the root or one directory down. */
+const GRAMMAR_PROBES = ["ESPALIER.MD", "placeholder.mjs", "nested/ESPALIER.MD", "nested/placeholder.mjs"];
+
+export function locateConfig(explicit: string | undefined, cwd: string): string {
+  if (explicit !== undefined) {
+    const configPath = path.resolve(cwd, explicit);
+    if (!existsSync(configPath)) {
+      fail("config_not_found", `no config file at ${explicit}`);
+    }
+    return configPath;
+  }
+
+  let at = path.resolve(cwd);
   for (;;) {
     const candidate = path.join(at, CONFIG_FILENAME);
     if (existsSync(candidate)) return candidate;
@@ -41,11 +61,27 @@ function findConfig(from: string): string {
     if (up === at) {
       fail(
         "config_not_found",
-        `no ${CONFIG_FILENAME} found in ${from} or any parent directory`,
+        `no ${CONFIG_FILENAME} found in ${cwd} or any parent directory`,
       );
     }
     at = up;
   }
+}
+
+export function readConfigFile(configPath: string): { text: string; values: Record<string, unknown> } {
+  const text = readFileSync(configPath, "utf8");
+  let raw: unknown;
+  try {
+    raw = parseYaml(text);
+  } catch (cause) {
+    fail("config_malformed", `${CONFIG_FILENAME} is not valid YAML: ${(cause as Error).message}`);
+  }
+
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    fail("config_malformed", `${CONFIG_FILENAME} must contain a mapping`);
+  }
+
+  return { text, values: raw as Record<string, unknown> };
 }
 
 /** Whether the config rooted at `from` sits beneath another Espalier config. */
@@ -74,48 +110,17 @@ function asBoolean(value: unknown, key: string): boolean {
 }
 
 export function loadConfig(explicit: string | undefined, cwd: string): Config {
-  let configPath: string;
-
-  if (explicit === undefined) {
-    configPath = findConfig(cwd);
-  } else {
-    configPath = path.resolve(cwd, explicit);
-    if (!existsSync(configPath)) {
-      fail("config_not_found", `no config file at ${explicit}`);
-    }
-  }
-
+  const configPath = locateConfig(explicit, cwd);
   const root = path.dirname(configPath);
-
-  let raw: unknown;
-  try {
-    raw = parseYaml(readFileSync(configPath, "utf8"));
-  } catch (cause) {
-    fail("config_malformed", `${CONFIG_FILENAME} is not valid YAML: ${(cause as Error).message}`);
-  }
-
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-    fail("config_malformed", `${CONFIG_FILENAME} must contain a mapping`);
-  }
-
-  const values = raw as Record<string, unknown>;
+  const { values } = readConfigFile(configPath);
 
   for (const key of Object.keys(values)) {
+    if (key === "version") continue;
     if (!KNOWN.has(key)) {
       // A typo in a config file is not something to discover three weeks later
       // when the rule it disabled turns out never to have run.
       fail("config_unknown_key", `unknown configuration key "${key}"`);
     }
-  }
-
-  if (!("version" in values)) {
-    fail("config_missing_version", "version is required");
-  }
-  if (values["version"] !== 1) {
-    fail(
-      "config_unsupported_version",
-      `unsupported version ${JSON.stringify(values["version"])}; this release understands version 1`,
-    );
   }
 
   if (!("pin" in values)) {
@@ -125,8 +130,15 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
   if (pin !== VERSION) {
     fail(
       "version_mismatch",
-      `this repository pins espalier ${pin}, but ${VERSION} is running; install espalier@${pin} or update pin deliberately`,
+      `this repository pins espalier ${pin}, but ${VERSION} is running; install espalier@${pin} or run espalier migrate`,
       { pinned: pin, running: VERSION },
+    );
+  }
+
+  if ("version" in values) {
+    fail(
+      "config_unknown_key",
+      `unknown configuration key "version"; pin is the only version. Run espalier migrate`,
     );
   }
 
@@ -158,28 +170,17 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     fail("config_invalid_value", "root must name a directory inside the repository");
   }
 
-  // Empty rather than `[".gitignore"]`: an entry here must exist, and a default
-  // that must exist is a default that breaks every repository without one.
-  // `init` decides once and writes down what it decided.
-  let ignoreFiles: string[] = [];
-  if ("ignoreFiles" in values) {
-    const listed = values["ignoreFiles"];
-    if (!Array.isArray(listed) || listed.some((entry) => typeof entry !== "string")) {
-      fail("config_invalid_value", "ignoreFiles must be a list of strings");
-    }
-    for (const entry of listed as string[]) {
-      if (path.isAbsolute(entry) || entry.split(/[\\/]/).includes("..")) {
-        fail("config_invalid_value", `ignoreFiles entry "${entry}" must be inside the repository`);
-      }
-    }
-    ignoreFiles = listed as string[];
-  }
+  const ignoreFiles = requiredPathList(values, "ignoreFiles");
+  const skip = requiredPathList(values, "skip");
+  refuseSkipHidingGrammar(skip);
 
   // docs/CONFIG.MD "`.espalierignore`". Beside the config rather than inside
   // it, because entries carry comments and `build` reads those into the
   // documentation. Optional: a repository excluding nothing writes no file, and
-  // an absent one is an empty list rather than a failure — unlike `ignoreFiles`,
-  // which fails on a missing entry because the config claimed it exists.
+  // an absent one is an empty list rather than a failure — unlike `ignoreFiles`
+  // and `skip`, which fail when omitted because omit is not a decision, and
+  // unlike a named `ignoreFiles` entry, which fails when the file is not there
+  // because the config claimed it exists.
   let ignore: string[] = [];
   const ignorePath = path.join(root, IGNORE_FILENAME);
   if (existsSync(ignorePath)) {
@@ -224,8 +225,51 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     name,
     espalierRoot,
     ignoreFiles,
+    skip,
     ignore,
     addons,
     build: { filename, inline, espalierGuidance },
   };
+}
+
+function requiredPathList(values: Record<string, unknown>, key: "ignoreFiles" | "skip"): string[] {
+  if (!(key in values)) {
+    if (key === "ignoreFiles") {
+      fail(
+        "config_missing_ignore_files",
+        "ignoreFiles is required. An empty list is []. Run espalier migrate if this configuration predates the key",
+      );
+    }
+    fail(
+      "config_missing_skip",
+      "skip is required. An empty list is []. Run espalier migrate if this configuration predates the key",
+    );
+  }
+  const listed = values[key];
+  if (!Array.isArray(listed) || listed.some((entry) => typeof entry !== "string")) {
+    fail("config_invalid_value", `${key} must be a list of strings`);
+  }
+  for (const entry of listed as string[]) {
+    if (entry === "" || path.isAbsolute(entry) || entry.split(/[\\/]/).includes("..")) {
+      fail(
+        "config_invalid_value",
+        `${key} entry ${JSON.stringify(entry)} must be a relative path inside the repository`,
+      );
+    }
+  }
+  return listed as string[];
+}
+
+function refuseSkipHidingGrammar(skip: string[]): void {
+  const rules = compileIgnore(skip, "skip");
+  for (const probe of GRAMMAR_PROBES) {
+    const rule = excludedBy(rules, probe);
+    if (rule !== null) {
+      fail(
+        "skip_hides_grammar",
+        `skip pattern "${rule.pattern}" would hide a rule module or ESPALIER.MD`,
+        { pattern: rule.pattern },
+      );
+    }
+  }
 }

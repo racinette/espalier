@@ -9,6 +9,7 @@ import { mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "no
 import path from "node:path";
 import { listEntries } from "./compile.js";
 import type { Config } from "./config.js";
+import { compileIgnore } from "./ignore.js";
 import {
   implementationMatches,
   type ImplementationObserver,
@@ -121,7 +122,8 @@ function digest(parts: Iterable<string>): string {
  * Telling them apart would mean walking the module graph, and rule modules are
  * ordinary ES modules that may import each other and anything else.
  *
- * `listEntries` skips dotfiles, so the cache is never part of its own key.
+ * `listEntries` skips dotfiles and configured `skip` patterns, so the cache is
+ * never part of its own key and authoring files do not invalidate a run.
  */
 function version(config: Config): string {
   const root = path.join(config.root, config.espalierRoot);
@@ -141,7 +143,7 @@ function version(config: Config): string {
   // are handed. Its comments are in here too, which costs nothing and means a
   // reworded reason reaches the next `build` rather than the one after.
   parts.push(...config.ignore);
-  for (const entry of listEntries(root, "")) {
+  for (const entry of listEntries(root, compileIgnore(config.skip, "skip"))) {
     parts.push(entry, readFileSync(path.join(root, entry), "utf8"));
   }
   if (config.addons !== null) {

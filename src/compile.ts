@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { fail } from "./errors.js";
 import { inspect, readEntries } from "./files.js";
+import { compileIgnore, ignores, type IgnoreRule } from "./ignore.js";
 import {
   isTemplateDefinition,
   templateDefinitionProblem,
@@ -114,7 +115,16 @@ function emptyNode(display: string, segment: Segment): TrieNode {
   return { display, segment, captures: captureNames(segment), children: new Map(), rule: null };
 }
 
-export function listEntries(absolute: string, prefix: string, ancestors?: Set<string>): string[] {
+export function listEntries(absolute: string, skip: IgnoreRule[] = []): string[] {
+  return collectEntries(absolute, "", skip);
+}
+
+function collectEntries(
+  absolute: string,
+  prefix: string,
+  skip: IgnoreRule[],
+  ancestors?: Set<string>,
+): string[] {
   const found: string[] = [];
   // The espalier tree follows links for the same reason the repository does —
   // docs/CONFIG.MD "Symlinks" — which is what lets two espaliers share a rule
@@ -141,9 +151,22 @@ export function listEntries(absolute: string, prefix: string, ancestors?: Set<st
       // duplicate is — `duplicate_structural_rule`, with both paths named.
       if (seen.has(resolved.id!)) continue;
       seen.add(resolved.id!);
-      found.push(...listEntries(at, relative, seen));
+      found.push(...collectEntries(at, relative, skip, seen));
       seen.delete(resolved.id!);
     } else if (resolved.kind === "file") {
+      if (ignores(skip, relative)) {
+        // docs/CONFIG.MD "`skip`". A pattern that would hide the grammar is
+        // already refused at load; this catches a directory pattern that the
+        // probes did not name, once the file is actually there.
+        if (entry.name === NODE_DESCRIPTION || entry.name.endsWith(".mjs")) {
+          fail(
+            "skip_hides_grammar",
+            `${relative}: skip hides a rule module or ${NODE_DESCRIPTION}`,
+            { path: relative },
+          );
+        }
+        continue;
+      }
       found.push(relative);
     }
   }
@@ -421,13 +444,14 @@ function checkSiblings(node: TrieNode, at: string): void {
   }
 }
 
-export async function compile(root: string, espalierRoot: string): Promise<Espalier> {
+export async function compile(root: string, espalierRoot: string, skip: string[] = []): Promise<Espalier> {
   const absolute = path.join(root, espalierRoot);
   const trie = emptyNode("", parseSegment("", "the espalier root"));
   const constraints: Constraint[] = [];
   const nodes = new Map<string, NodeDoc>();
+  const skipRules = compileIgnore(skip, "skip");
 
-  for (const modulePath of listEntries(absolute, "")) {
+  for (const modulePath of listEntries(absolute, skipRules)) {
     const segments = modulePath.split("/");
     const leaf = segments[segments.length - 1]!;
 

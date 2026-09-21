@@ -3,7 +3,6 @@
 `espalier` is configured by an `espalier.config.yaml` at the repository root, and by a `.espalierignore` beside it.
 
 ```yaml
-version: 1
 pin: 0.1.0
 
 name: acme-web
@@ -12,6 +11,11 @@ root: espalier
 
 ignoreFiles:
   - .gitignore
+
+skip:
+  - AGENTS.MD
+  - AGENTS.md
+  - CLAUDE.md
 
 addons: ./espalier.addons.mjs
 
@@ -34,20 +38,19 @@ db/migrations/**
 
 Two files rather than one because they answer to different readers. The config is settings, read once by whoever set the project up. `.espalierignore` is a list that grows and shrinks as the espalier does, it is line-oriented rather than nested, and its comments are read back out into the documentation `build` writes — a YAML key can hold the patterns but not the reasons.
 
-Every key except `version` and `pin` is optional. Unknown keys are errors — a typo in a config file is not something to discover three weeks later when the rule it disabled turns out never to have run.
+`pin`, `ignoreFiles`, and `skip` are required. Everything else is optional. Omitting a required key is an error; an empty list is written `[]` and means none. Unknown keys are errors — a typo in a config file is not something to discover three weeks later when the rule it disabled turns out never to have run.
 
 ## `pin`
 
 The exact Espalier CLI version this repository expects:
 
 ```yaml
-version: 1
 pin: 0.1.0
 ```
 
-`version` describes the configuration schema; `pin` describes the implementation interpreting it. `espalier init` records the running package version, and every later command compares itself with that value before compiling the espalier or reading repository files.
+`pin` is the only version. There is no separate schema identifier: the implementation a repository was authored against is the whole of what “this config means,” and `espalier init` records the running package version. Every later command compares itself with that value before compiling the espalier or reading repository files.
 
-A mismatch is `version_mismatch`. Install the recorded version, or deliberately update `pin`, run the full lint suite, and regenerate guidance. Ranges are not accepted: two versions satisfying one range could generate different artifacts or enforce different rules while both claiming the repository was correctly configured.
+A mismatch is `version_mismatch`. Install the recorded version, or run [`espalier migrate`](cli/migrate/README.MD) to rewrite the configuration for the CLI that is running. Ranges are not accepted: two versions satisfying one range could generate different artifacts or enforce different rules while both claiming the repository was correctly configured.
 
 The pin does not dictate how the CLI is installed. A global installation, a local package runner, a container, and a reproducible system toolchain are equivalent provided they expose the exact recorded version as `espalier`.
 
@@ -87,10 +90,6 @@ Patterns from `ignoreFiles` count here too, which is worth knowing before it sur
 ### Making one
 
 `cd packages/web && espalier init`. The outer espalier stops governing that subtree the moment the config exists, and starts recursing into it in the same moment. Nothing at the root needs editing.
-
-## `version`
-
-Required. Currently `1`. An unrecognized version is an error rather than a warning — a config written for a future release will mean something different than what this release would do with it.
 
 ## `name`
 
@@ -149,14 +148,35 @@ Most of this arrives written by `espalier init`. What you add by hand should be 
 
 A list this long is easy to let grow, and a growing one means the espalier describes less of the repository than it claims to. The comments are what keep that reviewable: each entry says why it is there, `build` puts those reasons in front of whoever reads the documentation, and an entry nobody can justify is one somebody can delete.
 
+## `skip`
+
+Required. Gitignore-syntax patterns, relative to the espalier root, naming files in that tree that are not rule modules and not `ESPALIER.MD`. Matching files are skipped by the compiler: they are not loaded, they are not `invalid_espalier_entry`, and they do not describe the repository.
+
+```yaml
+skip:
+  - AGENTS.MD
+  - AGENTS.md
+  - CLAUDE.md
+```
+
+Omitting the key is an error. `[]` is the explicit decision to skip nothing. `espalier init` writes the three names above — the instruction files agents load by convention when they sit next to the rules they edit. [`espalier migrate`](cli/migrate/README.MD) inserts the same list when an older config omitted the key. A config that already has `skip` is left alone, empty list included.
+
+A bare name matches at any depth, which is gitignore's rule and the reason one `AGENTS.MD` entry covers a file in every directory of the tree. Dot-prefixed names do not need this key: `.claude/`, `.codex/`, and `.gitkeep` are skipped with every other dotfile. See [MATCHING.MD](MATCHING.MD#node-kinds).
+
+**Skip cannot hide the grammar.** A pattern that would match a `.mjs` rule module or an `ESPALIER.MD` is `skip_hides_grammar`. Those two names are how the espalier is compiled; a hole in them is not a skip, it is a broken tree.
+
+This is not `.espalierignore`. That file is the governed repository, and `build` quotes its comments into generated documentation. Skip is the espalier tree talking to its compiler about files that must live *inside* the definition so an agent finds them, and that are not themselves rules.
+
 ## `ignoreFiles`
 
-External files that define the filesystem Espalier receives as input. Empty by default; `espalier init` records `.gitignore` when the repository has one.
+Required. External files that define the filesystem Espalier receives as input.
 
 ```yaml
 ignoreFiles:
   - .gitignore
 ```
+
+Omitting the key is an error: an absent list is a question nobody answered. `[]` is the explicit decision to name none. `espalier init` writes `.gitignore` when the repository has one, and `ignoreFiles: []` under `--no-ignore-file`. [`espalier migrate`](cli/migrate/README.MD) inserts `[]` when an older config omitted the key, which is what omit used to mean — it does not invent a `.gitignore` the repository was never reading.
 
 Paths are relative to the repository root and read in order using gitignore semantics. Matching paths are removed before Espalier discovers structure, nested configurations, or materialized `.espalierignore` exclusions. They do not appear in generated exclusion tables: from Espalier's perspective they are not repository paths at all.
 
@@ -166,7 +186,7 @@ Matching is implemented inside Espalier; no Git executable, index, global exclud
 
 **A file named here must exist.** A missing one is `ignore_file_missing` and the run stops. The alternative — contributing nothing and carrying on — turns a typo or a deleted file into a repository that governs everything and reports thousands of paths, with the cause several steps removed from the symptom. A configuration that names a file is a configuration that depends on it.
 
-That is also why the key is empty rather than defaulting to `.gitignore`. A default that must exist is a default that breaks every repository without one, and a repository without a `.gitignore` is unusual rather than wrong. `init` decides, once, and writes down what it decided; the config never assumes.
+That is also why the key does not default to `.gitignore`. A default that must exist is a default that breaks every repository without one, and a repository without a `.gitignore` is unusual rather than wrong. `init` decides, once, and writes down what it decided; the config never assumes.
 
 Every repository already maintains a list of paths that are not source: build output, dependency directories, caches, editor droppings. Keeping a second copy of it inside `espalier.config.yaml` would be a list that goes stale the first time someone adds a bundler, and staleness here is expensive — an entry missing from `espalier`'s copy is a directory it walks and a thousand paths it reports.
 
@@ -316,6 +336,6 @@ Files bearing the marker are regenerated and, when the espalier no longer produc
 
 ## Errors
 
-Everything in this document that fails — a missing config, an unknown key, an unrecognized version, an addon that will not start, an exclusion that contradicts a required leaf — is an operational failure. `espalier` exits `2` and reports nothing else. A broken configuration must not be able to look like a clean repository.
+Everything in this document that fails — a missing config, an unknown key, a missing `pin`, `ignoreFiles` or `skip`, an addon that will not start, an exclusion that contradicts a required leaf — is an operational failure. `espalier` exits `2` and reports nothing else. A broken configuration must not be able to look like a clean repository.
 
 Every code is listed in [ERRORS.MD](ERRORS.MD).

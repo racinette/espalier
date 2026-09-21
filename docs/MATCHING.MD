@@ -43,11 +43,15 @@ Every upstream provider gets its own directory. Nothing outside
 `src/clients/` performs HTTP requests directly.
 ```
 
-The name is reserved: `espalier/src/clients/ESPALIER.MD` describes the directory, while `espalier/src/clients/ESPALIER.MD.mjs` would be the rule governing a real `src/clients/ESPALIER.MD` file in the repository. Any other non-`.mjs` file in the espalier is an error.
+The name is reserved: `espalier/src/clients/ESPALIER.MD` describes the directory, while `espalier/src/clients/ESPALIER.MD.mjs` would be the rule governing a real `src/clients/ESPALIER.MD` file in the repository. Any other non-`.mjs` file in the espalier is an error, unless it is skipped.
 
-**Dotfiles are the exception, and are skipped entirely.** A `.gitkeep` holding an otherwise-empty espalier root, a `.DS_Store` a file browser left behind — neither is a rule module, and failing the whole run over one is a bad trade. A dotfile that was meant to be a rule module is a mistake you find immediately, because nothing it declares takes effect.
+**Dotfiles are skipped entirely.** A `.gitkeep` holding an otherwise-empty espalier root, a `.DS_Store` a file browser left behind — neither is a rule module, and failing the whole run over one is a bad trade. A dotfile that was meant to be a rule module is a mistake you find immediately, because nothing it declares takes effect.
 
-Skipping applies to directories too, and that has a consequence worth stating plainly: **a visible repository path with a dot-prefixed segment cannot be declared.** Governing `.cursor/rules/backwards-compat.mdc` would need a module at `espalier/.cursor/rules/backwards-compat.mdc.mjs`, which the compiler never reads. Such a path belongs in `.espalierignore`; paths already hidden by `.gitignore` never reach matching at all. `adopt` refuses a dot-prefixed target rather than writing a module that would never load.
+Skipping applies to directories too, and that has a consequence worth stating plainly: **a visible repository path with a dot-prefixed segment cannot be declared.** Governing `.cursor/rules/backwards-compat.mdc` would need a module at `espalier/.cursor/rules/backwards-compat.mdc.mjs`, which the compiler never reads. Such a path belongs in `.espalierignore`; paths already hidden by `.gitignore` never reach matching at all. `adopt` refuses a dot-prefixed target rather than writing a module that would never load. `.claude/` and `.codex/` are skipped the same way, and do not need a config entry.
+
+**`skip` is the other exception.** The required `skip` list in the config names gitignore-syntax patterns relative to the espalier root. A matching file is not compiled: not a rule module, not an `ESPALIER.MD`, not `invalid_espalier_entry`. That is how an `AGENTS.MD` or `CLAUDE.md` can sit next to the rules an agent is editing, so the agent loads it by convention. A bare name matches at any depth, so one `AGENTS.MD` entry covers every directory in the tree. See [CONFIG.MD](CONFIG.MD#skip).
+
+A pattern that would hide a `.mjs` module or an `ESPALIER.MD` is `skip_hides_grammar`. Those two names are the grammar; skip cannot punch a hole in them.
 
 ## Classification
 

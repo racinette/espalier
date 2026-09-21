@@ -20,7 +20,7 @@ espalier init [--config <path>] [--root <dir>] [--lang <name>]...
                        repeat for a polyglot repository
   -i, --ignore-file    a file holding ignore patterns (default: .gitignore);
                        repeat to name several, read in the order given
-  --no-ignore-file     write no `ignoreFiles` entry at all
+  --no-ignore-file     write `ignoreFiles: []` rather than naming a file
   --no-common-ignore   write no common entries either; `.espalierignore`
                        is then yours alone
   --ignore-all         also write an ignore entry for every top-level path,
@@ -35,7 +35,6 @@ espalier init [--config <path>] [--root <dir>] [--lang <name>]...
 ## What it writes
 
 ```yaml
-version: 1
 pin: 0.1.0
 
 name: acme-web
@@ -44,9 +43,14 @@ root: espalier
 
 ignoreFiles:
   - .gitignore
+
+skip:
+  - AGENTS.MD
+  - AGENTS.md
+  - CLAUDE.md
 ```
 
-`pin` is the exact running package version. Every later command refuses a different version, so a global upgrade cannot silently change how this repository is interpreted. `name` is the repository directory's own name. It heads every document `build` writes, so a project that never sets it has documents with no heading — and a guess written into the config where an author can see it is better than that, and better than a guess the tool keeps to itself. Rename it or delete it; both are one line.
+`pin` is the exact running package version. Every later command refuses a different version, so a global upgrade cannot silently change how this repository is interpreted; [`espalier migrate`](../migrate/README.MD) is the command that rewrites the config for the CLI that is running. `name` is the repository directory's own name. It heads every document `build` writes, so a project that never sets it has documents with no heading — and a guess written into the config where an author can see it is better than that, and better than a guess the tool keeps to itself. Rename it or delete it; both are one line.
 
 And a `.espalierignore` beside it:
 
@@ -80,7 +84,7 @@ LICENSE
 
 Plus `espalier/`, holding a `.gitkeep`.
 
-`ignoreFiles` has no default — an empty key is what a hand-written config gets. `init` is where the visibility boundary is chosen, and writing it down is the whole of making it: a file quietly removing paths from Espalier's input is otherwise something you discover months later, wondering why a check never ran.
+`ignoreFiles` and `skip` are required keys. An empty list is `[]`; omitting either is an error. `init` is where those decisions are written down: `ignoreFiles` is the visibility boundary, and `skip` is the instruction files that may sit inside the espalier without being compiled as rules. A file quietly removing paths from Espalier's input, or a name the compiler must not treat as a module, is otherwise something you discover months later.
 
 `.espalierignore` is `ignores/_common.gitignore`, copied verbatim, comments and all. It holds what belongs to no language and to no `.gitignore`: version control directories, the repository metadata that is committed on purpose, CI definitions, licence files, and editor droppings. Every entry is a line you can read and delete.
 
@@ -110,6 +114,8 @@ espalier init --no-ignore-file
 
 `-i` writes exactly the paths given, in the order given, and each must exist for the same reason `.gitignore` must. `--no-ignore-file` writes `ignoreFiles: []` — recorded rather than omitted, so the config says a decision was made rather than leaving the next reader to wonder. The two together are a contradiction and are refused as `contradictory_flags` rather than resolved by precedence.
 
+`skip` is always written as `AGENTS.MD`, `AGENTS.md`, and `CLAUDE.md`. There is no flag that declines it: a repository that wants none edits the list, or writes `[]`, after `init`. Dot-prefixed agent directories are already skipped and do not appear here. See [CONFIG.MD](../../CONFIG.MD#skip).
+
 After `init`, the rule still holds: a file named in `ignoreFiles` that is not there fails any command that loads the config. See [CONFIG.MD](../../CONFIG.MD#ignorefiles).
 
 ## `--no-common-ignore`
@@ -121,13 +127,17 @@ espalier init --no-common-ignore
 ```
 
 ```yaml
-version: 1
 pin: 0.1.0
 
 root: espalier
 
 ignoreFiles:
   - .gitignore
+
+skip:
+  - AGENTS.MD
+  - AGENTS.md
+  - CLAUDE.md
 ```
 
 Use it when the common list is wrong for this repository — a project that genuinely governs its CI definitions, or one whose visible non-architectural paths need a different documented policy.

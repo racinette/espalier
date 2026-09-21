@@ -33,7 +33,9 @@ up a command should not have to read the parser.
     │
     ├─ init/     bootstrapping a repository
     │
-    └─ lint/     validating the repository against the espalier
+    ├─ lint/     validating the repository against the espalier
+    │
+    └─ migrate/  updating the configuration for this CLI version
 
 ## Other repository paths
 

@@ -1,6 +1,9 @@
-version: 1
 pin: 0.1.0
 root: espalier
 
 build:
   filename: PACKAGE.MD
+
+ignoreFiles: []
+
+skip: []

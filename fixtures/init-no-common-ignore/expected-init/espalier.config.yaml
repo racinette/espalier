@@ -1,4 +1,3 @@
-version: 1
 pin: 0.1.0
 
 name: init-no-common-ignore
@@ -7,3 +6,8 @@ root: espalier
 
 ignoreFiles:
   - .gitignore.fixture
+
+skip:
+  - AGENTS.MD
+  - AGENTS.md
+  - CLAUDE.md

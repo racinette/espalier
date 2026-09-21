@@ -11,11 +11,13 @@ import { OperationalError } from "./errors.js";
 import { explain } from "./explain.js";
 import { init } from "./init.js";
 import { lint } from "./lint.js";
+import { migrate } from "./migrate.js";
 import { createReporter, type Format, type Mode } from "./output.js";
 
 const USAGE = `espalier <command> [options]
 
   init                  write the configuration and create the espalier root
+  migrate               rewrite the configuration for this CLI version
   build                 generate the repository's agent-facing documentation
   adopt <path>          infer a directory's shape and write stub rule modules
   create <path>         create a structurally declared absent file or directory
@@ -32,9 +34,12 @@ const USAGE = `espalier <command> [options]
   --root <dir>          espalier source directory (default: espalier)
   -l, --lang <name>     write a shipped ignore list; repeat for a polyglot repo
   -i, --ignore-file     a file holding ignore patterns (default: .gitignore)
-  --no-ignore-file      write no ignoreFiles entry at all
+  --no-ignore-file      write ignoreFiles: [] rather than naming a file
   --no-common-ignore    write no common ignore entries either
   --ignore-all          put every top-level path out of scope
+
+  migrate only:
+  --dry-run             print what would be written, write nothing
 
   build only:
   --check               compare against what is on disk and write nothing
@@ -84,7 +89,7 @@ async function main(): Promise<number> {
     return command === undefined ? 2 : 0;
   }
 
-  const COMMANDS = new Set(["lint", "explain", "build", "init", "adopt", "create"]);
+  const COMMANDS = new Set(["lint", "explain", "build", "init", "migrate", "adopt", "create"]);
   if (!COMMANDS.has(command)) {
     process.stderr.write(`espalier: unknown command "${command}"\n\n${USAGE}`);
     return 2;
@@ -145,6 +150,17 @@ async function main(): Promise<number> {
           noIgnoreFile: values["no-ignore-file"] === true,
           noCommonIgnore: values["no-common-ignore"] === true,
           ignoreAll: values["ignore-all"] === true,
+        },
+        reporter,
+      );
+    }
+
+    if (command === "migrate") {
+      return await migrate(
+        {
+          cwd,
+          config: values["config"] as string | undefined,
+          dryRun: values["dry-run"] === true,
         },
         reporter,
       );

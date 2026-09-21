@@ -1,5 +1,8 @@
-version: 1
 pin: 0.1.0
 root: espalier
 
 addons: ./espalier.addons.mjs
+
+ignoreFiles: []
+
+skip: []

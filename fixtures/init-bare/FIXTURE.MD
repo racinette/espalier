@@ -37,10 +37,10 @@ nothing: a config naming a file it does not have would govern everything while
 looking correct.
 
 The declined answer is **written down** as `ignoreFiles: []` rather than left
-out. The key is empty by default, so omitting it would produce the same
-behaviour and none of the record — and the next reader could not tell a
-decision from an oversight. `init-ignore-all` pins `--ignore-file`, the other
-half of the same choice, and `test/candidates.test.ts` pins both refusals.
+out. Omitting the key is an error, so the record is the only way to name none
+— and the next reader can tell a decision from an oversight. `init-ignore-all`
+pins `--ignore-file`, the other half of the same choice, and
+`test/candidates.test.ts` pins both refusals.
 
 ## No `expected.json` lint assertion
 

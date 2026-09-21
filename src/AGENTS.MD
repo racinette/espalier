@@ -62,6 +62,8 @@ place is a list that stops matching the modules.
     ├─ match.ts           ownership, requiredness, and the deepest recognized
     │                     node (required)
     │
+    ├─ migrate.ts         the migrate command (required)
+    │
     ├─ nested.ts          running the espaliers below this one (required)
     │
     ├─ output.ts          formats and destinations (required)
