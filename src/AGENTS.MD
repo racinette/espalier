@@ -43,11 +43,15 @@ place is a list that stops matching the modules.
     │
     ├─ errors.ts          operational failures (required)
     │
+    ├─ examples.ts        the examples command (required)
+    │
     ├─ explain.ts         the explain command (required)
     │
     ├─ explainText.ts     the human layout for explain (required)
     │
     ├─ files.ts           walking the repository (required)
+    │
+    ├─ help.ts            the help command (required)
     │
     ├─ ignore.ts          gitignore-syntax matching (required)
     │
@@ -99,6 +103,7 @@ Carries each command's grammar, and each one is also written into that
 command's page under `docs/cli/`. The duplication is deliberate: a reader
 looking up a command should not have to read the parser. Create reserves only
 the positional `help` action; its long flags belong to the selected template.
+`help` and `examples` read this package and do not load a repository.
 
 ## `context.ts` — the lint context handed to rules
 

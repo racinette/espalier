@@ -31,7 +31,7 @@ espalier lint [paths...]
 4. **Run rules.** For every owned file: its structural rule's `lint`, plus the `lint` of every constraint whose pattern matches it.
 5. **Report.** Every issue every rule emitted.
 
-Rules execute independently and in unspecified order. A rule may read any file this espalier governs — see [What this asks of a rule](#what-this-asks-of-a-rule) — but must not assume another rule has or has not run.
+Rules execute independently and in unspecified order. Correctness cannot depend on execution order, mutable communication between rules, or unrecorded inputs. A rule may `read` any file this espalier governs — see [What this asks of a rule](#what-this-asks-of-a-rule) — but must not assume another rule has or has not run. Process-local parser or addon infrastructure may reuse state when every answer remains a function of tracked lint data and observed or declared implementation dependencies.
 
 ## Constraint targets
 
@@ -67,6 +67,9 @@ Membership is an incremental-cache dependency automatically. Adding or removing
 a selected path reruns the aggregate; an owned path rejected by `targets` does
 not. Changing a member's contents reruns it when the rule read that member,
 under the same dependency rule as every other invocation.
+
+Choosing whether an obligation is per-file or aggregate is
+[`espalier help authoring`](../help/README.MD).
 
 ## Scoping
 

@@ -992,7 +992,7 @@ not survive as a second public vocabulary.
 
 A path reference is a promise that the named file is a maintained exemplar, not
 merely a suggestion to open a string. Repository opening therefore proves the
-whole promise: the path exists, is a visible governed file, and resolves back
+whole promise: the path exists, is a governed file, and resolves back
 to the structural rule declaring it. For a constraint it must actually be
 covered by one of that module's patterns and admitted by its `targets`.
 Existence plus glob matching was insufficient—a more specific structural rule
@@ -1097,5 +1097,7 @@ file.
 root. `migrate` writes that file when it is absent or still marked shipped,
 and only when `skip` would skip `AGENTS.MD`. Nested copies are the project's.
 The compact contract answers four axes, keeps policy in the owning module,
-and forbids helpers that remember repository contents. The worked example is
-`fixtures/authoring-corpus/`. Spec route: `docs/AUTHORING.MD`.
+and forbids helpers that remember repository contents. Example `rule` prose
+teaches each kind; `espalier examples` prints a packed tree when that is not
+enough. Spec route: `docs/AUTHORING.MD`. `espalier help` prints this version's
+`docs/`; the tarball includes `docs/` and `examples/`.

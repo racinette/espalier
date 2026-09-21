@@ -8,7 +8,7 @@ repository exclusion policy.
 espalier adopt src/clients
 ```
 
-`adopt` produces structure. It cannot produce meaning — the `rule` bodies are yours to write, and until you do, the generated documentation says where things go and nothing about how they should be written.
+`adopt` produces structure. It cannot produce meaning — the `rule` bodies are yours to write, and until you do, the generated documentation says where things go and nothing about how they should be written. Choosing a rule's kind and writing that prose is [`espalier help authoring`](../help/README.MD).
 
 ## Usage
 
@@ -55,7 +55,7 @@ export async function lint() {}
 
 `adopt` does not edit `.espalierignore`. A target excluded by repository policy
 fails with `invalid_adopt_target`; explicitly re-include the directory and its
-contents before adopting it. Excluded descendants remain invisible evidence
+contents before adopting it. Excluded descendants remain ungoverned
 and produce no inferred modules.
 
 If a visible file occupies a documentation path the configured build will own,

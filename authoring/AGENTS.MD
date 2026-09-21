@@ -8,8 +8,9 @@ code. This file is for writing the rules. Nested copies beside a family of
 modules are local notes for those rules — not a second copy of this contract.
 `.claude/` and `.codex/` are already skipped as dotfiles.
 
-TYPES.MD is the module contract. MATCHING.MD is how a path claims a file.
-API.MD is how to test a `lint` function.
+`espalier help types` is the module contract. `espalier help matching` is how
+a path claims a file. `espalier help api` is how to test a `lint` function.
+`espalier help` lists every page for this CLI version.
 
 ## Four questions
 
@@ -24,12 +25,17 @@ Before a module exists, answer four separate questions:
 the whole project to decide one file's fate does not make that obligation
 aggregate.
 
-A filename being PascalCase is per-file even if one index is reused. A corpus
-being mixed enough on average is aggregate: no single file can satisfy it.
+The `rule` names the obligation:
 
-A small JSON fixture corpus is the shape: each case is locally well-formed
-(per-file); the set meets mix and averages (aggregate). That is the SQL-suite
-case — share of mutations, mean depth, mean arity — without a SQL stack.
+- Structural: `A fixture case holds one exercise.`
+- Per-file: `Each selected case is well-formed JSON with a name, a kind, and a body.`
+- Aggregate: `The SQL query fixture set contains at least 25% of modifying queries on average.`
+
+A filename being PascalCase is per-file even if one index is reused: one file
+can satisfy it. The SQL average is aggregate: no single file can satisfy it.
+
+If those sentences are not enough, `espalier examples` prints the path to a
+worked tree on this machine.
 
 ## Prose
 
@@ -37,10 +43,10 @@ case — share of mutations, mean depth, mean arity — without a SQL stack.
 the issue an agent gets back. Write for someone about to write the governed
 source, not for a reviewer of the check.
 
-- Structural: name the artifact. "A fixture case holds one exercise."
-- Ordinary constraint: "Each selected …"
+- Structural: name the artifact.
+- Ordinary constraint: `Each selected …`
 - Aggregate: name the population and the collective relationship.
-- A located diagnostic may say "This call …"
+- A located diagnostic may say `This call …`
 
 Generated files sit at static placement points. A dynamic instance never gets
 its own document; the family shares an ancestor. Write for the family, not for
@@ -82,6 +88,12 @@ governed files it used by calling `read` and `files`. A helper that parses a
 string it was given is fine. A helper that remembers repository contents,
 paths, or previous answers is not: a later invocation can skip those calls,
 the cache stays warm, and the rule lies.
+
+Process-local parser or addon infrastructure may reuse state when every answer
+remains a function of tracked lint data and observed or declared implementation
+dependencies. Correctness cannot depend on execution order, mutable
+communication between rules, or unrecorded inputs. An aggregate consumes its
+`matches`, not findings or mutable state produced by per-file rules.
 
 Helpers live outside the espalier tree. They are implementation, not
 architecture. Import them; do not `read` them as lint data.

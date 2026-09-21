@@ -94,7 +94,7 @@ The VCS entries are the reason it is written unconditionally. `.gitignore` does 
 
 The `.gitkeep` is there because git does not track empty directories. Without it the espalier root vanishes on the first commit and the next person to clone gets `espalier_root_missing` before they have written a line. Dotfiles in the espalier are skipped rather than read, so it costs nothing — see [MATCHING.MD](../../MATCHING.MD#node-kinds).
 
-`AGENTS.MD` is the compact authoring contract. Skip lists that file, so the compiler does not treat it as a module. Delete the sentinel line at the top to keep a customized copy through later `migrate` runs.
+`AGENTS.MD` is the compact authoring contract. Skip lists that file, so the compiler does not treat it as a module. Delete the sentinel line at the top to keep a customized copy through later `migrate` runs. Read it with the directory convention; the matching reference is `espalier help authoring`.
 
 ## `--ignore-file` and `--no-ignore-file`
 

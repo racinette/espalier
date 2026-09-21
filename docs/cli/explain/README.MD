@@ -133,7 +133,7 @@ match, ordinary extension, and `targets` selector `lint` uses. `patterns` are
 those admission globs, not a leftover filename extension. A targeted aggregate
 does not appear on an unselected sibling in the same scope.
 
-The path does not have to exist. Matching is pure, so `explain` answers "would this be legal, and what would apply" before the file is written — the same question `lint` answers afterwards, from the same source, so the two cannot disagree.
+The path does not have to exist. Matching is pure, so `explain` answers "would this be legal, and what would apply" before the file is written — the same question `lint` answers afterwards, from the same source. The two commands cannot disagree about matching. Whether the `rule` prose and the `lint` function describe the same obligation is the author's.
 
 For a path nothing declares, the answer is the deepest recognized node:
 

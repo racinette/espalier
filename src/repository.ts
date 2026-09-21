@@ -99,7 +99,7 @@ function validateReferenceImplementations(
     if (!visible.has(reference)) {
       fail(
         "invalid_reference_implementation",
-        `${modulePath}: reference implementation "${reference}" is not a visible governed file`,
+        `${modulePath}: reference implementation "${reference}" is not a governed file`,
       );
     }
 

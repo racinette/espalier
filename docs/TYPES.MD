@@ -100,7 +100,7 @@ export const referenceImplementation = "components/buttons/SubmitButton.tsx";
 ```
 
 **`referenceImplementation` is a path, and it is the form to reach for**,
-because it cannot drift. The file it names must exist, be visible and governed,
+because it cannot drift. The file it names must exist, be a governed file,
 and actually be owned by this structural rule or covered by this constraint. It
 is therefore linted by the rule on every full run; if it stops conforming you
 get an ordinary issue on it. Espalier validates those conditions whenever it
@@ -510,9 +510,9 @@ Captures name values. They never constrain the relationship between them: both `
  *
  * Paths are repository-relative, and must name a file this espalier
  * governs — the same set `files` lists. Reading outside the repository,
- * reading an ignored or invisible path, or reading a file that does not
- * exist, is an operational failure — check with `files` first if a
- * file's existence is in question.
+ * reading an ungoverned path, or reading a file that does not exist, is
+ * an operational failure — check with `files` first if a file's existence
+ * is in question.
  *
  * The result is cached for the duration of the lint run,
  * so repeated calls do not re-read the file.
@@ -526,7 +526,7 @@ Captures name values. They never constrain the relationship between them: both `
  * Lists repository files matching a glob.
  *
  * Accepts `*` (within one segment) and `**` (across segments), matched
- * against the same file set `espalier lint` walks: ignored and invisible
+ * against the same file set `espalier lint` walks: ungoverned
  * paths are never returned. Results are repository-relative and sorted.
  *
  * This is what makes peer comparison possible — checks that compare a
@@ -608,9 +608,13 @@ An aggregate constraint instead receives:
 
 ## Execution
 
-Rules execute independently, in unspecified order, with no shared state. An aggregate constraint is collective only over its `matches`; it does not consume findings or state from per-file rules. A rule may read any visible file, but must not assume another rule has or has not run.
+Rules execute independently, in unspecified order. Correctness cannot depend on execution order, mutable communication between rules, or unrecorded inputs. An aggregate constraint is collective only over its `matches`; it does not consume findings or state from per-file rules. A rule may `read` any governed file, but must not assume another rule has or has not run.
 
-**Visible is the whole of what a rule may see.** `read` refuses a path outside the governed set with `read_ungoverned`, and `files` never returns one. This is not tidiness: an ungoverned path is one nothing stamps, so a rule that depended on one would be replayed unchanged after it changed. A rule that needs to consult an ignored file is a rule whose espalier should stop ignoring it.
+**Governed files are the lint-data universe.** `read` refuses a path outside that set with `read_ungoverned`, and `files` never returns one. Filesystem-visible paths are those that survive `ignoreFiles`. `.espalierignore`, child espaliers, and Espalier's own machinery then exclude paths from governance. An ungoverned path is one nothing stamps, so a rule that depended on one would be replayed unchanged after it changed. A rule that needs to consult an ignored file is a rule whose espalier should stop ignoring it.
+
+Implementation dependencies are separate: imported modules, and paths declared in `unobservedImplementationDependencies`, affect whether a cached answer is still valid. They are not lint data. `read` still refuses them when they are ungoverned.
+
+Process-local parser or addon infrastructure may reuse state when every answer remains a function of tracked lint data and observed or declared implementation dependencies.
 
 **A `lint` function must be pure.** Its answer must follow from what it is handed — `path`, `pattern`, `captures` on an ordinary constraint, or `matches` and `patterns` on an aggregate, and whatever `read` and `files` return — plus its observed or explicitly declared implementation dependencies, and from nothing else. The clock, the network and the environment are not inputs the runner can see, so a rule that consults one will be replayed from cache with an answer it would no longer give. The failure is silent: a stale pass, not an error. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
 

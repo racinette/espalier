@@ -69,7 +69,7 @@ optional construction entry point:
 > flags; a directory composes the templates of all its required files. Creation
 > never overwrites an existing path.
 
-Guidance steers and the linter corrects. Both describe the same conventions, because both derive from the same rule module.
+Guidance steers and the linter corrects. Both derive from the same rule module, so drift between the two is reviewable. Colocation does not prove the prose and the check are the same obligation.
 
 `espalier create <path>` can create any structurally declared absent file or
 directory. A file selects its owning template; a directory creates every
@@ -89,7 +89,7 @@ concrete path and the owning rule's placeholder captures.
 4. Drift is reported as precise, machine-readable issues, each carrying the rule it violated.
 5. The agent revises until the project's constraints are satisfied.
 
-Guidance steers; the linter corrects. Either half failing degrades the loop's efficiency, not its correctness. As long as the linter is deterministic, the loop converges.
+Guidance steers; the linter corrects. Generated-document freshness prevents stale copies. Executable checks give the same answer for the same recorded inputs. Tests and review establish whether those checks implement the intended architecture. Incomplete, contradictory, or unsatisfiable policy remains the author's.
 
 ## Quick start
 
@@ -127,7 +127,7 @@ espalier
 
 export const description = "the repository root README file";
 
-export const rule = String.raw`
+export const rule = `
 The root README must not be empty and should describe the project's purpose.
 `;
 
@@ -185,7 +185,7 @@ src/[...path]/message-registry.mjs
 
 The first applies to every TypeScript file in the project; the second only within `backend/`. The third is one obligation over a selected population under `src/`. Constraint rules do not declare that anything exists — they describe how files that do exist must be written, and appear in the documentation for the subtree they cover.
 
-Every file in the repository is owned by exactly one structural rule, and by every constraint that admits it. Which rule wins, and which files are required to exist, is specified in [docs/MATCHING.MD](docs/MATCHING.MD).
+Every governed file in the repository is owned by exactly one structural rule, and by every constraint that admits it. Which rule wins, and which files are required to exist, is specified in [docs/MATCHING.MD](docs/MATCHING.MD) (`espalier help matching`).
 
 A constraint can export `targets = ["*/queries.sql"]` to narrow its governed
 candidates without redefining ownership or repository structure. The positive
@@ -224,7 +224,7 @@ The alternative is a rule body asking politely and a `lint` function checking af
 
 The matcher normalizes `[name]` to `*`, `[...name]` to `**`, and `{name}` to `*`. The normalized glob is exposed as `context.pattern`; the matched values are exposed as `context.captures`.
 
-Full grammar, matching precedence, and requiredness: [docs/MATCHING.MD](docs/MATCHING.MD).
+Full grammar, matching precedence, and requiredness: [docs/MATCHING.MD](docs/MATCHING.MD) (`espalier help matching`).
 
 ## Writing rules
 
@@ -234,15 +234,21 @@ Every rule module exports the same shape:
 export const description =
   "a concise description of what this file represents";
 
-export const rule = String.raw`
-The natural-language guidance. Markdown is supported.
-`;
+export const rule = `Props must be a named exported interface \`<Name>Props\`.`;
 
 import { createLinter } from "espalier";
 
 export const lint = createLinter(async (context) => {
   // deterministic validation
 });
+```
+
+That `rule` renders as: Props must be a named exported interface `<Name>Props`.
+
+An ordinary template literal is the default. Reach for `String.raw` when the text contains backslashes and no backticks:
+
+```js
+export const rule = String.raw`File names must match ^[A-Z][a-zA-Z0-9]*$.`;
 ```
 
 `createLinter` provides contextual editor and TypeScript types and returns the
@@ -254,7 +260,7 @@ The `description` is one line, and it is what appears in the project map beside 
 
 The `rule` describes what the file must look like. It is _mode-invariant_: the same conventions apply whether the file is being created or edited, and the same text is written into the documentation and returned attached to a violation.
 
-The `lint` function receives a context with the matched `path`, normalized `pattern`, and named `captures`. See `docs/TYPES.MD` for the full shape. Choosing a rule's kind, keeping policy in the owning module, and testing it is [docs/AUTHORING.MD](docs/AUTHORING.MD). `espalier init` writes the same compact contract to `espalier/AGENTS.MD`, which an agent editing rules loads by directory convention.
+The `lint` function receives a context with the matched `path`, normalized `pattern`, and named `captures`. See [docs/TYPES.MD](docs/TYPES.MD) (`espalier help types`) for the full shape. Choosing a rule's kind, keeping policy in the owning module, and testing it is [docs/AUTHORING.MD](docs/AUTHORING.MD) (`espalier help authoring`). `espalier init` writes the same compact contract to `espalier/AGENTS.MD`, which an agent editing rules loads by directory convention. `espalier examples` prints a worked tree packed with this version.
 
 ```js
 // structural rule (e.g. components/buttons/[button].tsx.mjs)
@@ -274,7 +280,7 @@ async function lint({ path, pattern, captures, read, emit }) {
 }
 ```
 
-Rules execute independently, in unspecified order, with no shared state. A rule may read other files via the runner's APIs, but must not assume any other rule has or has not run.
+Rules execute independently, in unspecified order. Correctness cannot depend on execution order, mutable communication between rules, or unrecorded inputs. A rule may `read` governed files, but must not assume any other rule has or has not run. Process-local parser or addon infrastructure may reuse state when every answer remains a function of tracked lint data and observed or declared implementation dependencies.
 
 ## The project layout
 
@@ -335,11 +341,11 @@ That is as far as the tool goes, and deliberately so. `espalier` cannot stop an 
 
 `espalier` is strict by default and provides exactly one escape hatch per concern.
 
-- The structural model is strict. Visible files not matching the espalier are violations. `.gitignore` defines visibility; `.espalierignore` documents repository paths that remain visible but sit outside the project layout.
+- The structural model is strict. Governed files not matching the espalier are violations. `ignoreFiles` defines which paths Espalier can see; `.espalierignore` documents repository paths that remain visible but sit outside the project layout.
 - Severity is decided by the rule, not by configuration. Reusable checks ship as library functions that expose severity as an argument; the project's rule file passes the value it wants. Policy lives where the rule lives.
 - Issue codes are free-form strings. `espalier` does not validate uniqueness or namespace them automatically. Projects adopt their own conventions.
 
-Every additional knob is a place where deterministic behavior leaks. The value `espalier` offers — architectural convergence you can rely on — is preserved by keeping escape hatches few and coarse.
+Every additional knob is a place where deterministic behavior leaks. Repeatable feedback is preserved by keeping escape hatches few and coarse.
 
 ## Testing rule modules
 
@@ -358,10 +364,10 @@ const issues = await runRule(rule, {
 });
 ```
 
-There is no `espalier test` command. Fixtures, assertions, reporting and watch mode are what a test framework already does, and a linter reimplementing them would ship a worse `node:test` with none of the tooling around it. The lint context is the only part nobody else can supply, so that is the part `espalier` exposes. See [docs/API.MD](docs/API.MD).
+There is no `espalier test` command. Fixtures, assertions, reporting and watch mode are what a test framework already does, and a linter reimplementing them would ship a worse `node:test` with none of the tooling around it. The lint context is the only part nobody else can supply, so that is the part `espalier` exposes. See [docs/API.MD](docs/API.MD) (`espalier help api`).
 
 ## What `espalier` is not
 
 - **Not a replacement for general-purpose linters.** ESLint, ruff, golangci-lint, and their peers do excellent work on language-specific code quality. `espalier` is about _architectural_ enforcement: where code lives, what shape it takes, how modules relate. The two are complementary.
 - **Not an agent.** `espalier` does not write code, generate suggestions, or decide architecture. It enforces decisions you have already made.
-- **Not an attempt to constrain agents.** The goal is not to prevent agents from doing things — it is to give them a clear, machine-verifiable target so that their iteration converges. A well-shaped espalier makes the agent's job _easier_, not harder.
+- **Not an attempt to constrain agents.** The goal is not to prevent agents from doing things — it is to give them a clear, machine-verifiable target so that correction is reachable through iteration. A well-shaped espalier makes the agent's job _easier_, not harder.

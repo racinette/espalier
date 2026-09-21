@@ -26,6 +26,26 @@ async function load(relative: string): Promise<RuleModule> {
   return (await import(pathToFileURL(path.join(fixture, relative)).href)) as RuleModule;
 }
 
+test("the packed example shares its modules with the authoring-corpus fixture", () => {
+  const example = path.join(repo, "examples", "authoring-corpus");
+  const shared = [
+    "espalier/fixtures/[name]/case.json.mjs",
+    "espalier/fixtures/[...path]/well-formed.json.mjs",
+    "espalier/fixtures/[...path]/corpus-mix.mjs",
+    "helpers/case.mjs",
+    "fixtures/alpha/case.json",
+    "fixtures/beta/case.json",
+    "fixtures/gamma/case.json",
+  ];
+  for (const relative of shared) {
+    assert.equal(
+      readFileSync(path.join(example, relative), "utf8"),
+      readFileSync(path.join(fixture, relative), "utf8"),
+      relative,
+    );
+  }
+});
+
 test("the shipped contract, this repository's copy, and the sentinel agree", () => {
   const shipped = shippedAuthoring();
   assert.equal(shipped.startsWith(AUTHORING_SENTINEL), true);

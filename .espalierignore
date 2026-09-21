@@ -95,6 +95,10 @@ fixtures/**
 # a file this repository's architecture places.
 authoring/**
 
+# Worked examples `espalier examples` prints. Packed with the CLI; not a file
+# this repository's architecture places.
+examples/**
+
 # Maintainer planning documents. These describe proposed work rather than the
 # architecture of the implementation or the public specification.
 tasks/**

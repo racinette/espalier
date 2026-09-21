@@ -23,19 +23,23 @@ up a command should not have to read the parser.
 ## Project layout
 
     docs/cli/
-    ├─ adopt/    bringing an existing directory under the espalier
+    ├─ adopt/     bringing an existing directory under the espalier
     │
-    ├─ build/    generating the agent-facing documentation
+    ├─ build/     generating the agent-facing documentation
     │
-    ├─ create/   creating a structurally declared file or directory
+    ├─ create/    creating a structurally declared file or directory
     │
-    ├─ explain/  answering what the espalier says about a path
+    ├─ examples/  printing the local path to a worked example
     │
-    ├─ init/     bootstrapping a repository
+    ├─ explain/   answering what the espalier says about a path
     │
-    ├─ lint/     validating the repository against the espalier
+    ├─ help/      printing this version's reference
     │
-    └─ migrate/  updating the configuration for this CLI version
+    ├─ init/      bootstrapping a repository
+    │
+    ├─ lint/      validating the repository against the espalier
+    │
+    └─ migrate/   updating the configuration for this CLI version
 
 ## Other repository paths
 

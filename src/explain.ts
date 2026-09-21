@@ -2,7 +2,8 @@
 //
 // The direct query. Everything it reports comes from the same functions `build`
 // renders with and `lint` reports through, so the three cannot disagree about
-// what the espalier says.
+// matching. Whether the `rule` prose and the `lint` function describe the same
+// obligation is the author's.
 
 import path from "node:path";
 import { fail } from "./errors.js";

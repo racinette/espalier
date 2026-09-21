@@ -134,7 +134,7 @@ A comment introduces the entries beneath it, up to the next blank line. There ar
 
 **`espalier build` reads those comments into the documentation it generates.** That is what makes the list reviewable: an agent opening a directory sees which materialized paths sit outside the project layout and why, in the same file that describes what belongs there. See [cli/build/README.MD](cli/build/README.MD#other-repository-paths). Nothing else in the repository is read this way — a comment in a `.gitignore` was written for git, by someone answering a different question, and quoting it into your architecture would put words in their mouth.
 
-Ignored files are invisible, not exempt. No structural rule owns them, no constraint runs against them, and they cannot satisfy a required leaf. If a path is both required by a static leaf in the espalier and excluded, the configuration contradicts itself and `espalier` exits `2` rather than quietly passing.
+Ignored files are ungoverned, not exempt. No structural rule owns them, no constraint runs against them, and they cannot satisfy a required leaf. If a path is both required by a static leaf in the espalier and excluded, the configuration contradicts itself and `espalier` exits `2` rather than quietly passing.
 
 `build` does not delete under an ignored path either. Generated documentation is identified by its provenance header rather than by its location, so a repository that keeps a copy of `espalier`'s output — a golden fixture, a vendored copy of another repository — holds files a run cannot tell from its own by looking. This file is where you say they are not this run's to sweep.
 

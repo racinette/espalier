@@ -41,6 +41,9 @@ There are no framework flags in this position: `--help`, `--config`,
 Configuration is always discovered upward from the working directory, and
 creation reports in its one human format to standard output.
 
+`espalier help create` is this page. `espalier create <path> help` is what
+that creation will write.
+
 For example, a component template may produce:
 
 ```text

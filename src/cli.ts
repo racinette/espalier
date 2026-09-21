@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 
 // Argument parsing and dispatch. Every command's own page is under docs/cli/,
-// and the flags below are the same list each of those pages carries.
+// and the flags below are the same list each of those pages carries. `help`
+// and `examples` read this package and do not load a repository.
 
 import { parseArgs } from "node:util";
 import { adopt } from "./adopt.js";
 import { build } from "./build.js";
 import { create } from "./create.js";
+import { examples } from "./examples.js";
 import { OperationalError } from "./errors.js";
 import { explain } from "./explain.js";
+import { help } from "./help.js";
 import { init } from "./init.js";
 import { lint } from "./lint.js";
 import { migrate } from "./migrate.js";
@@ -24,8 +27,10 @@ const USAGE = `espalier <command> [options]
   create <path> help    show what that creation will write
   lint [paths...]       validate the repository against the espalier
   explain <path>        what the espalier says about a path
+  help [page]           print this version's reference
+  examples [name]       print the local path to a worked example
 
-  options shared by every command except create:
+  options shared by every command except create, help, and examples:
   --format human|jsonl  output format (default: human)
   --out <dest>          stdout, stderr, or a file path (default: stdout)
   --config <path>       use this config file instead of discovering one
@@ -89,12 +94,24 @@ async function main(): Promise<number> {
     return command === undefined ? 2 : 0;
   }
 
-  const COMMANDS = new Set(["lint", "explain", "build", "init", "migrate", "adopt", "create"]);
+  const COMMANDS = new Set([
+    "lint",
+    "explain",
+    "build",
+    "init",
+    "migrate",
+    "adopt",
+    "create",
+    "help",
+    "examples",
+  ]);
   if (!COMMANDS.has(command)) {
     process.stderr.write(`espalier: unknown command "${command}"\n\n${USAGE}`);
     return 2;
   }
 
+  if (command === "help") return help(argv[1]);
+  if (command === "examples") return examples(argv[1]);
   if (command === "create") return await runCreate(argv.slice(1));
 
   let values: Record<string, unknown>;

@@ -31,7 +31,7 @@ Agent tools disagree about almost everything: whether rules attach by glob, whet
 
 `build` depends on one thing instead: agents read the documentation files in the directory they are working in. That convention is converging across tools, it costs nothing to support, and it works identically for creating a file and for editing one.
 
-Everything else the agent needs arrives from `espalier lint`, which reports violations with the rule text attached. Guidance steers, lint corrects, and both come from the same modules — so they cannot disagree.
+Everything else the agent needs arrives from `espalier lint`, which reports violations with the rule text attached. Guidance steers, lint corrects, and both come from the same modules, so drift between them is reviewable. Colocation does not prove the prose and the check are the same obligation; tests and review still establish that.
 
 ## Where files go
 

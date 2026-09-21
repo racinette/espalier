@@ -55,9 +55,10 @@ this is the other side of that boundary.
 ## `AUTHORING.MD` — how to write a rule module
 
 Routes an author to the compact contract `init` vendors
-into `espalier/AGENTS.MD`, and to the one worked example that contract
-describes. The four questions, the policy/helper split, and cache-safe reuse
-live in that contract, not as a second copy here.
+into `espalier/AGENTS.MD`, and to `espalier help` and `espalier examples`
+for this CLI version's reference and worked tree. The four questions, the
+policy/helper split, and cache-safe reuse live in that contract, not as a
+second copy here.
 
 ## `CONFIG.MD` — the configuration file and the ignore list
 

@@ -323,7 +323,7 @@ clients
 
 An empty `clients/` is valid. Once `clients/stripe/client.ts` exists, `clients/stripe/requestModels.ts` is required and its absence is reported. A sibling `clients/stripe/notes.md` is `unexpected_path` unless another structural rule owns it or it is ignored.
 
-Any visible file under the instance instantiates it, whether or not a structural rule owns that file. `clients/stripe/notes.md` alone is enough: something is there, so the directory exists, and a `clients/stripe/` that exists without a client is exactly the drift this reports. Ignored files do not count, being invisible.
+Any governed file under the instance instantiates it, whether or not a structural rule owns that file. `clients/stripe/notes.md` alone is enough: something is there, so the directory exists, and a `clients/stripe/` that exists without a client is exactly the drift this reports. Ungoverned files do not count.
 
 **A directory a more specific sibling describes is not an instance.** Requiredness resolves by the same tier order ownership does — static, then resolved, then dynamic — so `clients/` beside `[area]/` is `clients/`, and nothing under it is asked to satisfy `[area]/`. Otherwise a dynamic pair would reach every directory at its depth, and an espalier declaring `[area]/[module]/index.ts` alongside `clients/[provider]/client.ts` would report every provider missing an `index.ts` no rule had placed there. The two questions — who owns this file, and what must exist — are answered from one tree and must be answered the same way.
 
