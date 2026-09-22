@@ -22,7 +22,9 @@ the way to pick a kind.
 Read the reference for this CLI with `espalier help types`,
 `espalier help matching`, and `espalier help api`. `espalier help` lists every
 page. If the contract's example obligations are not enough,
-`espalier examples` prints the path to a worked tree packed with this version.
+`espalier examples --help` lists the example projects packed with this
+version. `espalier examples <name>` locates one;
+`espalier examples <name> --copy <directory>` copies it into a new directory.
 The complete contracts are [TYPES.MD](TYPES.MD), [MATCHING.MD](MATCHING.MD),
 and [API.MD](API.MD).
 

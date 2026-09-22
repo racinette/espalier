@@ -29,7 +29,7 @@ up a command should not have to read the parser.
     │
     ├─ create/    creating a structurally declared file or directory
     │
-    ├─ examples/  printing the local path to a worked example
+    ├─ examples/  locating and copying worked examples
     │
     ├─ explain/   answering what the espalier says about a path
     │

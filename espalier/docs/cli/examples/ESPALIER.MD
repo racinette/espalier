@@ -1,3 +1,3 @@
 ---
-description: printing the local path to a worked example
+description: locating and copying worked examples
 ---

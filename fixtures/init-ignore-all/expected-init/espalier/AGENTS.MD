@@ -62,6 +62,9 @@ A constraint can optionally use `targets`, a list of globs, to narrow the
 files its path matches.
 
 Use `espalier examples` to locate example projects on this machine.
+Use `espalier examples --help` to list their names, or
+`espalier examples <name> --copy <directory>` to make a writable copy in a
+new directory.
 
 ## How each kind is written
 

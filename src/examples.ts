@@ -1,7 +1,8 @@
 // `espalier examples`. docs/cli/examples/README.MD.
 
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
+import { parseArgs } from "node:util";
 import { PACKAGE_ROOT } from "./version.js";
 
 export function examplesRoot(): string {
@@ -24,7 +25,14 @@ export function listExamples(): string[] {
 
 function catalog(unknown?: string): string {
   const listed = listExamples();
-  const lines = ["espalier examples [name]", ""];
+  const lines = [
+    "espalier examples [name] [--copy <directory>]",
+    "espalier examples --help",
+    "",
+    "  --copy <directory>  copy a named example into a new directory",
+    "  -h, --help          show usage and available examples",
+    "",
+  ];
   if (unknown !== undefined) {
     lines.unshift(`espalier: unknown example "${unknown}"`, "");
   }
@@ -36,9 +44,36 @@ function catalog(unknown?: string): string {
   return lines.join("\n");
 }
 
-export function examples(name: string | undefined): number {
+export function examples(args: string[]): number {
+  let values;
+  let positionals;
+  try {
+    ({ values, positionals } = parseArgs({
+      args,
+      allowPositionals: true,
+      strict: true,
+      options: {
+        copy: { type: "string" },
+        help: { type: "boolean", short: "h" },
+      },
+    }));
+    if (positionals.length > 1) throw new Error("expected at most one example name");
+    if (values.copy !== undefined && (values.copy === "" || positionals.length === 0)) {
+      throw new Error("--copy requires an example name and a destination directory");
+    }
+  } catch (cause) {
+    process.stderr.write(`espalier: ${(cause as Error).message}\n\n${catalog()}`);
+    return 2;
+  }
+
+  if (values.help) {
+    process.stdout.write(catalog());
+    return 0;
+  }
+
+  const name = positionals[0];
   const root = examplesRoot();
-  if (name === undefined || name === "--help" || name === "-h") {
+  if (name === undefined) {
     process.stdout.write(`${root}\n`);
     return 0;
   }
@@ -49,6 +84,39 @@ export function examples(name: string | undefined): number {
     return 2;
   }
 
-  process.stdout.write(`${path.join(root, name)}\n`);
+  const source = path.join(root, name);
+  if (values.copy === undefined) {
+    process.stdout.write(`${source}\n`);
+    return 0;
+  }
+
+  const destination = path.resolve(values.copy);
+  let created = false;
+  try {
+    mkdirSync(path.dirname(destination), { recursive: true });
+    // Reserve the root exclusively: even an empty directory or dangling
+    // symlink belongs to the caller and must not be merged into.
+    mkdirSync(destination);
+    created = true;
+    cpSync(source, destination, {
+      recursive: true,
+      force: false,
+      errorOnExist: true,
+      verbatimSymlinks: true,
+    });
+  } catch (cause) {
+    let cleanup = "";
+    if (created) {
+      try {
+        rmSync(destination, { recursive: true, force: true });
+      } catch (error) {
+        cleanup = `; could not remove incomplete destination: ${(error as Error).message}`;
+      }
+    }
+    process.stderr.write(`espalier: cannot copy example to ${destination}: ${(cause as Error).message}${cleanup}\n`);
+    return 2;
+  }
+
+  process.stdout.write(`${destination}\n`);
   return 0;
 }

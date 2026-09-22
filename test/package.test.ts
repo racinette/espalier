@@ -141,6 +141,16 @@ export const template = createTemplate(
     assert.match(authoring, /^# Authoring\n/);
     const example = succeed(bin, ["examples", "authoring-corpus"], app).trim();
     assert.equal(existsSync(path.join(example, "helpers", "case.mjs")), true);
+    const copied = path.join(app, "copied-example");
+    assert.equal(
+      succeed(bin, ["examples", "authoring-corpus", "--copy", copied], app).trim(),
+      copied,
+    );
+    assert.equal(existsSync(path.join(copied, "espalier.config.yaml")), true);
+    assert.equal(
+      readFileSync(path.join(copied, "helpers", "case.mjs"), "utf8"),
+      readFileSync(path.join(example, "helpers", "case.mjs"), "utf8"),
+    );
 
     succeed(
       process.execPath,

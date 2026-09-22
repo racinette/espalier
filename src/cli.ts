@@ -28,7 +28,7 @@ const USAGE = `espalier <command> [options]
   lint [paths...]       validate the repository against the espalier
   explain <path>        what the espalier says about a path
   help [page]           print this version's reference
-  examples [name]       print the local path to a worked example
+  examples [name]       locate a worked example; --copy <dir> copies it
 
   options shared by every command except create, help, and examples:
   --format human|jsonl  output format (default: human)
@@ -111,7 +111,7 @@ async function main(): Promise<number> {
   }
 
   if (command === "help") return help(argv[1]);
-  if (command === "examples") return examples(argv[1]);
+  if (command === "examples") return examples(argv.slice(1));
   if (command === "create") return await runCreate(argv.slice(1));
 
   let values: Record<string, unknown>;
