@@ -98,12 +98,16 @@ export function examples(args: string[]): number {
     // symlink belongs to the caller and must not be merged into.
     mkdirSync(destination);
     created = true;
-    cpSync(source, destination, {
-      recursive: true,
-      force: false,
-      errorOnExist: true,
-      verbatimSymlinks: true,
-    });
+    // Copy into absent child paths: Node 26 rejects an existing directory
+    // with errorOnExist, including the root we just reserved ourselves.
+    for (const entry of readdirSync(source)) {
+      cpSync(path.join(source, entry), path.join(destination, entry), {
+        recursive: true,
+        force: false,
+        errorOnExist: true,
+        verbatimSymlinks: true,
+      });
+    }
   } catch (cause) {
     let cleanup = "";
     if (created) {
