@@ -12,23 +12,15 @@ the two still point at each other, rather than checking style.
 ## Project layout
 
     ./
-    ├─ docs/       the specification
+    ├─ docs/      the specification
     │
-    ├─ ignores/    the ignore lists espalier ships
+    ├─ ignores/   the ignore lists espalier ships
     │
-    ├─ src/        the implementation
+    ├─ src/       the implementation
     │
-    ├─ test/       the argument that the tool works
+    ├─ test/      the argument that the tool works
     │
-    ├─ HANDOFF.MD  the record of what was decided and why (required)
-    │
-    └─ README.MD   the front page (required)
-
-## `HANDOFF.MD` — the record of what was decided and why
-
-Every decision that cost an argument is written down here,
-struck through rather than deleted when it is superseded. A reversal that
-leaves no trace is a decision that will be made again.
+    └─ README.MD  the front page (required)
 
 ## `README.MD` — the front page
 

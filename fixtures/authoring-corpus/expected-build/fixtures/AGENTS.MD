@@ -35,7 +35,7 @@ Each of these runs once over its matching files together.
 Paths matching `*/case.json` under `fixtures/`.
 
 The selected fixture cases together keep a mixed corpus:
-at least three cases, mutation share between one quarter and three quarters,
+at least three cases, at least 25% and at most 75% of cases are mutations,
 mean depth at least 1.5, and mean args at least 1.5.
 
 ## Other repository paths

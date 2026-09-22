@@ -25,10 +25,6 @@ can explain" is an argument and belongs here. "Earlier releases shelled out to
 git" is a changelog and does not. When cutting a passage of the second kind,
 keep the first kind that was buried in it.
 
-`HANDOFF.MD` at the root is where the route belongs, and it keeps superseded
-decisions struck through rather than deleted. It is read by whoever inherits
-this project; these pages are read by whoever is using it.
-
 ## Project layout
 
     docs/

@@ -12,33 +12,27 @@ skip `AGENTS.MD`. A customized file — sentinel removed — is left alone.
 
 The contract is the advice. This page is the route to it.
 
+It opens with what an espalier is, then the three kinds of rule: structural,
+per-file, and aggregate. How each kind is written in the tree comes after
+that. Four plain questions check that the sentence was filed under the right
+kind.
+`targets` appears there only as an optional narrowing on a constraint, not as
+the way to pick a kind.
+
 Read the reference for this CLI with `espalier help types`,
 `espalier help matching`, and `espalier help api`. `espalier help` lists every
 page. If the contract's example obligations are not enough,
 `espalier examples` prints the path to a worked tree packed with this version.
-
-## Four questions
-
-Before a module exists, answer four separate questions. They are independent,
-and mixing them up is how "I parsed the whole project" becomes an aggregate by
-accident.
-
-1. **Scope** — which subtree the constraint path reaches.
-2. **Population** — which governed files matching that scope are selected.
-3. **Evaluation unit** — each selected file, or the selected population together.
-4. **Analysis inputs** — other governed files consulted to decide the result.
-
-`targets` is population. `aggregate` is evaluation unit. The complete contracts
-are [TYPES.MD](TYPES.MD) (`espalier help types`) and [MATCHING.MD](MATCHING.MD)
-(`espalier help matching`). How to test a `lint` function without pretending
-the matcher ran is [API.MD](API.MD) (`espalier help api`).
+The complete contracts are [TYPES.MD](TYPES.MD), [MATCHING.MD](MATCHING.MD),
+and [API.MD](API.MD).
 
 ## Worked example
 
 `espalier examples authoring-corpus` is one connected example: a structural
 owner, a per-file well-formedness constraint, and an aggregate over mix and
 averages. The SQL-suite shape — share of mutations, mean depth, mean arity —
-on toy JSON, so the evaluation unit is visible without a language toolchain.
+on toy JSON, so the difference between one file and the set is visible without
+a language toolchain.
 
 The helper in that tree parses a string it was given. It does not remember
 repository contents. Generated `AGENTS.MD` files in the tree are the
