@@ -9,7 +9,7 @@ It takes a single source-of-truth description of how a project should be shaped 
 - **documentation** placed where agent tools already look, describing what belongs where and how it should be written
 - **deterministic validation** that catches drift when it happens
 
-Both derive from the same rule modules. The guidance states the rules before a change; the linter runs their checks afterwards.
+Both derive from the same rule files. The guidance states the rules before a change; the linter runs their checks afterwards.
 
 ## The problem
 
@@ -23,7 +23,7 @@ The usual response is to write better prompts, longer rule files, more detailed 
 
 ## How it works
 
-A project defines its intended architecture as a structured tree of rule modules:
+A project defines its intended architecture as a structured tree of rule files:
 
 ```text
 espalier
@@ -44,7 +44,7 @@ espalier
 └─ main.ts.mjs
 ```
 
-Each `.mjs` file declares:
+Each structural rule file in this tree declares:
 
 - a **content description** — what kind of file this represents
 - a **rule** — the natural-language conventions that file must follow
@@ -56,11 +56,11 @@ optional construction entry point:
 
 **Documentation**, written into the repository by `espalier build`:
 
-> Espalier places generated guidance at stable points in the repository tree. Each `AGENTS.MD` shows only the files and directories at its own level, then describes the rules placed there. A reader starts at the root and follows the nearest generated document as it moves into a subtree.
+> Espalier places generated guidance at stable points in the repository tree. Each `AGENTS.MD` maps the structure below it, stopping where another generated document takes over, then describes the rules placed there. A reader starts at the root and follows the nearest generated document as it moves into a subtree.
 
 **Linters**, run deterministically against the working tree by `espalier lint`:
 
-> After the agent writes or edits a file, `espalier lint` verifies the result. Violations are emitted as machine-readable issues, each carrying the rule text it violated. The agent revises until validation succeeds.
+> After the agent writes or edits a file, `espalier lint` verifies the result. Findings include the applicable rule text by default. Output is human-readable unless `--format jsonl` is selected for machine consumption. The agent revises until validation succeeds. See [`espalier lint`](docs/cli/lint/README.MD).
 
 **Creation**, invoked for any structural rule by `espalier create`:
 
@@ -69,7 +69,7 @@ optional construction entry point:
 > flags; a directory composes the templates of all its required files. Creation
 > never overwrites an existing path.
 
-Guidance steers and the linter corrects. Both derive from the same rule module, so drift between the two is reviewable. Colocation does not prove the prose and the check are the same obligation.
+Guidance steers and the linter corrects. Both derive from the same rule file, so drift between the two is reviewable. Colocation does not prove the prose and the check are the same obligation.
 
 `espalier create <path>` can create any structurally declared absent file or
 directory. A file selects its owning template; a directory creates every
@@ -84,9 +84,9 @@ concrete path and the owning rule's placeholder captures.
 `espalier` does not try to make agents correct on the first attempt. It makes correctness _reachable through iteration_.
 
 1. The agent reads the project map at the repository root — always present, small, architectural.
-2. Working in a directory, it picks up that directory's `AGENTS.MD`: what belongs there, what is required, and the conventions for each.
+2. Working in a directory, it reads the nearest applicable generated guidance: what belongs there, what is required, and the conventions for each.
 3. After writing, `espalier lint` validates the result.
-4. Drift is reported as precise, machine-readable issues, each carrying the rule it violated.
+4. Drift is reported as findings with the applicable rule text; `--format jsonl` provides machine-readable output.
 5. The agent revises until the project's constraints are satisfied.
 
 Guidance steers; the linter corrects. Generated-document freshness prevents stale copies. Executable checks give the same answer for the same recorded inputs. Tests and review establish whether those checks implement the intended architecture. Incomplete, contradictory, or unsatisfiable policy remains the author's.
@@ -100,22 +100,33 @@ npm install --global espalier
 ```
 
 The global installation is only provisioning. `espalier init` records its exact
-version in the repository, and every later command refuses to run under a
-different version. `espalier migrate` rewrites the configuration for the CLI
-that is running. Projects may instead provide the same pinned executable
+version in the repository. Commands that load its configuration require that
+version; `espalier migrate` updates the configuration for the CLI that is
+running. `help` and `examples` work independently of repository configuration.
+See [`espalier migrate`](docs/cli/migrate/README.MD) for what migration changes.
+Projects may instead provide the same pinned executable
 through a local dependency, package runner, container, or system toolchain.
 
-Initialize it. This command uses the project's existing `.gitignore` to define
-the filesystem Espalier can see; use `--no-ignore-file` only when the repository
-deliberately has none.
+Start with an empty demonstration directory. It has no `.gitignore`, so this
+invocation explicitly declines reading one:
 
 ```bash
-espalier init --lang javascript
+mkdir espalier-demo
+cd espalier-demo
+espalier init --lang javascript --no-ignore-file
 ```
 
 `init` writes `espalier.config.yaml`, `.espalierignore`, and `espalier/`
-holding a `.gitkeep` and the compact authoring contract at `AGENTS.MD`. Add a
-minimal structural rule:
+holding a `.gitkeep` and the compact authoring contract at `AGENTS.MD`.
+Create `README.MD` with this content:
+
+```markdown
+# Espalier demo
+
+A minimal repository governed by Espalier.
+```
+
+Then create this structural rule file:
 
 ```text
 espalier
@@ -128,7 +139,7 @@ espalier
 export const description = "the repository root README file";
 
 export const rule = `
-The root README must not be empty and should describe the project's purpose.
+The root README must not be empty.
 `;
 
 export async function lint({ read, emit }) {
@@ -153,6 +164,13 @@ espalier lint
 
 The generated documentation is a build artifact. The espalier itself is the source of truth.
 
+For an existing project with a `.gitignore`, use
+`espalier init --lang javascript`. Declaring only `README.MD` does not cover
+existing source files: each visible, governed file needs a structural owner.
+Add rules for those files, or use [`espalier adopt`](docs/cli/adopt/README.MD)
+to infer a directory's structure and then fill in its requirements and checks.
+See [`espalier init`](docs/cli/init/README.MD) for initialization options.
+
 Projects that want only repository-specific guidance can omit Espalier's canned
 operational sections:
 
@@ -163,7 +181,8 @@ build:
 
 ## Rule types
 
-`espalier` distinguishes between two kinds of rules.
+There are three kinds of rule: structural rules, per-file constraints, and
+aggregates.
 
 **Structural rules** describe _what code exists, and where_. They are positioned in the rule tree under root by their target file path:
 
@@ -171,21 +190,37 @@ build:
 components/buttons/[button].tsx.mjs
 ```
 
-This rule governs files matching `components/buttons/*.tsx`. The placeholder name is exposed to `lint` as `captures.button`.
+This rule can own files matching `components/buttons/*.tsx`; a more specific
+sibling takes precedence. The placeholder name is exposed to `lint` as
+`captures.button`.
 
 Structural rules define the project's architectural shape. They appear in the project map, they carry the conventions written into each directory's documentation, and they are what makes an undeclared file a violation.
 
-**Constraint rules** describe _how code is written_, regardless of position. They live on paths containing a recursive placeholder. An ordinary constraint's filename is a rule name plus the extension it applies to; an aggregate's filename is the rule name:
+**Per-file constraints** check each matching file independently. Their paths
+contain a recursive placeholder, and their filenames give the check's name
+and the extension it applies to, followed by `.mjs`:
 
 ```text
 [...path]/no-as-any.ts.mjs
 backend/[...path]/no-fetch.ts.mjs
+```
+
+The first checks every owned, governed TypeScript file in the project; the
+second checks those within `backend/`.
+
+**Aggregates** check matching files together and can enforce several conditions
+on the group, such as equal translation key sets or a fixture corpus's mix
+and averages. They use a recursive-placeholder path and export
+`aggregate = true`. Their filename is the rule name followed by `.mjs`:
+
+```text
 src/[...path]/message-registry.mjs
 ```
 
-The first applies to every TypeScript file in the project; the second only within `backend/`. The third is one obligation over a selected population under `src/`. Constraint rules do not declare that anything exists — they describe how files that do exist must be written, and appear in the documentation for the subtree they cover.
-
-Every governed file in the repository is owned by exactly one structural rule, and by every constraint that admits it. Which rule wins, and which files are required to exist, is specified in [docs/MATCHING.MD](docs/MATCHING.MD) (`espalier help matching`).
+Per-file constraints and aggregates do not own files. Every governed file
+must have one structural owner; constraints apply additional checks to the
+files they select. Which rule wins, and which files are required to exist, is
+specified in [docs/MATCHING.MD](docs/MATCHING.MD) (`espalier help matching`).
 
 A constraint can export `targets = ["*/queries.sql"]` to narrow its governed
 candidates without redefining ownership or repository structure. The positive
@@ -193,10 +228,8 @@ globs are relative to the prefix before `[...name]` and apply equally to
 ordinary and aggregate constraints. An aggregate without `targets` selects
 every owned governed file in its scope.
 
-A constraint exporting `aggregate = true` runs once over its complete selected
-set instead of once per file. This covers invariants that only exist at group
-scale: identifier uniqueness, translation parity, dependency cycles, or whether
-a fixture suite exercises every element often enough.
+An aggregate runs once over its complete selected set, including an empty
+set. See [docs/TYPES.MD](docs/TYPES.MD) for selection and context details.
 
 ## Path placeholders
 
@@ -222,13 +255,19 @@ clients
 
 The alternative is a rule body asking politely and a `lint` function checking afterwards, for a fact the espalier can simply state. Stating it also puts the requirement in the generated documentation, where an agent reads it before writing the file rather than after.
 
-The matcher normalizes `[name]` to `*`, `[...name]` to `**`, and `{name}` to `*`. The normalized glob is exposed as `context.pattern`; the matched values are exposed as `context.captures`.
+The matcher normalizes `[name]` to `*`, `[...name]` to `**`, and `{name}` to
+`*`. Structural rules and per-file constraints receive a normalized
+`context.pattern` and matched values in `context.captures`. Aggregates receive
+`context.patterns` for their admission globs and `context.matches` for the
+selected files, each with its own path and captures.
 
 Full grammar, matching precedence, and requiredness: [docs/MATCHING.MD](docs/MATCHING.MD) (`espalier help matching`).
 
 ## Writing rules
 
-Every rule module exports the same shape:
+Every rule file exports `rule` and `lint`. Structural rules also require a
+`description`. This structural example shows the exports; its check is an
+outline, not an implementation:
 
 ```js
 export const description =
@@ -258,9 +297,34 @@ rules remain valid. Aggregate constraints have the corresponding
 
 The `description` is one line, and it is what appears in the project map beside the path. Because the map is the part of the documentation that is always in context, write it in the vocabulary of the task rather than of the architecture — an agent asked to add a `User` type will not necessarily connect that to the phrase "a domain model."
 
-The `rule` describes what the file must look like. It is _mode-invariant_: the same conventions apply whether the file is being created or edited, and the same text is written into the documentation and returned attached to a violation.
+The `rule` describes the requirements for the file or selected group. The same
+requirements apply whether files are being created or edited, and the same
+text appears in generated guidance and reported findings.
 
-The `lint` function receives a context with the matched `path`, normalized `pattern`, and named `captures`. See [docs/TYPES.MD](docs/TYPES.MD) (`espalier help types`) for the full shape. Choosing a rule's kind, keeping policy in the owning module, and testing it is [docs/AUTHORING.MD](docs/AUTHORING.MD) (`espalier help authoring`). `espalier init` writes the same compact contract to `espalier/AGENTS.MD`, which an agent editing rules loads by directory convention. `espalier examples` prints a worked tree packed with this version.
+The context for structural rules and per-file constraints describes one file.
+An aggregate receives the selected files together, with no singular `path`,
+`pattern`, or `captures`; its `read` calls must name a path. See
+[docs/TYPES.MD](docs/TYPES.MD) (`espalier help types`) for the full shapes.
+Choosing a rule's kind, keeping policy in the rule file, and testing it is
+[docs/AUTHORING.MD](docs/AUTHORING.MD) (`espalier help authoring`). `espalier init`
+writes the compact contract to `espalier/AGENTS.MD`, where an agent editing
+rules can read it.
+
+To import helpers such as `createLinter` or the testing API from `"espalier"`,
+install Espalier as a local development dependency at the exact version in
+`espalier.config.yaml`'s `pin`. A global CLI installation alone does not make
+the package available to project imports.
+
+Find or copy the examples packed with this CLI version:
+
+```bash
+espalier examples --help
+espalier examples authoring-corpus
+espalier examples authoring-corpus --copy ./scratch/corpus
+```
+
+The named command prints the installed path; `--copy` creates a writable copy
+in a new directory. See [`espalier examples`](docs/cli/examples/README.MD).
 
 ```js
 // structural rule (e.g. components/buttons/[button].tsx.mjs)
@@ -274,9 +338,14 @@ async function lint({
   const code = await read();
 }
 
-// constraint rule (e.g. [...path]/no-as-any.ts.mjs)
+// per-file constraint (e.g. [...path]/no-as-any.ts.mjs)
 async function lint({ path, pattern, captures, read, emit }) {
   const code = await read();
+}
+
+// aggregate (e.g. fixtures/[...path]/corpus-mix.mjs)
+async function lint({ matches, patterns, read, emit }) {
+  const contents = await Promise.all(matches.map(({ path }) => read(path)));
 }
 ```
 
@@ -285,26 +354,33 @@ Rules execute independently, in unspecified order. Correctness cannot depend on 
 ## The project layout
 
 `espalier build` writes a deterministic `## Project layout` into each generated
-document. The root shows only its own level:
+document. In the default distributed layout, each map expands through
+directories until another generated document takes over. For example:
 
 ```text
     ./
     ├─ clients/
     ├─ components/
+    │  ├─ buttons/
+    │  ├─ dropdowns/
+    │  └─ layouts/
     ├─ endpoints/
     ├─ models/
     └─ main.ts      the application entry point (required)
 ```
 
-Entering `components/` moves the reader to that subtree's generated document,
-whose map starts at `components/` and lists `buttons/`, `dropdowns/`, and
-`layouts/`. Rule headings beneath it are relative to that established scope.
+If `components/` has no rules or directory guidance assigned directly to it,
+it needs no document of its own: the root map continues through it to
+`buttons/`, `dropdowns/`, and `layouts/`, where generated documents take over.
+Directories matched by placeholders share guidance in an ancestor rather
+than receiving one document per instance. Rule headings are relative to the
+directory their document describes.
 
 Names remain in authored form. Each entry states whether a static file is
 required or optional, whether a placeholder accepts any name, and which capture
 a back-reference repeats. Siblings use the same deterministic order as the
-matcher. Each map stays small because deeper structure and rule bodies live in
-the guidance nearest to that work.
+matcher. Setting `build.inline: true` instead collects the guidance into one
+root document.
 
 See [docs/cli/build/README.MD](docs/cli/build/README.MD) for how files are placed and what each contains.
 
@@ -347,7 +423,7 @@ That is as far as the tool goes, and deliberately so. `espalier` cannot stop an 
 
 Every additional knob is a place where deterministic behavior leaks. Repeatable feedback is preserved by keeping escape hatches few and coarse.
 
-## Testing rule modules
+## Testing rules
 
 Rules are code, and a `lint` function that quietly stops catching what it was written to catch is worse than no rule at all: the repository still lints clean, and nothing distinguishes that from conformance.
 
@@ -364,10 +440,13 @@ const issues = await runRule(rule, {
 });
 ```
 
-There is no `espalier test` command. Fixtures, assertions, reporting and watch mode are what a test framework already does, and a linter reimplementing them would ship a worse `node:test` with none of the tooling around it. The lint context is the only part nobody else can supply, so that is the part `espalier` exposes. See [docs/API.MD](docs/API.MD) (`espalier help api`).
+Use `runAggregate` for a supplied set of matches and `check` for repository
+matching and selection. There is no `espalier test` command; these functions
+work with the project's existing test framework. See [docs/API.MD](docs/API.MD)
+(`espalier help api`).
 
 ## What `espalier` is not
 
 - **Not a replacement for general-purpose linters.** ESLint, ruff, golangci-lint, and their peers do excellent work on language-specific code quality. `espalier` is about _architectural_ enforcement: where code lives, what shape it takes, how modules relate. The two are complementary.
-- **Not an agent.** `espalier` does not write code, generate suggestions, or decide architecture. It enforces decisions you have already made.
+- **Not an agent.** `espalier` does not invent code, generate suggestions, or decide architecture. It enforces decisions you have already made; `create` can write initial source from templates you supply.
 - **Not an attempt to constrain agents.** The goal is not to prevent agents from doing things — it is to give them a clear, machine-verifiable target so that correction is reachable through iteration. A well-shaped espalier makes the agent's job _easier_, not harder.
