@@ -8,7 +8,7 @@ espalier help authoring
 espalier help types
 ```
 
-The pages live in the installed package. The running binary prints its own copy, which is what `pin` already promises: `espalier help types` under 0.1.0 is TYPES.MD from 0.1.0. There is no machine path in the interface, and no GitHub URL. `--help` remains the short synopsis of commands and flags; this command is the manual.
+The pages live in the installed package. The running binary prints its own copy, which is what `pin` already promises: `espalier help types` under 0.2.0 is TYPES.MD from 0.2.0. There is no machine path in the interface, and no GitHub URL. `--help` remains the short synopsis of commands and flags; this command is the manual.
 
 ## Usage
 

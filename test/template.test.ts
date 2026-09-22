@@ -37,7 +37,7 @@ function write(root: string, relative: string, contents: string): void {
 
 function repository(rule: string, modulePath = "src/[name].ts.mjs"): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-template-"));
-  write(root, "espalier.config.yaml", "pin: 0.1.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+  write(root, "espalier.config.yaml", "pin: 0.2.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
   write(root, `espalier/${modulePath}`, rule);
   return root;
 }
@@ -99,7 +99,7 @@ export const template = createTemplate({
 
 function directoryRepository(): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-directory-template-"));
-  write(root, "espalier.config.yaml", "pin: 0.1.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+  write(root, "espalier.config.yaml", "pin: 0.2.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
   write(
     root,
     "espalier/clients/[provider]/ESPALIER.MD",
@@ -525,7 +525,7 @@ test("directory creation refuses an excluded required descendant", () => {
 test("a trailing slash selects a directory when the same spelling can be a file", () => {
   const make = (): string => {
     const root = mkdtempSync(path.join(os.tmpdir(), "espalier-create-role-"));
-    write(root, "espalier.config.yaml", "pin: 0.1.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "espalier.config.yaml", "pin: 0.2.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     write(
       root,
       "espalier/widgets/item.mjs",
@@ -574,7 +574,7 @@ export const template = createTemplate(() => "directory\\n");
 test("a declared directory with no required leaves is created empty", () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-create-empty-directory-"));
   try {
-    write(root, "espalier.config.yaml", "pin: 0.1.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "espalier.config.yaml", "pin: 0.2.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     write(
       root,
       "espalier/groups/[group]/notes.md.mjs",
@@ -842,7 +842,7 @@ test("create delegates a target to its nearest child espalier", () => {
     write(
       root,
       "packages/web/espalier.config.yaml",
-      "pin: 0.1.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
+      "pin: 0.2.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
     );
     write(root, "packages/web/espalier/src/[name].ts.mjs", SCHEMA_TEMPLATE);
 
