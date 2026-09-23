@@ -87,7 +87,7 @@ test("migrate rewrites an old config and is then loadable", () => {
 
     const written = readFileSync(path.join(root, "espalier.config.yaml"), "utf8");
     assert.equal(written.includes("version:"), false);
-    assert.match(written, /^pin: 0\.2\.0$/m);
+    assert.ok(written.split("\n").includes(`pin: ${VERSION}`));
     assert.match(written, /^ignoreFiles: \[\]$/m);
     assert.match(written, /^skip:$/m);
     for (const name of SHIPPED_SKIP) {

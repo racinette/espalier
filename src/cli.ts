@@ -16,6 +16,7 @@ import { init } from "./init.js";
 import { lint } from "./lint.js";
 import { migrate } from "./migrate.js";
 import { createReporter, type Format, type Mode } from "./output.js";
+import { VERSION } from "./version.js";
 
 const USAGE = `espalier <command> [options]
 
@@ -29,6 +30,10 @@ const USAGE = `espalier <command> [options]
   explain <path>        what the espalier says about a path
   help [page]           print this version's reference
   examples [name]       locate a worked example; --copy <dir> copies it
+
+  top-level options:
+  -h, --help            print this short synopsis
+  --version             print the installed package version
 
   options shared by every command except create, help, and examples:
   --format human|jsonl  output format (default: human)
@@ -92,6 +97,10 @@ async function main(): Promise<number> {
   if (command === undefined || command === "--help" || command === "-h") {
     process.stdout.write(USAGE);
     return command === undefined ? 2 : 0;
+  }
+  if (command === "--version") {
+    process.stdout.write(`${VERSION}\n`);
+    return 0;
   }
 
   const COMMANDS = new Set([

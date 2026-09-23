@@ -102,7 +102,8 @@ npm install --global espalier
 The global installation is only provisioning. `espalier init` records its exact
 version in the repository. Commands that load its configuration require that
 version; `espalier migrate` updates the configuration for the CLI that is
-running. `help` and `examples` work independently of repository configuration.
+running. `espalier --version` prints the installed version. It, `help`, and
+`examples` work independently of repository configuration.
 See [`espalier migrate`](docs/cli/migrate/README.MD) for what migration changes.
 Projects may instead provide the same pinned executable
 through a local dependency, package runner, container, or system toolchain.

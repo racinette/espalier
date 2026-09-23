@@ -26,7 +26,7 @@ export async function lint(context) { ${body} }
 
 function repository(): string {
   const root = mkdtempSync(path.join(tmpdir(), "espalier-targets-"));
-  write(root, "espalier.config.yaml", "pin: 0.2.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+  write(root, "espalier.config.yaml", "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\n");
   for (const name of ["queries", "schema", "data"]) {
     write(root, `espalier/fixtures/[fixture]/${name}.sql.mjs`, rule());
   }
