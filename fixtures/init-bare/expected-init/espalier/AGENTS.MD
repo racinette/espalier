@@ -58,8 +58,9 @@ wrong kind:
    together.
 4. **What else is read** — other files the check consults.
 
-A constraint can optionally use `targets`, a list of globs, to narrow the
-files its path matches.
+A constraint selects files with either the extension in its filename or a
+`targets` list of globs. This selection does not decide whether the check runs
+per file or over the group.
 
 Use `espalier examples` to locate example projects on this machine.
 Use `espalier examples --help` to list their names, or
@@ -73,8 +74,8 @@ The espalier tree mirrors the repository’s directories: rules in
 one `.mjs` file, called a rule file.
 
 **`ESPALIER.MD` describes the directory.** Its `description` field in the
-frontmatter supplies the directory’s description in the generated project
-map. Its body supplies guidance for working in that directory. It does not
+frontmatter briefly describes what the directory is for. Its body supplies
+guidance for working in that directory. It does not
 declare which files may exist or provide a lint check. Leave it out when
 the directory needs no description or guidance.
 
@@ -86,10 +87,29 @@ one structural rule as its owner.
 ```text
 main.ts.mjs              owns main.ts
 [button].tsx.mjs         .tsx files in this directory
+[migration].up.sql.mjs   .up.sql files in this directory
+[migration].down.sql.mjs .down.sql files in this directory
 ```
 
 `[button]` captures the varying text of that one filename. `SubmitButton.tsx`
 matches, and the capture is `SubmitButton`. The `.tsx` stays fixed.
+In an extension-bearing structural filename, captures cannot include dots:
+`[file].ts.mjs` does not own `foo.d.ts`. Literal dots and dots repeated by
+a back-reference remain part of the authored filename pattern.
+`foo.[file].ts.mjs` therefore owns `foo.bar.ts`, capturing `bar`.
+That file's complete extension is `.bar.ts`: a `.ts` constraint does not
+select it, while `targets = ["**/*.ts"]` does.
+
+A dynamic structural rule can explicitly list fixed suffix alternatives,
+including dotted ones:
+
+```text
+[file].{ts,d.ts,tsx}.mjs  owns files with exactly these complete extensions
+```
+
+A literal leaf such as `main.{ts,tsx}.mjs` cannot list alternatives: it would
+not say which file is required. Write separate literal rules if both are
+required.
 
 A literal filename wins over a placeholder in the same directory. Both rule
 files below match `SubmitButton.tsx`, but `SubmitButton.tsx.mjs` owns it:
@@ -129,12 +149,17 @@ by structural rules. Its path contains `[...name]`, which matches any depth
 of directories, including none. A rule file’s path may contain at most one
 `[...name]`.
 
-The filename gives the check’s name and the extension it applies to,
-followed by `.mjs`:
+An extension-bearing filename gives the check’s name and the files it applies
+to, followed by `.mjs`:
 
 ```text
-[...path]/no-as-any.ts.mjs     each TypeScript file under this directory
+[...path]/no-as-any.ts.mjs     each file with complete extension .ts here
 ```
+
+The first dot after the rule name starts the extension. All further dotted
+parts belong to it: `migration-order.up.sql.mjs` selects `.up.sql` files. The
+final `.mjs` only identifies the rule module. Selection is by complete
+extension, so `.sql` does not include `.up.sql`.
 
 Braces in this filename list extensions. This rule file checks both `.ts`
 and `.tsx` files:
@@ -144,14 +169,29 @@ and `.tsx` files:
 ```
 
 **An aggregate’s rule file also has `[...name]` in its path and exports
-`aggregate = true`.** Its filename is the rule’s name followed by `.mjs`:
+`aggregate = true`.** It selects files by the same filename-extension rule:
 
 ```text
-[...path]/mutation-share.mjs
+[...path]/mutation-share.sql.mjs
 ```
 
-The filename does not select file extensions. To narrow which files the
-aggregate checks, use `targets`.
+Either kind of constraint may instead leave the extension off and export
+`targets`, a non-empty list of relative positive globs:
+
+```js
+export const targets = ["*/queries.sql"];
+```
+
+These use minimatch glob syntax: `**/*.ts` also matches `foo.d.ts`, unlike
+a filename selector for `.ts`. Brace alternatives such as `**/*.{ts,tsx}`,
+`?`, character classes, and extglobs are supported. `context.files()`
+uses the same dialect. See `espalier help matching` for escaping and scope.
+
+For that form, name the rule `mutation-share.mjs`. Do not use both a filename
+extension and `targets`, or neither. To select all file types in the rule’s
+directory scope, use `targets = ["**/*"]`. The directory pattern still limits
+which paths either selector can reach. `aggregate = true` changes only whether
+`lint` checks each selected file or the selected group together.
 
 Files such as `AGENTS.MD` can live beside the rules when the config’s
 `skip` list excludes them from compilation. `espalier init` sets this up
@@ -164,8 +204,8 @@ skipped automatically.
 
 Every rule file exports `rule`, the written requirements, and `lint`, the
 function that checks them. A structural rule file also exports
-`description`, a short phrase describing the governed file in the generated
-project map.
+`description`, a short phrase describing what the governed file is.
+A constraint may export `description` to briefly summarize its requirement.
 
 A structural rule file has this shape; the check’s implementation is omitted
 here.
@@ -197,10 +237,8 @@ A diagnostic can refer to a specific location with wording such as
 once over the selected files together for an aggregate. Its context provides
 paths and functions to read file contents and report findings.
 
-Directories matched by placeholders share generated guidance in an ancestor
-directory. For example, guidance for `clients/[provider]/` appears above the
-individual provider directories. Write that guidance so it applies to every
-provider.
+Guidance under a directory placeholder must apply to every matching directory.
+For example, guidance for `clients/[provider]/` must apply to every provider.
 
 A structural rule file can also export a `template` for `espalier create`.
 For a file that would otherwise be required, `optional = true` allows it to

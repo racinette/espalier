@@ -5,7 +5,7 @@
 ## Project layout
 
     components/buttons/
-    └─ [button].tsx  a button component (zero or more, any name)
+    └─ [button].tsx  a button component (zero or more matching files)
 
 ## `[button].tsx` — a button component
 

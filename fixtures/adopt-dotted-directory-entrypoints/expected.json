@@ -1,0 +1,28 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": [
+      "clients"
+    ],
+    "report": [
+      {
+        "kind": "written",
+        "path": "espalier/clients/[client]/{client}.ts.mjs"
+      },
+      {
+        "kind": "written",
+        "path": "espalier/clients/[client]/{client}.schema.json.mjs"
+      },
+      {
+        "kind": "written",
+        "path": "espalier/clients/[client]/foo.bar.debug.ts.mjs",
+        "optional": true
+      },
+      {
+        "kind": "written",
+        "path": "espalier/clients/[client]/baz.qux.debug.ts.mjs",
+        "optional": true
+      }
+    ]
+  }
+}

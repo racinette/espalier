@@ -51,7 +51,10 @@ export const rule = ``;                  // TODO
 export async function lint() {}
 ```
 
-`description` is the filename without its extension, after "a" — so `requestModels.ts` gets `"a requestModels"`, which is ugly on purpose. It is marked `TODO`, it appears in the project map, and a phrase that reads like it was written by a machine is a phrase someone will replace. A plausible-sounding wrong description is the one that survives review.
+`description` is the filename without its complete extension, after "a" — so
+`requestModels.ts` gets `"a requestModels"`. It is marked `TODO`: replace it
+with a brief description of what the file is for. The placeholder deliberately
+does not pretend to know the file's role in the project.
 
 `adopt` does not edit `.espalierignore`. A target excluded by repository policy
 fails with `invalid_adopt_target`; explicitly re-include the directory and its
@@ -94,7 +97,7 @@ Three signals, all conservative, and **two of a thing is a pattern**. That thres
 
 **Sibling directories with matching contents** become a dynamic directory. `stripe/` and `twilio/` holding the same filenames is a strong signal that a provider is a repeating unit rather than two unrelated directories.
 
-**Repeated filename shapes** become a dynamic leaf. Two or more files sharing an extension in one directory become `[tsx].tsx` rather than one node each.
+**Repeated filename shapes** become a dynamic leaf. Two or more files sharing a complete extension in one directory become `[tsx].tsx` rather than one node each. `.ts` and `.d.ts` are separate groups.
 
 **A file named after the directory holding it** becomes a [back-reference](../../MATCHING.MD#back-references). Where every instance of a dynamic directory holds a file whose name is the instance's own, that is `{client}.ts` — one file per client, named for it, required.
 
@@ -127,6 +130,9 @@ That espalier is wrong rather than loose. It says a client directory may hold an
 ```text
 written   espalier/src/clients/[client]/{client}.ts.mjs
 ```
+
+The repeated name includes any dots in the directory name:
+`foo.bar/foo.bar.ts` follows the same convention.
 
 Every instance, not two of three. The other thresholds are two because a placeholder costs a rename and being wrong costs a forbidden file; here being wrong costs `missing_required_file` on a directory that never had one, reported the moment the espalier is written. Two clients following a convention and a third not following it is not a convention, and the optional leaves are the right answer for it.
 
@@ -183,7 +189,7 @@ The value is in the prose you add afterwards, and prose is written per area. The
 ## After adopting
 
 1. Rename placeholders to words that mean something.
-2. Write `description` for each module — one line, in the vocabulary of the task. It is what appears in the project map.
+2. Write `description` for each module — briefly describe the governed file using the project's vocabulary.
 3. Write `rule` bodies. This is the part that makes the documentation worth generating.
 4. Add `lint` functions where a check is worth having. Structural enforcement already works without them.
 5. Run [`espalier build`](../build/README.MD), then [`espalier lint`](../lint/README.MD).
@@ -213,7 +219,11 @@ written   espalier/src/clients/[client]/webhook.ts.mjs  (optional)
 
 The marker is there because the three `written` lines are not equally trustworthy. `client.ts` was observed in every sibling; `webhook.ts` was observed in one, and whether that makes webhooks part of the shape or makes that sibling unusual is the question only the architect can answer. A report that printed them identically would be hiding its least confident guess among its most confident ones.
 
-There is no kind for a file the inference declined to declare, because it never declines. Every visible file under the target is named by a module when the run finishes, so the report is what was written rather than what was given up on.
+There is no output kind for an eligible file the inference declined to declare:
+every file eligible for adoption is covered by a module when the run finishes.
+Excluded and dot-prefixed paths, child espaliers, and Espalier's own machinery
+are outside that claim. The report says what was written, not what was given up
+on.
 
 `--dry-run` prints exactly these lines and writes nothing.
 

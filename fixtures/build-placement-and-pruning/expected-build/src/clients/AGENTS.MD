@@ -8,8 +8,8 @@ Every upstream provider gets its own directory. Nothing outside
 ## Project layout
 
     src/clients/
-    └─ [provider]/          one directory per upstream provider (zero or more,
-                            any name)
+    └─ [provider]/          one directory per upstream provider (zero or more
+                            matching directories)
        │
        ├─ handlers/
        │  │

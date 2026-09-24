@@ -5,7 +5,7 @@ Scripts run by hand or by CI. Nothing here is imported by the application.
 ## Project layout
 
     tools/
-    └─ [tool].ts  a developer tool (zero or more, any name)
+    └─ [tool].ts  a developer tool (zero or more matching files)
 
 ## Governed elsewhere
 

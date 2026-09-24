@@ -100,13 +100,16 @@ node prose                    the ESPALIER.MD body, verbatim
 ## Project layout             the tree
 ## Governed elsewhere         child espaliers below this point, when any
 ## `<path>` — <description>   one per structural rule placed here
-## Per-file constraints       untargeted extension groups, then targeted rules
-## Aggregate constraints      matching files, then the body
+## <rule name> — <description>  one per constraint placed here; selection and
+                               individual or group scope precede its body
 ## Other repository paths     one Paths/Purpose table, then the complete account
 ## Working with Espalier      root file only
 ```
 
-Text `espalier` composes — the map's own text and the complete-account sentence — is greedily wrapped at 80 columns. Text an author wrote — node prose, rule bodies — is copied verbatim and never re-wrapped, because reflowing someone's markdown is how a tool mangles a table.
+Text `espalier` composes — the map's own text, constraint selection sentences,
+and the complete-account sentence — is greedily wrapped at 80 columns. Text an
+author wrote — node prose, rule bodies — is copied verbatim and never
+re-wrapped, because reflowing someone's markdown is how a tool mangles a table.
 
 ### The heading
 
@@ -152,7 +155,7 @@ Branches are drawn with box-drawing characters: `├─ ` for an entry with sibl
     ./
     ├─ clients/                external API providers
     │  │
-    │  └─ [provider]/          (zero or more, any name)
+    │  └─ [provider]/          (zero or more matching directories)
     │     │
     │     ├─ requestModels.ts  request shapes (required)
     │     │
@@ -179,9 +182,9 @@ it is a corner with no line to turn.
 
 A line's text is the node's description, then its suffixes in parentheses. A file's description is the rule module's `description`; a directory's is the `description` in its `ESPALIER.MD` frontmatter. A node with neither a description nor a suffix gets no text rather than a blank column.
 
-**The parentheses are what separate the two voices.** The description is a sentence somebody wrote; the suffixes are the espalier's annotation of it. Joined by a comma they read as one clause, and a description that already contains commas — `ownership, requiredness, and the deepest recognized node` — swallows the annotation entirely. They are parenthesized on a line that carries no description too, since a bare `zero or more, any name` reads as prose an author chose.
+**The parentheses are what separate the two voices.** The description is a sentence somebody wrote; the suffixes are the espalier's annotation of it. Joined by a comma they read as one clause, and a description that already contains commas — `ownership, requiredness, and the deepest recognized node` — swallows the annotation entirely. They are parenthesized on a line that carries no description too, so the count remains visibly generated.
 
-Constraints do not appear. They declare no file and permit none, so a map that listed them would be answering a question nobody asked of it. Their bodies render below, under `## Per-file constraints` and `## Aggregate constraints`.
+Constraints do not appear. They declare no file and permit none, so a map that listed them would be answering a question nobody asked of it. Each renders as a rule section below the map, beside the structural rule sections at its placement point.
 
 ### Suffixes
 
@@ -189,13 +192,18 @@ There are three kinds, and each is true of the line it sits on and of nothing el
 
 **`required` and `optional`** mark every leaf the espalier names — every static and resolved one — and neither is a default. A named file carrying no such suffix is not a file whose requiredness is left to inference; there is no such file. Both read against the line's own position, so `requestModels.ts` drawn inside `[provider]/` is required in a `[provider]/` directory, which is where the reader is looking.
 
-A dynamic leaf carries neither. `zero or more, any name` says the count itself, and there is no named file there to require. Marking one `optional` is rejected rather than ignored — see [TYPES.MD](../../TYPES.MD#optional) — because an author writing it believes it changes something.
+A dynamic leaf carries neither. `zero or more matching files` says the count
+itself, and there is no named file there to require. Marking one `optional` is
+rejected rather than ignored — see [TYPES.MD](../../TYPES.MD#optional) — because
+an author writing it believes it changes something.
 
 Directories carry neither. A directory exists exactly when the files described inside it do, so marking one required would either restate its contents or claim that an empty directory satisfies something, and the second is false.
 
-**`zero or more, any name`** marks every node whose own name holds a `[name]` placeholder, wherever the placeholder sits — `[provider]/`, `[button].tsx`, `test-[name].ts`. It teaches the bracket by example on the line the bracket is on, rather than relying on a syntax rule stated once at the top of a file the reader may have entered halfway down.
-
-Both halves are load-bearing and neither stands alone. `any name` without a count leaves *how many* unanswered, and a count without `any name` leaves the brackets unexplained. The count is named rather than implied: a line reading `a domain model, any number` gives the number no subject, and characters in the filename read as well as files in the directory.
+**`zero or more matching files`** marks a file pattern containing a `[name]`
+placeholder, such as `[button].tsx` or `test-[name].ts`. A directory pattern
+uses **`zero or more matching directories`**. Both state that the collection
+may be empty while preserving the restrictions expressed by the pattern;
+neither promises that an arbitrary name is accepted.
 
 **`{provider} repeats what [provider] matched`** marks every node whose name holds a back-reference, one clause per placeholder, comma-joined inside the parentheses. It describes what the capture holds rather than what the segment was, which is the only phrasing that survives an affix: under `[provider]-provider/`, a `{provider}Impl.ts` in the directory named `stripe-provider` is `stripeImpl.ts`, and a suffix promising "the same name as the directory" would be wrong three times out of four.
 
@@ -385,67 +393,53 @@ carries the repository path from `referenceImplementation` and is omitted when
 the module exports none. Inline source is deliberately unsupported: an
 unvalidated duplicate inside the rule module could drift from real code.
 
-Constraints render in two sections: **Per-file constraints** and **Aggregate
-constraints**. A section with nothing to say is omitted. Ordinary and
-aggregate obligations are never introduced under one heading.
-
-Untargeted ordinary constraints that share an extension set may share a
-truthful heading. Known extensions use the language names in the renderer's
-case-insensitive alias map; an unknown extension falls back to its authored
-dotted form rendered as code. The heading names the files and a concrete
-directory — the placement path — never "this constraint's scope":
+Each constraint gets its own heading at the placement point, alongside the
+structural rule sections. Constraints are ordered by their rule-file paths,
+regardless of whether they check one file at a time or a group. There are no
+constraint-kind or file-kind headings. The sentence immediately after a rule's
+heading says which files it governs and whether each file or the whole selected
+group must follow the rule:
 
 ```markdown
-## Per-file constraints
+### no-as-any — no `as any`
 
-### TypeScript files under `src/`
-
-#### no-as-any — no `as any`
+Each file with exactly `.ts` as its extension under `src/` must follow this rule.
 
 <the rule body, verbatim>
-```
-
-A rule with `targets` is never placed under an unqualified "all files"
-sentence. Each targeted ordinary constraint, and every aggregate, names its
-matching files in one sentence before the rule body. Aggregates open with
-one sentence that they run once over those files together:
-
-```markdown
-## Per-file constraints
-
-### query-count — count queries
-
-Paths matching `*/queries.sql` under `fixtures/`.
-
-<the rule body, verbatim>
-
-## Aggregate constraints
-
-Each of these runs once over its matching files together.
 
 ### message-registry — consistent incoming message registry
 
-Paths matching `*/messages.tolk` or `*/operations/*/message.tolk` under `src/`.
+Together, paths matching `*/messages.tolk` or
+`*/operations/*/message.tolk` under `src/` must follow this rule.
 
 <the rule body, verbatim>
 ```
 
-An aggregate without `targets` names the subtree when that sentence is true,
-and the compiled glob when it is not:
+Filename extensions and exported `targets` keep their distinct meanings in
+that sentence. A filename selector for `.json` selects the complete extension;
+a glob `**/*.json` also matches names with earlier dots. One rule says "Each
+file with exactly `.json` as its extension ..."; the other says "Each file whose
+name ends in `.json` ...". For a group-wide rule, the sentence starts
+"Together, files ..." instead. No category heading is needed to communicate
+the difference.
+
+With `targets = ["**/*"]`, the sentence covers each file (or all files
+together) under the static prefix. This broad language requires a recursive
+placeholder ending the directory and only static segments before it.
+Directories after `[...name]`, a dynamic segment before it, or a more specific
+selector make a broad claim false, so the sentence names the directory and
+selector patterns instead. For example, a rule with a trailing `handlers/`
+directory and `targets = ["**/create.ts"]` says:
 
 ```markdown
-Every file under `fixtures/`.
+Each path matching `backend/**/create.ts` within
+`backend/**/handlers/*` must follow this rule.
 ```
 
-That form is for a recursive placeholder that ends the directory, with only
-static segments before it. A constraint at the espalier root says
-`Every file in this project.` Directories after `[...name]`, or a dynamic
-segment before it, would make "every file under the static prefix" false, so
-those name the compiled glob:
-
-```markdown
-Paths matching `backend/**/handlers/*`.
-```
+Generated documents and default descriptions in `explain` use the same
+selector analysis, though the document adds the individual-or-group obligation
+and `explain` describes what the constraint applies to. Specific selectors
+retain their globs instead of being described as a broader file kind.
 
 ### Operational guidance
 
@@ -547,8 +541,8 @@ nothing outside src/clients/ performs HTTP requests directly.
 
 ## Project layout
 
-    └─ [provider]/          one directory per upstream provider (zero or more,
-                            any name)
+    └─ [provider]/          one directory per upstream provider (zero or more
+                            matching directories)
        │
        ├─ handlers/
        │  │

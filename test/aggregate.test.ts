@@ -18,25 +18,26 @@ function write(root: string, relative: string, contents: string): void {
   writeFileSync(at, contents);
 }
 
-function repository(): string {
+function repository(extension = "json", listFiles = false): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-aggregate-"));
-  write(root, "espalier.config.yaml", "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\n");
+  write(root, "espalier.config.yaml", "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
   write(
     root,
-    "espalier/[name].json.mjs",
+    `espalier/[name].${extension}.mjs`,
     'export const description = "a data file";\nexport const rule = `Valid JSON.`;\nexport async function lint() {}\n',
   );
   write(
     root,
-    "espalier/[...path]/count.json.mjs",
+    `espalier/[...path]/count.${extension}.mjs`,
     `export const aggregate = true;
 export const rule = \`Count the data files together.\`;
-export async function lint({ matches, emit }) {
+export async function lint({ matches, emit, files }) {
+  ${listFiles ? `await files("**/*.${extension}");` : ""}
   emit({ code: "count", message: \`\${matches.length}:\${process.env.ESPALIER_TEST_TOKEN}\`, severity: "warning" });
 }
 `,
   );
-  write(root, "a.json", "{}\n");
+  write(root, `a.${extension}`, "{}\n");
   return root;
 }
 
@@ -47,7 +48,7 @@ function aggregateMessage(root: string, token: string): string {
     env: { ...process.env, ESPALIER_TEST_TOKEN: token },
   });
   if (result.error) throw result.error;
-  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   const issue = result.stdout
     .split("\n")
     .filter((line) => line !== "")
@@ -100,7 +101,7 @@ test("runRule refuses aggregate modules", async () => {
 test("aggregate is valid only as a boolean on constraints", async () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-aggregate-export-"));
   try {
-    write(root, "espalier.config.yaml", "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "espalier.config.yaml", "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     write(
       root,
       "espalier/[name].ts.mjs",
@@ -133,6 +134,47 @@ test("aggregate cache entries depend on group membership", () => {
     assert.equal(aggregateMessage(root, "second"), "1:first", "the aggregate was not replayed");
     write(root, "b.json", "{}\n");
     assert.equal(aggregateMessage(root, "third"), "2:third");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// Output alone cannot distinguish replay from rerunning this pure count.
+// The test token makes execution observable without changing the rule source.
+test("aggregate cache membership uses exact selectors, not admission globs", () => {
+  const root = repository("ts");
+  try {
+    write(root, "espalier/[name].d.ts.mjs", 'export const description = "a declaration";\nexport const rule = "Declare public types.";\nexport async function lint() {}\n');
+    assert.equal(aggregateMessage(root, "cold"), "1:cold");
+    write(root, "b.d.ts", "export {};\n");
+    assert.equal(aggregateMessage(root, "excluded-added"), "1:cold");
+    rmSync(path.join(root, "b.d.ts"));
+    assert.equal(aggregateMessage(root, "excluded-removed"), "1:cold");
+    write(root, "b.ts", "export {};\n");
+    assert.equal(aggregateMessage(root, "selected-added"), "2:selected-added");
+    rmSync(path.join(root, "b.ts"));
+    assert.equal(aggregateMessage(root, "selected-removed"), "1:selected-removed");
+    rmSync(path.join(root, "a.ts"));
+    assert.equal(aggregateMessage(root, "empty"), "0:empty");
+    write(root, "c.d.ts", "export {};\n");
+    assert.equal(aggregateMessage(root, "empty-excluded"), "0:empty");
+    write(root, "c.ts", "export {};\n");
+    assert.equal(aggregateMessage(root, "nonempty"), "1:nonempty");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("aggregate explicit files dependencies still use glob semantics", () => {
+  const root = repository("ts", true);
+  try {
+    write(root, "espalier/[name].d.ts.mjs", 'export const description = "a declaration";\nexport const rule = "Declare public types.";\nexport async function lint() {}\n');
+    assert.equal(aggregateMessage(root, "cold"), "1:cold");
+    write(root, "b.d.ts", "export {};\n");
+    assert.equal(aggregateMessage(root, "listed-added"), "1:listed-added");
+    assert.equal(aggregateMessage(root, "warm"), "1:listed-added");
+    rmSync(path.join(root, "b.d.ts"));
+    assert.equal(aggregateMessage(root, "listed-removed"), "1:listed-removed");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

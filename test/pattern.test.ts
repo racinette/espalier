@@ -4,7 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { intersects, matchSegment, parseSegment, resolveSegment } from "../src/pattern.js";
+import { intersects, intersectSegments, matchSegment, parseSegment, parseStructuralLeaf, resolveSegment } from "../src/pattern.js";
 
 const shapeOf = (source: string): string => parseSegment(source, "test").shape;
 
@@ -29,6 +29,56 @@ test("a placeholder matches one character or more", () => {
   // A literal prefix narrows a shape but rarely separates it: "aX.ts"
   // satisfies both of these, so they still overlap.
   assert.equal(overlaps("[a].ts", "a[b].ts"), true);
+});
+
+test("structural filename captures stop before their complete extension", () => {
+  const plain = parseStructuralLeaf("[file].ts", "test");
+  const declaration = parseStructuralLeaf("[file].d.ts", "test");
+  const union = parseStructuralLeaf("[file].{ts,d.ts,tsx}", "test");
+  assert.deepEqual(matchSegment(plain, "foo.ts"), { file: "foo" });
+  assert.equal(matchSegment(plain, "foo.d.ts"), null);
+  assert.equal(matchSegment(plain, "foo.test.ts"), null);
+  assert.deepEqual(matchSegment(declaration, "foo.d.ts"), { file: "foo" });
+  assert.deepEqual(matchSegment(union, "foo.d.ts"), { file: "foo" });
+  assert.equal(matchSegment(union, "foo.test.ts"), null);
+  assert.equal(intersectSegments(plain, declaration), false);
+  assert.equal(intersectSegments(plain, union), true);
+  assert.throws(() => parseStructuralLeaf("main.{ts,tsx}", "test"), /requiredness is ambiguous/);
+});
+
+test("sibling overlap keeps back-references free to contain dots", () => {
+  const referring = parseStructuralLeaf("[file]-{provider}.ts", "test");
+  const compound = parseStructuralLeaf("[file].bar.ts", "test");
+  assert.deepEqual(matchSegment(referring, "x-foo.bar.ts", { provider: "foo.bar" }), { file: "x" });
+  assert.deepEqual(matchSegment(compound, "x-foo.bar.ts"), { file: "x-foo" });
+  assert.equal(intersectSegments(referring, compound), true);
+});
+
+test("a single braced name remains a back-reference, not an extension union", () => {
+  const rule = parseStructuralLeaf("[file].{provider}.ts", "test");
+  assert.deepEqual(matchSegment(rule, "x.foo.bar.ts", { provider: "foo.bar" }), { file: "x" });
+  assert.equal(matchSegment(rule, "x.foo.bar.ts", { provider: "other" }), null);
+  const noFixedExtension = parseStructuralLeaf("[file].{provider}", "test");
+  assert.deepEqual(matchSegment(noFixedExtension, "x.foo.bar", { provider: "foo.bar" }), { file: "x" });
+});
+
+test("sibling overlap preserves shared back-reference prefixes and suffixes", () => {
+  const overlap = (a: string, b: string): boolean =>
+    intersectSegments(parseStructuralLeaf(a, "test"), parseStructuralLeaf(b, "test"));
+  for (const [a, b] of [
+    ["{client}.ts", "{client}.test.ts"],
+    ["entry-{client}.ts", "entry-{client}.test.ts"],
+    ["{client}.ts", "test.{client}.ts"],
+    ["{client}-{region}.ts", "{client}-{region}.test.ts"],
+  ]) {
+    assert.equal(overlap(a!, b!), false, `${a} and ${b}`);
+    assert.equal(overlap(b!, a!), false, `${b} and ${a}`);
+  }
+  assert.equal(overlap("{client}.ts", "{client}.ts"), true);
+  assert.equal(overlap("{region}.ts", "{provider}.ts"), true);
+  assert.equal(overlap("{client}.ts", "{provider}.test.ts"), true);
+  assert.equal(overlap("{client}[name].ts", "{client}test-[name].ts"), true);
+  assert.equal(overlap("{client}a.ts", "a{client}.ts"), true);
 });
 
 test("a dynamic directory and a dynamic leaf may share a parent", () => {

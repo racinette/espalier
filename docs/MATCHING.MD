@@ -14,15 +14,18 @@ The espalier is a directory tree. Every entry in it is one of four things.
 
 ```text
 main.ts.mjs               governs  main.ts
-[button].tsx.mjs          governs  *.tsx  in this directory
+[button].tsx.mjs          governs  files with complete extension .tsx here
+[migration].up.sql.mjs    governs  files with complete extension .up.sql here
+[file].{ts,d.ts,tsx}.mjs  governs  those three complete extensions
 ```
 
-**Constraint rule modules** are `.mjs` files that sit on a path containing a recursive placeholder. An ordinary constraint's name is a rule name plus a target extension; an aggregate constraint's name is the whole leaf:
+**Constraint rule modules** are `.mjs` files that sit on a path containing a recursive placeholder. Their filename supplies a rule name and an extension selector, or their module exports `targets` instead:
 
 ```text
-[...path]/no-as-any.ts.mjs              applies to  **/*.ts
-backend/[...path]/no-fetch.ts.mjs       applies to  backend/**/*.ts
-src/[...path]/message-registry.mjs      one obligation over the selected population under src/
+[...path]/no-as-any.ts.mjs              selects  files with complete extension .ts throughout the project
+backend/[...path]/no-fetch.ts.mjs       selects  files with complete extension .ts under backend/
+src/[...path]/message-registry.json.mjs selects  files with complete extension .json under src/
+src/[...path]/message-registry.mjs      selects  the module's `targets` under src/
 ```
 
 **Node descriptions** are files named `ESPALIER.MD`. They describe the directory they sit in rather than any file in the repository:
@@ -32,7 +35,10 @@ espalier/ESPALIER.MD                  the project itself
 espalier/src/clients/ESPALIER.MD      what src/clients/ is
 ```
 
-YAML frontmatter carries a `description` — the one line that appears in the project map. The markdown body is the long form, served by `espalier explain` and written into generated documentation. Both parts are optional, and a directory with nothing to say has no file at all.
+YAML frontmatter carries a `description`: a brief description of what the
+directory is for. The Markdown body provides guidance for working in that
+directory. Both parts are optional, and a directory with nothing to say needs
+no file.
 
 ```markdown
 ---
@@ -57,16 +63,19 @@ A pattern that would hide a `.mjs` module or an `ESPALIER.MD` is `skip_hides_gra
 
 A rule module path that contains `[...name]` is a **constraint**. Every other rule module is **structural**.
 
-That single signal decides that the leaf is a constraint. How the leaf is then read depends on `aggregate`:
+That single signal decides that the leaf is a constraint. The filename and `targets` decide which files it selects; `aggregate` decides how often its `lint` runs:
 
 ```text
 main.ts.mjs                         structural   leaf is a filename
 clients/[provider]/client.ts.mjs    structural   leaf is a filename
-[...path]/no-as-any.ts.mjs          ordinary     leaf is <rule-name>.<extension>
-src/[...path]/message-registry.mjs  aggregate    leaf is the rule name
+[...path]/no-as-any.ts.mjs          constraint   name is no-as-any; selects .ts
+src/[...path]/registry.json.mjs     constraint   name is registry; selects .json
+src/[...path]/registry.mjs          constraint   name is registry; needs targets
 ```
 
-`main.ts.mjs` and `no-as-any.ts.mjs` are spelled the same way. They mean different things because one sits on a recursive path and the other does not. An aggregate leaf is an ordinary filename: dots are legal and do not select an extension. `element-frequency.json.mjs` with `aggregate = true` is named `element-frequency.json` and does not admit only JSON. A leaf with no extension and no `aggregate = true` is `malformed_constraint_leaf`.
+`main.ts.mjs` and `no-as-any.ts.mjs` are spelled the same way. They mean different things because one sits on a recursive path and the other does not. For any constraint, the first dot in the leaf separates its rule name from its extension selector; `.mjs` is only the module suffix. All the remaining dotted parts belong to the selector: `migration-order.up.sql.mjs` selects the complete extension `.up.sql`, not `.sql`. A constraint name cannot contain a dot, and an extension selector cannot have an empty dotted part. An extensionless leaf requires `targets`; a leaf with an extension must not export `targets`. A missing or malformed selector is `malformed_constraint_leaf`, and declaring both forms is `module_invalid_export`.
+
+These rules apply equally to per-file and aggregate constraints. `element-frequency.json.mjs` selects files with complete extension `.json` even when it exports `aggregate = true`. That export makes one invocation with the complete selected group; it does not reinterpret the filename.
 
 A path may contain at most one recursive placeholder.
 
@@ -74,11 +83,22 @@ A path may contain at most one recursive placeholder.
 
 Square brackets mark variable parts of a path.
 
-`[name]` matches within a single path segment and captures the matched text as a string. It may carry literal text on either side: `[button].tsx`, `test-[name].ts`, `[provider]`. It matches one character or more — `[button].tsx` does not match a file named `.tsx`.
+`[name]` matches within a single path segment and captures the matched text as a string. It may carry literal text on either side: `[button].tsx`, `test-[name].ts`, `[provider]`. It matches one character or more — `[button].tsx` does not match a file named `.tsx`. In a structural filename with an extension selector, the capture cannot include a dot: `[file].ts` matches `foo.ts`, not `foo.d.ts`. Use `[file].d.ts` or an explicit union to include the latter.
+
+This dot restriction applies to captures, not to literal text or back-references.
+`foo.[file].ts` matches `foo.bar.ts`, capturing `bar`. Structural rules match
+the authored filename pattern; they do not classify the resulting filename's
+complete extension.
+
+A constraint's filename selector does classify that extension: everything from
+the first dot in the actual filename. `foo.bar.ts` has complete extension
+`.bar.ts`, so a `.ts` constraint does not select it, a `.bar.ts` constraint
+does, and `targets = ["**/*.ts"]` selects it by suffix. Structural ownership
+and constraint selection answer separate questions.
 
 `[...name]` matches zero or more complete path segments and captures them as an array of strings. It must occupy an entire segment — `foo[...bar]` is invalid — and it is legal only in constraint paths.
 
-Segments may follow it. `backend/[...path]/handlers/no-fetch.ts` applies to `backend/**/handlers/*.ts`, and captures only the segments the placeholder itself spanned — `backend/orders/handlers/create.ts` gives `path: ["orders"]`, not `["orders", "handlers"]`.
+Segments may follow it. `backend/[...path]/handlers/no-fetch.ts` selects files with complete extension `.ts` in matching `backend/**/handlers/` directories, and captures only the segments the placeholder itself spanned — `backend/orders/handlers/create.ts` gives `path: ["orders"]`, not `["orders", "handlers"]`.
 
 `{name}` matches the text a `[name]` earlier in the same path already captured. It is a back-reference, not a placeholder: it captures nothing and introduces no name of its own. See [Back-references](#back-references).
 
@@ -88,7 +108,7 @@ Two different placeholders never constrain each other. Both `stripe/stripe.ts` a
 
 ### Normalization
 
-Every path normalizes to a glob:
+An ordinary path normalizes to a glob:
 
 ```text
 [name]      →  *
@@ -103,11 +123,18 @@ clients/[provider]/client.ts         →  clients/*/client.ts
 backend/[...path]/no-fetch.ts        →  backend/**/*.ts
 ```
 
-The normalized form is what `lint` receives as `context.pattern`. Human-facing output — the project map, generated documentation, `explain` — keeps the placeholder names, because they carry meaning a glob does not.
+For a structural extension union, the declaration displays its union, while a
+concrete match receives the selected branch as `context.pattern`. The
+normalized form is otherwise what `lint` receives as `context.pattern`. It is
+an admission pattern, not an exact expression of extension-bearing filename
+semantics: `*.ts` also matches `foo.d.ts` as a glob, while `[file].ts` does
+not. The matcher makes the final decision. Human-facing output — the project
+map, generated documentation, `explain` — keeps the placeholder names, because
+they carry meaning a glob does not.
 
 Normalization is lossy for a back-reference and unavoidably so: no glob can say *the same text as that other part*. `clients/[provider]/{provider}.ts` normalizes to `clients/*/*.ts`, which matches strictly more than the rule does. Nothing that decides ownership uses the glob — the matcher walks segments — so this costs precision only where a glob is being read as documentation, and `context.path` is always exact.
 
-Patterns use `/` as separator on every platform, match case-sensitively even on case-insensitive filesystems, and match dotfiles like any other name. There is no `?` and no brace expansion.
+Patterns use `/` as separator on every platform, match case-sensitively even on case-insensitive filesystems, and match dotfiles like any other name. Structural extension unions and constraint filename extension lists are parsed as rule syntax; neither is glob brace expansion.
 
 ### Captures
 
@@ -125,7 +152,7 @@ Matching `backend/deep/nested/handler.ts` against `backend/[...path]/no-fetch.ts
 { path: ["deep", "nested"] }
 ```
 
-Constraint captures come only from the directory portion of the path. The leaf of a constraint is a rule name — plus an extension on an ordinary constraint — not a placeholder, so the filename is not captured. Read `context.path` on an ordinary constraint, or each match's `path` on an aggregate.
+Constraint captures come only from the directory portion of the path. The leaf of a constraint is a rule name, optionally followed by an extension selector, not a placeholder, so the filename is not captured. Read `context.path` on a per-file constraint, or each match's `path` on an aggregate.
 
 ### Back-references
 
@@ -136,6 +163,11 @@ clients/[provider]/{provider}.ts.mjs
 ```
 
 `clients/stripe/stripe.ts` matches. `clients/stripe/client.ts` does not, and neither does `clients/stripe/twilio.ts`. The directory named the file.
+
+A back-reference repeats dots too. For a provider named `foo.bar`, this rule
+requires `clients/foo.bar/foo.bar.ts`. That filename's complete extension is
+`.bar.ts`, so a `.ts` constraint does not select it. Repeating a directory name
+does not change how constraints classify the resulting filename.
 
 **A back-reference resolves to exactly one name once its capture is bound.** Everything else follows from that sentence. It is required for each instance, the way a static leaf is required — `clients/twilio/` without a `twilio.ts` reports `missing_required_file`. It beats a dynamic sibling for ownership, because naming one file is more specific than matching many. And it can never be ambiguous with a static sibling, because by the time it is compared it is a literal too.
 
@@ -149,29 +181,41 @@ What it replaces is a rule body asking politely. Before, `[provider]/[implementa
 
 ### Multiple extensions
 
-A constraint leaf may list extensions:
+A dynamic structural file leaf may list alternative fixed suffixes; a constraint
+leaf may list alternative complete extensions:
 
 ```text
-[...path]/no-as-any.{ts,tsx}.mjs     applies to  **/*.ts  and  **/*.tsx
+[file].{ts,d.ts,tsx}.mjs            owns files with exactly those complete extensions
+[...path]/no-as-any.{ts,tsx}.mjs     applies to files with complete extensions .ts and .tsx
 ```
 
-This is shorthand for two patterns sharing one module, not glob brace expansion. It exists because a constraint that applies to `.ts` almost always applies to `.tsx`, and the alternative is two files with duplicated bodies that drift apart.
+This is one rule with several explicit branches, not glob brace expansion.
+Structural branches retain the same dot-free capture rule: `[file].{ts,tsx}`
+does not own `foo.d.ts`, but `foo.[file].{ts,tsx}` owns `foo.bar.ts`.
+Constraint branches compare the actual filename's complete extension, so
+`.ts` does not include `.d.ts` or `.bar.ts`. Each matching file invokes a
+per-file rule once, even if more than one branch or target glob could admit it.
 
-Only ordinary constraint leaves may list extensions. An aggregate leaf is a filename, so braces in it are part of the name rather than a union. A structural leaf names one file, and `main.{ts,tsx}.mjs` would be declaring that two files are each required — which is either two rules or a `[name]` placeholder, and is clearer written as whichever was meant. It is rejected as `extension_list_on_structural_leaf`.
+Per-file and aggregate constraint leaves may both list extensions. Each listed suffix may contain dots: `migration-order.{up.sql,down.sql}.mjs` selects both migration file kinds. Dynamic structural leaves may do the same. A literal structural leaf names one required file, however, so `main.{ts,tsx}.mjs` would leave requiredness ambiguous. It is rejected as `extension_list_on_structural_leaf`; write two literal rules or a dynamic rule, whichever reflects the intended structure.
 
 Braces therefore mean two things, and never in the same place:
 
 ```text
-braces in an ordinary constraint leaf     an extension list
-braces anywhere else                      a back-reference
+braces after the stem of a dynamic structural file leaf  an extension union
+braces after the rule name in a constraint leaf          an extension list
+braces elsewhere                                         a back-reference
 ```
 
-The two positions are disjoint for ordinary leaves, so nothing has to be disambiguated at read time. An ordinary constraint leaf is a rule name plus a target extension rather than a segment that matches a file, so a back-reference has nothing to refer to there; and a structural leaf names one file, so a list of extensions has nothing to mean. The comma survives only as a diagnostic: braces containing one, on a structural leaf, is someone expecting a union, and that is what the rejection says.
+A constraint leaf is a rule name plus an optional selector rather than a segment
+that matches a file, so a back-reference has nothing to refer to there. A
+literal structural filename cannot list alternatives; a dynamic one can. A
+single `{name}` in a structural path remains a back-reference, including in a
+filename such as `[file].{provider}.ts`; a comma marks the extension union.
 
 ### Target selectors
 
-The module export `targets` narrows a constraint after its directory — and, for
-an ordinary constraint, its extension — have matched:
+The module export `targets` selects files when the constraint filename has no
+extension selector:
 
 ```js
 export const targets = ["*/queries.sql"];
@@ -179,10 +223,12 @@ export const targets = ["*/queries.sql"];
 
 The selector patterns are relative to the compiled prefix **before** the
 recursive placeholder, taken from directory segments. They form a positive
-union. They only reject candidates: they cannot claim an unowned path, override
-an ignore, change an ordinary constraint's extensions, or declare that a file
-must exist. Captures still come from the constraint path. Scoped `lint` and
-`explain` do not move that origin.
+union and intersect the directory pattern. A filename extension selects the
+complete extension exactly; a target glob such as `**/*.ts` also matches
+`foo.d.ts`. Generated guidance distinguishes these forms. Neither form can
+claim an unowned path, override an ignore, or declare that a file must exist.
+Captures still come from the constraint path. Scoped `lint` and `explain` do
+not move the selector origin.
 
 ```text
 [...path]/registry.mjs                      origin is the repository root
@@ -192,22 +238,60 @@ backend/[...path]/handlers/registry.mjs    origin is backend/
 ```
 
 Trailing directory segments stay in candidate matching, not in the origin.
-`backend/[...path]/handlers/registry.mjs` already admits only files matching
-`backend/**/handlers/*`; a selector `*/foo.ts` becomes `backend/*/foo.ts` and
-is then intersected with those candidates.
+The directory pattern of `backend/[...path]/handlers/registry.mjs` admits only
+candidates matching `backend/**/handlers/*`; a selector `*/foo.ts` becomes
+`backend/*/foo.ts` and is then intersected with those candidates.
 
-For `fixtures/[...fixture]/query-count.sql.mjs`, `["*/queries.sql"]` selects
-`fixtures/alpha/queries.sql` while rejecting `fixtures/alpha/schema.sql`, even
-though both match the constraint's `fixtures/**/*.sql` pattern.
+For `fixtures/[...fixture]/query-count.mjs`, `targets = ["*/queries.sql"]`
+selects `fixtures/alpha/queries.sql` while rejecting
+`fixtures/alpha/schema.sql`. The directory pattern still determines which
+paths can match; `targets` does not extend its reach.
 
-An ordinary constraint without `targets` admits every owned file its path and
-extension match. An aggregate without `targets` admits every structurally
-owned, governed file in its constraint scope. Ignored, ungoverned, and
-structurally unowned files never join.
+To select all file types in scope, use an extensionless filename and
+`targets = ["**/*"]`. Ignored, ungoverned, and structurally unowned files
+never join the selection.
+
+### Glob syntax
+
+`targets` and `context.files()` use [minimatch](https://github.com/isaacs/minimatch)
+to match paths already known to Espalier. They do not perform another filesystem
+walk. `targets` uses the origin described above; `files()` patterns are relative
+to the repository root and query governed files, including those without a
+structural owner.
+
+Supported syntax includes `*` within a segment, `?` for one character,
+character classes such as `[a-z]`, brace alternatives such as `*.{ts,tsx}`,
+brace ranges such as `file{1..3}.ts`, and extglobs such as `@(main|index).ts`.
+`**` crosses directory boundaries when it occupies a whole segment;
+`**/` also matches zero directories. Embedded stars, as in `a**b`, stay
+within one segment.
+
+Matching is case-sensitive, includes dotfiles in the eligible set, and uses
+`/` separators on every platform. A pattern matches the whole path, not just
+its basename: `*.ts` does not match `src/main.ts`. Leading `#` is literal,
+not a comment. Whole-pattern negation is disabled; `targets` additionally
+rejects leading `!` as part of its positive-selector contract.
+
+Backslashes escape glob punctuation. In a JavaScript string, write
+`"src/literal\\?.ts"` to match the literal path `src/literal?.ts`.
+`targets = ["**/*.{ts,tsx}"]` is equivalent to
+`targets = ["**/*.ts", "**/*.tsx"]`. Both also select compound names ending
+in those suffixes, such as `foo.d.ts`; structural extension unions keep their
+separate filename-pattern semantics.
+
+Espalier escapes literal text from structural directory segments when composing
+constraint admission globs. A directory named `literal?` in a rule path stays
+literal; only exported target patterns introduce glob syntax there.
+
+External ignore files and `.espalierignore` retain gitignore syntax.
+`unobservedImplementationDependencies` uses Node's filesystem globber to
+discover implementation inputs outside the governed set; it is separate from
+these queries over known lint-data paths.
 
 ## Ownership
 
-Every file in the repository is owned by **exactly one** structural rule.
+Every governed file must be owned by **exactly one** structural rule. An unowned
+file is a violation, not a second kind of valid ownership.
 
 Structural rules compile into a trie, one node per path segment. Matching walks the trie segment by segment, and at each level a more specific node wins:
 
@@ -232,11 +316,11 @@ clients
 
 Only the winning structural rule's `lint` runs.
 
-Constraints work differently. They do not participate in ownership and they do not compete. **Every** constraint whose pattern matches and whose `targets` selector admits a file runs against it, in addition to that file's structural owner.
+Constraints work differently. They do not participate in ownership and they do not compete. **Every** constraint whose directory pattern and selector admit a file runs against it, in addition to that file's structural owner.
 
 A constraint only runs on a file that **has** a structural owner. The espalier's reach is the tree it declares: a file no structural rule claims is reported once as `unexpected_path` and otherwise left alone. Nothing has said that file belongs to this project, so nothing gets to say how it should be written.
 
-In a conforming repository this distinction is invisible — every file has an owner, so every matching constraint applies. It matters only while the repository is out of conformance, where it stops one undeclared file from producing an issue for every constraint that happens to match its extension.
+In a conforming repository this distinction is invisible — every file has an owner, so every matching constraint applies. It matters only while the repository is out of conformance, where it stops one undeclared file from producing an issue for every constraint whose selector happens to match it.
 
 ## Ambiguity is rejected
 
@@ -266,7 +350,7 @@ Dynamic siblings that cannot collide are fine:
 [helper].ts           accepted — no filename ends in both
 ```
 
-Siblings only conflict within their own tier. Static names cannot collide with each other at all, and a static or resolved sibling beside a dynamic one is decided by specificity rather than by guessing — `requestModels.ts` beside `[implementation].ts`, or `{provider}.ts` beside `[implementation].ts`, are both fine. Two *resolved* siblings are checked exactly like two dynamic ones, because two back-references can resolve to the same text:
+Siblings only conflict within their own tier. Static names cannot collide with each other at all, and a static or resolved sibling beside a dynamic one is decided by specificity rather than by guessing — `requestModels.ts` beside `[implementation].ts`, or `{provider}.ts` beside `[implementation].ts`, are both fine. Two *resolved* siblings are also checked for ambiguity, because different back-references can resolve to the same text:
 
 ```text
 [region]/[provider]/{region}.ts
@@ -274,6 +358,16 @@ Siblings only conflict within their own tier. Static names cannot collide with e
 ```
 
 Whether the two captures are ever equal is a fact about the repository, not about the espalier, so it cannot be settled at compile time. Undecidable is undecidable.
+
+References to the same capture share one value. A shared prefix or suffix
+therefore cannot make otherwise distinct names collide:
+
+```text
+clients/[client]/{client}.ts
+clients/[client]/{client}.test.ts    accepted — the same name, different suffixes
+```
+
+For `clients/foo.bar/`, these require `foo.bar.ts` and `foo.bar.test.ts`.
 
 Within a tier, the conflict is between siblings competing for the same thing: two leaves that could own one file, or two directories that could claim one subtree. A dynamic directory beside a dynamic leaf is not a conflict even when their names overlap, because a directory never owns a file:
 
@@ -343,7 +437,7 @@ The VCS directory is **not** among them. `.git/` is an `.espalierignore` entry t
 
 External ignore files first define which paths exist to Espalier. Everything remaining is governed unless `.espalierignore` assigns it a documented purpose outside the project layout — see [CONFIG.MD](CONFIG.MD#espalierignore).
 
-Symlinks are not a fifth thing. A link is followed, and what it points at is governed under the path the link occupies — see [CONFIG.MD](CONFIG.MD#symlinks).
+Symlinks are not another unconditional exclusion. A link is followed, and what it points at is governed under the path the link occupies — see [CONFIG.MD](CONFIG.MD#symlinks).
 
 Ignoring is not declaring. If a path is both required by a static leaf and ignored, the configuration contradicts itself and espalier fails at startup rather than silently passing. An ignored *optional* leaf is not a contradiction — nothing was promised, so hiding it breaks no promise — but the rule is then unreachable, which is worth knowing before you write one.
 

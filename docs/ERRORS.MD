@@ -46,12 +46,12 @@ See [MATCHING.MD](MATCHING.MD). All of these are detected before a single reposi
 |---|---|
 | `invalid_espalier_entry` | a file that is neither a `.mjs` module nor an `ESPALIER.MD`, and is not skipped |
 | `malformed_placeholder` | an unclosed `[` or `{`, an unmatched `]`, or a name that is not an identifier |
-| `malformed_constraint_leaf` | an ordinary constraint filename that is not a rule name plus an extension |
+| `malformed_constraint_leaf` | a constraint missing both selection forms, or a malformed filename extension selector |
 | `malformed_node_description` | an `ESPALIER.MD` whose frontmatter will not parse |
 | `multiple_recursive_placeholders` | more than one `[...name]` in one path |
 | `duplicate_placeholder_name` | the same capture name twice in one path |
 | `unbound_backreference` | a `{name}` with no `[name]` earlier in the same path |
-| `extension_list_on_structural_leaf` | `{ts,tsx}` on a structural rule, which names one file |
+| `extension_list_on_structural_leaf` | `{ts,tsx}` on a literal structural leaf, where it is unclear which alternative must exist; dynamic leaves may list extensions |
 | `ambiguous_siblings` | two siblings in one tier that could both own one name |
 | `inconsistent_capture_names` | one dynamic directory described under two names |
 | `duplicate_structural_rule` | two modules governing the same path |
@@ -64,7 +64,7 @@ See [TYPES.MD](TYPES.MD).
 |---|---|
 | `module_import_failed` | the module threw while being imported |
 | `module_missing_export` | no `rule`, no `lint`, or no `description` on a structural rule |
-| `module_invalid_export` | an export of the wrong type |
+| `module_invalid_export` | an export of the wrong type or on the wrong rule kind, or `targets` together with a constraint filename extension |
 | `invalid_reference_implementation` | a `referenceImplementation` that is absent, is not a governed file, or is not actually owned or covered by its rule |
 
 ## Configuration against the espalier

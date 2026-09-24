@@ -5,7 +5,7 @@
 ## Project layout
 
     fixtures/
-    └─ [name]/       (zero or more, any name)
+    └─ [name]/       (zero or more matching directories)
        │
        └─ case.json  a fixture case (required)
 
@@ -16,27 +16,22 @@ exercise in the corpus.
 
 Reference implementation: fixtures/alpha/case.json
 
-## Per-file constraints
+## corpus-mix — the fixture corpus stays mixed enough
 
-### JSON files under `fixtures/`
-
-#### well-formed — each fixture case is locally well-formed
-
-Each selected fixture case is a JSON object with `kind`
-(`query` or `mutation`), a non-negative integer `depth`, and a
-non-negative integer `args`.
-
-## Aggregate constraints
-
-Each of these runs once over its matching files together.
-
-### corpus-mix — the fixture corpus stays mixed enough
-
-Paths matching `*/case.json` under `fixtures/`.
+Together, paths matching `*/case.json` under `fixtures/` must follow this rule.
 
 The selected fixture cases together keep a mixed corpus:
 at least three cases, at least 25% and at most 75% of cases are mutations,
 mean depth at least 1.5, and mean args at least 1.5.
+
+## well-formed — each fixture case is locally well-formed
+
+Each file with exactly `.json` as its extension under `fixtures/` must follow
+this rule.
+
+Each selected fixture case is a JSON object with `kind`
+(`query` or `mutation`), a non-negative integer `depth`, and a
+non-negative integer `args`.
 
 ## Other repository paths
 

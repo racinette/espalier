@@ -3,11 +3,12 @@
 ## Project layout
 
     clients/
-    ├─ [provider]/   (zero or more, any name)
+    ├─ [provider]/   (zero or more matching directories)
     │  │
     │  └─ client.ts  an integration with an external API (required)
     │
-    └─ [summary].ts  a one-file summary of a provider (zero or more, any name)
+    └─ [summary].ts  a one-file summary of a provider (zero or more matching
+                     files)
 
 ## `[provider]/client.ts` — an integration with an external API
 

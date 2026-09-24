@@ -35,7 +35,7 @@ espalier init [--config <path>] [--root <dir>] [--lang <name>]...
 ## What it writes
 
 ```yaml
-pin: 0.2.1
+pin: 0.3.0
 
 name: acme-web
 
@@ -50,7 +50,14 @@ skip:
   - CLAUDE.md
 ```
 
-`pin` is the exact running package version. Every later command refuses a different version, so a global upgrade cannot silently change how this repository is interpreted; [`espalier migrate`](../migrate/README.MD) is the command that rewrites the config for the CLI that is running. `name` is the repository directory's own name. It heads every document `build` writes, so a project that never sets it has documents with no heading — and a guess written into the config where an author can see it is better than that, and better than a guess the tool keeps to itself. Rename it or delete it; both are one line.
+`pin` is the exact running package version. Commands that load repository
+configuration require that version; [`espalier migrate`](../migrate/README.MD)
+is the exception that rewrites the config for the running CLI. A global
+upgrade therefore cannot silently change how this repository is interpreted.
+`help`, `examples`, and `--version` work independently of configuration.
+
+`name` is the repository directory's own name. It heads every document `build`
+writes. Rename it to the project's name, or remove it to omit the heading.
 
 And a `.espalierignore` beside it:
 
@@ -129,7 +136,7 @@ espalier init --no-common-ignore
 ```
 
 ```yaml
-pin: 0.2.1
+pin: 0.3.0
 
 root: espalier
 
@@ -218,7 +225,7 @@ Note that this is not only a bootstrap concern. A repository is never expected t
 
 ## After `init`
 
-1. Write `espalier/ESPALIER.MD` — what this project is. It becomes the preamble of the generated root documentation.
+1. Write `espalier/ESPALIER.MD` — what this project is and the guidance that applies across it.
 2. Bring one area under the espalier with [`espalier adopt`](../adopt/README.MD), or by hand.
 3. Run [`espalier build`](../build/README.MD) to generate the documentation agents read.
 4. Run [`espalier lint`](../lint/README.MD) to check the areas you have described.

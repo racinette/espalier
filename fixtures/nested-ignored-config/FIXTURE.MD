@@ -4,8 +4,8 @@
 That demotes it to plain content: no boundary, no recursion, and the root goes
 on governing `templates/index.ts` itself.
 
-This is what a repository storing configs as data needs — this one keeps sixty
-under `fixtures/`, several deliberately invalid. Discovery consults `ignore`
+This is what a repository storing configs as data needs — this one keeps
+deliberately invalid configurations under `fixtures/`. Discovery consults `ignore`
 before it decides anything.
 
 The `templates/espalier/` modules are ignored too, because ignoring the config

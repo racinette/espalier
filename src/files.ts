@@ -2,6 +2,7 @@
 
 import { readdirSync, readFileSync, statSync, type Dirent } from "node:fs";
 import path from "node:path";
+import { Minimatch } from "minimatch";
 import { fail } from "./errors.js";
 import { excludedBy, type IgnoreRule } from "./ignore.js";
 import { hiddenBy, type VisibilityRules } from "./visibility.js";
@@ -202,30 +203,24 @@ export function isGenerated(root: string, relativePath: string): boolean {
   }
 }
 
-/** Matches a repo-relative path against a `*` / `**` glob. */
+const globMatchers = new Map<string, Minimatch>();
+
+/** Match known paths with the dialect documented in docs/MATCHING.MD "Glob syntax". */
 export function matchGlob(pattern: string, target: string): boolean {
-  let body = "";
-
-  for (let i = 0; i < pattern.length; i += 1) {
-    const char = pattern[i]!;
-    if (char === "*") {
-      if (pattern[i + 1] === "*") {
-        const afterSlash = i === 0 || pattern[i - 1] === "/";
-        const beforeSlash = pattern[i + 2] === "/";
-        if (afterSlash && beforeSlash) {
-          body += "(?:.*/)?";
-          i += 2;
-        } else {
-          body += ".*";
-          i += 1;
-        }
-      } else {
-        body += "[^/]*";
-      }
-      continue;
-    }
-    body += /[.+?^${}()|[\]\\]/.test(char) ? `\\${char}` : char;
+  let matcher = globMatchers.get(pattern);
+  if (matcher === undefined) {
+    matcher = new Minimatch(pattern, {
+      dot: true,
+      nocase: false,
+      platform: "linux",
+      nonegate: true,
+      nocomment: true,
+      matchBase: false,
+      optimizationLevel: 0,
+    });
+    // Programmatic callers may keep a process alive across many repositories.
+    if (globMatchers.size >= 512) globMatchers.clear();
+    globMatchers.set(pattern, matcher);
   }
-
-  return new RegExp(`^${body}$`).test(target);
+  return matcher.match(target);
 }

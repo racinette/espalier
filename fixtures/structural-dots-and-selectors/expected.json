@@ -1,0 +1,115 @@
+{
+  "exit": 0,
+  "issues": [
+    {
+      "path": "plain.ts",
+      "code": "plain",
+      "severity": "info",
+      "message": "plain.ts"
+    },
+    {
+      "path": ".",
+      "code": "group-plain",
+      "severity": "info",
+      "message": "plain.ts"
+    },
+    {
+      "path": "clients/foo.bar/foo.bar.ts",
+      "code": "compound",
+      "severity": "info",
+      "message": "clients/foo.bar/foo.bar.ts"
+    },
+    {
+      "path": "literal/foo.bar.ts",
+      "code": "compound",
+      "severity": "info",
+      "message": "literal/foo.bar.ts"
+    },
+    {
+      "path": "union/foo.bar.ts",
+      "code": "compound",
+      "severity": "info",
+      "message": "union/foo.bar.ts"
+    },
+    {
+      "path": ".",
+      "code": "group-compound",
+      "severity": "info",
+      "message": "clients/foo.bar/foo.bar.ts,literal/foo.bar.ts,union/foo.bar.ts"
+    },
+    {
+      "path": "clients/foo.bar/foo.bar.ts",
+      "code": "suffix",
+      "severity": "info",
+      "message": "clients/foo.bar/foo.bar.ts"
+    },
+    {
+      "path": "literal/foo.bar.ts",
+      "code": "suffix",
+      "severity": "info",
+      "message": "literal/foo.bar.ts"
+    },
+    {
+      "path": "plain.ts",
+      "code": "suffix",
+      "severity": "info",
+      "message": "plain.ts"
+    },
+    {
+      "path": "union/foo.bar.ts",
+      "code": "suffix",
+      "severity": "info",
+      "message": "union/foo.bar.ts"
+    },
+    {
+      "path": ".",
+      "code": "group-suffix",
+      "severity": "info",
+      "message": "clients/foo.bar/foo.bar.ts,literal/foo.bar.ts,plain.ts,union/foo.bar.ts"
+    }
+  ],
+  "ownership": {
+    "plain.ts": "[file].ts.mjs",
+    "literal/foo.bar.ts": "literal/foo.[file].ts.mjs",
+    "union/foo.bar.ts": "union/foo.[file].{ts,tsx}.mjs",
+    "clients/foo.bar/foo.bar.ts": "clients/[provider]/{provider}.ts.mjs"
+  },
+  "explain": {
+    "plain.ts": {
+      "exit": 0,
+      "object": {
+        "rule": "[file].ts.mjs",
+        "captures": {
+          "file": "plain"
+        }
+      }
+    },
+    "literal/foo.bar.ts": {
+      "exit": 0,
+      "object": {
+        "rule": "literal/foo.[file].ts.mjs",
+        "captures": {
+          "file": "bar"
+        }
+      }
+    },
+    "union/foo.bar.ts": {
+      "exit": 0,
+      "object": {
+        "rule": "union/foo.[file].{ts,tsx}.mjs",
+        "captures": {
+          "file": "bar"
+        }
+      }
+    },
+    "clients/foo.bar/foo.bar.ts": {
+      "exit": 0,
+      "object": {
+        "rule": "clients/[provider]/{provider}.ts.mjs",
+        "captures": {
+          "provider": "foo.bar"
+        }
+      }
+    }
+  }
+}

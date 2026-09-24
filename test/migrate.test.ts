@@ -102,6 +102,32 @@ test("migrate rewrites an old config and is then loadable", () => {
   });
 });
 
+test("migrate updates a 0.2.0 pin without rewriting old rule selectors", () => {
+  scratch((root) => {
+    const directory = path.join(root, "espalier", "[...path]");
+    mkdirSync(directory);
+    const rulePath = path.join(directory, "element-frequency.mjs");
+    const oldRule = `export const aggregate = true;
+export const rule = "Check the whole selected group.";
+export async function lint() {}
+`;
+    writeFileSync(rulePath, oldRule);
+    writeFileSync(
+      path.join(root, "espalier.config.yaml"),
+      "pin: 0.2.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
+    );
+
+    const migrated = run(root, ["migrate", "--format", "jsonl"]);
+    assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
+    assert.ok(readFileSync(path.join(root, "espalier.config.yaml"), "utf8").split("\n").includes(`pin: ${VERSION}`));
+    assert.equal(readFileSync(rulePath, "utf8"), oldRule);
+
+    const lint = run(root, ["lint", "--format", "jsonl"]);
+    assert.equal(lint.status, 2, lint.stdout + lint.stderr);
+    assert.match(lint.stdout + lint.stderr, /malformed_constraint_leaf/);
+  });
+});
+
 test("migrate --dry-run writes nothing", () => {
   scratch((root) => {
     writeFileSync(

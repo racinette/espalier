@@ -86,8 +86,8 @@ babel.config.*
 .nvmrc
 .node-version
 
-# espalier's own fixtures are data: sixty configs, several deliberately
-# invalid, and a root run executing all sixty is not what anyone means by it.
+# Espalier's conformance fixtures are test data, including deliberately invalid
+# configurations. The test harness runs them independently of the root lint.
 fixtures/**
 
 # Shipped authoring contract. `espalier init` copies it to the espalier root so

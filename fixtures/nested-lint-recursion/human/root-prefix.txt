@@ -3,7 +3,7 @@
   Declared here:
     ├─ packages/
     │  │
-    │  └─ [package]/   (zero or more, any name)
+    │  └─ [package]/   (zero or more matching directories)
     │     │
     │     └─ index.ts  a package entry point (required)
     │

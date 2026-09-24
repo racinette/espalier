@@ -35,6 +35,12 @@ export interface Segment {
    * and the tier is decided by how many files a segment can name.
    */
   resolved: boolean;
+  /** Structural file leaf before its exact, possibly compound extension. */
+  fileStem?: Segment;
+  /** Exact extensions accepted by one dynamic structural rule. */
+  fileExtensions?: string[];
+  /** Captures in an extension-bearing structural filename cannot consume dots. */
+  dotlessCaptures?: boolean;
 }
 
 const CAPTURE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -47,7 +53,7 @@ const CAPTURE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export function parseSegment(
   source: string,
   context: string,
-  options: { backrefs?: boolean } = {},
+  options: { backrefs?: boolean; dotlessCaptures?: boolean } = {},
 ): Segment {
   const backrefs = options.backrefs !== false;
   const parts: Part[] = [];
@@ -72,7 +78,7 @@ export function parseSegment(
       if (inner.includes(",")) {
         fail(
           "extension_list_on_structural_leaf",
-          `${context}: "{${inner}}" lists extensions, and only a constraint leaf may do that; "{name}" here is a back-reference`,
+          `${context}: "{${inner}}" lists extensions on a literal structural leaf, where requiredness is ambiguous; "{name}" here is a back-reference`,
         );
       }
       if (!CAPTURE_NAME.test(inner)) {
@@ -145,6 +151,36 @@ export function parseSegment(
     shape,
     dynamic,
     resolved: !dynamic && parts.some((part) => part.kind === "backref"),
+    dotlessCaptures: options.dotlessCaptures === true,
+  };
+}
+
+/** A dynamic structural filename has an exact full extension after its last placeholder. */
+export function parseStructuralLeaf(source: string, context: string): Segment {
+  const union = /^(.*)\.\{([^{}]*,[^{}]*)\}$/.exec(source);
+  const lastVariable = Math.max(source.lastIndexOf("]"), source.lastIndexOf("}"));
+  const dot = union === null ? source.indexOf(".", lastVariable + 1) : union[1]!.length;
+  if (lastVariable === -1 || dot === -1) return parseSegment(source, context);
+
+  const stem = parseSegment(source.slice(0, dot), context, { dotlessCaptures: true });
+  if (!stem.dynamic) return parseSegment(source, context);
+
+  const suffix = source.slice(dot + 1);
+  const extensions = union === null ? [suffix] : union[2]!.split(",").map((entry) => entry.trim());
+  if (
+    extensions.some((extension) =>
+      extension.split(".").some((part) => part === "" || /[\[\]{},*?]/.test(part))
+    ) || new Set(extensions).size !== extensions.length
+  ) {
+    fail("malformed_placeholder", `${context}: malformed structural extension selector in "${source}"`);
+  }
+
+  return {
+    ...stem,
+    source,
+    shape: `${stem.shape}.${extensions.length === 1 ? extensions[0] : `{${extensions.join(",")}}`}`,
+    fileStem: stem,
+    fileExtensions: extensions,
   };
 }
 
@@ -172,6 +208,22 @@ function escape(text: string): string {
 }
 
 const matchers = new Map<string, RegExp>();
+
+/** The exact extension branch a structural filename took, if any. */
+export function matchedFileExtension(
+  segment: Segment,
+  text: string,
+  bound: Record<string, CaptureValue> = {},
+): string | null {
+  if (segment.fileStem === undefined || segment.fileExtensions === undefined) return null;
+  for (const extension of [...segment.fileExtensions].sort((a, b) => b.length - a.length)) {
+    const suffix = `.${extension}`;
+    if (!text.endsWith(suffix)) continue;
+    const stem = text.slice(0, -suffix.length);
+    if (matchSegment(segment.fileStem, stem, bound) !== null) return extension;
+  }
+  return null;
+}
 
 /**
  * A resolved segment as the literal it stands for, or null when a capture it
@@ -210,6 +262,13 @@ export function matchSegment(
 ): Record<string, string> | null {
   if (segment.recursive !== null) return null;
 
+  if (segment.fileStem !== undefined) {
+    const extension = matchedFileExtension(segment, text, bound);
+    return extension === null
+      ? null
+      : matchSegment(segment.fileStem, text.slice(0, -extension.length - 1), bound);
+  }
+
   if (segment.resolved) {
     const literal = resolveSegment(segment, bound);
     return literal !== null && literal === text ? {} : null;
@@ -222,7 +281,7 @@ export function matchSegment(
     const pieces: string[] = [];
     for (const part of segment.parts) {
       if (part.kind === "literal") pieces.push(escape(part.text));
-      else if (part.kind === "capture") pieces.push("(.+?)");
+      else if (part.kind === "capture") pieces.push(segment.dotlessCaptures ? "([^.]+?)" : "(.+?)");
       else {
         const value = bound[part.name];
         if (typeof value !== "string") return null;
@@ -239,10 +298,11 @@ export function matchSegment(
     matcher = build();
     if (matcher === null) return null;
   } else {
-    matcher = matchers.get(segment.source) ?? null;
+    const key = `${segment.source}\0${segment.dotlessCaptures === true}`;
+    matcher = matchers.get(key) ?? null;
     if (matcher === null) {
       matcher = build()!;
-      matchers.set(segment.source, matcher);
+      matchers.set(key, matcher);
     }
   }
 
@@ -264,23 +324,58 @@ export function matchSegment(
  * rejects `[name]-test.ts` against `test-[name].ts` on the strength of
  * "test-x-test.ts" alone.
  */
-export function intersects(a: string, b: string): boolean {
-  const left = [...a];
-  const right = [...b];
+export function intersects(
+  a: string,
+  b: string,
+  options: { leftDotless?: boolean; rightDotless?: boolean } = {},
+): boolean {
+  const shaped = (shape: string, dotless: boolean): IntersectionToken[] =>
+    [...shape].map((char) => char === "*"
+      ? { kind: "wildcard", dotless }
+      : { kind: "literal", char });
+  return intersectTokens(shaped(a, options.leftDotless === true), shaped(b, options.rightDotless === true));
+}
+
+type IntersectionToken =
+  | { kind: "literal"; char: string }
+  | { kind: "wildcard"; dotless: boolean; binding?: string };
+
+/** Equal bound prefixes/suffixes cancel before the conservative wildcard check. */
+function intersectBoundTokens(left: IntersectionToken[], right: IntersectionToken[]): boolean {
+  const equal = (a: IntersectionToken, b: IntersectionToken): boolean =>
+    a.kind === "literal" && b.kind === "literal"
+      ? a.char === b.char
+      : a.kind === "wildcard" && b.kind === "wildcard"
+        && a.binding !== undefined && a.binding === b.binding;
+  let start = 0;
+  let leftEnd = left.length;
+  let rightEnd = right.length;
+  while (start < leftEnd && start < rightEnd && equal(left[start]!, right[start]!)) start++;
+  while (start < leftEnd && start < rightEnd && equal(left[leftEnd - 1]!, right[rightEnd - 1]!)) {
+    leftEnd--;
+    rightEnd--;
+  }
+  // Back-references share a value; fresh captures do not, even if named alike.
+  // Remaining bindings are over-approximated as wildcards, never used to
+  // declare potentially overlapping rules disjoint.
+  return intersectTokens(left.slice(start, leftEnd), right.slice(start, rightEnd));
+}
+
+function intersectTokens(left: IntersectionToken[], right: IntersectionToken[]): boolean {
 
   // Stands for "a character neither shape mentions". `/` cannot occur inside a
   // segment, so it can never collide with a real literal.
   const OTHER = "/";
-  const alphabet = new Set<string>([OTHER]);
+  const alphabet = new Set<string>([OTHER, "."]);
   for (const token of [...left, ...right]) {
-    if (token !== "*") alphabet.add(token);
+    if (token.kind === "literal") alphabet.add(token.char);
   }
 
-  const step = (tokens: string[], at: number, char: string): number[] => {
+  const step = (tokens: IntersectionToken[], at: number, char: string): number[] => {
     const token = tokens[at];
     if (token === undefined) return [];
-    if (token === "*") return [at, at + 1];
-    return token === char ? [at + 1] : [];
+    if (token.kind === "wildcard") return token.dotless && char === "." ? [] : [at, at + 1];
+    return token.char === char ? [at + 1] : [];
   };
 
   const seen = new Set<string>(["0,0"]);
@@ -304,4 +399,25 @@ export function intersects(a: string, b: string): boolean {
   }
 
   return false;
+}
+
+/** Compare all exact structural extension branches, preserving dot-free captures. */
+export function intersectSegments(left: Segment, right: Segment): boolean {
+  const tokens = (segment: Segment): IntersectionToken[] =>
+    segment.parts.flatMap((part): IntersectionToken[] => part.kind === "literal"
+      ? [...part.text].map((char) => ({ kind: "literal", char }))
+      : [{
+        kind: "wildcard",
+        dotless: part.kind === "capture" && segment.dotlessCaptures === true,
+        ...(part.kind === "backref" ? { binding: part.name } : {}),
+      }]);
+  const variants = (segment: Segment): IntersectionToken[][] =>
+    segment.fileStem === undefined || segment.fileExtensions === undefined
+      ? [tokens(segment)]
+      : segment.fileExtensions.map((extension) => [
+        ...tokens(segment.fileStem!),
+        ...[...`.${extension}`].map((char): IntersectionToken => ({ kind: "literal", char })),
+      ]);
+  const rightVariants = variants(right);
+  return variants(left).some((a) => rightVariants.some((b) => intersectBoundTokens(a, b)));
 }

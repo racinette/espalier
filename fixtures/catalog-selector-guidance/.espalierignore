@@ -1,0 +1,5 @@
+# Fixture harness files are not part of the storefront.
+FIXTURE.MD
+expected.json
+expected-build/**
+after/**

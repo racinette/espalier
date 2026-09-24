@@ -18,7 +18,7 @@ import {
 import type { Issue, Severity } from "./output.js";
 
 /** Bump when a line stops meaning what it meant. Older files are discarded. */
-const FORMAT = 3;
+const FORMAT = 4;
 
 const DIRECTORY = ".cache";
 const FILENAME = "lint.jsonl";
@@ -40,6 +40,8 @@ export interface Dependencies {
   reads: Set<string>;
   /** Glob, to a digest of the sorted list it returned. */
   globs: Map<string, string>;
+  /** Digest of the actual selected group, for an aggregate invocation. */
+  membership?: string;
 }
 
 export function dependencies(): Dependencies {
@@ -64,6 +66,7 @@ interface Entry {
   path: string;
   reads: Record<string, string>;
   globs: Record<string, string>;
+  membership?: string;
   issues: Stored[];
 }
 
@@ -83,7 +86,7 @@ export interface Cache {
    * What this invocation concluded last time, if everything it depended on is
    * where it left it. Null means run the rule.
    */
-  replay(rule: string, pattern: string, target: string): Stored[] | null;
+  replay(rule: string, pattern: string, target: string, membership?: string): Stored[] | null;
   record(
     rule: string,
     pattern: string,
@@ -300,10 +303,11 @@ export function open(
   };
 
   return {
-    replay(rule, pattern, target) {
+    replay(rule, pattern, target, membership) {
       const id = key(rule, pattern, target);
       const found = loaded.get(id);
       if (found === undefined) return null;
+      if (found.membership !== membership) return null;
 
       for (const [read, was] of Object.entries(found.reads)) {
         if (stampOf(read) !== was) return null;
@@ -330,6 +334,7 @@ export function open(
         path: target,
         reads,
         globs: Object.fromEntries(deps.globs),
+        ...(deps.membership === undefined ? {} : { membership: deps.membership }),
         issues,
       });
     },

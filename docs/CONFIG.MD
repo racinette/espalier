@@ -3,7 +3,7 @@
 `espalier` is configured by an `espalier.config.yaml` at the repository root, and by a `.espalierignore` beside it.
 
 ```yaml
-pin: 0.2.1
+pin: 0.3.0
 
 name: acme-web
 
@@ -45,10 +45,10 @@ Two files rather than one because they answer to different readers. The config i
 The exact Espalier CLI version this repository expects:
 
 ```yaml
-pin: 0.2.1
+pin: 0.3.0
 ```
 
-`pin` is the only version. There is no separate schema identifier: the implementation a repository was authored against is the whole of what “this config means,” and `espalier init` records the running package version. Every later command compares itself with that value before compiling the espalier or reading repository files.
+`pin` is the only version. There is no separate schema identifier: the implementation a repository was authored against is the whole of what “this config means,” and `espalier init` records the running package version. Commands that load repository configuration require that exact version, except `migrate`, which updates it. `help`, `examples`, and `--version` do not load repository configuration.
 
 A mismatch is `version_mismatch`. Install the recorded version, or run [`espalier migrate`](cli/migrate/README.MD) to rewrite the configuration for the CLI that is running. Ranges are not accepted: two versions satisfying one range could generate different artifacts or enforce different rules while both claiming the repository was correctly configured.
 
@@ -71,7 +71,13 @@ A package in a monorepo may hold an `espalier.config.yaml` of its own. Finding o
 
 **A directory holding a config is a child espalier, and its subtree leaves the outer one.** Nothing under it is matched or owned, no constraint reaches in — a root `[...path]` rule stops at the boundary — nothing there is `unexpected_path`, and `build` neither places a document there nor sweeps one away.
 
-**Every command then runs it.** `lint` and `build` at the root visit each child once the outer run is finished, and a visit is a complete separate run: its own config, its own espalier, its own `.espalierignore`, `addons` and `build` settings, and its own children beneath it. Nothing is inherited and nothing crosses.
+**`lint`, `build`, and `migrate` visit child espaliers.** Each child uses its
+own configuration and rules, and each command continues into that child's
+children. Nothing is inherited. `lint` performs a separate run for each
+espalier, including addon setup and disposal. `build` plans all generated
+documents before writing any; `migrate` updates each child's configuration
+and shipped authoring contract. `explain`, `create`, and `adopt` instead
+resolve their requested path to its governing espalier.
 
 Those two halves are one feature. A subtree that left the outer espalier and were never visited would be ungoverned, which is the failure this tool exists to prevent. A subtree visited from inside the outer run would answer to two espaliers at once, and a path with two answers is worse than either. Together they say: **every file is governed by exactly one espalier, and one command still checks them all.**
 
@@ -83,7 +89,11 @@ The trade is explicit. The root can require nothing of a child, because it canno
 
 Exclusion still wins. A config the outer `.espalierignore` matches is not a child at all: the subtree is ignored the ordinary way and nothing recurses into it.
 
-That is what a repository storing configs as data needs. `espalier`'s own `fixtures/` holds sixty of them, several deliberately invalid, and `espalier lint` at the root running all sixty is not what anyone means by it. Ignoring the config file alone is enough to demote a child to plain content, though ignoring the directory is usually what is wanted.
+That is what a repository storing configs as data needs. Espalier's own
+`fixtures/` contains deliberately invalid configurations that the test harness
+runs independently of the root lint. Ignoring the config file alone is enough
+to demote a child to plain content, though ignoring the directory is usually
+what is wanted.
 
 Patterns from `ignoreFiles` count here too, which is worth knowing before it surprises someone: a `.gitignore` entry covering a package directory stops that package's espalier from being discovered. Usually that is right — a directory git does not track is not a subtree anyone is governing — but it means a child can disappear from a change made in another tool's file. `espalier explain <dir>` says which pattern did it.
 

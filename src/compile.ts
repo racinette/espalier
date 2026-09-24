@@ -16,8 +16,9 @@ import {
 import {
   backrefNames,
   captureNames,
-  intersects,
+  intersectSegments,
   parseSegment,
+  parseStructuralLeaf,
   trieKey,
   type Segment,
 } from "./pattern.js";
@@ -80,13 +81,13 @@ export interface TrieNode {
 
 export interface Constraint {
   modulePath: string;
-  /** The rule name, e.g. `no-as-any` or an aggregate leaf such as `message-registry`. */
+  /** The rule name before any extension selector, e.g. `no-as-any`. */
   name: string;
   /** Directory segments, containing exactly one recursive placeholder. */
   directory: Segment[];
-  /** Ordinary target extension; absent on an aggregate, whose leaf does not select a type. */
+  /** Filename extension selector; null when the module selects with `targets`. */
   extension: string | null;
-  /** Normalized glob: `**​/*.ts` for an ordinary constraint, `src/**​/*` for an aggregate. */
+  /** Normalized directory scope and optional extension, e.g. `src/**​/*.ts`. */
   pattern: string;
   module: LoadedModule;
 }
@@ -346,25 +347,26 @@ function readNodeDoc(absolute: string, modulePath: string): NodeDoc {
   return { description, body: text.slice(framed[0].length).trim() };
 }
 
-/** `no-as-any.{ts,tsx}` → `{ name, extensions: ["ts", "tsx"] }`. */
-function splitConstraintLeaf(leaf: string, modulePath: string): { name: string; extensions: string[] } {
-  const braced = /^(.+)\.\{([^{}]*)\}$/.exec(leaf);
-  if (braced !== null) {
-    const extensions = braced[2]!.split(",").map((entry) => entry.trim());
-    if (extensions.length === 0 || extensions.some((entry) => entry === "")) {
-      fail("malformed_constraint_leaf", `${modulePath}: empty extension in "${leaf}"`);
-    }
-    return { name: braced[1]!, extensions };
+/** The first dot separates the rule name from a possibly compound extension. */
+function splitConstraintLeaf(leaf: string, modulePath: string): { name: string; extensions: string[] | null } {
+  const dot = leaf.indexOf(".");
+  const name = dot === -1 ? leaf : leaf.slice(0, dot);
+  if (name === "" || /[\[\]{}]/.test(name)) {
+    fail("malformed_constraint_leaf", `${modulePath}: "${leaf}" needs a rule name before its selector`);
   }
+  if (dot === -1) return { name, extensions: null };
 
-  const plain = /^(.+)\.([^.{}]+)$/.exec(leaf);
-  if (plain === null) {
-    fail(
-      "malformed_constraint_leaf",
-      `${modulePath}: a constraint filename is a rule name plus a target extension, but "${leaf}" is neither`,
-    );
+  const suffix = leaf.slice(dot + 1);
+  const braced = /^\{([^{}]*)\}$/.exec(suffix);
+  const extensions = braced === null ? [suffix] : braced[1]!.split(",").map((entry) => entry.trim());
+  if (
+    extensions.some((extension) =>
+      extension.split(".").some((part) => part === "" || /[\[\]{},*?/]/.test(part))
+    ) || new Set(extensions).size !== extensions.length
+  ) {
+    fail("malformed_constraint_leaf", `${modulePath}: malformed extension selector in "${leaf}"`);
   }
-  return { name: plain[1]!, extensions: [plain[2]!] };
+  return { name, extensions };
 }
 
 function insert(root: TrieNode, segments: Segment[], rule: StructuralRule): void {
@@ -428,7 +430,7 @@ function checkSiblings(node: TrieNode, at: string): void {
         const bothDirectories = left.children.size > 0 && right.children.size > 0;
         if (!bothLeaves && !bothDirectories) continue;
 
-        if (intersects(left.segment.shape, right.segment.shape)) {
+        if (intersectSegments(left.segment, right.segment)) {
           fail(
             "ambiguous_siblings",
             `${at === "" ? "" : `${at}/`}${left.display} and ${at === "" ? "" : `${at}/`}${right.display} can both match one name, so ownership would be undecidable`,
@@ -469,15 +471,16 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
 
     const authored = [...segments.slice(0, -1), leaf.slice(0, -".mjs".length)];
 
-    // Braces mean an extension list in a constraint leaf and a back-reference
-    // everywhere else, so the parser has to be told which position it is in.
+    // A constraint leaf or dynamic structural leaf can list exact extensions.
+    // A brace elsewhere is a back-reference.
     // Constraint-ness is a plain string test, decidable before any parsing.
     const constraintPath = authored.some((segment) => segment.includes("[..."));
-    const parsed = authored.map((segment, index) =>
-      parseSegment(segment, modulePath, {
+    const parsed = authored.map((segment, index) => {
+      if (index === authored.length - 1 && !constraintPath) return parseStructuralLeaf(segment, modulePath);
+      return parseSegment(segment, modulePath, {
         backrefs: !(constraintPath && index === authored.length - 1),
-      }),
-    );
+      });
+    });
 
     // A `{name}` matches what a `[name]` above it captured, so the placeholder
     // has to come first. `[...name]` is excluded deliberately: it captures an
@@ -515,43 +518,36 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
 
     const absoluteModule = path.join(absolute, modulePath);
 
-    // A path containing `[...name]` is a constraint. `aggregate` then decides
-    // whether the leaf is a filename or a rule name plus an extension.
+    // A path containing `[...name]` is a constraint. Its selector comes from
+    // the filename or `targets`; `aggregate` changes only the invocation.
     if (recursive.length === 1) {
       const directory = parsed.slice(0, -1);
       const leaf = authored[authored.length - 1]!;
       const module = await loadModule(absoluteModule, modulePath, "constraint");
       const prefix = directory.map((segment) => segment.shape).join("/");
 
-      if (module.aggregate) {
-        constraints.push({
-          modulePath,
-          name: leaf,
-          directory,
-          extension: null,
-          pattern: prefix === "" ? "**/*" : `${prefix}/*`,
-          module,
-        });
-        continue;
-      }
-
       const { name, extensions } = splitConstraintLeaf(leaf, modulePath);
-      for (const extension of extensions) {
+      if (extensions === null && module.targets === null) {
+        fail("malformed_constraint_leaf", `${modulePath}: an extensionless constraint must export \`targets\``);
+      }
+      if (extensions !== null && module.targets !== null) {
+        fail("module_invalid_export", `${modulePath}: a filename extension and \`targets\` are alternative selectors`);
+      }
+      for (const extension of extensions ?? [null]) {
         constraints.push({
           modulePath,
           name,
           directory,
           extension,
-          pattern: `${prefix === "" ? "" : `${prefix}/`}*.${extension}`,
+          pattern: `${prefix === "" ? "" : `${prefix}/`}*${extension === null ? "" : `.${extension}`}`,
           module,
         });
       }
       continue;
     }
 
-    // Braces on a structural leaf are already handled by the parser: a list
-    // is rejected as `extension_list_on_structural_leaf` and a lone name is a
-    // back-reference. Nothing is left to check here.
+    // Dynamic extension lists remain one structural leaf and one module. A
+    // literal leaf still rejects a list: its requiredness would be ambiguous.
     const leafSegment = parsed[parsed.length - 1]!;
 
     insert(trie, parsed, {

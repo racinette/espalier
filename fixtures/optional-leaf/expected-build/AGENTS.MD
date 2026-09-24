@@ -3,7 +3,7 @@
 ## Project layout
 
     ./
-    ├─ [client]/      (zero or more, any name)
+    ├─ [client]/      (zero or more matching directories)
     │  │
     │  ├─ client.ts   a client (required)
     │  │

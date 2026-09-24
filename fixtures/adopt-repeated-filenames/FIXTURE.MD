@@ -1,8 +1,9 @@
 # adopt: repeated filename shapes, and where the two signals meet
 
-`components/` holds `Submit.tsx`, `Modal.tsx` and `theme.ts`. Two files share
-`.tsx`, so they collapse into `[tsx].tsx`. One file has `.ts`, so it stays as
-itself.
+`components/` holds `Submit.tsx`, `Modal.tsx`, `alpha.d.ts`, `beta.d.ts`, and
+`theme.ts`. The two `.tsx` files collapse into `[tsx].tsx`; the two `.d.ts`
+files into `[d_ts].d.ts`. The `.ts` file stays literal. Complete extensions
+keep the declaration files out of the `.ts` group.
 
 ## Why this directory is not a family
 

@@ -7,7 +7,7 @@
 
 import type { Constraint, Espalier, NodeDoc, StructuralRule, TrieNode } from "./compile.js";
 import { PROVENANCE } from "./files.js";
-import { backrefNames, parseSegment, type Segment } from "./pattern.js";
+import { backrefNames, parseSegment, parseStructuralLeaf, type Segment } from "./pattern.js";
 import { admissionGlobs } from "./targets.js";
 
 export const QUICKSTART = `## Working with Espalier
@@ -57,38 +57,6 @@ sibling subtrees.`;
 const WIDTH = 80;
 
 /**
- * Extension aliases for the description `espalier` writes when a constraint
- * module does not export one. Deliberately short: a wrong guess is corrected by
- * exporting a `description`, and a long table would still miss the next project.
- */
-const ALIASES: Record<string, string> = {
-  ts: "TypeScript",
-  tsx: "TypeScript",
-  js: "JavaScript",
-  jsx: "JavaScript",
-  mjs: "JavaScript",
-  cjs: "JavaScript",
-  py: "Python",
-  go: "Go",
-  rs: "Rust",
-  java: "Java",
-  rb: "Ruby",
-  php: "PHP",
-  cs: "C#",
-  swift: "Swift",
-  kt: "Kotlin",
-  css: "CSS",
-  scss: "Sass",
-  html: "HTML",
-  json: "JSON",
-  yaml: "YAML",
-  yml: "YAML",
-  md: "Markdown",
-  sql: "SQL",
-  sh: "shell",
-};
-
-/**
  * Greedy wrap, for text `espalier` composed. Text an author wrote is copied
  * verbatim and never passed through here — reflowing someone's markdown is how
  * a tool mangles a table.
@@ -109,12 +77,6 @@ export function wrap(text: string, width = WIDTH): string {
 
   if (current !== "") lines.push(current);
   return lines.join("\n");
-}
-
-/** `a`, `a and b`, `a, b and c`. */
-function list(entries: string[]): string {
-  if (entries.length <= 1) return entries[0] ?? "";
-  return `${entries.slice(0, -1).join(", ")} and ${entries[entries.length - 1]!}`;
 }
 
 /** `a`, `a or b`, `a, b or c`. */
@@ -300,7 +262,7 @@ export interface MapEntry {
   description: string | null;
   /**
    * Null where the espalier names no file: a directory, whose existence is its
-   * contents', and a dynamic leaf, which answers `zero or more, any name`.
+   * contents', and a dynamic leaf, which answers `zero or more matching files`.
    */
   required: boolean | null;
 }
@@ -346,10 +308,15 @@ export function mapEntries(
 function suffixes(entry: MapEntry): string[] {
   const marks: string[] = [];
   const name = entry.path.endsWith("/") ? entry.path.slice(0, -1) : entry.path;
-  const segment = parseSegment(name.slice(name.lastIndexOf("/") + 1), "map");
+  const leaf = name.slice(name.lastIndexOf("/") + 1);
+  const segment = entry.path.endsWith("/")
+    ? parseSegment(leaf, "map")
+    : parseStructuralLeaf(leaf, "map");
 
   if (entry.required !== null) marks.push(entry.required ? "required" : "optional");
-  if (segment.dynamic) marks.push("zero or more, any name");
+  if (segment.dynamic) marks.push(entry.path.endsWith("/")
+    ? "zero or more matching directories"
+    : "zero or more matching files");
 
   // What the capture holds, not what the segment was: under
   // `[provider]-provider/`, `{provider}Impl.ts` is `stripeImpl.ts`, and "the
@@ -630,20 +597,65 @@ function renderClosedSet(point: Placement): string | null {
   return wrap(closedSet(point.at));
 }
 
-/** A reader-facing language name, or the authored extension as Markdown code. */
-function extensionLabel(extension: string): string {
-  return ALIASES[extension.toLowerCase()] ?? codeSpan(`.${extension}`);
+/** Filename extensions and exported globs are deliberately different selectors. */
+function selectionScope(
+  first: Constraint,
+  members: Constraint[],
+  patterns: string[],
+): { singular: string; plural: string; every: boolean } {
+  const prefix = staticPrefix(first.directory);
+  const whole = entireSubtree(first.directory);
+  const place = whole
+    ? located(prefix)
+    : `in directories matching ${codeSpan(`${first.directory.map((segment) => segment.shape).join("/")}/`)}`;
+
+  if (first.module.targets === null) {
+    const extensions = [...new Set(members.map((member) => member.extension!))];
+    const suffixes = orList(extensions.map((extension) => codeSpan(`.${extension}`)));
+    return {
+      singular: `file with exactly ${suffixes} as its extension ${place}`,
+      plural: `files with exactly ${suffixes} as their extension ${place}`,
+      every: false,
+    };
+  }
+
+  const targets = first.module.targets;
+  if (whole && targets.length === 1 && targets[0] === "**/*") {
+    return { singular: `file ${place}`, plural: `files ${place}`, every: true };
+  }
+  const suffixes = targets.map((target) => /^\*\*\/\*\.([^*?{}\[\]/()]+)$/.exec(target)?.[1]);
+  if (suffixes.every((suffix) => suffix !== undefined) && targets.every((target) => !target.includes("\\"))) {
+    const endings = orList([...new Set(suffixes)].map((suffix) => codeSpan(`.${suffix}`)));
+    return {
+      singular: `file whose name ends in ${endings} ${place}`,
+      plural: `files whose names end in ${endings} ${place}`,
+      every: false,
+    };
+  }
+  const where = whole ? located(prefix) : `within ${codeSpan(first.pattern)}`;
+  const globs = orList((whole ? targets : patterns).map(codeSpan));
+  return {
+    singular: `path matching ${globs} ${where}`,
+    plural: `paths matching ${globs} ${where}`,
+    every: false,
+  };
 }
 
-/** `**​/*.ts` and `**​/*.tsx` → "applies to TypeScript files throughout the project". */
-function describeConstraint(constraint: Constraint, extensions: string[]): string {
-  if (constraint.module.description !== null) return constraint.module.description;
+function selectionSentence(first: Constraint, members: Constraint[], patterns: string[]): string {
+  const scope = selectionScope(first, members, patterns);
+  return scope.every
+    ? `Every ${scope.singular}.`
+    : `${scope.plural[0]!.toUpperCase()}${scope.plural.slice(1)}.`;
+}
 
-  const where = staticPrefix(constraint.directory);
-  const place = where === "" ? "throughout the project" : `under ${where}/`;
-  if (constraint.module.aggregate) return `analyzes files together ${place}`;
-  const named = [...new Set(extensions.map(extensionLabel))];
-  return `applies to ${list(named)} files ${place}`;
+/** Default `explain` prose uses the same precise selector wording as generated guidance. */
+function describeConstraint(constraint: Constraint, members: Constraint[], patterns: string[]): string {
+  if (constraint.module.description !== null) return constraint.module.description;
+  const sentence = selectionSentence(constraint, members, patterns);
+  const selected = sentence[0]!.toLowerCase() + sentence.slice(1, -1);
+  return constraint.module.aggregate
+    ? `analyzes ${selected} together`
+    : `applies to ${selected}`;
 }
 
 /**
@@ -677,16 +689,14 @@ export function constraintGroups(espalier: Espalier): ConstraintGroup[] {
 
   return [...grouped.values()].map((members) => {
     const first = members[0]!;
+    const patterns = [...new Set(members.flatMap(admissionGlobs))].sort((left, right) =>
+      left.localeCompare(right),
+    );
     return {
       name: first.name,
       rule: first.modulePath,
-      patterns: [...new Set(members.flatMap(admissionGlobs))].sort((left, right) =>
-        left.localeCompare(right),
-      ),
-      description: describeConstraint(
-        first,
-        members.flatMap((entry) => (entry.extension === null ? [] : [entry.extension])),
-      ),
+      patterns,
+      description: describeConstraint(first, members, patterns),
       ruleText: first.module.rule.trim(),
       referenceImplementation: first.module.referenceImplementation,
       prefix: staticPrefix(first.directory),
@@ -721,23 +731,11 @@ function located(prefix: string): string {
   return prefix === "" ? "in this project" : `under ${codeSpan(`${prefix}/`)}`;
 }
 
-function matching(globs: string[], suffix?: string): string {
-  const listed = orList(globs.map((glob) => codeSpan(glob)));
-  return suffix === undefined ? `Paths matching ${listed}.` : `Paths matching ${listed} ${suffix}.`;
-}
-
 function constraintSelection(group: ConstraintGroup): string[] {
-  const first = group.members[0]!;
-  const prefix = staticPrefix(first.directory);
-  if (group.targets !== null) {
-    return [wrap(matching(group.targets, located(prefix)))];
-  }
-  if (entireSubtree(first.directory)) {
-    return [
-      wrap(prefix === "" ? "Every file in this project." : `Every file under ${codeSpan(`${prefix}/`)}.`),
-    ];
-  }
-  return [wrap(matching(group.patterns))];
+  const scope = selectionScope(group.members[0]!, group.members, group.patterns);
+  return [wrap(group.aggregate
+    ? `Together, ${scope.plural} must follow this rule.`
+    : `Each ${scope.singular} must follow this rule.`)];
 }
 
 function displayPath(point: Placement, at: string): string {
@@ -780,54 +778,12 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
   if (point.constraints.length > 0) {
     const placed = new Set(point.constraints.map((constraint) => constraint.modulePath));
     const groups = constraintGroups(espalier).filter((group) => placed.has(group.rule));
-    const perFile = groups.filter((group) => !group.aggregate);
-    const aggregates = groups.filter((group) => group.aggregate);
-
-    if (perFile.length > 0) {
-      blocks.push(`${hashes} Per-file constraints`);
-      const extensionGroups = new Map<string, { extensions: string[]; rules: ConstraintGroup[] }>();
-
-      for (const group of perFile.filter((entry) => entry.targets === null)) {
-        const extensions = [
-          ...new Set(group.members.flatMap((member) => (member.extension === null ? [] : [member.extension]))),
-        ].sort();
-        const key = extensions.join("\0");
-        const bucket = extensionGroups.get(key);
-        if (bucket === undefined) extensionGroups.set(key, { extensions, rules: [group] });
-        else bucket.rules.push(group);
-      }
-
-      for (const bucket of extensionGroups.values()) {
-        const known = [...new Set(bucket.extensions.map(extensionLabel))];
-        const kinds = `${list(known)} files`;
-        const heading = point.at === "" ? kinds : `${kinds} under ${codeSpan(`${point.at}/`)}`;
-        blocks.push(`${"#".repeat(level + 1)} ${heading}`);
-        for (const group of bucket.rules) {
-          blocks.push(...constraintHeading(group, level + 2), ...constraintBody(group));
-        }
-      }
-
-      for (const group of perFile.filter((entry) => entry.targets !== null)) {
-        blocks.push(
-          ...constraintHeading(group, level + 1),
-          ...constraintSelection(group),
-          ...constraintBody(group),
-        );
-      }
-    }
-
-    if (aggregates.length > 0) {
+    for (const group of groups) {
       blocks.push(
-        `${hashes} Aggregate constraints`,
-        wrap("Each of these runs once over its matching files together."),
+        ...constraintHeading(group, level),
+        ...constraintSelection(group),
+        ...constraintBody(group),
       );
-      for (const group of aggregates) {
-        blocks.push(
-          ...constraintHeading(group, level + 1),
-          ...constraintSelection(group),
-          ...constraintBody(group),
-        );
-      }
     }
   }
 

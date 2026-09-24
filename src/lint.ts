@@ -393,7 +393,8 @@ async function lintOne(
       referenceImplementation: aggregate.module.referenceImplementation,
     };
 
-    const replayed = cache.replay(aggregate.modulePath, pattern, target);
+    const membership = listing([...aggregate.matches.keys()].sort());
+    const replayed = cache.replay(aggregate.modulePath, pattern, target, membership);
     if (replayed !== null) {
       for (const issue of replayed) record({ ...issue, ...derived });
       return;
@@ -415,12 +416,7 @@ async function lintOne(
     });
 
     const watched = dependencies();
-    for (const glob of patterns) {
-      watched.globs.set(
-        glob,
-        listing(repository.visible.filter((candidate) => matchGlob(glob, candidate))),
-      );
-    }
+    watched.membership = membership;
     watching = watched;
     try {
       await aggregate.module.lint({
@@ -447,7 +443,7 @@ async function lintOne(
     }
 
     // An aggregate's target is where its issues default, not an input. Its
-    // selected membership is represented by the watched target globs above.
+    // selected membership is recorded separately from explicit files() calls.
     cache.record(aggregate.modulePath, pattern, target, watched, produced, false);
   };
 

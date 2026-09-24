@@ -41,42 +41,24 @@ aggregate form.
 
 | Export | Required | |
 |---|---|---|
-| `description` | structural only | what this file is, in one phrase |
+| `description` | structural only | briefly describes the file, or summarizes a constraint's requirement |
 | `rule` | yes | the natural-language conventions, in markdown |
 | `lint` | yes | deterministic validation |
 | `referenceImplementation` | no | a path to a canonical conforming file |
 | `optional` | no | whether this file has to exist |
 | `aggregate` | no | run a constraint once over its complete match set |
-| `targets` | no | positive globs that narrow the governed files admitted by a constraint |
+| `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
 | `unobservedImplementationDependencies` | no | explicit implementation inputs that module observation cannot see |
 | `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
 
 ### `description`
 
-One phrase, no trailing period, reading naturally after "a" or "the": `"a button component"`, `"the application entry point"`.
+For a structural rule, `description` is required: briefly describe what the
+governed file is, such as "a payment provider client."
 
-It appears in the project map, which is the only part of the exported documentation that is always in an agent's context. That makes it a retrieval surface rather than a caption — write it in the vocabulary of the task, not of the architecture:
-
-```text
-models/[domain].ts        a business entity — User, Invoice, Subscription
-clients/[provider]/client.ts   an integration with an external API
-```
-
-An agent that needs to add a `User` type will not necessarily connect that to the phrase "a domain model."
-
-Constraint modules may omit it. When absent, `espalier` generates one from the
-constraint's scope and, for an ordinary constraint, its extensions, using
-built-in aliases for common extensions:
-
-```text
-**/*.ts               applies to TypeScript files throughout the project
-backend/**/*.ts       applies to TypeScript files under backend/
-**/*.{ts,tsx}         applies to TypeScript files throughout the project
-**/*.zig              applies to .zig files throughout the project
-src/**/*              analyzes files together under src/
-```
-
-Extensions sharing an alias collapse to one word, and an extension with no alias is named by its suffix. Supply your own `description` when the generated phrasing is wrong for the project.
+For a constraint, `description` is optional: briefly summarize the requirement,
+such as "checkout message IDs agree across locales." Put the full requirements
+in `rule`.
 
 ### `rule`
 
@@ -235,11 +217,11 @@ constraint are rejected at module compilation for the same reason.
 export const optional = true;
 ```
 
-A static leaf is required: `main.ts.mjs` means `main.ts` must exist. `optional` says this one does not have to, while keeping everything else a rule module gives you — a line in the map, a rule body in the generated documentation, and a `lint` that runs whenever the file is there.
+A static leaf is required: `main.ts.mjs` means `main.ts` must exist.
+`optional = true` allows it to be absent. When present, the file remains
+structurally owned and subject to its rule.
 
 It exists for the file that some instances of a shape have and others do not. Without it, an espalier has two ways to describe `webhook.ts` when one client has one and another does not, and both say something false. Declare it and every client without a webhook is missing a required file. Leave it undeclared and the client that has one is reporting `unexpected_path` for a file everybody agrees belongs there. Optional is the third statement — *a client may have a webhook, and here is how to write it* — and it is the only one of the three that is true.
-
-The payoff is in the generated documentation, where an agent reads it before the file exists. `webhook.ts is optional` in a directory's `AGENTS.MD` is a standing invitation with a rule attached; the alternative is prose nobody wrote and a violation nobody expected.
 
 Only structural leaves take it. A dynamic leaf is already a collection that may be empty, and a constraint never requires anything, so `optional` on either has nothing to say and is rejected as `module_invalid_export` rather than ignored.
 
@@ -249,22 +231,32 @@ Only structural leaves take it. A dynamic leaf is already a collection that may 
 export const targets = ["*/queries.sql"];
 ```
 
-An ordinary constraint normally admits every governed file matched by its
-structural scope and extension. An aggregate without `targets` admits every
-structurally owned, governed file in that scope. `targets` narrows those
-candidates with positive globs. The patterns form an unordered union; Espalier
-deduplicates and sorts them. They cannot admit ignored, ungoverned, or
-extension-mismatched files, declare required paths, or otherwise change
-repository structure.
+Every constraint selects files in exactly one way. A filename such as
+`query-count.sql.mjs` selects the `.sql` extension. A filename such as
+`query-count.mjs` must export `targets`. The two forms are mutually exclusive
+for per-file and aggregate constraints alike. The filename selector matches
+the complete extension exactly, so `.sql` does not include `.up.sql`. A
+`**/*.sql` target glob does include both. Multiple dotted parts such as
+`up.sql` stay together, and `{ts,tsx}` lists alternative complete extensions.
+`targets` patterns form
+an unordered positive union; Espalier deduplicates and sorts them. Either form
+is intersected with the constraint's directory pattern. Neither can admit
+ignored, ungoverned, or structurally unowned files, declare required paths,
+or otherwise change repository structure.
 
 Patterns are relative to the compiled prefix before the recursive placeholder.
-For a constraint at `fixtures/[...fixture]/query-count.sql.mjs`, the selector
+For a constraint at `fixtures/[...fixture]/query-count.mjs`, the selector
 above matches `fixtures/alpha/queries.sql` but not `fixtures/alpha/schema.sql`.
 `targets` must be a non-empty array of non-empty relative patterns. Negation,
 absolute patterns, and `..` segments are rejected.
 
-The same selector origin applies to ordinary and aggregate constraints.
-Existing constraint captures are preserved for every selected path. See
+Patterns use minimatch syntax, including brace alternatives:
+`targets = ["**/*.{ts,tsx}"]`. See [Glob syntax](MATCHING.MD#glob-syntax) for
+wildcards, escaping, and the platform-independent matching options.
+
+Use `targets = ["**/*"]` when every file type in the directory pattern belongs
+to the group. The same selector origin applies to per-file and aggregate
+constraints. Existing constraint captures are preserved for every selected path. See
 [MATCHING.MD](MATCHING.MD#target-selectors).
 
 ### `unobservedImplementationDependencies`
@@ -284,7 +276,9 @@ here; Espalier observes those, including transitive and dynamic imports.
 
 Patterns are positive globs relative to the repository root. They may match
 ignored or otherwise ungoverned paths because implementation inputs are not
-lint data. Espalier records both the matching path set and each member's size
+lint data. Node's `fs.globSync` discovers these paths; this is a filesystem
+query, separate from the minimatch queries over known paths used by `targets`
+and `files`. Espalier records both the matching path set and each member's size
 and modification time. A change invalidates the complete lint cache.
 
 The export grants no read or reporting capability. `read` remains limited to
@@ -304,7 +298,7 @@ constraint runs once with the complete matching set:
 ```js
 export async function lint({ matches, patterns, read, emit }) {
   const contents = await Promise.all(matches.map(({ path }) => read(path)));
-  // Compare or summarize the group, then emit once.
+  // Compare or summarize the group and emit findings for any violations.
 }
 ```
 
@@ -312,19 +306,20 @@ Only constraint modules take `aggregate`. Structural rules exist to describe
 and lint one owned file at a time, so setting it there is
 `module_invalid_export` rather than an execution mode with unclear ownership.
 
-An aggregate leaf is the rule name: the entire filename minus `.mjs`. Dots are
-legal and do not select a file type. Preferred spelling is
-`src/[...path]/message-registry.mjs`. A leftover
-`message-registry.tolk.mjs` is named `message-registry.tolk` and, without
-`targets`, admits every owned governed file in scope — a documented breaking
-change, not a silent widening of an old extension filter.
+An aggregate has the same filename grammar and selection as a per-file
+constraint. `message-registry.tolk.mjs` selects `.tolk` files;
+`message-registry.mjs` requires `targets`. `aggregate = true` changes only the
+invocation: one `lint` call receives the complete selected group, which may be
+empty.
 
 `matches` is a sorted array of `{ path, captures }`. Captures belong to each
 match because a recursive placeholder usually binds a different value for every
 file in the group. The aggregate context itself has no singular `path`,
 `pattern`, or `captures`; `read` therefore always requires a path.
-`patterns` is the admission glob list: the compiled scope (`src/**/*`) when
-`targets` is omitted, otherwise the expanded selectors.
+`patterns` is the admission glob list derived from the filename extension or
+from `targets`, within the constraint's directory pattern. For filename
+selectors these globs can overapproximate: `**/*.ts` admits `foo.d.ts` as a
+glob, but a `.ts` filename selector rejects it.
 
 The module runs once even when `matches` is empty. This lets a collective rule
 enforce minimum population rather than silently disappearing in precisely the
@@ -440,9 +435,13 @@ Matching `backend/deep/nested/example.ts` against the constraint `backend/[...di
 }
 ```
 
-A constraint's filename is a rule name — plus an extension on an ordinary constraint — rather than a placeholder, so the matched filename is not captured. Read `context.path` on an ordinary constraint, or each match's `path` on an aggregate.
+A constraint's filename is a rule name with either an extension selector or `targets`, rather than a placeholder, so the matched filename is not captured. Read `context.path` on a per-file constraint, or each match's `path` on an aggregate.
 
-Captures name values. They never constrain the relationship between them: both `stripe/stripe.ts` and `stripe/client.ts` match `[provider]/[implementation].ts`. If two captured values must agree, say so in `rule` and check it in `lint`.
+Distinct placeholders capture independently: both `stripe/stripe.ts` and
+`stripe/client.ts` match `[provider]/[implementation].ts`. When a later path
+part must repeat an earlier capture, use a back-reference instead:
+`[provider]/{provider}.ts` matches the first path but not the second. The
+matcher enforces that relationship before `lint` runs.
 
 ## Reference
 
@@ -525,8 +524,9 @@ Captures name values. They never constrain the relationship between them: both `
 /**
  * Lists repository files matching a glob.
  *
- * Accepts `*` (within one segment) and `**` (across segments), matched
- * against the same file set `espalier lint` walks: ungoverned
+ * Accepts minimatch globs, including `*`, `**`, `?`, character classes,
+ * brace alternatives and extglobs. See MATCHING.MD "Glob syntax".
+ * Patterns match against the same file set `espalier lint` walks: ungoverned
  * paths are never returned. Results are repository-relative and sorted.
  *
  * This is what makes peer comparison possible — checks that compare a
@@ -597,8 +597,7 @@ An aggregate constraint instead receives:
  * @property {AggregateMatch[]} matches
  * Sorted complete match set, possibly empty.
  * @property {string[]} patterns
- * Admission globs. The compiled scope when `targets` is omitted, otherwise
- * the expanded selectors.
+ * Admission globs derived from the filename extension or `targets`.
  * @property {(path: string) => Promise<string>} read
  * @property {ListFiles} files
  * @property {EmitIssue} emit
@@ -618,7 +617,17 @@ Process-local parser or addon infrastructure may reuse state when every answer r
 
 **A `lint` function must be pure.** Its answer must follow from what it is handed — `path`, `pattern`, `captures` on an ordinary constraint, or `matches` and `patterns` on an aggregate, and whatever `read` and `files` return — plus its observed or explicitly declared implementation dependencies, and from nothing else. The clock, the network and the environment are not inputs the runner can see, so a rule that consults one will be replayed from cache with an answer it would no longer give. The failure is silent: a stale pass, not an error. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
 
-`addons` are held to the same standard and carry one obligation of their own: **an addon must not read the repository.** A parser handed a path opens lint data outside the rule context. Hand it contents, or `read` the path first and throw the string away. The addon's own worker, native, WebAssembly or internally opened support files may be declared with `unobservedImplementationDependencies`. The process behind an addon may hold state; its answers must not depend on any unrecorded input.
+Addons must receive repository data through their arguments, not read it
+themselves. Read file contents with the lint context's `read` function and pass
+the returned contents to the addon. This keeps those reads tracked for cache
+invalidation.
+
+Files used to implement the addon itself—such as worker code, parser grammars,
+or WebAssembly binaries—belong in `unobservedImplementationDependencies` when
+module observation cannot track them.
+
+The process behind an addon may hold state; its answers must not depend on any
+unrecorded input.
 
 
 A `lint` function that throws is a bug in the rule, not a finding about the repository: the run fails with exit `2` and reports `rule_threw`. See [cli/lint/README.MD](cli/lint/README.MD) and [ERRORS.MD](ERRORS.MD).

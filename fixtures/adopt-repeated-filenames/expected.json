@@ -7,6 +7,10 @@
     "report": [
       {
         "kind": "written",
+        "path": "espalier/components/[d_ts].d.ts.mjs"
+      },
+      {
+        "kind": "written",
         "path": "espalier/components/[tsx].tsx.mjs"
       },
       {

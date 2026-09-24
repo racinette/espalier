@@ -22,7 +22,7 @@ passed with the fix reverted.
 ## Project layout
 
     test/
-    └─ [name].test.ts  a test module (zero or more, any name)
+    └─ [name].test.ts  a test module (zero or more matching files)
 
 ## `[name].test.ts` — a test module
 

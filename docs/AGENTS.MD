@@ -80,11 +80,10 @@ Covers the contract between a rule module and the runner: every export a module
 may declare, and every field of the context its `lint` is handed. Where such a
 file may sit, and which files it claims, is MATCHING.MD.
 
-## Per-file constraints
+## document-heading — every document opens with a level-one heading
 
-### Markdown files under `docs/`
-
-#### document-heading — every document opens with a level-one heading
+Each file with exactly `.MD` as its extension under `docs/` must follow this
+rule.
 
 Opens with a level-one heading naming its subject. A
 document a reader lands in the middle of should say what it is before it says

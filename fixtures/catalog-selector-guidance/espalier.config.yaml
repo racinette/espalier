@@ -1,0 +1,8 @@
+pin: 0.3.0
+name: storefront release bundle
+root: espalier
+build:
+  inline: true
+ignoreFiles: []
+skip:
+  - AGENTS.MD

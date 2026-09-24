@@ -1,0 +1,112 @@
+{
+  "exit": 0,
+  "issues": [],
+  "ownership": {
+    "catalogs/en/checkout.json": "catalogs/[locale]/checkout.json.mjs",
+    "catalogs/en/common.json": "catalogs/[locale]/[domain].json.mjs",
+    "catalogs/en/legal-privacy.json": "catalogs/[locale]/[domain].json.mjs",
+    "catalogs/en/legal-terms.json": "catalogs/[locale]/[domain].json.mjs",
+    "catalogs/fr/checkout.json": "catalogs/[locale]/checkout.json.mjs",
+    "catalogs/fr/common.json": "catalogs/[locale]/[domain].json.mjs",
+    "catalogs/fr/legal-privacy.json": "catalogs/[locale]/[domain].json.mjs",
+    "catalogs/fr/legal-terms.json": "catalogs/[locale]/[domain].json.mjs",
+    "migrations/001.down.sql": "migrations/[revision].{up.sql,down.sql}.mjs",
+    "migrations/001.up.sql": "migrations/[revision].{up.sql,down.sql}.mjs",
+    "migrations/002.down.sql": "migrations/[revision].{up.sql,down.sql}.mjs",
+    "migrations/002.up.sql": "migrations/[revision].{up.sql,down.sql}.mjs",
+    "migrations/baseline.sql": "migrations/baseline.sql.mjs"
+  },
+  "explain": {
+    "catalogs/en/checkout.json": {
+      "exit": 0,
+      "object": {
+        "rule": "catalogs/[locale]/checkout.json.mjs",
+        "constraints": [
+          { "name": "checkout-keys", "patterns": ["catalogs/*/checkout.json"], "aggregate": true },
+          { "name": "domain-coverage", "patterns": ["catalogs/**/*.json"], "aggregate": true },
+          { "name": "no-placeholder-copy", "patterns": ["catalogs/**/*.json"] }
+        ]
+      }
+    },
+    "catalogs/en/common.json": {
+      "exit": 0,
+      "object": {
+        "rule": "catalogs/[locale]/[domain].json.mjs",
+        "constraints": [
+          { "name": "domain-coverage", "patterns": ["catalogs/**/*.json"], "aggregate": true },
+          { "name": "no-placeholder-copy", "patterns": ["catalogs/**/*.json"] }
+        ]
+      }
+    },
+    "catalogs/en/legal-terms.json": {
+      "exit": 0,
+      "object": {
+        "rule": "catalogs/[locale]/[domain].json.mjs",
+        "constraints": [
+          { "name": "domain-coverage", "patterns": ["catalogs/**/*.json"], "aggregate": true },
+          { "name": "legal-no-markup", "patterns": ["catalogs/*/legal-*.json"] },
+          { "name": "no-placeholder-copy", "patterns": ["catalogs/**/*.json"] }
+        ]
+      }
+    },
+    "migrations/baseline.sql": {
+      "exit": 0,
+      "object": {
+        "rule": "migrations/baseline.sql.mjs",
+        "constraints": [
+          { "name": "bootstrap-idempotent", "patterns": ["migrations/**/*.sql"] },
+          { "name": "no-sql-placeholders", "patterns": ["migrations/**/*.sql"] }
+        ]
+      }
+    },
+    "migrations/001.up.sql": {
+      "exit": 0,
+      "object": {
+        "rule": "migrations/[revision].{up.sql,down.sql}.mjs",
+        "pattern": "migrations/*.up.sql",
+        "captures": { "revision": "001" },
+        "constraints": [
+          { "name": "migration-pairs", "patterns": ["migrations/**/*.down.sql", "migrations/**/*.up.sql"], "aggregate": true },
+          { "name": "no-destructive-up", "patterns": ["migrations/**/*.up.sql"] },
+          { "name": "no-sql-placeholders", "patterns": ["migrations/**/*.sql"] },
+          { "name": "transaction-boundaries", "patterns": ["migrations/**/*.down.sql", "migrations/**/*.up.sql"] }
+        ]
+      }
+    },
+    "migrations/001.down.sql": {
+      "exit": 0,
+      "object": {
+        "rule": "migrations/[revision].{up.sql,down.sql}.mjs",
+        "pattern": "migrations/*.down.sql",
+        "captures": { "revision": "001" },
+        "constraints": [
+          { "name": "migration-pairs", "patterns": ["migrations/**/*.down.sql", "migrations/**/*.up.sql"], "aggregate": true },
+          { "name": "no-sql-placeholders", "patterns": ["migrations/**/*.sql"] },
+          { "name": "transaction-boundaries", "patterns": ["migrations/**/*.down.sql", "migrations/**/*.up.sql"] }
+        ]
+      }
+    }
+  },
+  "again": {
+    "apply": "after",
+    "delete": ["catalogs/fr/common.json", "migrations/002.down.sql"],
+    "exit": 1,
+    "issues": [
+      { "code": "placeholder_copy", "path": "catalogs/en/common.json" },
+      { "code": "legal_markup", "path": "catalogs/fr/legal-terms.json" },
+      { "code": "destructive_up", "path": "migrations/002.up.sql" },
+      { "code": "migration_transaction", "path": "migrations/002.up.sql" },
+      { "code": "bootstrap_not_idempotent", "path": "migrations/baseline.sql" },
+      { "code": "sql_placeholder", "path": "migrations/baseline.sql" },
+      { "code": "checkout_key_mismatch" },
+      { "code": "missing_locale_domain" },
+      { "code": "missing_migration_direction" }
+    ]
+  },
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" }
+    ]
+  }
+}

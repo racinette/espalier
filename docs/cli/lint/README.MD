@@ -28,28 +28,29 @@ espalier lint [paths...]
 1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, and build the matcher. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `rule` export — stops the run before a single repository file is read.
 2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and anything unreadable stops the run. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
 3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required leaves with no file report `missing_required_file`. See [MATCHING.MD](../../MATCHING.MD).
-4. **Run rules.** For every owned file: its structural rule's `lint`, plus the `lint` of every constraint whose pattern matches it.
+4. **Run rules.** For every owned file: its structural rule's `lint`, plus each per-file constraint whose directory pattern and selector admit it. Run each aggregate once over its complete selected group.
 5. **Report.** Every issue every rule emitted.
 
 Rules execute independently and in unspecified order. Correctness cannot depend on execution order, mutable communication between rules, or unrecorded inputs. A rule may `read` any file this espalier governs — see [What this asks of a rule](#what-this-asks-of-a-rule) — but must not assume another rule has or has not run. Process-local parser or addon infrastructure may reuse state when every answer remains a function of tracked lint data and observed or declared implementation dependencies.
 
-## Constraint targets
+## Constraint selection
 
-A constraint may export `targets`, a non-empty array of relative positive
-globs, to narrow the governed files admitted by its scope — and, for an
-ordinary constraint, its extension. The patterns are relative to the compiled
-prefix before the recursive placeholder, form a union, and cannot make an
-ignored, ungoverned, or extension-mismatched path admissible. Ordinary
-constraints run once per selected path; aggregate constraints receive the
-complete selected set. See [MATCHING.MD](../../MATCHING.MD#target-selectors).
+A constraint selects files by either a filename extension or an exported
+`targets` array of relative positive globs. An extensionless filename requires
+`targets`; a filename with an extension forbids it. A filename selector matches
+the complete extension exactly: `.ts` does not include `.d.ts`. A target glob
+such as `**/*.ts` matches both names. Selectors intersect the
+constraint's directory pattern and cannot make an ignored, ungoverned, or
+structurally unowned path admissible. Per-file constraints run once per
+selected path; aggregates receive the complete selected set. See
+[MATCHING.MD](../../MATCHING.MD#target-selectors).
 
 ## Aggregate constraints
 
 A constraint exporting `aggregate = true` runs once over its complete selected
-population rather than once per file. Its leaf is the rule name and does not
-select a file type. Without `targets` the population is every structurally
-owned, governed file in the constraint's scope. Its sorted `matches` retain
-each file's captures, and the group may be empty. The callback receives
+population rather than once per file. Its filename extension or `targets`
+selects that population by the same rule as a per-file constraint. Its sorted
+`matches` retain each file's captures, and the group may be empty. The callback receives
 `patterns`, the admission globs, rather than a singular `pattern`. See
 [TYPES.MD](../../TYPES.MD#aggregate).
 
@@ -64,7 +65,7 @@ repository pass or fail depending on how lint was invoked. An empty group uses
 the constraint's static prefix to decide whether it intersects the scope.
 
 Membership is an incremental-cache dependency automatically. Adding or removing
-a selected path reruns the aggregate; an owned path rejected by `targets` does
+a selected path reruns the aggregate; an owned path rejected by its selector does
 not. Changing a member's contents reruns it when the rule read that member,
 under the same dependency rule as every other invocation.
 
@@ -77,7 +78,7 @@ A path argument restricts the file set, at the cost of completeness:
 
 - `unexpected_path` is reported for files in scope
 - `missing_required_file` is reported only for required leaves inside the scope
-- constraint and structural rules run only against files in scope
+- structural and per-file constraint invocations are limited to owned files in scope; an aggregate whose selection intersects the scope still receives its complete group
 
 A scoped run cannot tell you the repository conforms — only that the part you asked about does. The human summary says so explicitly. **CI runs unscoped.**
 
@@ -93,10 +94,11 @@ This is what makes running `lint` whole affordable. A hook does not need to work
 
 ### What is remembered
 
-The unit is one rule invocation — a module, the pattern that matched, and the path it ran against. For each, the cache holds the paths it read, the globs it listed, and the issues it emitted. The cache header also holds the implementation modules and explicit implementation inputs that contributed anywhere in the run. An invocation is replayed when all four still hold:
+The unit is one rule invocation — a module, the pattern that matched, and the path it ran against. For each, the cache holds the paths it read, the globs it listed, its selected membership if it is an aggregate, and the issues it emitted. The cache header also holds the implementation modules and explicit implementation inputs that contributed anywhere in the run. An invocation is replayed when all of these still hold:
 
 - every path it read has the same size and modification time
 - every `files` glob still returns the same list
+- an aggregate's selected group has the same members
 - the espalier is unchanged
 - every recorded rule and addon implementation dependency is unchanged
 
@@ -139,7 +141,7 @@ ignored and ungoverned paths. They affect cache validity only: they do not make
 the files available to `read`, add them to `files`, or change where an issue
 may be attached. Ordinary imports do not belong in this export.
 
-Implementation dependencies are global in the first implementation. One
+Implementation dependencies are tracked for the whole run. One
 change reruns every cached invocation. A narrowed run retains the dependencies
 learned by an earlier complete run, including dynamic imports it did not
 execute itself.
@@ -156,7 +158,14 @@ A `lint` function must be a function of what it is handed: `path`, `pattern`, `c
 
 The governed set bounds lint data. `read` refuses a path the espalier does not govern, with `read_ungoverned`, and `files` never returns one. An implementation module may itself be ignored or ungoverned and is still stamped, but that does not turn it into data the rule may read. A rule that needs to inspect such a file rather than execute it is a rule whose espalier should stop ignoring it.
 
-`addons` are held to the same standard, with one addition: **an addon must not read the repository itself.** A parser handed a path opens lint data outside the rule context. Hand it contents, or `read` the path first and throw the string away. Files that are part of the addon's implementation but cannot be observed as modules belong in `unobservedImplementationDependencies` instead.
+Addons must receive repository data through their arguments, not read it
+themselves. Read file contents with the lint context's `read` function and pass
+the returned contents to the addon. This keeps those reads tracked for cache
+invalidation.
+
+Files used to implement the addon itself—such as worker code, parser grammars,
+or WebAssembly binaries—belong in `unobservedImplementationDependencies` when
+module observation cannot track them.
 
 ### The cache
 

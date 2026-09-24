@@ -47,7 +47,7 @@ const cli = path.join(
 );
 const api = pathToFileURL(path.join(packageRoot, "dist", "src", "api.js")).href;
 
-const VALID_CONFIG = "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\n";
+const VALID_CONFIG = "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\n";
 
 interface Case {
   /** What the run is refusing, in a few words. */
@@ -88,7 +88,7 @@ const cases: Case[] = [
   {
     what: "a config that is not YAML",
     code: "config_malformed",
-    config: "version: 1\npin: 0.2.1\n  root: [unclosed\n",
+    config: "version: 1\npin: 0.3.0\n  root: [unclosed\n",
   },
   {
     what: "a config that is valid YAML and not a mapping",
@@ -98,17 +98,17 @@ const cases: Case[] = [
   {
     what: "a key that does not exist — the typo this key exists for",
     code: "config_unknown_key",
-    config: "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\nignoreFile: .gitignore\n",
+    config: "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\nignoreFile: .gitignore\n",
   },
   {
     what: "no skip list",
     code: "config_missing_skip",
-    config: "pin: 0.2.1\nroot: espalier\nignoreFiles: []\n",
+    config: "pin: 0.3.0\nroot: espalier\nignoreFiles: []\n",
   },
   {
     what: "no ignoreFiles list",
     code: "config_missing_ignore_files",
-    config: "pin: 0.2.1\nroot: espalier\nskip: []\n",
+    config: "pin: 0.3.0\nroot: espalier\nskip: []\n",
   },
   {
     what: "no CLI version pin",
@@ -123,39 +123,39 @@ const cases: Case[] = [
   {
     what: "a leftover version key",
     code: "config_unknown_key",
-    config: "version: 1\npin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\n",
+    config: "version: 1\npin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
   },
   {
     what: "a skip pattern that would hide a rule module",
     code: "skip_hides_grammar",
-    config: "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip:\n  - \"*.mjs\"\n",
+    config: "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip:\n  - \"*.mjs\"\n",
   },
   {
     what: "a key holding the wrong type",
     code: "config_invalid_value",
-    config: "pin: 0.2.1\nroot: [espalier]\n",
+    config: "pin: 0.3.0\nroot: [espalier]\n",
   },
   {
     what: "a root that escapes the repository",
     code: "config_invalid_value",
-    config: "pin: 0.2.1\nroot: ../elsewhere\n",
+    config: "pin: 0.3.0\nroot: ../elsewhere\n",
   },
   {
     // A heading is one line, so a name is one line. An empty one would head
     // every document with a bare `#`.
     what: "a name that is not a single line",
     code: "config_invalid_value",
-    config: 'pin: 0.2.1\nname: "a\\nb"\nroot: espalier\n',
+    config: 'pin: 0.3.0\nname: "a\\nb"\nroot: espalier\n',
   },
   {
     what: "a name that is empty",
     code: "config_invalid_value",
-    config: 'pin: 0.2.1\nname: "   "\nroot: espalier\n',
+    config: 'pin: 0.3.0\nname: "   "\nroot: espalier\n',
   },
   {
     what: "a root that is not there",
     code: "espalier_root_missing",
-    config: "pin: 0.2.1\nroot: absent\nignoreFiles: []\nskip: []\n",
+    config: "pin: 0.3.0\nroot: absent\nignoreFiles: []\nskip: []\n",
   },
   {
     // Normalized, not rejected — `./espalier/` is `espalier`, and
@@ -164,7 +164,7 @@ const cases: Case[] = [
     // make every path invisible, which is not a configuration with a meaning.
     what: "a root that names the repository itself",
     code: "config_invalid_value",
-    config: "pin: 0.2.1\nroot: .\n",
+    config: "pin: 0.3.0\nroot: .\n",
   },
   {
     what: "migrate, given a pin newer than the running CLI",
@@ -200,9 +200,37 @@ const cases: Case[] = [
     espalier: { "src/[...path]/no-fetch..mjs": INERT },
   },
   {
-    what: "an extension-free constraint leaf without aggregate",
+    what: "a constraint extension list repeating the same branch",
+    code: "malformed_constraint_leaf",
+    espalier: { "src/[...path]/no-fetch.{ts,ts}.mjs": INERT },
+  },
+  {
+    what: "a structural extension union overlapping a dynamic sibling",
+    code: "ambiguous_siblings",
+    espalier: {
+      "src/[file].{ts,d.ts}.mjs": INERT,
+      "src/[name].d.ts.mjs": INERT,
+    },
+  },
+  {
+    what: "an extension-free constraint leaf without targets",
     code: "malformed_constraint_leaf",
     espalier: { "src/[...path]/registry.mjs": INERT },
+  },
+  {
+    what: "an aggregate with neither selector",
+    code: "malformed_constraint_leaf",
+    espalier: { "src/[...path]/registry.mjs": `${INERT}export const aggregate = true;\n` },
+  },
+  {
+    what: "a filename extension and targets together",
+    code: "module_invalid_export",
+    espalier: { "src/[...path]/registry.json.mjs": `${INERT}export const targets = ["**/*.json"];\n` },
+  },
+  {
+    what: "an aggregate filename extension and targets together",
+    code: "module_invalid_export",
+    espalier: { "src/[...path]/registry.json.mjs": `${INERT}export const aggregate = true;\nexport const targets = ["**/*.json"];\n` },
   },
   {
     what: "an ESPALIER.MD whose frontmatter will not parse",
@@ -324,7 +352,7 @@ export const template = createTemplate(() => "");
     code: "invalid_reference_implementation",
     espalier: {
       "src/[name].ts.mjs": INERT,
-      "[...path]/no-x.ts.mjs": `export const rule = \`No x.\`;
+      "[...path]/no-x.mjs": `export const rule = \`No x.\`;
 export const targets = ["src/allowed.ts"];
 export const referenceImplementation = "src/reference.ts";
 export async function lint() {}
@@ -359,30 +387,30 @@ export async function lint() {}
   {
     what: "a config boolean that is not a boolean",
     code: "config_invalid_value",
-    config: "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  inline: yes please\n",
+    config: "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  inline: yes please\n",
   },
   {
     what: "an Espalier-guidance setting that is not a boolean",
     code: "config_invalid_value",
-    config: "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  espalierGuidance: sometimes\n",
+    config: "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  espalierGuidance: sometimes\n",
   },
 
   // Addons. docs/CONFIG.MD "addons".
   {
     what: "an addons module that is not there",
     code: "addons_import_failed",
-    config: "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\naddons: missing.addons.mjs\n",
+    config: "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\naddons: missing.addons.mjs\n",
   },
   {
     what: "an addons module exporting no setup",
     code: "addons_missing_setup",
-    config: "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\naddons: espalier.addons.mjs\n",
+    config: "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\naddons: espalier.addons.mjs\n",
     files: { "espalier.addons.mjs": "export const teardown = () => {};\n" },
   },
   {
     what: "an addons module with malformed implementation dependencies",
     code: "addons_invalid_export",
-    config: "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\naddons: espalier.addons.mjs\n",
+    config: "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\naddons: espalier.addons.mjs\n",
     files: {
       "espalier.addons.mjs":
         'export const unobservedImplementationDependencies = "worker.wasm";\nexport function setup() { return {}; }\n',
@@ -391,7 +419,7 @@ export async function lint() {}
   {
     what: "an addons setup that throws — nothing is linted",
     code: "addons_setup_failed",
-    config: "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\naddons: espalier.addons.mjs\n",
+    config: "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\naddons: espalier.addons.mjs\n",
     files: {
       "espalier.addons.mjs": 'export async function setup() { throw new Error("no parser"); }\n',
     },

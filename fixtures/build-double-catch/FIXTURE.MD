@@ -6,20 +6,19 @@ satisfies both shapes — and are legal, because a directory never owns a file.
 fixture answers the question that shape left open: whether `build` can say
 what may exist there.
 
-It can, and the answer is unremarkable: two lines, each saying `(zero or more,
-any name)` for itself, under one sentence covering both.
+The map names both collections and states that each may be empty:
 
-    ├─ [provider]/   (zero or more, any name)
+    ├─ [provider]/   (zero or more matching directories)
     │  │
     │  └─ client.ts  an integration with an external API (required)
     │
-    └─ [summary].ts  a one-file summary of a provider (zero or more, any name)
+    └─ [summary].ts  a one-file summary of a provider (zero or more matching files)
 
-    Nothing else may exist under clients/.
+    Every path under clients/ must fit the project layout or a documented
+    repository-specific purpose.
 
-The closed set stays closed because the sentence closing it covers both. That
-was the open question from session one, and the reason for keeping the shape
-legal rather than rejecting it in the compiler.
+The final account covers both collections and any documented repository-specific
+purposes, without implying that directories and files compete for ownership.
 
 ## The root is never pruned
 

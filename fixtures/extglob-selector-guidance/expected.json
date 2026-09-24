@@ -1,0 +1,34 @@
+{
+  "exit": 0,
+  "issues": [],
+  "explain": {
+    "main.ts": {
+      "exit": 0,
+      "object": {
+        "constraints": [
+          {
+            "name": "no-untyped-exports",
+            "description": "applies to paths matching `**/*.@(ts|tsx)` in this project"
+          },
+          {
+            "name": "public-api",
+            "description": "analyzes paths matching `**/*.+(ts|tsx)` in this project together"
+          },
+          {
+            "name": "typescript",
+            "description": "applies to files whose names end in `.ts` in this project"
+          }
+        ]
+      }
+    }
+  },
+  "build": {
+    "exit": 0,
+    "report": [
+      {
+        "kind": "written",
+        "path": "AGENTS.MD"
+      }
+    ]
+  }
+}

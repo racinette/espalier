@@ -1,0 +1,12 @@
+{
+  "exit": 0,
+  "issues": [],
+  "ownership": {
+    "clients/stripe/stripe.ts": "clients/[client]/{client}.ts.mjs",
+    "clients/stripe/stripe.test.ts": "clients/[client]/{client}.test.ts.mjs",
+    "clients/foo.bar/foo.bar.ts": "clients/[client]/{client}.ts.mjs",
+    "clients/foo.bar/foo.bar.test.ts": "clients/[client]/{client}.test.ts.mjs",
+    "clients/foo.bar.test/foo.bar.test.ts": "clients/[client]/{client}.ts.mjs",
+    "clients/foo.bar.test/foo.bar.test.test.ts": "clients/[client]/{client}.test.ts.mjs"
+  }
+}

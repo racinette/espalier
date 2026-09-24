@@ -41,7 +41,7 @@ test("a skipped AGENTS.MD is not invalid_espalier_entry", () => {
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n",
+      "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n",
     );
     writeFileSync(path.join(root, "espalier", "AGENTS.MD"), "Authoring notes.\n");
     writeFileSync(path.join(root, "espalier", "[name].ts.mjs"), INERT);
@@ -56,7 +56,7 @@ test("a nested AGENTS.MD is skipped by the bare name", () => {
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n",
+      "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n",
     );
     mkdirSync(path.join(root, "espalier", "src"), { recursive: true });
     writeFileSync(path.join(root, "espalier", "src", "AGENTS.MD"), "Local notes.\n");
@@ -72,7 +72,7 @@ test("an unskipped notes file is still invalid_espalier_entry", () => {
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.2.1\nroot: espalier\nignoreFiles: []\nskip: []\n",
+      "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
     );
     writeFileSync(path.join(root, "espalier", "notes.md"), "nope\n");
     const lint = run(root, ["lint", "--format", "jsonl"]);

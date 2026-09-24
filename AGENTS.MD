@@ -40,7 +40,7 @@ These paths are part of the repository but serve specific purposes outside the p
 | `LICENSE` | Licence and legal. |
 | `package.json`<br>`package-lock.json` | Manifests and lockfiles. |
 | `tsconfig.json` | Tool configuration. The tool decides the filename; the project only decides the contents. |
-| `fixtures/**` | espalier's own fixtures are data: sixty configs, several deliberately invalid, and a root run executing all sixty is not what anyone means by it. |
+| `fixtures/**` | Espalier's conformance fixtures are test data, including deliberately invalid configurations. The test harness runs them independently of the root lint. |
 | `authoring/**` | Shipped authoring contract. `espalier init` copies it to the espalier root so agents editing rules load it by convention. It is data, like `ignores/`, not a file this repository's architecture places. |
 | `examples/**` | Worked examples `espalier examples` prints. Packed with the CLI; not a file this repository's architecture places. |
 | `.espalierignore`<br>`.gitignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |

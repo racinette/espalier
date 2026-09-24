@@ -3,12 +3,12 @@
 ## Project layout
 
     clients/
-    └─ [provider]/       (zero or more, any name)
+    └─ [provider]/       (zero or more matching directories)
        │
        ├─ {provider}.ts  the provider's entry point (required, {provider}
        │                 repeats what [provider] matched)
        │
-       └─ [helper].ts    a helper (zero or more, any name)
+       └─ [helper].ts    a helper (zero or more matching files)
 
 ## `[provider]/{provider}.ts` — the provider's entry point
 

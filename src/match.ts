@@ -2,7 +2,7 @@
 // docs/MATCHING.MD "Ownership", "What must exist", "The deepest recognized node".
 
 import type { Constraint, Espalier, StructuralRule, TrieNode } from "./compile.js";
-import { matchSegment, resolveSegment, type CaptureValue } from "./pattern.js";
+import { matchSegment, matchedFileExtension, resolveSegment, type CaptureValue } from "./pattern.js";
 
 // Defined beside the parser, because what a capture can hold is a fact about
 // segments rather than about matching. Re-exported here: every reader of an
@@ -112,6 +112,14 @@ export function resolve(espalier: Espalier, filePath: string): Ownership | Recog
 
     if (last) {
       if (node.rule === null) return stopped(node, walked, captures);
+      if (node.segment.fileExtensions !== undefined && node.segment.fileExtensions.length > 1) {
+        const extension = matchedFileExtension(node.segment, segment, captures)!;
+        const suffix = `.{${node.segment.fileExtensions.join(",")}}`;
+        return {
+          rule: { ...node.rule, pattern: `${node.rule.pattern.slice(0, -suffix.length)}.${extension}` },
+          captures,
+        };
+      }
       return { rule: node.rule, captures };
     }
   }
@@ -328,7 +336,7 @@ export function unconditionallyRequired(espalier: Espalier): string[] {
 /**
  * Whether a constraint applies to a path, and what its directory portion
  * captures. The leaf is a rule name, not a placeholder, so the filename is
- * never captured. An ordinary constraint also requires its target extension.
+ * never captured. Either execution mode may require a target extension.
  */
 export function constraintCaptures(
   constraint: Constraint,
@@ -337,8 +345,10 @@ export function constraintCaptures(
   const segments = filePath.split("/");
   const filename = segments[segments.length - 1]!;
   if (constraint.extension !== null) {
-    if (!filename.endsWith(`.${constraint.extension}`)) return null;
-    if (filename.length <= constraint.extension.length + 1) return null;
+    const suffix = `.${constraint.extension}`;
+    if (!filename.endsWith(suffix)) return null;
+    const stem = filename.slice(0, -suffix.length);
+    if (stem === "" || stem.includes(".")) return null;
   }
 
   const directories = segments.slice(0, -1);

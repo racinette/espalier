@@ -17,7 +17,7 @@ one row shared by the two maps.
 
 The constraint at `[...path]/no-as-any.{ts,tsx}` places at the root, because a
 recursive placeholder truncates the static prefix exactly like any other
-dynamic segment. It renders under `## Per-file constraints` and appears in no map:
+dynamic segment. It renders as its own rule section and appears in no map:
 it declares no file, so it answers no question a map is asked.
 
 ## Ordering

@@ -6,7 +6,10 @@ Rewrites `espalier.config.yaml` for the running CLI.
 espalier migrate
 ```
 
-Every other command refuses a `pin` that is not this package's version. `migrate` is the command that is allowed to see that mismatch: it updates `pin`, drops keys this release no longer reads, and inserts the keys this release requires. After it runs, this CLI owns the repository. An older CLI will refuse the result, which is the point.
+Commands that load repository configuration require a `pin` matching this
+package's version. `migrate` is the exception: it updates `pin`, removes the
+obsolete `version` key, and inserts missing required keys. After it runs,
+this CLI owns the repository. An older CLI will refuse the result.
 
 ## Usage
 
@@ -25,7 +28,8 @@ The file is edited as text so comments and key order survive. `migrate` does not
 
 **`pin`.** Set to the running package version. A pin that is already that version is left as a rewrite of the same line only when something else in the file still needs changing.
 
-**`version`.** Removed. `pin` is the only version; a leftover schema identifier is an unknown key to every command but this one.
+**`version`.** Removed. `pin` is the only version; other commands that load
+repository configuration reject this leftover schema identifier as an unknown key.
 
 **`ignoreFiles`.** Inserted as `[]` when the key is absent. That is what omit used to mean: do not read a sitting `.gitignore`. The list is not filled with `.gitignore` — a repository that was not reading one must not start reading one because it upgraded. A key that is already present, empty list included, is left alone.
 
@@ -42,6 +46,12 @@ A config that is already current is reported `skipped` and not written. The auth
 **It will not downgrade.** If `pin` is newer than the running CLI, the run stops with `cannot_downgrade` and the file is not touched. Install the recorded version, or run migrate with that newer CLI.
 
 **It will not compile the espalier.** An older config may already hold an `AGENTS.MD` the current compiler would reject until `skip` is present. The rewrite is the whole of the command; `lint` and `build` run afterwards.
+
+**It will not rewrite rule modules.** A new CLI version may change how rule
+filenames or selectors are interpreted, and the config alone cannot reveal the
+author's intended match set. Review the rules against [MATCHING.MD](../../MATCHING.MD)
+and [TYPES.MD](../../TYPES.MD) before relying on the new pin. `--dry-run`
+reports config and authoring-file writes; it does not validate rule behavior.
 
 Unknown keys other than `version` still fail. Migrate removes the one key this release dropped; it does not guess at typos.
 

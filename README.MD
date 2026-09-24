@@ -191,31 +191,33 @@ aggregates.
 components/buttons/[button].tsx.mjs
 ```
 
-This rule can own files matching `components/buttons/*.tsx`; a more specific
-sibling takes precedence. The placeholder name is exposed to `lint` as
-`captures.button`.
+This rule can own files such as `components/buttons/Submit.tsx`, but not
+`Submit.test.tsx`: the filename capture cannot contain dots. A more specific
+sibling takes precedence. The captured name is exposed to `lint` as
+`captures.button`. See [Matching](docs/MATCHING.MD#placeholders) for literal
+dots, back-references, and explicit suffix alternatives.
 
 Structural rules define the project's architectural shape. They appear in the project map, they carry the conventions written into each directory's documentation, and they are what makes an undeclared file a violation.
 
-**Per-file constraints** check each matching file independently. Their paths
-contain a recursive placeholder, and their filenames give the check's name
-and the extension it applies to, followed by `.mjs`:
+**Per-file constraints** check each selected file independently. Their paths
+contain a recursive placeholder. The filename can select a file extension:
 
 ```text
 [...path]/no-as-any.ts.mjs
 backend/[...path]/no-fetch.ts.mjs
 ```
 
-The first checks every owned, governed TypeScript file in the project; the
-second checks those within `backend/`.
+The first checks every owned, governed file with complete extension `.ts` in
+the project; the second checks those within `backend/`. `foo.d.ts` is not
+selected. To select both, write `no-as-any.{ts,d.ts}.mjs`.
 
-**Aggregates** check matching files together and can enforce several conditions
+**Aggregates** check selected files together and can enforce several conditions
 on the group, such as equal translation key sets or a fixture corpus's mix
-and averages. They use a recursive-placeholder path and export
-`aggregate = true`. Their filename is the rule name followed by `.mjs`:
+and averages. They use the same selection rules as per-file constraints and
+export `aggregate = true`:
 
 ```text
-src/[...path]/message-registry.mjs
+src/[...path]/message-registry.json.mjs
 ```
 
 Per-file constraints and aggregates do not own files. Every governed file
@@ -223,11 +225,18 @@ must have one structural owner; constraints apply additional checks to the
 files they select. Which rule wins, and which files are required to exist, is
 specified in [docs/MATCHING.MD](docs/MATCHING.MD) (`espalier help matching`).
 
-A constraint can export `targets = ["*/queries.sql"]` to narrow its governed
-candidates without redefining ownership or repository structure. The positive
-globs are relative to the prefix before `[...name]` and apply equally to
-ordinary and aggregate constraints. An aggregate without `targets` selects
-every owned governed file in its scope.
+A constraint with no filename extension must instead export `targets`, a
+non-empty list of positive globs, such as `["*/queries.sql"]`. A filename
+extension and `targets` cannot appear together. Both are selectors for
+structurally owned, governed files; neither changes ownership. The globs are
+relative to the prefix before `[...name]` and apply equally to per-file and
+aggregate constraints. `targets = ["**/*"]` selects every file type in the
+constraint's directory scope. In `rule.up.sql.mjs`, the entire `.up.sql`
+suffix is the extension selector.
+
+Unlike a filename selector, a `**/*.ts` target glob also matches names such
+as `foo.d.ts`. Target globs use minimatch syntax, so `**/*.{ts,tsx}` selects
+both suffixes. See [Glob syntax](docs/MATCHING.MD#glob-syntax).
 
 An aggregate runs once over its complete selected set, including an empty
 set. See [docs/TYPES.MD](docs/TYPES.MD) for selection and context details.
@@ -296,7 +305,10 @@ same function unchanged. It is optional: ordinary `export function lint(...)`
 rules remain valid. Aggregate constraints have the corresponding
 `createAggregateLinter` helper.
 
-The `description` is one line, and it is what appears in the project map beside the path. Because the map is the part of the documentation that is always in context, write it in the vocabulary of the task rather than of the architecture — an agent asked to add a `User` type will not necessarily connect that to the phrase "a domain model."
+For a structural rule, `description` briefly describes what the file is.
+For a constraint, it optionally summarizes the requirement. Use the project's
+vocabulary: "a payment provider client" or "checkout message IDs agree across
+locales." Put the full requirements in `rule`.
 
 The `rule` describes the requirements for the file or selected group. The same
 requirements apply whether files are being created or edited, and the same
@@ -344,7 +356,7 @@ async function lint({ path, pattern, captures, read, emit }) {
   const code = await read();
 }
 
-// aggregate (e.g. fixtures/[...path]/corpus-mix.mjs)
+// aggregate (e.g. fixtures/[...path]/corpus-mix.mjs with targets)
 async function lint({ matches, patterns, read, emit }) {
   const contents = await Promise.all(matches.map(({ path }) => read(path)));
 }
@@ -354,9 +366,8 @@ Rules execute independently, in unspecified order. Correctness cannot depend on 
 
 ## The project layout
 
-`espalier build` writes a deterministic `## Project layout` into each generated
-document. In the default distributed layout, each map expands through
-directories until another generated document takes over. For example:
+Generated guidance includes a map of the project's declared structure. For
+example:
 
 ```text
     ./
@@ -370,20 +381,11 @@ directories until another generated document takes over. For example:
     └─ main.ts      the application entry point (required)
 ```
 
-If `components/` has no rules or directory guidance assigned directly to it,
-it needs no document of its own: the root map continues through it to
-`buttons/`, `dropdowns/`, and `layouts/`, where generated documents take over.
-Directories matched by placeholders share guidance in an ancestor rather
-than receiving one document per instance. Rule headings are relative to the
-directory their document describes.
-
-Names remain in authored form. Each entry states whether a static file is
-required or optional, whether a placeholder accepts any name, and which capture
-a back-reference repeats. Siblings use the same deterministic order as the
-matcher. Setting `build.inline: true` instead collects the guidance into one
-root document.
-
-See [docs/cli/build/README.MD](docs/cli/build/README.MD) for how files are placed and what each contains.
+Espalier handles document placement and presentation. Authors declare the
+structure and write the guidance; readers can discover what belongs where
+and which files are required. Set `build.inline: true` when your tooling needs
+all guidance in one root document. See [the build reference](docs/cli/build/README.MD)
+for output details.
 
 ## CI/CD integration
 
@@ -404,11 +406,9 @@ So the espalier is not the agent's to change. The two roles are separate:
 - **The architect** — a human, or an agent explicitly acting in that role — decides what the project's shape is and edits `espalier/`.
 - **The developer** — usually an agent — builds within that shape. When a task does not fit the declared structure, the correct move is to stop and report the gap, not to widen the pattern.
 
-The generated root document explains this workflow once. Nested Espalier roots
-state their independent governance boundary, while ordinary placement documents
-inherit that context instead of repeating it. Every generated document points
-from its `Other repository paths` table to the corresponding `ESPALIER.MD` to
-modify or create when its persistent guidance must change.
+Generated guidance explains this workflow and directs readers to the source
+when guidance needs to change. Edit the corresponding `ESPALIER.MD` or rule
+files, then regenerate; do not edit generated documents directly.
 
 That is as far as the tool goes, and deliberately so. `espalier` cannot stop an agent editing `espalier/`, and a warning it emitted afterwards would be worse than nothing. The architect widening a pattern and an agent widening a pattern are the same edit; a check that fired on both would fire constantly on the intended workflow and be muted within a week. Telling them apart means reconstructing the previous espalier and diffing what each one legalises — a real mechanism, but one whose only output is a note in a log that nobody is obliged to read.
 

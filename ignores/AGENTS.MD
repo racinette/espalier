@@ -3,7 +3,7 @@
 # espalier — `ignores/`
 
 Data, not code. `espalier init --lang go` copies `go.gitignore` into the user's
-config and nothing at lint time ever opens these files again, so upgrading
+`.espalierignore` and nothing at lint time ever opens these files again, so upgrading
 `espalier` cannot change what an existing repository governs.
 
 That is what decides the bar for adding an entry. A missing one costs a project
@@ -18,7 +18,7 @@ underscore is what keeps it out of the `--lang` names.
 ## Project layout
 
     ignores/
-    └─ [language].gitignore  a shipped ignore list (zero or more, any name)
+    └─ [language].gitignore  a shipped ignore list (zero or more matching files)
 
 ## `[language].gitignore` — a shipped ignore list
 

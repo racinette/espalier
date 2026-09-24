@@ -16,8 +16,10 @@ It opens with what an espalier is, then the three kinds of rule: structural,
 per-file, and aggregate. How each kind is written in the tree comes after
 that. Four plain questions check that the sentence was filed under the right
 kind.
-`targets` appears there only as an optional narrowing on a constraint, not as
-the way to pick a kind.
+The contract presents a filename extension and `targets` as alternative ways
+to select files for either kind of constraint. A filename extension is exact;
+`targets` uses glob matching. Selection does not pick whether the check runs
+per file or over a group.
 
 Read the reference for this CLI with `espalier help types`,
 `espalier help matching`, and `espalier help api`. `espalier help` lists every
@@ -38,8 +40,7 @@ a language toolchain.
 
 The helper in that tree parses a string it was given. It does not remember
 repository contents. Generated `AGENTS.MD` files in the tree are the
-presentation of those rules. Generated files live at static placement points;
-dynamic instances share one ancestor document.
+presentation of those rules.
 
 The compact contract `init` vendors is `authoring/AGENTS.MD`. Keep that file
 and `espalier/AGENTS.MD` the same bytes. Policy, helpers, and cache-safe reuse

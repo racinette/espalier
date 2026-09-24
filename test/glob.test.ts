@@ -1,7 +1,7 @@
 // The glob `context.files` matches with. docs/TYPES.MD "ListFiles".
 //
-// Deliberately not the same function as `ignore`'s matcher, and deliberately
-// simpler: this one answers "which of the files this run already knows about
+// Deliberately not the same function as `ignore`'s matcher:
+// this one answers "which of the files this run already knows about
 // does the rule mean", so it has no anchoring rule to get wrong — every pattern
 // is repository-relative because every path it is asked about is. The two look
 // alike enough that pinning the difference is worth a file.
@@ -55,11 +55,32 @@ test("regular-expression syntax in a pattern is literal text", () => {
   assert.equal(matchGlob("src/a.ts", "src/aXts"), false);
 });
 
-test("a question mark is not a wildcard here", () => {
-  // `ignore` supports it and this does not. Neither is wrong — they answer
-  // different questions — but the difference is easy to assume away.
-  assert.equal(matchGlob("src/a?.ts", "src/ab.ts"), false);
-  assert.equal(matchGlob("src/a?.ts", "src/a?.ts"), true);
+test("question marks, classes, braces and extglobs use minimatch syntax", () => {
+  assert.equal(matchGlob("src/a?.ts", "src/ab.ts"), true);
+  assert.equal(matchGlob("src/a?.ts", "src/abc.ts"), false);
+  assert.equal(matchGlob("src/[ab].ts", "src/a.ts"), true);
+  assert.equal(matchGlob("src/[ab].ts", "src/c.ts"), false);
+  assert.equal(matchGlob("**/*.{ts,tsx}", "src/a.tsx"), true);
+  assert.equal(matchGlob("**/*.{ts,tsx}", "src/a.js"), false);
+  assert.equal(matchGlob("**/file{1..3}.ts", "file2.ts"), true);
+  assert.equal(matchGlob("**/@(main|index).ts", "src/index.ts"), true);
+  assert.equal(matchGlob("**/@(main|index).ts", "src/other.ts"), false);
+});
+
+test("escaping preserves literal glob punctuation", () => {
+  assert.equal(matchGlob(String.raw`src/a\?.ts`, "src/a?.ts"), true);
+  assert.equal(matchGlob(String.raw`src/a\?.ts`, "src/ab.ts"), false);
+  assert.equal(matchGlob(String.raw`src/\[ab\].ts`, "src/[ab].ts"), true);
+  assert.equal(matchGlob(String.raw`src/\{a,b\}.ts`, "src/{a,b}.ts"), true);
+});
+
+test("dotfiles, comments, negation and separators have explicit path semantics", () => {
+  assert.equal(matchGlob("**/*.ts", ".hidden/.file.ts"), true);
+  assert.equal(matchGlob("#file.ts", "#file.ts"), true);
+  assert.equal(matchGlob("!file.ts", "other.ts"), false);
+  assert.equal(matchGlob("!file.ts", "!file.ts"), true);
+  assert.equal(matchGlob("src/*.ts", String.raw`src\file.ts`), false);
+  assert.equal(matchGlob("src/a**b.ts", "src/a/deep/b.ts"), false);
 });
 
 test("matching is case-sensitive", () => {

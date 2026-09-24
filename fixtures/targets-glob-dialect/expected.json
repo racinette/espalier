@@ -1,0 +1,92 @@
+{
+  "exit": 0,
+  "issues": [
+    {
+      "path": "src/a1.ts",
+      "code": "braces",
+      "message": "src/a1.ts",
+      "severity": "info"
+    },
+    {
+      "path": "src/a2.tsx",
+      "code": "braces",
+      "message": "src/a2.tsx",
+      "severity": "info"
+    },
+    {
+      "path": "src/literal?.ts",
+      "code": "braces",
+      "message": "src/literal?.ts",
+      "severity": "info"
+    },
+    {
+      "path": "literal?/entry.ts",
+      "code": "braces",
+      "message": "literal?/entry.ts",
+      "severity": "info"
+    },
+    {
+      "path": "literalX/entry.ts",
+      "code": "braces",
+      "message": "literalX/entry.ts",
+      "severity": "info"
+    },
+    {
+      "path": "src/a1.ts",
+      "code": "question",
+      "message": "src/a1.ts",
+      "severity": "info"
+    },
+    {
+      "path": "src/b.js",
+      "code": "class",
+      "message": "src/b.js",
+      "severity": "info"
+    },
+    {
+      "path": "src/a1.ts",
+      "code": "extglob",
+      "message": "src/a1.ts",
+      "severity": "info"
+    },
+    {
+      "path": "src/a2.tsx",
+      "code": "extglob",
+      "message": "src/a2.tsx",
+      "severity": "info"
+    },
+    {
+      "path": "src/literal?.ts",
+      "code": "escaped",
+      "message": "src/literal?.ts",
+      "severity": "info"
+    },
+    {
+      "path": ".",
+      "code": "group",
+      "severity": "info",
+      "message": "literal?/entry.ts,literalX/entry.ts,src/a1.ts,src/a2.tsx,src/literal?.ts",
+      "metadata": {
+        "listed": [
+          "literal?/entry.ts",
+          "literalX/entry.ts",
+          "src/a1.ts",
+          "src/a2.tsx",
+          "src/literal?.ts"
+        ]
+      }
+    },
+    {
+      "path": "literal?/entry.ts",
+      "code": "scoped.ts",
+      "severity": "info",
+      "message": "literal?/entry.ts"
+    },
+    {
+      "path": "literal?/entry.ts",
+      "code": "scoped-target",
+      "severity": "info",
+      "message": "literal?/entry.ts"
+    }
+  ]
+}

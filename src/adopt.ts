@@ -39,13 +39,18 @@ function under(at: string, name: string): string {
 }
 
 function extensionOf(name: string): string {
-  const dot = name.lastIndexOf(".");
+  const dot = name.indexOf(".");
   return dot <= 0 ? "" : name.slice(dot + 1);
 }
 
 function stemOf(name: string): string {
-  const dot = name.lastIndexOf(".");
+  const dot = name.indexOf(".");
   return dot <= 0 ? name : name.slice(0, dot);
+}
+
+function extensionCapture(extension: string): string {
+  const safe = extension.replace(/[^A-Za-z0-9_]/g, "_");
+  return /^[A-Za-z_]/.test(safe) ? safe : `_${safe}`;
 }
 
 function stub(description: string, optional: boolean): string {
@@ -228,47 +233,45 @@ function infer(
     );
   }
 
+  // Recognize directory-named files before grouping by complete extension.
+  // Dots in foo.bar/foo.bar.schema.json belong to {client}, leaving .schema.json.
+  const namedBySuffix = new Map<string, Member[]>();
+  if (listings.length >= 2) {
+    for (const entry of files) {
+      const suffixes = entry.holders.map((holder) => {
+        const prefix = `${path.basename(path.dirname(holder))}.`;
+        return entry.name.startsWith(prefix) ? entry.name.slice(prefix.length) : "";
+      });
+      const suffix = suffixes[0]!;
+      if (suffix === "" || !suffixes.every((value) => value === suffix)) continue;
+      const group = namedBySuffix.get(suffix) ?? [];
+      group.push(entry);
+      namedBySuffix.set(suffix, group);
+    }
+  }
+
+  const collapsed = new Set<Member>();
+  for (const [suffix, named] of namedBySuffix) {
+    const holders = new Set(named.flatMap((entry) => entry.holders.map((holder) => path.dirname(holder))));
+    // A back-reference is required, so every instance must support the inference.
+    if (holders.size !== listings.length) continue;
+    out.leaves.push({
+      at: under(at, `{${name}}.${suffix}`),
+      description: `the ${name} itself`,
+      optional: false,
+    });
+    for (const entry of named) collapsed.add(entry);
+  }
+
   const byExtension = new Map<string, Member[]>();
-  for (const entry of files) {
+  for (const entry of files.filter((entry) => !collapsed.has(entry))) {
     const extension = extensionOf(entry.name);
     const bucket = byExtension.get(extension);
     if (bucket === undefined) byExtension.set(extension, [entry]);
     else bucket.push(entry);
   }
 
-  // Several real directories collapsed into this node, so `name` is the
-  // placeholder they are matched by and a back-reference to it can be written.
-  const capture = listings.length >= 2 ? name : null;
-
-  for (const [extension, remaining] of byExtension) {
-    let group = remaining;
-
-    // A file named after the directory holding it — `stripe/stripe.ts` — is
-    // that directory's own, and `{client}.ts` is the only statement here that
-    // is true of all of them. Read as ordinary members they are one name per
-    // sibling, which becomes a set of optional leaves that forbids the next
-    // client rather than describing the convention.
-    // docs/cli/adopt/README.MD "A file named after its directory".
-    if (capture !== null && extension !== "") {
-      const named = group.filter((entry) =>
-        entry.holders.every((holder) => stemOf(entry.name) === path.basename(path.dirname(holder))),
-      );
-      // Every instance, not two of them. Being wrong here costs a
-      // `missing_required_file` on a directory that never had one, reported the
-      // moment the espalier is written — so a convention two siblings follow
-      // and a third does not is not a convention.
-      if (named.length >= 2 && named.length === listings.length) {
-        out.leaves.push({
-          at: under(at, `{${capture}}.${extension}`),
-          description: `the ${capture} itself`,
-          optional: false,
-        });
-        const collapsed = new Set(named.map((entry) => entry.name));
-        group = group.filter((entry) => !collapsed.has(entry.name));
-        if (group.length === 0) continue;
-      }
-    }
-
+  for (const [extension, group] of byExtension) {
     // Inside a family, the shared filenames are the evidence that made it a
     // family. Collapsing `client.ts` and `requestModels.ts` into `[ts].ts`
     // because they share an extension would throw away the stronger finding
@@ -277,7 +280,7 @@ function infer(
       // A dynamic leaf already matches nothing without complaint, so the
       // collapsed node is never optional — only what it stands in for was.
       out.leaves.push({
-        at: under(at, `[${extension}].${extension}`),
+        at: under(at, `[${extensionCapture(extension)}].${extension}`),
         description: `a ${extension}`,
         optional: false,
       });
