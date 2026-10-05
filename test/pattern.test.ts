@@ -98,6 +98,19 @@ test("structural filename captures stop before their complete extension", () => 
   assert.throws(() => parseStructuralLeaf("main.{ts,tsx}", "test"), /requiredness is ambiguous/);
 });
 
+test("structural extension unions preserve literal and captured line terminators", () => {
+  for (const separator of ["\n", "\r", "\u2028", "\u2029"]) {
+    const segment = parseStructuralLeaf(`line${separator}-[file].{ts,d.ts,tsx}`, "test");
+    assert.deepEqual(segment.fileExtensions, ["ts", "d.ts", "tsx"]);
+    for (const extension of ["ts", "d.ts", "tsx"]) {
+      const captured = `checks${separator}night`;
+      assert.deepEqual(matchSegment(segment, `line${separator}-${captured}.${extension}`), { file: captured });
+    }
+    assert.equal(matchSegment(segment, `line${separator}-checks.extra.ts`), null);
+    assert.equal(matchSegment(segment, `line${separator}-.ts`), null);
+  }
+});
+
 test("sibling overlap keeps back-references free to contain dots", () => {
   const referring = parseStructuralLeaf("[file]-{provider}.ts", "test");
   const compound = parseStructuralLeaf("[file].bar.ts", "test");

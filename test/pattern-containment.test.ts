@@ -4,7 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isStrictSubset, parseSegment, parseStructuralLeaf, type Segment } from "../src/pattern.js";
+import { isStrictSubset, matchSegment, parseSegment, parseStructuralLeaf, type Segment } from "../src/pattern.js";
 
 type Atom = { literal: string } | { capture: true } | { binding: string };
 interface Pattern {
@@ -170,6 +170,25 @@ test("each adjacent capture raises the minimum match length", () => {
   }
 });
 
+test("directory containment agrees with concrete matching across line terminators", () => {
+  const broad = parseSegment("[world]", "newline agreement");
+  for (const separator of ["\n", "\r", "\u2028", "\u2029"]) {
+    const narrow = parseSegment(`line${separator}-[name]`, "newline agreement");
+    const captured = `checks${separator}night`;
+    const name = `line${separator}-${captured}`;
+    assert.equal(isStrictSubset(narrow, broad), true);
+    assert.deepEqual(matchSegment(narrow, name), { name: captured });
+    assert.deepEqual(matchSegment(broad, name), { world: name });
+
+    const referring = parseSegment("{provider}-[name]", "newline agreement");
+    const provider = `acme${separator}eu`;
+    const boundName = `${provider}-${captured}`;
+    assert.equal(isStrictSubset(referring, broad), true);
+    assert.deepEqual(matchSegment(referring, boundName, { provider }), { name: captured });
+    assert.deepEqual(matchSegment(broad, boundName), { world: boundName });
+  }
+});
+
 test("exhaustive structural stems and extension unions have no false proofs", () => {
   const extensions = [["a"], ["b"], ["a", "b"], ["a.a"], ["a", "a.a"], ["a", "a.a", "b"]];
   // A dot after the final capture starts the extension, not another stem
@@ -259,26 +278,21 @@ test("seeded literal specializations remain strict for long and unusual names", 
   };
   const choose = <T>(values: T[]): T => values[next() % values.length]!;
   const literals = ["a", "b", "pre-", "-suffix", "+", "(", ")", "$", "^", "\\", "é", "😀", " ", "\n", "*", "?"];
-  // The structural extension-list parser currently excludes literal newlines
-  // in authored stems. Exercise newline names through captures and bindings,
-  // without making this containment test depend on that separate parser issue.
-  const fileLiterals = literals.filter((text) => !text.includes("\n"));
   const values = ["a", "b", "ab", "a.b", "😀", "x+y", " ", "\n", "long-name".repeat(8)];
   const specialize = (pattern: Pattern): Pattern => {
     const atoms = [...pattern.atoms];
     const captures = atoms.flatMap((atom, index) => "capture" in atom ? [index] : []);
     const at = choose(captures);
-    const extra = literal(choose(pattern.extensions === undefined ? literals : fileLiterals));
+    const extra = literal(choose(literals));
     atoms.splice(at, 1, ...((next() & 1) === 0 ? [extra, capture] : [capture, extra]));
     return { ...pattern, atoms };
   };
   for (let iteration = 0; iteration < 1000; iteration++) {
     const file = (next() & 1) === 0;
-    const choices = file ? fileLiterals : literals;
     const atoms: Atom[] = [];
-    for (let at = 0, count = next() % 4; at < count; at++) atoms.push(literal(choose(choices)));
+    for (let at = 0, count = next() % 4; at < count; at++) atoms.push(literal(choose(literals)));
     atoms.push(capture);
-    if ((next() & 1) === 0) atoms.push(literal(choose(choices)), capture);
+    if ((next() & 1) === 0) atoms.push(literal(choose(literals)), capture);
     const broad: Pattern = !file ? { atoms }
       : { atoms, extensions: choose([["ts"], ["d.ts"], ["ts", "d.ts", "tsx"], ["up.sql", "down.sql"]]) };
     const middle = specialize(broad);

@@ -81,7 +81,8 @@ A path may contain at most one recursive placeholder.
 
 ## Placeholders
 
-Square brackets mark variable parts of a path.
+Square brackets mark variable parts of a path. Matching preserves the segment's
+text, including spaces and line breaks.
 
 `[name]` matches within a single path segment and captures the matched text as a string. It may carry literal text on either side: `[button].tsx`, `test-[name].ts`, `[provider]`. It matches one character or more — `[button].tsx` does not match a file named `.tsx`. In a structural filename with an extension selector, the capture cannot include a dot: `[file].ts` matches `foo.ts`, not `foo.d.ts`. Use `[file].d.ts` or an explicit union to include the latter.
 

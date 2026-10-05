@@ -568,6 +568,58 @@ export const template = createTemplate(${body});
   }, "worlds/[world]/world.json.mjs");
 });
 
+test("directory create and lint preserve newline captures through specialized back-references", () => {
+  const template = `import { createTemplate } from ${JSON.stringify(api)};
+export const description = "simulation source";
+export const rule = "Declare the named simulation source.";
+export async function lint() {}
+export const template = createTemplate(({ captures }) => JSON.stringify(captures) + "\\n");
+`;
+  scratch(template, (root) => {
+    write(root, "espalier/worlds/line\n-[name]/{name}.json.mjs", template);
+    const directory = "worlds/line\n-checks\nnight/";
+    const created = run(root, ["create", directory]);
+    assert.equal(created.status, 0, created.stdout + created.stderr);
+    assert.deepEqual(JSON.parse(readFileSync(path.join(root, directory, "checks\nnight.json"), "utf8")),
+      { name: "checks\nnight" });
+    assert.equal(existsSync(path.join(root, directory, "world.json")), false);
+
+    const broad = "worlds/earth\nsouth/";
+    const ordinary = run(root, ["create", broad]);
+    assert.equal(ordinary.status, 0, ordinary.stdout + ordinary.stderr);
+    assert.deepEqual(JSON.parse(readFileSync(path.join(root, broad, "world.json"), "utf8")),
+      { world: "earth\nsouth" });
+    const lint = run(root, ["lint", "--no-cache", "--format", "jsonl"]);
+    assert.equal(lint.status, 0, lint.stdout + lint.stderr);
+  }, "worlds/[world]/world.json.mjs");
+});
+
+test("file create and explain support a newline stem with an extension union", () => {
+  const template = `import { createTemplate } from ${JSON.stringify(api)};
+export const description = "simulation source";
+export const rule = "Declare the named simulation source.";
+export async function lint() {}
+export const template = createTemplate(({ captures }) => JSON.stringify(captures) + "\\n");
+`;
+  scratch(template, (root) => {
+    const owner = "files/line\n-[name].{ts,tsx}.mjs";
+    write(root, `espalier/${owner}`, template);
+    for (const extension of ["ts", "tsx"]) {
+      const target = `files/line\n-checks\nnight.${extension}`;
+      const created = run(root, ["create", target]);
+      assert.equal(created.status, 0, created.stdout + created.stderr);
+      assert.deepEqual(JSON.parse(readFileSync(path.join(root, target), "utf8")), { name: "checks\nnight" });
+      const explained = run(root, ["explain", target, "--format", "jsonl"]);
+      assert.equal(explained.status, 0, explained.stdout + explained.stderr);
+      const result = JSON.parse(explained.stdout);
+      assert.equal(result.rule, owner);
+      assert.deepEqual(result.captures, { name: "checks\nnight" });
+    }
+    const lint = run(root, ["lint", "--no-cache", "--format", "jsonl"]);
+    assert.equal(lint.status, 0, lint.stdout + lint.stderr);
+  }, "files/[file].{ts,tsx}.mjs");
+});
+
 test("a trailing slash selects a directory when the same spelling can be a file", () => {
   const make = (): string => {
     const root = mkdtempSync(path.join(os.tmpdir(), "espalier-create-role-"));

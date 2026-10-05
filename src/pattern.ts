@@ -157,7 +157,7 @@ export function parseSegment(
 
 /** A dynamic structural filename has an exact full extension after its last placeholder. */
 export function parseStructuralLeaf(source: string, context: string): Segment {
-  const union = /^(.*)\.\{([^{}]*,[^{}]*)\}$/.exec(source);
+  const union = /^(.*)\.\{([^{}]*,[^{}]*)\}$/s.exec(source);
   const lastVariable = Math.max(source.lastIndexOf("]"), source.lastIndexOf("}"));
   const dot = union === null ? source.indexOf(".", lastVariable + 1) : union[1]!.length;
   if (lastVariable === -1 || dot === -1) return parseSegment(source, context);
@@ -288,7 +288,7 @@ export function matchSegment(
         pieces.push(escape(value));
       }
     }
-    return new RegExp(`^${pieces.join("")}$`);
+    return new RegExp(`^${pieces.join("")}$`, "s");
   };
 
   // Only a back-reference-free segment can be cached: the pattern of one that
