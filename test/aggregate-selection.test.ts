@@ -32,7 +32,7 @@ function issues(root: string, args: string[] = []) {
 test("an explicit all-file selector admits every owned governed file in scope", async () => {
   const root = mkdtempSync(path.join(tmpdir(), "espalier-aggregate-omitted-"));
   try {
-    write(root, "espalier.config.yaml", "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "espalier.config.yaml", "pin: 0.4.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     write(root, ".espalierignore", "secret.txt\n");
     write(
       root,
@@ -104,7 +104,7 @@ export async function lint() {}
 test("selector origin stays before the recursive placeholder when directories follow it", () => {
   const root = mkdtempSync(path.join(tmpdir(), "espalier-aggregate-trailing-"));
   try {
-    write(root, "espalier.config.yaml", "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "espalier.config.yaml", "pin: 0.4.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     write(
       root,
       "espalier/backend/[area]/handlers/[name].ts.mjs",
@@ -180,7 +180,7 @@ export async function lint({ matches, patterns, emit }) {
 test("an extension-selected aggregate with trailing directories names the complete extension", () => {
   const root = mkdtempSync(path.join(tmpdir(), "espalier-aggregate-trailing-omitted-"));
   try {
-    write(root, "espalier.config.yaml", "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "espalier.config.yaml", "pin: 0.4.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     write(
       root,
       "espalier/backend/[area]/handlers/[name].ts.mjs",
@@ -210,7 +210,7 @@ export async function lint() {}
 test("a dotted aggregate name selects its extension", () => {
   const root = mkdtempSync(path.join(tmpdir(), "espalier-aggregate-dotted-"));
   try {
-    write(root, "espalier.config.yaml", "pin: 0.3.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "espalier.config.yaml", "pin: 0.4.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     write(
       root,
       "espalier/[name].mjs",
