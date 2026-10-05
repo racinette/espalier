@@ -7,7 +7,7 @@
 
 import type { Constraint, Espalier, NodeDoc, StructuralRule, TrieNode } from "./compile.js";
 import { PROVENANCE } from "./files.js";
-import { backrefNames, parseSegment, parseStructuralLeaf, type Segment } from "./pattern.js";
+import { backrefNames, isStrictSubset, parseSegment, parseStructuralLeaf, type Segment } from "./pattern.js";
 import { admissionGlobs } from "./targets.js";
 
 export const QUICKSTART = `## Working with Espalier
@@ -93,9 +93,9 @@ function isDirectory(node: TrieNode): boolean {
   return node.children.size > 0;
 }
 
-/** Directories before files, then static before dynamic, then lexicographic. */
+/** Directories first, then specificity; alphabetical choice among ready peers. */
 function ordered(node: TrieNode): TrieNode[] {
-  return [...node.children.values()].sort((left, right) => {
+  const remaining = [...node.children.values()].sort((left, right) => {
     const kind = Number(!isDirectory(left)) - Number(!isDirectory(right));
     if (kind !== 0) return kind;
     // static, then resolved, then dynamic — the same specificity order the
@@ -106,6 +106,31 @@ function ordered(node: TrieNode): TrieNode[] {
     if (specificity !== 0) return specificity;
     return left.display < right.display ? -1 : left.display > right.display ? 1 : 0;
   });
+
+  const before = new Map(remaining.map((child) => [child, new Set<TrieNode>()]));
+  for (let i = 0; i < remaining.length; i++) {
+    const left = remaining[i]!;
+    if (!left.segment.dynamic) continue;
+    for (let j = i + 1; j < remaining.length; j++) {
+      const right = remaining[j]!;
+      if (!right.segment.dynamic || isDirectory(left) !== isDirectory(right)) continue;
+      if (isStrictSubset(left.segment, right.segment)) before.get(right)!.add(left);
+      else if (isStrictSubset(right.segment, left.segment)) before.get(left)!.add(right);
+    }
+  }
+
+  // A containment/alphabetical comparator is not transitive: an unrelated
+  // sibling can sort between a broad pattern and its narrower specialization.
+  // Strict containment is acyclic, so a topological order always has a ready
+  // sibling. The initial sort breaks ties without depending on insertion order.
+  const result: TrieNode[] = [];
+  while (remaining.length > 0) {
+    const index = remaining.findIndex((child) => before.get(child)!.size === 0);
+    const child = remaining.splice(index, 1)[0]!;
+    result.push(child);
+    for (const pending of remaining) before.get(pending)!.delete(child);
+  }
+  return result;
 }
 
 interface Visit {

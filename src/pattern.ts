@@ -403,6 +403,11 @@ function intersectTokens(left: IntersectionToken[], right: IntersectionToken[]):
 
 /** Compare all exact structural extension branches, preserving dot-free captures. */
 export function intersectSegments(left: Segment, right: Segment): boolean {
+  const rightVariants = segmentVariants(right);
+  return segmentVariants(left).some((a) => rightVariants.some((b) => intersectBoundTokens(a, b)));
+}
+
+function segmentVariants(segment: Segment): IntersectionToken[][] {
   const tokens = (segment: Segment): IntersectionToken[] =>
     segment.parts.flatMap((part): IntersectionToken[] => part.kind === "literal"
       ? [...part.text].map((char) => ({ kind: "literal", char }))
@@ -411,13 +416,107 @@ export function intersectSegments(left: Segment, right: Segment): boolean {
         dotless: part.kind === "capture" && segment.dotlessCaptures === true,
         ...(part.kind === "backref" ? { binding: part.name } : {}),
       }]);
-  const variants = (segment: Segment): IntersectionToken[][] =>
-    segment.fileStem === undefined || segment.fileExtensions === undefined
-      ? [tokens(segment)]
-      : segment.fileExtensions.map((extension) => [
-        ...tokens(segment.fileStem!),
-        ...[...`.${extension}`].map((char): IntersectionToken => ({ kind: "literal", char })),
-      ]);
-  const rightVariants = variants(right);
-  return variants(left).some((a) => rightVariants.some((b) => intersectBoundTokens(a, b)));
+  return segment.fileStem === undefined || segment.fileExtensions === undefined
+    ? [tokens(segment)]
+    : segment.fileExtensions.map((extension) => [
+      ...tokens(segment.fileStem!),
+      ...[...`.${extension}`].map((char): IntersectionToken => ({ kind: "literal", char })),
+    ]);
+}
+
+const containment = new WeakMap<Segment, WeakMap<Segment, boolean>>();
+
+/** True only when every left match is a right match, with strictly fewer names. */
+export function isStrictSubset(left: Segment, right: Segment): boolean {
+  let cache = containment.get(left);
+  if (cache === undefined) {
+    cache = new WeakMap();
+    containment.set(left, cache);
+  }
+  const known = cache.get(right);
+  if (known !== undefined) return known;
+
+  const a = segmentVariants(left);
+  const b = segmentVariants(right);
+  const variants = [...a, ...b];
+  const equal = (x: IntersectionToken, y: IntersectionToken): boolean =>
+    x.kind === "literal" && y.kind === "literal"
+      ? x.char === y.char
+      : x.kind === "wildcard" && y.kind === "wildcard"
+        && x.binding !== undefined && x.binding === y.binding;
+
+  // Cancel prefixes/suffixes common to every branch. A shared back-reference
+  // is the same text for every match in one parent instance, not a fresh '*'.
+  while (variants.every((branch) => branch.length > 0 && equal(branch[0]!, variants[0]![0]!))) {
+    for (const branch of variants) branch.shift();
+  }
+  while (variants.every((branch) => branch.length > 0 && equal(branch.at(-1)!, variants[0]!.at(-1)!))) {
+    for (const branch of variants) branch.pop();
+  }
+
+  // Left bindings may be over-approximated as nonempty wildcards: inclusion
+  // and a strictness witness outside that larger language remain sound.
+  // Right bindings must be eliminated before treating it as a regular language.
+  const proven = !b.some((branch) => branch.some((token) => token.kind === "wildcard" && token.binding !== undefined))
+    && languageSubset(a, b) && !languageSubset(b, a);
+  cache.set(right, proven);
+  return proven;
+}
+
+/** Inclusion of finite unions of segment NFAs, by exploring their state sets. */
+function languageSubset(left: IntersectionToken[][], right: IntersectionToken[][]): boolean {
+  const alphabet = new Set<string>(["/", "."]);
+  for (const branch of [...left, ...right]) {
+    for (const token of branch) if (token.kind === "literal") alphabet.add(token.char);
+  }
+
+  const machine = (branches: IntersectionToken[][]) => {
+    const tokens: (IntersectionToken | undefined)[] = [];
+    const starts: number[] = [];
+    const ends = new Set<number>();
+    for (const branch of branches) {
+      starts.push(tokens.length);
+      tokens.push(...branch);
+      ends.add(tokens.length);
+      tokens.push(undefined);
+    }
+    return {
+      starts,
+      accepts: (states: number[]): boolean => states.some((state) => ends.has(state)),
+      step: (states: number[], char: string): number[] => {
+        const next = new Set<number>();
+        for (const state of states) {
+          const token = tokens[state];
+          if (token === undefined) continue;
+          if (token.kind === "literal") {
+            if (token.char === char) next.add(state + 1);
+          } else if (!token.dotless || char !== ".") {
+            next.add(state);
+            next.add(state + 1);
+          }
+        }
+        return [...next].sort((a, b) => a - b);
+      },
+    };
+  };
+
+  const a = machine(left);
+  const b = machine(right);
+  const key = (x: number[], y: number[]): string => `${x.join(",")}|${y.join(",")}`;
+  const queue: [number[], number[]][] = [[a.starts, b.starts]];
+  const seen = new Set<string>([key(a.starts, b.starts)]);
+  for (let index = 0; index < queue.length; index++) {
+    const [x, y] = queue[index]!;
+    if (a.accepts(x) && !b.accepts(y)) return false;
+    for (const char of alphabet) {
+      const nextX = a.step(x, char);
+      if (nextX.length === 0) continue;
+      const nextY = b.step(y, char);
+      const id = key(nextX, nextY);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      queue.push([nextX, nextY]);
+    }
+  }
+  return true;
 }

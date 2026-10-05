@@ -84,9 +84,19 @@ The root file additionally carries the project preamble.
 4. Render each surviving point.
 5. Write with a provenance header, in deterministic order. A file whose rendered bytes match what is already on disk is left alone rather than rewritten, so a second run touches nothing and reports nothing.
 
-Everywhere siblings are listed — in the map, in the order files are written — the order is: directories before files, then by specificity (static, then resolved, then dynamic), then lexicographic by authored name. Every tier does work, and together they are total, so output is byte-comparable between runs.
+Sibling declarations appear with directories before files, then static names,
+resolved names, and dynamic patterns within each kind. Within dynamic siblings,
+every strictly narrower pattern appears before its broader fallbacks, using the
+same containment relation as ownership. Thus `test-[name].ts` appears before
+`[file].ts`, and `[name]-special-checksonly/` before `[name]-checksonly/`,
+which itself appears before `[world]/`.
 
-The specificity tier is rarely what decides, because `{` and `[` both sort after every letter, so an authored name usually lands in the same place either way. It is stated because it is the order the matcher uses, and a document listing siblings in one order while ownership resolves them in another would be describing a different espalier.
+When several siblings are ready to appear, choose the lexicographically first
+authored name; a broader pattern waits until all its narrower siblings have
+appeared. This gives deterministic ordering even when unrelated patterns sit
+alphabetically between a specialization and its fallback. The project map and
+guidance sections share this order, so the document presents the same
+specificity that decides ownership.
 
 ## Rendering
 
@@ -386,9 +396,8 @@ A directory below the placement point may have prose too — a dynamic directory
 
 Sections appear in map order, so the map doubles as a table of contents, and a
 directory's section precedes the sections of everything inside it. The heading
-is the rule's full path from the repository root, not from the placement point
-— an agent reading `src/clients/AGENTS.MD` is being told where the file goes,
-and a relative fragment makes it guess. The `Reference implementation:` line
+is relative to the placement point, like its path in that document's map:
+`[provider]/client.ts` under `src/clients/`. The `Reference implementation:` line
 carries the repository path from `referenceImplementation` and is omitted when
 the module exports none. Inline source is deliberately unsupported: an
 unvalidated duplicate inside the rule module could drift from real code.

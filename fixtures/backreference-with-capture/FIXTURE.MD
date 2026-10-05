@@ -22,6 +22,10 @@ pattern before the placeholder is matched against what is left.
   swallowed by the capture.
 - **The tier is dynamic.** It matches many, so it sits beside `[note].md` in
   the dynamic tier and is checked against it for ambiguity — the two do not
-  collide only because no filename ends in both `.ts` and `.md`. A `[helper].ts`
-  sibling would be rejected as `ambiguous_siblings`, which is why there is not
-  one here.
+  collide because no filename ends in both `.ts` and `.md`. A `[helper].ts`
+  sibling is still rejected, but not merely because it overlaps: containment
+  must hold for every provider name. With provider `acme.eu`,
+  `{provider}-[kind].ts` matches `acme.eu-charges.ts`, while `[helper].ts`
+  cannot absorb that dot. With provider `stripe`, the patterns overlap at
+  `stripe-charges.ts`. Neither pattern is uniformly a strict subset of the
+  other, so this remains `ambiguous_siblings`.

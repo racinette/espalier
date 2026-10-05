@@ -40,7 +40,8 @@ See [CONFIG.MD](CONFIG.MD).
 
 ## The espalier tree
 
-See [MATCHING.MD](MATCHING.MD). All of these are detected before a single repository file is read.
+See [MATCHING.MD](MATCHING.MD). These are compilation failures, detected before
+repository linting begins.
 
 | Code | |
 |---|---|
@@ -52,7 +53,7 @@ See [MATCHING.MD](MATCHING.MD). All of these are detected before a single reposi
 | `duplicate_placeholder_name` | the same capture name twice in one path |
 | `unbound_backreference` | a `{name}` with no `[name]` earlier in the same path |
 | `extension_list_on_structural_leaf` | `{ts,tsx}` on a literal structural leaf, where it is unclear which alternative must exist; dynamic leaves may list extensions |
-| `ambiguous_siblings` | two siblings in one tier that could both own one name |
+| `ambiguous_siblings` | overlapping siblings in one tier without a provably strictly narrower winner |
 | `inconsistent_capture_names` | one dynamic directory described under two names |
 | `duplicate_structural_rule` | two modules governing the same path |
 

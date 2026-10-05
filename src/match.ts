@@ -2,7 +2,7 @@
 // docs/MATCHING.MD "Ownership", "What must exist", "The deepest recognized node".
 
 import type { Constraint, Espalier, StructuralRule, TrieNode } from "./compile.js";
-import { matchSegment, matchedFileExtension, resolveSegment, type CaptureValue } from "./pattern.js";
+import { isStrictSubset, matchSegment, matchedFileExtension, resolveSegment, type CaptureValue } from "./pattern.js";
 
 // Defined beside the parser, because what a capture can hold is a fact about
 // segments rather than about matching. Re-exported here: every reader of an
@@ -53,6 +53,35 @@ export function stopped(
   return { recognized: at.join("/"), captures, declared: declared(node) };
 }
 
+/** One winner for ownership, directory queries, and requiredness. */
+function selectChild(
+  node: TrieNode,
+  name: string,
+  captures: Record<string, CaptureValue>,
+  directory: boolean,
+): { node: TrieNode; captures: Record<string, string> } | null {
+  const usable = (child: TrieNode): boolean =>
+    directory ? child.children.size > 0 : child.rule !== null;
+  const exact = node.children.get(name);
+  if (exact !== undefined && !exact.segment.dynamic && !exact.segment.resolved && usable(exact)) {
+    return { node: exact, captures: {} };
+  }
+  for (const child of node.children.values()) {
+    if (child.segment.resolved && usable(child) && resolveSegment(child.segment, captures) === name) {
+      return { node: child, captures: {} };
+    }
+  }
+  let winner: { node: TrieNode; captures: Record<string, string> } | null = null;
+  for (const child of node.children.values()) {
+    if (!child.segment.dynamic || !usable(child)) continue;
+    const found = matchSegment(child.segment, name, captures);
+    if (found !== null && (winner === null || isStrictSubset(child.segment, winner.node.segment))) {
+      winner = { node: child, captures: found };
+    }
+  }
+  return winner;
+}
+
 /** Resolves the single structural owner of a path, or how far recognition got. */
 export function resolve(espalier: Espalier, filePath: string): Ownership | Recognition {
   const segments = filePath.split("/");
@@ -68,47 +97,12 @@ export function resolve(espalier: Espalier, filePath: string): Ownership | Recog
     // a directory. This is what lets a dynamic directory and a dynamic leaf
     // share a parent — `clients/[provider]/client.ts` beside `clients/[list].ts`
     // — without either shadowing the other.
-    const usable = (child: TrieNode): boolean =>
-      last ? child.rule !== null : child.children.size > 0;
+    const next = selectChild(node, segment, captures, !last);
+    if (next === null) return stopped(node, walked, captures);
 
-    // static > resolved > dynamic: a more specific node wins at every level.
-    // docs/MATCHING.MD "Ownership".
-    let next = node.children.get(segment);
-    if (next !== undefined && (next.segment.dynamic || next.segment.resolved || !usable(next))) {
-      next = undefined;
-    }
-    let bound: Record<string, string> = {};
-
-    // A resolved node is keyed by its authored form, so it is never the exact
-    // hit above; it becomes a literal only once the captures collected on the
-    // way down are substituted in.
-    if (next === undefined) {
-      for (const child of node.children.values()) {
-        if (!child.segment.resolved || !usable(child)) continue;
-        if (resolveSegment(child.segment, captures) === segment) {
-          next = child;
-          break;
-        }
-      }
-    }
-
-    if (next === undefined) {
-      for (const child of node.children.values()) {
-        if (!child.segment.dynamic || !usable(child)) continue;
-        const found = matchSegment(child.segment, segment, captures);
-        if (found !== null) {
-          next = child;
-          bound = found;
-          break;
-        }
-      }
-    }
-
-    if (next === undefined) return stopped(node, walked, captures);
-
-    node = next;
+    node = next.node;
     walked.push(node.display);
-    Object.assign(captures, bound);
+    Object.assign(captures, next.captures);
 
     if (last) {
       if (node.rule === null) return stopped(node, walked, captures);
@@ -147,39 +141,11 @@ export function resolveDirectory(
   let node = espalier.root;
 
   for (const segment of segments) {
-    const usable = (child: TrieNode): boolean => child.children.size > 0;
-    let next = node.children.get(segment);
-    if (next !== undefined && (next.segment.dynamic || next.segment.resolved || !usable(next))) {
-      next = undefined;
-    }
-    let bound: Record<string, string> = {};
-
-    if (next === undefined) {
-      for (const child of node.children.values()) {
-        if (!child.segment.resolved || !usable(child)) continue;
-        if (resolveSegment(child.segment, captures) === segment) {
-          next = child;
-          break;
-        }
-      }
-    }
-
-    if (next === undefined) {
-      for (const child of node.children.values()) {
-        if (!child.segment.dynamic || !usable(child)) continue;
-        const found = matchSegment(child.segment, segment, captures);
-        if (found !== null) {
-          next = child;
-          bound = found;
-          break;
-        }
-      }
-    }
-
-    if (next === undefined) return stopped(node, walked, captures);
-    node = next;
+    const next = selectChild(node, segment, captures, true);
+    if (next === null) return stopped(node, walked, captures);
+    node = next.node;
     walked.push(node.display);
-    Object.assign(captures, bound);
+    Object.assign(captures, next.captures);
   }
 
   return { node, path: walked.join("/"), captures };
@@ -260,33 +226,6 @@ export function requiredFiles(espalier: Espalier, visible: Set<string>): Require
         continue;
       }
 
-      /**
-       * Whether a more specific sibling already describes this directory.
-       *
-       * The same tier order ownership resolves by — static > resolved >
-       * dynamic — applied where the requirements are worked out. Without it a
-       * dynamic directory instantiates for names a static sibling owns, and
-       * the espalier asks for files inside a directory another rule describes:
-       * `clients/[provider]/` beside `[area]/[module]/` would report every
-       * directory under `clients` missing an `index.ts` it never declared.
-       */
-      const claimed = (name: string): boolean => {
-        const exact = node.children.get(name);
-        if (
-          exact !== undefined &&
-          !exact.segment.dynamic &&
-          !exact.segment.resolved &&
-          exact.children.size > 0
-        ) {
-          return true;
-        }
-        for (const sibling of node.children.values()) {
-          if (!sibling.segment.resolved || sibling.children.size === 0) continue;
-          if (resolveSegment(sibling.segment, captures) === name) return true;
-        }
-        return false;
-      };
-
       // Any visible file beneath an instance instantiates it.
       const instances = new Map<string, Record<string, string>>();
       const root = prefix === "" ? "" : `${prefix}/`;
@@ -296,9 +235,9 @@ export function requiredFiles(espalier: Espalier, visible: Set<string>): Require
         const cut = rest.indexOf("/");
         if (cut === -1) continue;
         const name = rest.slice(0, cut);
-        if (instances.has(name) || claimed(name)) continue;
-        const bound = matchSegment(child.segment, name);
-        if (bound !== null) instances.set(name, bound);
+        if (instances.has(name)) continue;
+        const winner = selectChild(node, name, captures, true);
+        if (winner?.node === child) instances.set(name, winner.captures);
       }
 
       for (const [name, bound] of instances) {

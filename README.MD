@@ -192,10 +192,15 @@ components/buttons/[button].tsx.mjs
 ```
 
 This rule can own files such as `components/buttons/Submit.tsx`, but not
-`Submit.test.tsx`: the filename capture cannot contain dots. A more specific
-sibling takes precedence. The captured name is exposed to `lint` as
-`captures.button`. See [Matching](docs/MATCHING.MD#placeholders) for literal
+`Submit.test.tsx`: the filename capture cannot contain dots. The captured name
+is exposed to `lint` as `captures.button`. See
+[Matching](docs/MATCHING.MD#placeholders) for literal
 dots, back-references, and explicit suffix alternatives.
+
+For both files and directories, a placeholder pattern matching a strict subset
+of a sibling's names takes precedence; the broader sibling owns the rest.
+Overlapping patterns with no provably narrower winner are rejected. See
+[Ownership](docs/MATCHING.MD#ownership) for the full specificity rules.
 
 Structural rules define the project's architectural shape. They appear in the project map, they carry the conventions written into each directory's documentation, and they are what makes an undeclared file a violation.
 

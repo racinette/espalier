@@ -142,9 +142,9 @@ templates because they apply to files owned by structural rules and declare no
 destination of their own.
 
 When the concrete path is a directory, `create` composes the templates of every
-required descendant. Each schema key appears at the CLI as
-`--<relative-file>:<schema-key>` and is stripped back to its original key before
-that file's renderer runs. The template definition and its inferred argument
+required descendant of the selected structural directory. Each schema key
+appears at the CLI as `--<relative-file>:<schema-key>` and is stripped back to
+its original key before that file's renderer runs. The template definition and its inferred argument
 type therefore remain local to one file; directory creation adds no second
 renderer protocol and does not couple same-named options from different files.
 
@@ -189,8 +189,8 @@ The renderer's final argument is `{ path, captures }`. `path` is the concrete
 path relative to the repository that owns the rule. `captures` contains the
 values bound by that rule's structural placeholders, so a rule stored at
 `components/[name].tsx.mjs` can derive `AccountCard` directly from a request for
-`components/AccountCard.tsx`. Repeated captures are arrays, as they are for a
-linter, and backreferences bind no additional value.
+`components/AccountCard.tsx`. Structural captures are strings, and
+back-references introduce no additional capture.
 
 The renderer may be synchronous or asynchronous and must return a string.
 Espalier writes it verbatim. A template with no options uses the overload that

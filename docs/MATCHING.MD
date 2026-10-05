@@ -177,7 +177,11 @@ It carries literal text like any other segment part: `[provider]/{provider}.test
 
 A segment may hold a back-reference **and** a placeholder: `[provider]/{provider}-[kind].ts` names one file per provider per kind. Such a segment is dynamic rather than resolved, because it still matches many — the tier is decided by how many files a segment can name, not by whether a back-reference appears in it. It therefore competes with dynamic siblings and is checked against them for ambiguity.
 
-What it replaces is a rule body asking politely. Before, `[provider]/[implementation].ts` matched every filename in the directory and the module's `rule` had to say "name this after the directory" and its `lint` had to check. That is prose an agent may or may not follow, checked by code someone has to write, for a fact the espalier could simply state. Stating it also puts it in the generated documentation and the project map, where an agent reads it before writing the file rather than after.
+Back-references state naming relationships directly in the tree.
+`[provider]/[implementation].ts` captures the filename stem independently of
+the provider name; `[provider]/{provider}.ts` requires the names to agree.
+The relationship is part of structural matching rather than a separate lint
+check, and `create` can derive the required filename from the directory.
 
 ### Multiple extensions
 
@@ -193,8 +197,9 @@ This is one rule with several explicit branches, not glob brace expansion.
 Structural branches retain the same dot-free capture rule: `[file].{ts,tsx}`
 does not own `foo.d.ts`, but `foo.[file].{ts,tsx}` owns `foo.bar.ts`.
 Constraint branches compare the actual filename's complete extension, so
-`.ts` does not include `.d.ts` or `.bar.ts`. Each matching file invokes a
-per-file rule once, even if more than one branch or target glob could admit it.
+`.ts` does not include `.d.ts` or `.bar.ts`. Each owned file invokes its
+structural rule once. Each selected file invokes a per-file constraint once,
+even if more than one branch or target glob could admit it.
 
 Per-file and aggregate constraint leaves may both list extensions. Each listed suffix may contain dots: `migration-order.{up.sql,down.sql}.mjs` selects both migration file kinds. Dynamic structural leaves may do the same. A literal structural leaf names one required file, however, so `main.{ts,tsx}.mjs` would leave requiredness ambiguous. It is rejected as `extension_list_on_structural_leaf`; write two literal rules or a dynamic rule, whichever reflects the intended structure.
 
@@ -303,6 +308,17 @@ A **static** segment is a literal. A **resolved** segment contains a back-refere
 
 The order is specificity, not a table to memorise: a segment that names one file beats one that names many, and a segment that always names the same file beats one that names a different file per instance.
 
+Within dynamic siblings, a pattern that matches a strict subset of another
+pattern's names wins. Every name matched by the narrower pattern also matches
+the broader one, and the broader pattern admits additional names.
+`[name]-checksonly/` therefore owns
+`011_flight_arrivals-checksonly/` beside `[world]/`; `[world]/` owns the
+remaining directories. This applies to file leaves too: `test-[name].ts`
+owns `test-a.ts` beside `[file].ts`. The comparison uses the names the
+patterns can match, not their lengths, capture names, or declaration order.
+The winning directory alone declares its contents; a failed match inside it
+does not fall back to a broader sibling.
+
 Given:
 
 ```text
@@ -324,9 +340,12 @@ In a conforming repository this distinction is invisible — every file has an o
 
 ## Ambiguity is rejected
 
-Two situations make ownership undecidable. Both are compile-time errors, reported before any file is read, and both exit `2`.
+Structural ownership must be unambiguous before repository files can be
+linted. The following configuration errors stop compilation and exit `2`.
 
-**Overlapping dynamic siblings.** Two dynamic patterns in the same directory conflict when some filename could satisfy both:
+**Overlapping dynamic siblings.** Two dynamic patterns competing for files or
+directories conflict when they overlap and neither matches a strict subset of
+the other's names. Equivalent patterns also conflict:
 
 ```text
 [component].tsx
@@ -335,7 +354,7 @@ Two situations make ownership undecidable. Both are compile-time errors, reporte
 
 ```text
 [name].ts
-test-[name].ts        rejected — "test-a.ts" matches both
+test-[name].ts        accepted — the test pattern is a strict subset
 ```
 
 ```text
@@ -349,6 +368,30 @@ Dynamic siblings that cannot collide are fine:
 [component].tsx
 [helper].ts           accepted — no filename ends in both
 ```
+
+A broad fallback can sit beside several disjoint specializations:
+
+```text
+prefix1-[name]/
+prefix2-[name]/
+[world]/              accepted — the prefixed patterns win their directories
+```
+
+It cannot resolve an overlap between incomparable patterns:
+
+```text
+prefix-[name]/
+[name]-suffix/
+[world]/              rejected — "prefix-suffix" matches both specializations
+```
+
+Nested strict subsets are allowed, and the narrowest matching pattern wins.
+An extension union follows the same rule: `[file].ts` wins its files beside
+`[file].{ts,tsx}`, which owns the remaining `.tsx` files.
+Containment is established from the patterns, independently of repository
+contents. Back-references share their bound values; common bound prefixes and
+suffixes can be compared directly. If remaining back-references prevent
+Espalier from proving strict containment or disjointness, the overlap is rejected.
 
 Siblings only conflict within their own tier. Static names cannot collide with each other at all, and a static or resolved sibling beside a dynamic one is decided by specificity rather than by guessing — `requestModels.ts` beside `[implementation].ts`, or `{provider}.ts` beside `[implementation].ts`, are both fine. Two *resolved* siblings are also checked for ambiguity, because different back-references can resolve to the same text:
 
@@ -402,7 +445,10 @@ Only files are validated. Directories are not checked for their own sake — a d
 
 **Resolved leaves are required per instance.** `[provider]/{provider}.ts.mjs` means each provider directory must contain a file named after itself. It behaves as a static leaf does, one instance at a time: `clients/stripe/` without `stripe.ts` reports `missing_required_file`, and `optional` relaxes it the same way. A back-reference cannot occur above the placeholder it refers to, so there is no such thing as an unconditionally required resolved leaf.
 
-**Dynamic leaves are collections.** `[util].ts.mjs` means *every file matching this shape follows this rule*, including none. Zero matches is not a violation.
+**Dynamic leaves are collections.** `[util].ts.mjs` allows zero or more owned
+files. Each owned file follows its rule; a matching file claimed by a more
+specific sibling follows that sibling's rule instead. Zero owned files is not
+a violation.
 
 **Dynamic directories are collections.** `clients/[provider]/` may have zero instances.
 
@@ -419,7 +465,7 @@ An empty `clients/` is valid. Once `clients/stripe/client.ts` exists, `clients/s
 
 Any governed file under the instance instantiates it, whether or not a structural rule owns that file. `clients/stripe/notes.md` alone is enough: something is there, so the directory exists, and a `clients/stripe/` that exists without a client is exactly the drift this reports. Ungoverned files do not count.
 
-**A directory a more specific sibling describes is not an instance.** Requiredness resolves by the same tier order ownership does — static, then resolved, then dynamic — so `clients/` beside `[area]/` is `clients/`, and nothing under it is asked to satisfy `[area]/`. Otherwise a dynamic pair would reach every directory at its depth, and an espalier declaring `[area]/[module]/index.ts` alongside `clients/[provider]/client.ts` would report every provider missing an `index.ts` no rule had placed there. The two questions — who owns this file, and what must exist — are answered from one tree and must be answered the same way.
+**A directory a more specific sibling describes is not an instance.** Requiredness uses the same specificity as ownership: static, then resolved, then the narrowest matching dynamic pattern. Thus `clients/` beside `[area]/` is `clients/`, and nothing under it is asked to satisfy `[area]/`. Likewise `[name]-checksonly/` beside `[world]/` requires only the checksonly branch's descendants in matching directories. Otherwise a broad pattern would demand files inside a directory a different rule describes. The two questions — who owns this file, and what must exist — are answered from one tree and must be answered the same way.
 
 **Optional descendants stay optional per instance.** `clients/[provider]/webhook.ts.mjs` marked optional means any provider may have a webhook and none has to. This is the case the espalier could not state before: the shared files stay required for every instance, and the one that only some instances carry is declared with its rule rather than left undeclared.
 
@@ -472,7 +518,7 @@ Two issue codes come from matching rather than from a rule module. Their `rule` 
 
 `missing_required_file` — a required static leaf has no corresponding file. A leaf its module marks `optional` never reports it.
 
-Everything that makes the espalier itself invalid — overlapping siblings, inconsistent capture names, more than one recursive placeholder in a path, a duplicate placeholder name, a contradiction between an exclusion and a required leaf — is an operational failure, not an issue. It exits `2` and no files are linted. Every code is listed in [ERRORS.MD](ERRORS.MD).
+Everything that makes the espalier itself invalid — ambiguous siblings, inconsistent capture names, more than one recursive placeholder in a path, a duplicate placeholder name, a contradiction between an exclusion and a required leaf — is an operational failure, not an issue. It exits `2` and no files are linted. Every code is listed in [ERRORS.MD](ERRORS.MD).
 
 ## Worked example
 

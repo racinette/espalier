@@ -31,6 +31,12 @@ The path does not have to exist either way. Matching is pure.
 
 Returns everything the espalier declares beneath it: what may exist, which files are required, the rule for each, and every constraint that applies in that subtree.
 
+A concrete directory resolves by the same
+[specificity rules](../../MATCHING.MD#ownership) as structural ownership.
+Its structural declarations come from the winning branch, rather than merging
+with those of broader siblings. Within the returned subtree, maps and rule
+lists put narrower patterns before their fallbacks, as in generated guidance.
+
 ```text
 $ espalier explain components/
 

@@ -179,6 +179,8 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 |---|---|
 | `ownership-static-beats-dynamic` | precedence between a static and a dynamic leaf; captures on the winner |
 | `ownership-dynamic-directory-and-leaf` | overlapping dynamic siblings that compete for different roles |
+| `ownership-dynamic-subsets` | strict subsets win over dynamic fallbacks for files and directories, including requiredness, captures, and generated documentation order |
+| `invalid-incomparable-directories` | a broad fallback cannot resolve overlapping prefix and suffix directory patterns |
 | `requiredness-specificity` | a directory a static or resolved sibling describes is not a dynamic instance |
 | `requiredness-dynamic-directory` | static descendants become required per instantiated dynamic directory |
 | `case-sensitive-matching` | names compared case-sensitively, static and dynamic alike |
@@ -193,7 +195,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `captures-literal-affix` | a capture is the text it matched, not the segment it sits in |
 | `constraint-after-recursive` | a constraint with segments after `[...path]`, matched from the end and not captured |
 | `emit-path-override` | an issue attached to a file other than the one being linted |
-| `invalid-overlapping-siblings` | two dynamic siblings that can match the same filename |
+| `invalid-overlapping-siblings` | overlapping dynamic file patterns with no strictly narrower winner |
 | `invalid-capture-names` | one dynamic directory described under two names |
 | `invalid-ignored-required-file` | a required static leaf that `.espalierignore` also matches |
 | `build-placement-and-pruning` | placement, pruning, ordering, and every part of the rendered document |

@@ -16,7 +16,9 @@ The names are chosen so that `[provider]` is inserted into the trie before
 That ordering is the whole point of the case: with the leaf first, a broken
 matcher stumbles into the right answer and the fixture proves nothing.
 
-Two dynamic leaves, or two dynamic directories, remain a compile error:
-there is no role left to separate them. See invalid-overlapping-siblings.
+For two dynamic leaves or two dynamic directories, role cannot separate them.
+An overlap is accepted only when one pattern is strictly narrower; incomparable
+overlaps remain a compile error. See invalid-overlapping-siblings and
+ownership-dynamic-subsets.
 
 Pins: MATCHING.MD "Ambiguity is rejected", the accepted case.

@@ -1,24 +1,76 @@
-// The sibling-overlap examples in docs/MATCHING.MD "Ambiguity is rejected".
-// Only one of them is covered by a fixture, and the decision procedure is
-// subtle enough to be worth pinning directly.
+// The containment and overlap decisions in docs/MATCHING.MD "Ownership"
+// and "Ambiguity is rejected". Fixtures pin ownership; these tests exercise
+// the decision procedure directly, including uninstantiated pattern pairs.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { intersects, intersectSegments, matchSegment, parseSegment, parseStructuralLeaf, resolveSegment } from "../src/pattern.js";
+import { intersects, intersectSegments, isStrictSubset, matchSegment, parseSegment, parseStructuralLeaf, resolveSegment } from "../src/pattern.js";
 
 const shapeOf = (source: string): string => parseSegment(source, "test").shape;
 
 const overlaps = (a: string, b: string): boolean => intersects(shapeOf(a), shapeOf(b));
 
-test("dynamic siblings that can match one name are rejected", () => {
+test("dynamic patterns can overlap without being equivalent", () => {
   assert.equal(overlaps("[component].tsx", "[helper].tsx"), true);
   assert.equal(overlaps("[name].ts", "test-[name].ts"), true, `"test-a.ts" matches both`);
   assert.equal(overlaps("[name]-test.ts", "test-[name].ts"), true, `"test-x-test.ts" matches both`);
 });
 
-test("dynamic siblings that cannot collide are accepted", () => {
+test("dynamic patterns with incompatible literals are disjoint", () => {
   assert.equal(overlaps("[component].tsx", "[helper].ts"), false, "no filename ends in both");
   assert.equal(overlaps("a-[x].ts", "b-[x].ts"), false);
+});
+
+test("dynamic specificity proves strict containment rather than counting literals", () => {
+  for (const [narrow, broad] of [
+    ["[name]-checksonly", "[world]"],
+    ["prefix-special-[name]", "prefix-[name]"],
+    ["[name]-special-checksonly", "[name]-checksonly"],
+    ["[a][b]", "[name]"],
+    ["prefix-[name]-suffix", "prefix-[name]"],
+  ]) {
+    const a = parseSegment(narrow!, "test");
+    const b = parseSegment(broad!, "test");
+    assert.equal(isStrictSubset(a, b), true, `${narrow} is narrower than ${broad}`);
+    assert.equal(isStrictSubset(b, a), false, `${broad} is not narrower than ${narrow}`);
+  }
+  for (const [left, right] of [
+    ["[name]", "[world]"],
+    ["prefix-[name]", "[name]-suffix"],
+    ["prefix1-[name]", "prefix2-[name]"],
+    ["[name]-test", "test-[name]"],
+  ]) {
+    const a = parseSegment(left!, "test");
+    const b = parseSegment(right!, "test");
+    assert.equal(isStrictSubset(a, b), false);
+    assert.equal(isStrictSubset(b, a), false);
+  }
+});
+
+test("structural containment respects exact extensions and their unions", () => {
+  const subset = (left: string, right: string): boolean =>
+    isStrictSubset(parseStructuralLeaf(left, "test"), parseStructuralLeaf(right, "test"));
+  assert.equal(subset("test-[name].ts", "[file].ts"), true);
+  assert.equal(subset("[file].ts", "[file].{ts,tsx}"), true);
+  assert.equal(subset("[file].{ts,tsx}", "[file].{ts,d.ts,tsx}"), true);
+  assert.equal(subset("[file].{ts,tsx}", "[file].{tsx,ts}"), false);
+  assert.equal(subset("[file].d.ts", "[file].ts"), false);
+  assert.equal(subset("[file].{ts,d.ts}", "[file].{ts,tsx}"), false);
+  assert.equal(subset("foo.[file].ts", "[file].ts"), false);
+  assert.equal(subset("[file].ts", "[name]"), true);
+});
+
+test("containment treats shared back-references as bound text", () => {
+  const subset = (left: string, right: string): boolean =>
+    isStrictSubset(parseStructuralLeaf(left, "test"), parseStructuralLeaf(right, "test"));
+  assert.equal(subset("{provider}-test-[case].ts", "{provider}-[kind].ts"), true);
+  assert.equal(subset("test-[case]-{provider}.ts", "[kind]-{provider}.ts"), true);
+  assert.equal(subset("{provider}-[kind]", "[name]"), true);
+  // A dotted binding would fall outside a .ts capture. Different bindings
+  // are independent even when their wildcard approximations look identical.
+  assert.equal(subset("{provider}-[kind].ts", "[file].ts"), false);
+  assert.equal(subset("{provider}-test-[case].ts", "{region}-[kind].ts"), false);
+  assert.equal(subset("{provider}-[kind].ts", "{provider}-[case].ts"), false);
 });
 
 test("a placeholder matches one character or more", () => {

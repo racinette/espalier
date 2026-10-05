@@ -3,8 +3,8 @@
 The opt-in for a repository already in CI, where a red build on the day you
 introduce `espalier` is a problem.
 
-One entry per top-level path, ordered the way everything else in `espalier`
-orders siblings — directories before files, then lexicographic:
+One entry per top-level path: directories before files, alphabetically within
+each kind. These are concrete repository names, not structural patterns:
 
     src/**
     test/**

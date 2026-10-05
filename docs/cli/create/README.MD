@@ -9,9 +9,10 @@ espalier create src/constants.ts --varname answer
 ```
 
 The argument is a concrete repository path, not a template name. Espalier
-resolves files and directories with the same structural tiers used by `lint`
-and `explain`, so creation cannot place source outside the architecture that
-declares it.
+resolves files and directories with the same
+[structural specificity](../../MATCHING.MD#ownership) used by `lint` and
+`explain`, including narrower placeholder patterns, so creation follows the
+architecture that declares the path.
 
 ## Usage
 
@@ -77,7 +78,8 @@ implementation detail as a configurable default.
 
 A concrete directory selects the structural directory node that declares its
 contents. Espalier recursively creates every required static or resolved leaf
-beneath that node. A dynamic directory below it is an uninstantiated
+beneath that node. A broader sibling contributes no required files or template
+options to the winning branch. A dynamic directory below it is an uninstantiated
 collection, so creation does not invent a name for it or create anything under
 it. Dynamic file collections and leaves marked `optional` are likewise absent:
 neither is required for the new directory to be valid.

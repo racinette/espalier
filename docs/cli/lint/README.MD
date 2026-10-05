@@ -25,7 +25,7 @@ espalier lint [paths...]
 
 ## What it does
 
-1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, and build the matcher. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `rule` export — stops the run before a single repository file is read.
+1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, and build the matcher. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `rule` export — stops the run before repository linting begins.
 2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and anything unreadable stops the run. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
 3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required leaves with no file report `missing_required_file`. See [MATCHING.MD](../../MATCHING.MD).
 4. **Run rules.** For every owned file: its structural rule's `lint`, plus each per-file constraint whose directory pattern and selector admit it. Run each aggregate once over its complete selected group.
@@ -237,7 +237,7 @@ Two codes come from matching rather than from a rule module. Their `rule` is `nu
 
 `unexpected_path` — no structural rule owns this file.
 
-`missing_required_file` — a required static leaf has no corresponding file. A leaf whose module exports `optional` never reports it, at any depth or in any instance of a dynamic directory.
+`missing_required_file` — a required static or resolved leaf has no corresponding file in its owning branch. A leaf whose module exports `optional` never reports it, at any depth or in any instance of a dynamic directory.
 
 `unexpected_path` carries the **deepest recognized node** in `metadata`: how far the path was recognized by the espalier, and what is declared at that point. It is never a ranked guess at where the file belongs — see [MATCHING.MD](../../MATCHING.MD).
 
@@ -319,7 +319,8 @@ Warnings and info do not fail the run. There is no flag to make them fail: sever
 
 ### Failures are not issues
 
-An operational failure means `espalier` could not do its job. It exits `2`, reports the failure through the chosen format and destination, and lints nothing:
+An operational failure means `espalier` could not complete its job. It exits `2`
+and reports the failure through the chosen format and destination:
 
 - config missing, malformed, or contradictory
 - the espalier is ambiguous, or a rule path is invalid
@@ -330,6 +331,9 @@ An operational failure means `espalier` could not do its job. It exits `2`, repo
 
 A rule that throws is a bug in the rule, not a finding about the repository. Degrading it to a warning would let a broken espalier report a clean repository, which is the one outcome this tool exists to prevent.
 
-The failures above the run are caught before any file is read, and nothing precedes them. A rule that throws is caught during it, so issues already emitted have already been written. The exit code is the authority on whether the run means anything: a `2` says the output is partial, however much of it arrived.
+Configuration and compilation failures stop the run before rules execute.
+A failure during execution can leave findings already emitted in the output.
+The exit code is the authority on whether the run means anything: a `2` says
+the output cannot establish conformance, however much of it arrived.
 
 Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).

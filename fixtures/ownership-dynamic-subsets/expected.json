@@ -1,0 +1,88 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" }
+    ]
+  },
+  "exit": 1,
+  "issues": [
+    {
+      "path": "worlds/011_flight_arrivals-checksonly/world.json",
+      "code": "unexpected_path",
+      "severity": "error"
+    },
+    {
+      "path": "worlds/013_flight_arrivals-checksonly/checks.sql",
+      "code": "missing_required_file",
+      "severity": "error"
+    },
+    {
+      "path": "files/test-arrivals.ts",
+      "code": "test_rule_ran",
+      "severity": "info",
+      "metadata": {
+        "name": "arrivals"
+      }
+    }
+  ],
+  "ownership": {
+    "worlds/earth/world.json": "worlds/[world]/world.json.mjs",
+    "worlds/011_flight_arrivals-checksonly/checks.sql": "worlds/[name]-checksonly/checks.sql.mjs",
+    "worlds/011_flight_arrivals-checksonly/world.json": null,
+    "worlds/012_flight_arrivals-special-checksonly/special.sql": "worlds/[name]-special-checksonly/special.sql.mjs",
+    "worlds/013_flight_arrivals-checksonly/README.md": "worlds/[name]-checksonly/[note].md.mjs",
+    "prefixes/ordinary/world.json": "prefixes/[name]/world.json.mjs",
+    "prefixes/prefix1-flights/checks.sql": "prefixes/prefix1-[first]/checks.sql.mjs",
+    "prefixes/prefix2-flights/checks.sql": "prefixes/prefix2-[second]/checks.sql.mjs",
+    "files/arrivals.ts": "files/[file].ts.mjs",
+    "files/test-arrivals.ts": "files/test-[name].ts.mjs",
+    "files/test-special-arrivals.ts": "files/test-special-[case].ts.mjs",
+    "unions/arrivals.ts": "unions/[script].ts.mjs",
+    "unions/arrivals.tsx": "unions/[code].{ts,tsx}.mjs",
+    "unions/design.md": "unions/[notes].md.mjs",
+    "providers/acme.eu/ordinary/world.json": "providers/[provider]/[name]/world.json.mjs",
+    "providers/acme.eu/acme.eu-arrivals/checks.sql": "providers/[provider]/{provider}-[kind]/checks.sql.mjs",
+    "providers/acme.eu/acme.eu-arrivals.ts": "providers/[provider]/{provider}-[kind].ts.mjs",
+    "providers/acme.eu/acme.eu-test-arrivals.ts": "providers/[provider]/{provider}-test-[case].ts.mjs"
+  },
+  "explain": {
+    "worlds/011_flight_arrivals-checksonly/checks.sql": {
+      "exit": 0,
+      "object": {
+        "rule": "worlds/[name]-checksonly/checks.sql.mjs",
+        "captures": {
+          "name": "011_flight_arrivals"
+        }
+      }
+    },
+    "worlds/011_flight_arrivals-checksonly/": {
+      "exit": 0,
+      "object": {
+        "captures": {
+          "name": "011_flight_arrivals"
+        },
+        "rules": [
+          {
+            "path": "worlds/011_flight_arrivals-checksonly/checks.sql",
+            "required": true
+          },
+          {
+            "path": "worlds/011_flight_arrivals-checksonly/[note].md",
+            "required": false
+          }
+        ]
+      }
+    },
+    "providers/acme.eu/acme.eu-arrivals/checks.sql": {
+      "exit": 0,
+      "object": {
+        "rule": "providers/[provider]/{provider}-[kind]/checks.sql.mjs",
+        "captures": {
+          "provider": "acme.eu",
+          "kind": "arrivals"
+        }
+      }
+    }
+  }
+}

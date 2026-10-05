@@ -119,15 +119,21 @@ SubmitButton.tsx.mjs     owns SubmitButton.tsx
 [button].tsx.mjs         owns the other .tsx files in this directory
 ```
 
-Two placeholder rules in the same directory must not match the same file.
-`[button].tsx.mjs` and `[icon].tsx.mjs` conflict; `[button].tsx.mjs` and
-`[helper].ts.mjs` are allowed. Distinct prefixes such as `a-[name].ts.mjs`
-and `b-[name].ts.mjs` are also allowed because they cannot match the same
-filename.
+When placeholder patterns overlap, the one matching a strict subset of the
+other's names owns those paths; the broader pattern owns the rest. Every name
+matched by the narrower pattern must also match the broader one, which admits
+additional names.
+`test-[name].ts.mjs` therefore wins over `[file].ts.mjs` for test files.
+Equivalent patterns such as `[button].tsx.mjs` and `[icon].tsx.mjs` conflict.
+Overlapping patterns also conflict when neither contains the other, such as
+`test-[name].ts.mjs` and `[name]-test.ts.mjs`.
 
-Directory placeholders must likewise not match the same directory. A
-directory placeholder and a file placeholder may coexist, because they
-match different kinds of path.
+The same rule applies to directories: `[name]-checksonly/` wins its matches
+beside `[world]/`. Only the winning branch declares the directory's contents
+and required files; its unmatched contents do not fall back to `[world]/`.
+Distinct prefixes such as `a-[name]/` and `b-[name]/` are disjoint and may
+both sit beside a broad fallback. A directory placeholder and a file
+placeholder may coexist, because they match different kinds of path.
 
 `{provider}` repeats the text captured by `[provider]` earlier in the same
 path:
@@ -237,8 +243,9 @@ A diagnostic can refer to a specific location with wording such as
 once over the selected files together for an aggregate. Its context provides
 paths and functions to read file contents and report findings.
 
-Guidance under a directory placeholder must apply to every matching directory.
-For example, guidance for `clients/[provider]/` must apply to every provider.
+Guidance under a directory placeholder must apply to every directory the branch
+owns. A directory claimed by a more specific sibling follows that sibling's
+guidance instead.
 
 A structural rule file can also export a `template` for `espalier create`.
 For a file that would otherwise be required, `optional = true` allows it to

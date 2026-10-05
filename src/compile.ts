@@ -17,6 +17,7 @@ import {
   backrefNames,
   captureNames,
   intersectSegments,
+  isStrictSubset,
   parseSegment,
   parseStructuralLeaf,
   trieKey,
@@ -403,11 +404,11 @@ function insert(root: TrieNode, segments: Segment[], rule: StructuralRule): void
 }
 
 /**
- * Two dynamic siblings conflict when they compete for the same thing: two
- * leaves that could own one file, or two directories that could claim one
- * subtree. A dynamic directory beside a dynamic leaf is not a conflict, because
- * a directory never owns a file — the walk in match.ts picks whichever can play
- * the role the segment needs.
+ * Overlapping dynamic siblings conflict unless strict containment chooses a
+ * winner. Only peers competing for the same role need comparison: two leaves
+ * owning files or two directories claiming subtrees. A directory beside a leaf
+ * is not a conflict: a directory never owns a file, and match.ts selects the
+ * role the segment needs.
  */
 function checkSiblings(node: TrieNode, at: string): void {
   const children = [...node.children.values()];
@@ -430,10 +431,13 @@ function checkSiblings(node: TrieNode, at: string): void {
         const bothDirectories = left.children.size > 0 && right.children.size > 0;
         if (!bothLeaves && !bothDirectories) continue;
 
-        if (intersectSegments(left.segment, right.segment)) {
+        if (!intersectSegments(left.segment, right.segment)) continue;
+        const narrowerWinner = left.segment.dynamic && right.segment.dynamic
+          && (isStrictSubset(left.segment, right.segment) || isStrictSubset(right.segment, left.segment));
+        if (!narrowerWinner) {
           fail(
             "ambiguous_siblings",
-            `${at === "" ? "" : `${at}/`}${left.display} and ${at === "" ? "" : `${at}/`}${right.display} can both match one name, so ownership would be undecidable`,
+            `${at === "" ? "" : `${at}/`}${left.display} and ${at === "" ? "" : `${at}/`}${right.display} can both match one name without a strictly narrower winner, so ownership would be undecidable`,
             { left: left.display, right: right.display },
           );
         }

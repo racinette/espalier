@@ -522,6 +522,52 @@ test("directory creation refuses an excluded required descendant", () => {
   }
 });
 
+test("create uses the narrowest dynamic directory and file, including help and captures", () => {
+  const template = (body: string): string =>
+    `import { createTemplate } from ${JSON.stringify(api)};
+export const description = "simulation source";
+export const rule = "Declare the named simulation source.";
+export async function lint() {}
+export const template = createTemplate(${body});
+`;
+  scratch(template('() => "world\\n"'), (root) => {
+    write(root, "espalier/worlds/[name]-checksonly/{name}.sql.mjs",
+      template('({ captures }) => JSON.stringify(captures) + "\\n"'));
+    write(root, "espalier/files/[file].ts.mjs", template('() => "ordinary\\n"'));
+    write(root, "espalier/files/test-[name].ts.mjs",
+      template('({ captures }) => JSON.stringify(captures) + "\\n"'));
+
+    const help = run(root, ["create", "worlds/011_flight_arrivals-checksonly/", "help"]);
+    assert.equal(help.status, 0, help.stdout + help.stderr);
+    assert.match(help.stdout, /011_flight_arrivals\.sql/);
+    assert.doesNotMatch(help.stdout, /world\.json/);
+
+    const checks = run(root, ["create", "worlds/011_flight_arrivals-checksonly/"]);
+    assert.equal(checks.status, 0, checks.stdout + checks.stderr);
+    assert.deepEqual(
+      JSON.parse(readFileSync(path.join(root,
+        "worlds/011_flight_arrivals-checksonly/011_flight_arrivals.sql"), "utf8")),
+      { name: "011_flight_arrivals" },
+    );
+    assert.equal(existsSync(path.join(root, "worlds/011_flight_arrivals-checksonly/world.json")), false);
+
+    const ordinary = run(root, ["create", "worlds/earth/"]);
+    assert.equal(ordinary.status, 0, ordinary.stdout + ordinary.stderr);
+    assert.equal(readFileSync(path.join(root, "worlds/earth/world.json"), "utf8"), "world\n");
+
+    const fileHelp = run(root, ["create", "files/test-arrivals.ts", "help"]);
+    assert.equal(fileHelp.status, 0, fileHelp.stdout + fileHelp.stderr);
+    assert.match(fileHelp.stdout, /files\/test-\[name\]\.ts/);
+    const file = run(root, ["create", "files/test-arrivals.ts"]);
+    assert.equal(file.status, 0, file.stdout + file.stderr);
+    assert.deepEqual(JSON.parse(readFileSync(path.join(root, "files/test-arrivals.ts"), "utf8")),
+      { name: "arrivals" });
+    const fallback = run(root, ["create", "files/arrivals.ts"]);
+    assert.equal(fallback.status, 0, fallback.stdout + fallback.stderr);
+    assert.equal(readFileSync(path.join(root, "files/arrivals.ts"), "utf8"), "ordinary\n");
+  }, "worlds/[world]/world.json.mjs");
+});
+
 test("a trailing slash selects a directory when the same spelling can be a file", () => {
   const make = (): string => {
     const root = mkdtempSync(path.join(os.tmpdir(), "espalier-create-role-"));

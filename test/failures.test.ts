@@ -205,11 +205,11 @@ const cases: Case[] = [
     espalier: { "src/[...path]/no-fetch.{ts,ts}.mjs": INERT },
   },
   {
-    what: "a structural extension union overlapping a dynamic sibling",
+    what: "overlapping structural extension unions with no narrower winner",
     code: "ambiguous_siblings",
     espalier: {
       "src/[file].{ts,d.ts}.mjs": INERT,
-      "src/[name].d.ts.mjs": INERT,
+      "src/[name].{d.ts,tsx}.mjs": INERT,
     },
   },
   {
