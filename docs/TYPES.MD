@@ -560,12 +560,12 @@ matcher enforces that relationship before `lint` runs.
  *
  * @property {Record<string, unknown>} addons
  * Shared resources built once per run by the module named in
- * `espalier.config.yaml`. Intended for expensive out-of-process
- * dependencies — a language server, an AST parser in another language —
- * whose startup cost cannot be paid per file.
+ * `espalier.config.yaml`. Owns resources for that run, including an
+ * in-process compiler service, a worker parser, or a language server.
  *
- * Anything available as a package should simply be imported by the rule
- * module that needs it; rule modules are ordinary ES modules.
+ * Import packages and ordinary helpers directly. An addon may import a
+ * compiler package while owning its expensive instances. Construct them
+ * lazily from contents and settings supplied by rules.
  *
  * Addons may hold internal state, but nothing a rule does through an
  * addon may change what another rule sees. Rules execute in unspecified

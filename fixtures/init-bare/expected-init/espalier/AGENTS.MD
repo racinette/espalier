@@ -278,9 +278,12 @@ A dispatcher that chooses the requirements elsewhere hides the policy from
 someone reading the rule file. Keep those choices here so the written
 requirements and the check can be reviewed together.
 
-Import ordinary helpers directly. Use an addon for a shared resource that
-needs setup and cleanup, such as a parser running in a worker or another
-process. Its exposed functions must be pure: the same inputs must produce
+Import ordinary helpers and packages directly. Use an addon to own a shared
+resource for one lint run, such as an in-process compiler service, a worker
+parser, or a language server. Importing a compiler package and owning its
+instances are separate choices. Build expensive analysis lazily from contents
+and settings supplied by rules; release retained state at disposal.
+Its exposed functions must be pure: the same inputs must produce
 the same results, regardless of previous calls or which rule calls them.
 Internal state used to manage the resource must not affect those results.
 

@@ -5,8 +5,8 @@ where needed, and validation complete before moving to the next.
 
 - [x] Make persistent findings caching opt-in and move its requirements into
   `espalier help cache`. Commit: `5218f26`; 447 tests passed.
-- [ ] Clarify addon ownership: in-process compiler services, helpers versus
-  owned resources, per-check lifetime, deterministic reuse, and disposal.
+- [x] Clarify addon ownership: in-process compiler services, helpers versus
+  owned resources, per-check lifetime, deterministic reuse, and disposal. Validation: authoring and init fixtures.
 - [ ] Ship a runnable TypeScript addon example: lazy compilation from governed
   snapshots, compiler settings, shared facts with policy in rules, and small
   semantic tests proving reuse, changed inputs, order independence, and isolation.

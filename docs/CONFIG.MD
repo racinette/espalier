@@ -298,7 +298,23 @@ its patterns are expanded only with `--cache`. See [CACHE.MD](CACHE.MD#implement
 
 `setup` runs once before any rule, the returned object is passed to every `lint` invocation, and disposal runs after the run completes — including when it fails. A `setup` that throws is an operational failure: `espalier` exits `2` and lints nothing.
 
-Addons exist for **expensive out-of-process resources**: a language server, an AST parser in another language, anything whose startup cost cannot be paid per file. Anything available as a package should simply be imported by the rule module that needs it — rule modules are ordinary ES modules, and routing an npm dependency through a config indirection buys nothing.
+Use an addon to own a resource shared for one lint run: an in-process
+TypeScript program, a parser in a worker, or a language-server process.
+The distinction is ownership and lifetime, not a process boundary. Import
+ordinary packages and stateless helpers directly. An addon can import
+TypeScript normally while owning the expensive compiler instances built with it.
+
+`setup` owns the returned resource until disposal. Construct expensive programs
+lazily when a rule supplies source contents and compiler settings; some runs
+never need them. Reuse analysis for identical inputs, while keeping policy
+choices and findings in the owning rules. Disposal releases retained programs,
+snapshots, workers, and other resources.
+
+Each programmatic `check` and each nested espalier has a separate setup/disposal
+pair. A module-global memo cannot provide that lifetime: it can outlive a run
+and retain another repository's source. Keep run-owned state in the object
+created by `setup`. Tests using `runRule` or `runAggregate` instead supply their
+own addon and explicitly dispose it; these functions do not manage its lifetime.
 
 The object must be safe for concurrent use by many rules in unspecified order. Internal state is fine — a parser is stateful — but nothing a rule does through an addon may change what another rule sees.
 
