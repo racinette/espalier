@@ -47,6 +47,13 @@ run, source snapshots supplied by rules, lazy reuse, and explicit disposal in
 small rule-body tests. Its README and executable tests are the complete recipe;
 see [CONFIG.MD](CONFIG.MD#addons) for the resource contract.
 
+The contract's **Adapting examples** section distinguishes mechanisms worth
+copying from vocabulary, module size, state ownership, and demonstration-domain
+requirements. The compiler example's `model.ts` exports related operations
+together, while `shared/[name].ts` is a dynamic collection. Its README also
+describes profiling an actual adopter's rules rather than treating a toy tree
+as performance evidence.
+
 The compact contract `init` vendors is `authoring/AGENTS.MD`. Keep that file
 and `espalier/AGENTS.MD` the same bytes. Policy, helpers, and shared analysis
 are stated there rather than restated here.

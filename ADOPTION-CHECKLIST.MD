@@ -21,11 +21,14 @@ where needed, and validation complete before moving to the next.
 - [x] Add compiler diagnostic adaptation and linked-dependency coverage:
   application locations, readable origins, safe coordinates, and trusted
   declaration identity with logical paths.
-  Validation: eight executable tests, linked support invalidation, and
+  Commit: `5f18ac0`; eight executable tests, linked support invalidation, and
   mutations for path identity, fallback coordinates, and linked declarations.
-- [ ] Explain which example mechanisms to copy, cohesive modules and static
+- [x] Explain which example mechanisms to copy, cohesive modules and static
   responsibility names, reusable versus application prose, and profiling real
   workloads without requiring new framework timing APIs.
+  Validation: 448 full-suite tests passed; final package checks executed all
+  eight compiler recipes from an installed copy. Generated guidance is current.
+  The snapshot test also detects untracked application reads.
 
 The adopter's private analyzer still needs to adopt shared compiler ownership;
 this repository cannot implement or measure that private change.

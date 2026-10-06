@@ -33,6 +33,11 @@ espalier lint [paths...]
 
 Rules execute independently and in unspecified order. A rule may read any governed file through `read` and list governed files through `files`, but must not depend on another rule having run. Helpers and addons receive repository contents from those functions. Shared analysis may reuse identical inputs when answers remain independent of previous calls. See [TYPES.MD](../../TYPES.MD#execution).
 
+For expensive custom checks, measure program construction and analysis queries
+separately from total lint time. `espalier examples compiler-addon` provides a
+shared compiler pattern and a profiling recipe; its tiny correctness fixtures
+are not a performance benchmark.
+
 ## Constraint selection
 
 A constraint selects files by either a filename extension or an exported

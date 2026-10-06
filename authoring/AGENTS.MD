@@ -308,6 +308,24 @@ Every applicable rule runs by default. Persistent findings caching is opt-in
 with `--cache`. Authors enabling it should read `espalier help cache` for
 tracked inputs, implementation dependencies, and safe reuse of shared analysis.
 
+## Adapting examples
+
+Copy the enforcement mechanisms: owning rules, colocated requirements and
+templates, and analysis supplied with governed inputs. Choose vocabulary,
+module size, and state ownership for your own language and application.
+An example's file-per-function layout or global state is not an Espalier rule.
+
+A cohesive module may export several related functions. Use a static
+responsibility name such as `features/[feature]/model.ts` for that module;
+use a dynamic collection such as `shared/[name].ts` where multiple modules
+really belong. The compiler-addon example shows both and tests their matching
+and creation behavior.
+
+Keep reusable architecture guidance in the rules and `ESPALIER.MD`. Describe
+the bundled demonstration application's domain and behavior in its own
+documentation. A new adopter should inherit the architecture without inheriting
+the demonstration's product requirements.
+
 ## Tests
 
 - Use `runRule` to test a structural rule or per-file constraint with a

@@ -31,9 +31,9 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `package.json`<br>`tests/` | Package management and the example's executable test recipes. |
+| `package.json`<br>`tests/`<br>`repository.ignore` | Package management and the example's executable test recipes. |
 | `analysis/` | Implementation modules imported by the rules, rather than lint data. |
-| `.espalierignore`<br>`.gitignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
+| `.espalierignore`<br>`espalier`<br>`espalier.config.yaml`<br>`repository.ignore` | Sources used to generate and check this repository guidance. |
 | `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
 
 Every path in this directory must fit the project layout or a documented

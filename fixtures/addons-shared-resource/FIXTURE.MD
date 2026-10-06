@@ -24,3 +24,8 @@ is because both rules ran first. A disposer that fired early would report a
 smaller number rather than passing quietly.
 
 Pins: CONFIG.MD "`addons`"; TYPES.MD `addons`.
+
+The counters and shared `seen` array are deliberately observable test
+instrumentation for lifecycle and object identity. They are not an authoring
+pattern: production addon results must be independent of earlier calls and
+rule order. The packed `compiler-addon` example demonstrates that contract.

@@ -25,6 +25,12 @@ test("small semantic fixtures explicitly own and dispose their addon", async () 
     const invalid = await runRule(types, { path: target, tree: treeFor('export const value: number = "wrong";'), addons });
     assert.ok(invalid.some((issue) => issue.code === "typescript_2322"));
     assert.deepEqual(await runRule(types, { path: target, tree: treeFor(valid), addons }), []);
+    // This file exists on disk in the example, but is absent from the virtual
+    // snapshot. The compiler must not fill the gap with an untracked read.
+    const absent = await runRule(types, {
+      path: target, tree: treeFor('export { createModel } from "../counter/model.js";'), addons,
+    });
+    assert.ok(absent.some((issue) => issue.code === "typescript_2307"));
   } finally {
     addons[Symbol.dispose]();
   }
@@ -68,12 +74,15 @@ test("each snapshot request records reads even when the analysis is shared", asy
 test("rule order and separate repositories cannot change facts", async () => {
   const good = setup();
   const bad = setup();
+  const reversed = setup();
   try {
     const run = (rule, addons, tree) => runRule(rule, { path: target, tree, addons });
     const goodTree = treeFor(valid);
     const badTree = treeFor('export const value: number = "wrong";');
     const expectedModel = await run(model, good, goodTree);
     const expectedTypes = await run(types, good, goodTree);
+    assert.deepEqual(await run(types, reversed, goodTree), expectedTypes);
+    assert.deepEqual(await run(model, reversed, goodTree), expectedModel);
     assert.equal((await run(types, bad, badTree)).length > 0, true);
     assert.equal((await run(model, bad, badTree)).length, 2);
     assert.deepEqual(await run(types, good, goodTree), expectedTypes);
@@ -81,5 +90,6 @@ test("rule order and separate repositories cannot change facts", async () => {
   } finally {
     good[Symbol.dispose]();
     bad[Symbol.dispose]();
+    reversed[Symbol.dispose]();
   }
 });

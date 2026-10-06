@@ -2,6 +2,7 @@
 package.json
 package-lock.json
 tests/
+repository.ignore
 
 # Implementation modules imported by the rules, rather than lint data.
 analysis/

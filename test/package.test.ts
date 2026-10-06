@@ -7,6 +7,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import os from "node:os";
@@ -68,6 +69,11 @@ test("the packed package installs and supports the quick start", () => {
     assert.ok(files.includes("docs/cli/help/README.MD"));
     assert.ok(files.includes("examples/authoring-corpus/espalier.config.yaml"));
     assert.ok(files.includes("examples/authoring-corpus/helpers/case.mjs"));
+    assert.ok(files.includes("examples/compiler-addon/analysis/compiler.mjs"));
+    assert.ok(files.includes("examples/compiler-addon/analysis/diagnostic.mjs"));
+    assert.ok(files.includes("examples/compiler-addon/tests/repository.test.mjs"));
+    assert.ok(files.includes("examples/compiler-addon/tests/locations.test.mjs"));
+    assert.ok(files.includes("examples/compiler-addon/repository.ignore"));
     assert.ok(!files.includes("ignores/AGENTS.MD"));
     assert.ok(files.filter((entry) => entry.startsWith("ignores/")).every((entry) => entry.endsWith(".gitignore")));
 
@@ -75,7 +81,7 @@ test("the packed package installs and supports the quick start", () => {
     const metadata = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")) as {
       dependencies?: Record<string, string>;
     };
-    const dependencies = Object.keys(metadata.dependencies ?? {}).map((name) =>
+    const dependencies = [...Object.keys(metadata.dependencies ?? {}), "typescript"].map((name) =>
       path.join(root, "node_modules", ...name.split("/")),
     );
     succeed(
@@ -157,6 +163,18 @@ export const template = createTemplate(
       readFileSync(path.join(copied, "helpers", "case.mjs"), "utf8"),
       readFileSync(path.join(example, "helpers", "case.mjs"), "utf8"),
     );
+
+    const compilerCopy = path.join(app, "compiler-example");
+    succeed(bin, ["examples", "compiler-addon", "--copy", compilerCopy], app);
+    mkdirSync(path.join(compilerCopy, "node_modules"));
+    for (const name of ["typescript", "espalier"]) {
+      symlinkSync(path.join(app, "node_modules", name), path.join(compilerCopy, "node_modules", name), "dir");
+    }
+    const recipes = succeed(process.execPath,
+      ["--test", "--test-isolation=none", "--test-concurrency=1", "tests/compiler.test.mjs", "tests/repository.test.mjs", "tests/locations.test.mjs"],
+      compilerCopy);
+    assert.match(recipes, /tests 8\b/, "installed compiler recipes execute every test");
+    succeed(bin, ["lint"], compilerCopy);
 
     succeed(
       process.execPath,
