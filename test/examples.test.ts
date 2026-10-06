@@ -95,7 +95,7 @@ test("copy creates the complete example at the destination root and leaves it ed
     const absolute = path.join(cwd, "absolute");
     assert.equal(run(cwd, ["examples", "authoring-corpus", "--copy", absolute]).status, 0);
     assertSameTree(source, absolute);
-    assert.equal(run(absolute, ["lint", "--no-cache"]).status, 0);
+    assert.equal(run(absolute, ["lint"]).status, 0);
     assert.equal(run(absolute, ["build", "--check"]).status, 0);
   } finally {
     rmSync(cwd, { recursive: true, force: true });

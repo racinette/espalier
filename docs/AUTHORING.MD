@@ -43,5 +43,5 @@ repository contents. Generated `AGENTS.MD` files in the tree are the
 presentation of those rules.
 
 The compact contract `init` vendors is `authoring/AGENTS.MD`. Keep that file
-and `espalier/AGENTS.MD` the same bytes. Policy, helpers, and cache-safe reuse
+and `espalier/AGENTS.MD` the same bytes. Policy, helpers, and shared analysis
 are stated there rather than restated here.

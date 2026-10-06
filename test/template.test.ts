@@ -589,7 +589,7 @@ export const template = createTemplate(({ captures }) => JSON.stringify(captures
     assert.equal(ordinary.status, 0, ordinary.stdout + ordinary.stderr);
     assert.deepEqual(JSON.parse(readFileSync(path.join(root, broad, "world.json"), "utf8")),
       { world: "earth\nsouth" });
-    const lint = run(root, ["lint", "--no-cache", "--format", "jsonl"]);
+    const lint = run(root, ["lint", "--format", "jsonl"]);
     assert.equal(lint.status, 0, lint.stdout + lint.stderr);
   }, "worlds/[world]/world.json.mjs");
 });
@@ -615,7 +615,7 @@ export const template = createTemplate(({ captures }) => JSON.stringify(captures
       assert.equal(result.rule, owner);
       assert.deepEqual(result.captures, { name: "checks\nnight" });
     }
-    const lint = run(root, ["lint", "--no-cache", "--format", "jsonl"]);
+    const lint = run(root, ["lint", "--format", "jsonl"]);
     assert.equal(lint.status, 0, lint.stdout + lint.stderr);
   }, "files/[file].{ts,tsx}.mjs");
 });

@@ -19,6 +19,7 @@ export const PAGES: HelpPage[] = [
   { name: "types", file: "docs/TYPES.MD", summary: "what a rule module exports and receives" },
   { name: "matching", file: "docs/MATCHING.MD", summary: "how a path claims a file" },
   { name: "api", file: "docs/API.MD", summary: "using espalier as a library" },
+  { name: "cache", file: "docs/CACHE.MD", summary: "optional findings caching and its dependency requirements" },
   { name: "config", file: "docs/CONFIG.MD", summary: "the configuration file and the ignore list" },
   { name: "errors", file: "docs/ERRORS.MD", summary: "every operational failure and what it means" },
   { name: "adopt", file: "docs/cli/adopt/README.MD", summary: "infer a directory's shape and write stub rule modules" },

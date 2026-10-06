@@ -41,7 +41,7 @@ function repository(): string {
 function lint(root: string, scopes: string[] = [], token?: string) {
   return spawnSync(
     process.execPath,
-    [cli, "lint", "--format", "jsonl", ...scopes],
+    [cli, "lint", ...(token === undefined ? [] : ["--cache"]), "--format", "jsonl", ...scopes],
     {
       cwd: root,
       encoding: "utf8",

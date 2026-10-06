@@ -1,4 +1,4 @@
-// The incremental cache. docs/cli/lint/README.MD "Incremental runs".
+// The incremental cache. docs/CACHE.MD.
 //
 // Nothing here may throw. A cache that cannot be read, parsed, trusted or
 // written is a cache the run does without: the work is always available, and a
@@ -174,12 +174,9 @@ function key(rule: string, pattern: string, target: string): string {
  */
 export function open(
   config: Config,
-  enabled: boolean,
   globOf: (pattern: string) => string,
   implementations: ImplementationObserver,
 ): Cache {
-  if (!enabled) return DISABLED;
-
   let stamp: string;
   try {
     stamp = version(config);

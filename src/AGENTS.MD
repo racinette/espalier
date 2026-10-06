@@ -128,7 +128,7 @@ code nothing raises.
 
 ## `implementation.ts` — rule implementation dependency observation
 
-Observes the modules loaded by rules and addons without changing how Node resolves or loads them. An observation that cannot be validated disables cache replay; uncertainty is never a cache hit.
+Loads fresh rule and addon implementations for each run while preserving shared module identity within it. Collects implementation dependencies only when findings caching is enabled. An observation that cannot be validated disables cache replay; uncertainty is never a cache hit.
 
 ## `linter.ts` — contextual typing helpers for rule linters
 

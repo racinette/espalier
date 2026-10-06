@@ -108,7 +108,7 @@ function identify(absolute: string): string {
  * `skip` is the espalier root, which is not entered for the same reason and a
  * stronger one. Everything inside it is invisible unconditionally, so walking it
  * could only produce paths to discard — and the cache lives there. "A cache that
- * cannot be used is not an error" (cli/lint/README.MD) has to survive a cache
+ * cannot be used is not an error" (CACHE.MD) has to survive a cache
  * directory this process cannot open, which it does not if the walk goes looking.
  */
 export type IgnoreLoader = (absolute: string, relativePath: string) => IgnoreRule[];

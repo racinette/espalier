@@ -288,27 +288,22 @@ Keep helpers shared by multiple rules outside the espalier tree and import
 them into the rule files that use them. Helpers used by only one rule can
 stay in that rule file.
 
-## The check does not remember
+## Reading and shared analysis
 
-During `lint`, read repository data through the context’s `read` and
-`files` functions. `read()` loads the file being checked; `read(path)`
-loads another governed file; `files` finds governed paths. Pass the
-resulting data to helpers and addons instead of having them open repository
-files through native filesystem APIs.
+Read governed repository data through the context's `read` and `files`
+functions. `read()` loads the file being checked; `read(path)` loads another
+governed file; `files` lists governed paths. Pass the resulting contents to
+helpers and addons instead of opening governed files through native APIs.
 
-Espalier tracks these calls so changes to their results invalidate cached
-findings. Native filesystem reads bypass that tracking and can leave an
-outdated result in the cache. Do not retain repository contents, path lists,
-or findings between invocations.
-
-Each rule’s result must depend on its inputs, regardless of execution order
+Each rule's result must depend on its inputs, regardless of execution order
 or previous calls. An aggregate checks its selected `matches`; it must not
-depend on findings or mutable state left by other rules.
+depend on findings or mutable state left by other rules. Shared parser or
+addon infrastructure may memoize analysis for identical inputs when every
+answer agrees with a fresh computation.
 
-Imported implementation code is tracked separately. Declare support files
-that Node’s module loader cannot observe, such as worker code or parser
-grammars, in `unobservedImplementationDependencies` so changes to them also
-invalidate cached results.
+Every applicable rule runs by default. Persistent findings caching is opt-in
+with `--cache`. Authors enabling it should read `espalier help cache` for
+tracked inputs, implementation dependencies, and safe reuse of shared analysis.
 
 ## Tests
 

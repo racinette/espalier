@@ -117,4 +117,4 @@ See [CONFIG.MD](CONFIG.MD#addons).
 |---|---|
 | `internal_error` | a bug in `espalier`. The stack trace is reported; please open an issue |
 
-The cache adds no codes. Every way it can fail — missing, unreadable, unwritable, corrupt, or written by a version that no longer applies — is answered by discarding it and doing the work, because a linter that fails over its own bookkeeping is worse than a slow one. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
+The cache adds no codes. Every way it can fail — missing, unreadable, unwritable, corrupt, or written by a version that no longer applies — is answered by discarding it and doing the work, because a linter that fails over its own bookkeeping is worse than a slow one. See [CACHE.MD](CACHE.MD).

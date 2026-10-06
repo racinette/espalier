@@ -42,7 +42,7 @@ export async function lint({ matches, emit, files }) {
 }
 
 function aggregateMessage(root: string, token: string): string {
-  const result = spawnSync(process.execPath, [cli, "lint", "--format", "jsonl"], {
+  const result = spawnSync(process.execPath, [cli, "lint", "--cache", "--format", "jsonl"], {
     cwd: root,
     encoding: "utf8",
     env: { ...process.env, ESPALIER_TEST_TOKEN: token },

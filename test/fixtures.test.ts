@@ -552,7 +552,7 @@ async function sweep(
 }
 
 function lintIn(dir: string, scratch: string, expected: Expected): void {
-  const scoped = expected.args ?? [];
+  const scoped = [...(expected.again === undefined ? [] : ["--cache"]), ...(expected.args ?? [])];
   const lint = run(scratch, ["lint", "--format", "jsonl", ...scoped], expected.env);
   const lines = parseLines(lint.stdout, "lint");
 

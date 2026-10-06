@@ -1,5 +1,5 @@
-// Rule implementation dependency observation. docs/cli/lint/README.MD
-// "Implementation dependencies".
+// Fresh rule implementations and optional dependency observation.
+// docs/API.MD "check"; docs/CACHE.MD "Implementation dependencies".
 
 import { globSync, statSync } from "node:fs";
 import { registerHooks } from "node:module";
@@ -36,6 +36,7 @@ export interface ImplementationObserver {
 }
 
 interface Session {
+  observe: boolean;
   token: string;
   root: string;
   ruleRoot: string;
@@ -161,6 +162,7 @@ function addBareResolutionCandidates(session: Session, parent: string | null, sp
 function track(session: Session, url: string): void {
   if (session.tracked.has(url)) return;
   session.tracked.add(url);
+  if (!session.observe) return;
 
   const filename = fileOf(url);
   if (filename !== null) {
@@ -196,15 +198,19 @@ function install(): void {
   registration = registerHooks({
     resolve(specifier, context, nextResolve) {
       const result = nextResolve(specifier, context);
+      if (sessions.size === 0) return result;
       const parent = canonical(context.parentURL);
       const child = canonical(result.url);
       if (child === null) {
         for (const session of sessions) {
-          if (parent !== null && session.tracked.has(parent)) session.trustworthy = false;
+          if (session.observe && parent !== null && session.tracked.has(parent)) session.trustworthy = false;
         }
         return result;
       }
 
+      // Keep import provenance across runs: Node may reuse a CommonJS module
+      // without resolving its children again when a later check enables caching.
+      // Per-run manifests, metadata candidates, and support globs remain opt-in.
       if (parent !== null) {
         let children = graph.get(parent);
         if (children === undefined) {
@@ -215,20 +221,23 @@ function install(): void {
       }
 
       const relevant: Session[] = [];
+      const filename = fileOf(child);
       for (const session of sessions) {
         if (!isSeed(session, child) && (parent === null || !session.tracked.has(parent))) continue;
         relevant.push(session);
-        for (const condition of context.conditions) session.conditions.add(condition);
-        session.edges.set(edgeKey(parent, specifier, context), child);
-        addBareResolutionCandidates(session, parent, specifier);
+        if (session.observe) {
+          for (const condition of context.conditions) session.conditions.add(condition);
+          session.edges.set(edgeKey(parent, specifier, context), child);
+          addBareResolutionCandidates(session, parent, specifier);
+        }
         track(session, child);
       }
-      if (relevant.length === 0 || fileOf(child) === null) return result;
+      if (relevant.length === 0 || filename === null) return result;
 
       // `check()` may be called repeatedly in one process. Node would otherwise
-      // return the old module instance after the disk cache correctly decided
-      // to execute again. One stable token per session preserves singleton
-      // identity within a run while giving the next run a fresh implementation.
+      // reuse ES module instances even when findings caching is disabled.
+      // One stable token per session preserves identity within a run while
+      // giving the next run fresh ES implementations.
       const loaded = new URL(result.url);
       loaded.searchParams.set(
         "__espalier_run",
@@ -250,17 +259,20 @@ function matches(root: string, pattern: string): string[] | null {
 }
 
 /**
- * Starts one Espalier's observation window. Hooks are process-global, while
- * sessions keep nested/programmatic runs attributed to their own cache.
+ * Loads fresh implementations for one Espalier. Dependency manifests are
+ * collected only when findings caching is enabled; module reloading applies
+ * to every run. Sessions isolate nested and programmatic checks.
  */
-export function observeImplementations(
+export function startImplementations(
   root: string,
   espalierRoot: string,
   addon: string | null,
+  observe: boolean,
 ): ImplementationObserver {
   install();
   const absoluteRoot = path.resolve(root);
   const session: Session = {
+    observe,
     token: String(nextToken++),
     root: absoluteRoot,
     ruleRoot: path.resolve(root, espalierRoot),
@@ -273,12 +285,15 @@ export function observeImplementations(
     trustworthy: true,
   };
 
-  session.files.add(path.join(absoluteRoot, "package.json"));
-  for (const lockfile of LOCKFILES) session.files.add(path.join(absoluteRoot, lockfile));
+  if (observe) {
+    session.files.add(path.join(absoluteRoot, "package.json"));
+    for (const lockfile of LOCKFILES) session.files.add(path.join(absoluteRoot, lockfile));
+  }
   sessions.add(session);
 
   return {
     declare(patterns) {
+      if (!observe) return;
       for (const pattern of patterns) session.declarations.add(pattern);
     },
     snapshot() {

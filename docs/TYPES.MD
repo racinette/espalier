@@ -48,7 +48,7 @@ aggregate form.
 | `optional` | no | whether this file has to exist |
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
-| `unobservedImplementationDependencies` | no | explicit implementation inputs that module observation cannot see |
+| `unobservedImplementationDependencies` | no | optional cache inputs that module observation cannot see |
 | `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
 
 ### `description`
@@ -268,23 +268,15 @@ export const unobservedImplementationDependencies = [
 ];
 ```
 
-This is an explicit escape hatch for implementation inputs Node's module
-loader cannot observe: worker and child-process code, native or WebAssembly
-payloads, grammars and configuration opened internally by a library, and
-similar support files. Ordinary JavaScript and TypeScript imports do not belong
-here; Espalier observes those, including transitive and dynamic imports.
+Optional implementation inputs for persistent findings caching. When
+`--cache` is enabled, declare support files Node's module loader cannot
+observe, such as worker code, compiler declarations, or parser grammars.
+Ordinary imports are observed automatically in that mode. The export is
+validated but its patterns are not expanded when caching is disabled.
 
-Patterns are positive globs relative to the repository root. They may match
-ignored or otherwise ungoverned paths because implementation inputs are not
-lint data. Node's `fs.globSync` discovers these paths; this is a filesystem
-query, separate from the minimatch queries over known paths used by `targets`
-and `files`. Espalier records both the matching path set and each member's size
-and modification time. A change invalidates the complete lint cache.
-
-The export grants no read or reporting capability. `read` remains limited to
-governed files, and issue paths remain repository-relative. The deliberately
-long name is a reminder that this is exceptional bookkeeping, not the ordinary
-way for a rule to consume repository data.
+Patterns are non-empty, positive, repository-relative globs. The export grants
+no read or reporting capability. See [CACHE.MD](CACHE.MD#implementation-dependencies)
+(`espalier help cache`) for membership, invalidation, and authoring details.
 
 ### `aggregate`
 
@@ -607,28 +599,23 @@ An aggregate constraint instead receives:
 
 ## Execution
 
-Rules execute independently, in unspecified order. Correctness cannot depend on execution order, mutable communication between rules, or unrecorded inputs. An aggregate constraint is collective only over its `matches`; it does not consume findings or state from per-file rules. A rule may `read` any governed file, but must not assume another rule has or has not run.
+Rules execute independently, in unspecified order. An aggregate checks its
+selected `matches`; it does not consume findings or state left by per-file
+rules. Each rule's answer must follow from its source inputs and implementation,
+regardless of previous calls or which other rules execute.
 
-**Governed files are the lint-data universe.** `read` refuses a path outside that set with `read_ungoverned`, and `files` never returns one. Filesystem-visible paths are those that survive `ignoreFiles`. `.espalierignore`, child espaliers, and Espalier's own machinery then exclude paths from governance. An ungoverned path is one nothing stamps, so a rule that depended on one would be replayed unchanged after it changed. A rule that needs to consult an ignored file is a rule whose espalier should stop ignoring it.
+**Read governed repository data through `read` and `files`.** `read` refuses
+paths outside the governed set with `read_ungoverned`; `files` never returns
+them. A rule that needs such a file as lint data must bring it into governance.
+Imported implementation code does not become lint data.
 
-Implementation dependencies are separate: imported modules, and paths declared in `unobservedImplementationDependencies`, affect whether a cached answer is still valid. They are not lint data. `read` still refuses them when they are ungoverned.
+Helpers and addons receive repository contents through their arguments instead
+of opening governed files themselves. They may memoize analysis for identical
+inputs, provided a cache hit produces the same answer as a fresh computation.
+Internal resource state must not change rule results.
 
-Process-local parser or addon infrastructure may reuse state when every answer remains a function of tracked lint data and observed or declared implementation dependencies.
-
-**A `lint` function must be pure.** Its answer must follow from what it is handed — `path`, `pattern`, `captures` on an ordinary constraint, or `matches` and `patterns` on an aggregate, and whatever `read` and `files` return — plus its observed or explicitly declared implementation dependencies, and from nothing else. The clock, the network and the environment are not inputs the runner can see, so a rule that consults one will be replayed from cache with an answer it would no longer give. The failure is silent: a stale pass, not an error. See [cli/lint/README.MD](cli/lint/README.MD#incremental-runs).
-
-Addons must receive repository data through their arguments, not read it
-themselves. Read file contents with the lint context's `read` function and pass
-the returned contents to the addon. This keeps those reads tracked for cache
-invalidation.
-
-Files used to implement the addon itself—such as worker code, parser grammars,
-or WebAssembly binaries—belong in `unobservedImplementationDependencies` when
-module observation cannot track them.
-
-The process behind an addon may hold state; its answers must not depend on any
-unrecorded input.
-
+Every applicable rule executes by default. Optional persistent findings caching
+and its dependency requirements are described in [CACHE.MD](CACHE.MD).
 
 A `lint` function that throws is a bug in the rule, not a finding about the repository: the run fails with exit `2` and reports `rule_threw`. See [cli/lint/README.MD](cli/lint/README.MD) and [ERRORS.MD](ERRORS.MD).
 

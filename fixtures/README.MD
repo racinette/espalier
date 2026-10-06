@@ -55,7 +55,7 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 **`env`** — environment the lint run is given, on top of the harness's own. Only an impure rule has any use for it, and only one fixture family has a use for an impure rule: warm and cold output are identical by design, so a token the runner cannot see is the only way a skipped rule becomes visible.
 
-**`again`** — a second `lint` over the same copy, after something changed. Only an incremental run has anything to say here; a fixture that reran without a cache would be asserting that the same input gives the same answer.
+**`again`** — a second `lint --cache` over the same copy, after something changed. The first run also enables caching. Only an incremental run has anything to say here; a fixture that reran without a cache would be asserting that the same input gives the same answer.
 
 ```json
 "again": {

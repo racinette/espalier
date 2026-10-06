@@ -64,6 +64,7 @@ test("the packed package installs and supports the quick start", () => {
     assert.ok(files.includes("authoring/AGENTS.MD"));
     assert.ok(files.includes("docs/AUTHORING.MD"));
     assert.ok(files.includes("docs/TYPES.MD"));
+    assert.ok(files.includes("docs/CACHE.MD"));
     assert.ok(files.includes("docs/cli/help/README.MD"));
     assert.ok(files.includes("examples/authoring-corpus/espalier.config.yaml"));
     assert.ok(files.includes("examples/authoring-corpus/helpers/case.mjs"));
@@ -143,6 +144,7 @@ export const template = createTemplate(
 
     const authoring = succeed(bin, ["help", "authoring"], app);
     assert.match(authoring, /^# Authoring\n/);
+    assert.match(succeed(bin, ["help", "cache"], app), /^# Findings cache\n/);
     const example = succeed(bin, ["examples", "authoring-corpus"], app).trim();
     assert.equal(existsSync(path.join(example, "helpers", "case.mjs")), true);
     const copied = path.join(app, "copied-example");

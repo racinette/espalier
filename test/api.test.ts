@@ -16,8 +16,8 @@ const fixturesDir = path.resolve(here, "..", "..", "fixtures");
 
 /**
  * Fixtures are inputs and are never written into, so these runs do not cache.
- * `check` caches by default, like the CLI it shares a runner with; what that
- * costs is covered by test/cache.test.ts, against repositories it builds
+ * `check` does not cache by default, like the CLI it shares a runner with;
+ * opt-in replay is covered by test/cache.test.ts, against repositories it builds
  * itself and then throws away.
  */
 const cold: typeof check = (options) => check({ ...options, cache: false });

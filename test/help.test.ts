@@ -48,6 +48,12 @@ test("help prints a packed page verbatim", () => {
   }
 });
 
+test("help cache prints the optional findings-cache contract", () => {
+  const printed = run(os.tmpdir(), ["help", "cache"]);
+  assert.equal(printed.status, 0, printed.stderr);
+  assert.equal(printed.stdout, readFileSync(path.join(PACKAGE_ROOT, "docs", "CACHE.MD"), "utf8"));
+});
+
 test("an unknown help page names itself and prints the catalog", () => {
   const cwd = mkdtempSync(path.join(os.tmpdir(), "espalier-help-unknown-"));
   try {

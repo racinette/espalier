@@ -15,4 +15,4 @@ the runner cannot see, so an invocation replayed from cache answers with the
 token the cold run was given, and one that actually ran answers with the
 current one.
 
-Pins: cli/lint/README.MD "Incremental runs".
+Pins: CACHE.MD.

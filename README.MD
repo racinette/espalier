@@ -367,7 +367,9 @@ async function lint({ matches, patterns, read, emit }) {
 }
 ```
 
-Rules execute independently, in unspecified order. Correctness cannot depend on execution order, mutable communication between rules, or unrecorded inputs. A rule may `read` governed files, but must not assume any other rule has or has not run. Process-local parser or addon infrastructure may reuse state when every answer remains a function of tracked lint data and observed or declared implementation dependencies.
+Rules execute independently, in unspecified order. Read governed repository data through `read` and `files`, and pass contents to helpers and addons. Shared analysis may memoize identical inputs when answers remain independent of rule order and previous calls.
+
+Every applicable rule runs by default. `espalier lint --cache` enables optional persistent findings caching; see [docs/CACHE.MD](docs/CACHE.MD) (`espalier help cache`) for when it helps and its dependency requirements.
 
 ## The project layout
 

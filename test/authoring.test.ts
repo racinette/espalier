@@ -133,7 +133,7 @@ test("editing a shared helper invalidates a scoped check of its caller", () => {
   const scratch = mkdtempSync(path.join(os.tmpdir(), "espalier-authoring-cache-"));
   try {
     cpSync(fixture, scratch, { recursive: true });
-    const first = spawnSync(process.execPath, [cli, "lint", "--format", "jsonl"], {
+    const first = spawnSync(process.execPath, [cli, "lint", "--cache", "--format", "jsonl"], {
       cwd: scratch,
       encoding: "utf8",
     });
@@ -148,7 +148,7 @@ test("editing a shared helper invalidates a scoped check of its caller", () => {
     );
     const second = spawnSync(
       process.execPath,
-      [cli, "lint", "fixtures/alpha", "--format", "jsonl"],
+      [cli, "lint", "--cache", "fixtures/alpha", "--format", "jsonl"],
       { cwd: scratch, encoding: "utf8" },
     );
     assert.equal(second.status, 1, second.stdout + second.stderr);

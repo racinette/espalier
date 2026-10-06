@@ -1,7 +1,6 @@
 // The parts of the incremental cache no fixture can see: what a narrowed run
 // leaves behind, what a full run drops, what a replayed issue carries, and what
-// happens when the file itself is unusable. See docs/cli/lint/README.MD
-// "Incremental runs".
+// happens when the file itself is unusable. See docs/CACHE.MD.
 //
 // Every assertion here is about a second or third run, so each test builds its
 // own repository. The rule modules are impure on purpose, for the reason
@@ -67,8 +66,8 @@ interface Run {
   failures: Record<string, unknown>[];
 }
 
-function run(root: string, value: string, args: string[] = [], nodeArgs: string[] = []): Run {
-  const result = spawnSync(process.execPath, [...nodeArgs, cli, "lint", "--format", "jsonl", ...args], {
+function run(root: string, value: string, args: string[] = [], nodeArgs: string[] = [], cache = true): Run {
+  const result = spawnSync(process.execPath, [...nodeArgs, cli, "lint", ...(cache ? ["--cache"] : []), "--format", "jsonl", ...args], {
     cwd: root,
     encoding: "utf8",
     env: { ...process.env, ESPALIER_TEST_TOKEN: value },
@@ -93,8 +92,9 @@ function lint(
   value: string,
   args: string[] = [],
   nodeArgs: string[] = [],
+  cache = true,
 ): Record<string, string> {
-  const result = run(root, value, args, nodeArgs);
+  const result = run(root, value, args, nodeArgs, cache);
   assert.equal(result.status, 0, `lint exited ${result.status}`);
 
   const reported: Record<string, string> = {};
@@ -179,11 +179,15 @@ test("a cache that cannot be written is not an error", () => {
   }
 });
 
-test("--no-cache neither reads nor writes", () => {
+test("plain lint reruns rules without reading or writing a findings cache", () => {
   const root = repository();
   try {
+    assert.deepEqual(lint(root, "uncached", [], [], false), { "a.ts": "uncached", "b.ts": "uncached" });
+    assert.equal(existsSync(path.join(root, CACHE)), false);
     lint(root, "first");
-    assert.deepEqual(lint(root, "second", ["--no-cache"]), { "a.ts": "second", "b.ts": "second" });
+    const before = readFileSync(path.join(root, CACHE), "utf8");
+    assert.deepEqual(lint(root, "second", [], [], false), { "a.ts": "second", "b.ts": "second" });
+    assert.equal(readFileSync(path.join(root, CACHE), "utf8"), before);
 
     // The run before this one saw a different answer and wrote nothing, so
     // what the first run recorded is still what comes back.
@@ -223,15 +227,20 @@ test("a child espalier keeps its own cache", () => {
   }
 });
 
-test("check caches unless the caller says otherwise", async () => {
+test("check only caches when the caller opts in", async () => {
   const root = repository();
   try {
     process.env["ESPALIER_TEST_TOKEN"] = "first";
-    const cold = await check({ cwd: root });
+    const uncached = await check({ cwd: root });
+    assert.deepEqual(uncached.map((issue) => issue.message), ["first", "first"]);
+    assert.equal(existsSync(path.join(root, CACHE)), false);
+
+    const cold = await check({ cwd: root, cache: true });
     assert.deepEqual(cold.map((issue) => issue.message), ["first", "first"]);
 
     process.env["ESPALIER_TEST_TOKEN"] = "second";
-    const warm = await check({ cwd: root });
+    const before = readFileSync(path.join(root, CACHE), "utf8");
+    const warm = await check({ cwd: root, cache: true });
     assert.deepEqual(
       warm.map((issue) => issue.message),
       ["first", "first"],
@@ -240,6 +249,9 @@ test("check caches unless the caller says otherwise", async () => {
 
     const forced = await check({ cwd: root, cache: false });
     assert.deepEqual(forced.map((issue) => issue.message), ["second", "second"]);
+    const defaultRun = await check({ cwd: root });
+    assert.deepEqual(defaultRun.map((issue) => issue.message), ["second", "second"]);
+    assert.equal(readFileSync(path.join(root, CACHE), "utf8"), before);
   } finally {
     delete process.env["ESPALIER_TEST_TOKEN"];
     discard(root);
@@ -439,7 +451,7 @@ test("an edited ignore file discards the cache", () => {
   }
 });
 
-// The rest of the contract in cli/lint/README.MD "Incremental runs". Corruption
+// The rest of the contract in CACHE.MD. Corruption
 // here is expensive in a way a wrong answer elsewhere is not: a stale pass is
 // silent, survives every subsequent run, and looks exactly like a clean
 // repository. These are the clauses nothing else reaches.
@@ -1084,13 +1096,13 @@ test("a child espalier edit leaves the parent's cache standing", () => {
   }
 });
 
-test("--no-cache reaches every espalier in the run", () => {
+test("plain lint leaves every nested findings cache untouched", () => {
   const { root } = nested();
   try {
     lint(root, "first");
     const before = readFileSync(path.join(root, CACHE), "utf8");
 
-    assert.deepEqual(lint(root, "second", ["--no-cache"]), {
+    assert.deepEqual(lint(root, "second", [], [], false), {
       "a.ts": "second",
       "b.ts": "second",
       "packages/web/c.ts": "second",
@@ -1276,6 +1288,35 @@ test("check reloads changed implementation modules within one process", async ()
       ["changed in process", "changed in process"],
     );
   } finally {
+    discard(root);
+  }
+});
+
+test("enabling caching after an uncached check observes reused CommonJS dependencies", async () => {
+  const root = repository(importedRule('import helper from "../helper.cjs";', "helper.answer()"));
+  try {
+    writeFileSync(path.join(root, ".espalierignore"), "helper.cjs\ndeep.cjs\n");
+    writeFileSync(path.join(root, "helper.cjs"), 'module.exports = require("./deep.cjs");\n');
+    const source = 'module.exports = { answer: () => process.env.ESPALIER_TEST_TOKEN };\n';
+    writeFileSync(path.join(root, "deep.cjs"), source);
+    process.env["ESPALIER_TEST_TOKEN"] = "first";
+    assert.deepEqual((await check({ cwd: root })).map((issue) => issue.message), ["first", "first"]);
+    process.env["ESPALIER_TEST_TOKEN"] = "second";
+    assert.deepEqual((await check({ cwd: root, cache: true })).map((issue) => issue.message), ["second", "second"]);
+    process.env["ESPALIER_TEST_TOKEN"] = "third";
+    assert.deepEqual((await check({ cwd: root, cache: true })).map((issue) => issue.message), ["second", "second"]);
+
+    writeFileSync(path.join(root, "deep.cjs"), `// Changed dependency.\n${source}`);
+    assert.deepEqual(
+      (await check({ cwd: root, cache: true })).map((issue) => issue.message),
+      ["third", "third"],
+    );
+    assert.deepEqual(
+      (await check({ cwd: root })).map((issue) => issue.message),
+      ["third", "third"],
+    );
+  } finally {
+    delete process.env["ESPALIER_TEST_TOKEN"];
     discard(root);
   }
 });

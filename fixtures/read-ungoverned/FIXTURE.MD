@@ -10,4 +10,4 @@ pass, and a silent one. `files` has always been scoped this way; this makes
 `read` agree with it. A rule that genuinely needs such a file is a rule whose
 espalier should stop ignoring it.
 
-Pins: TYPES.MD "Execution", cli/lint/README.MD "Incremental runs".
+Pins: TYPES.MD "Execution", CACHE.MD.
