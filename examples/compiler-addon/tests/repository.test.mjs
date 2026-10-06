@@ -50,6 +50,7 @@ test("matching rejects domain filenames; create builds a conforming feature", as
 
 test("optional cache follows source contents, settings, membership, support, and implementations", async () => {
   const root = repository();
+  let linked;
   const errors = (issues) => issues.filter((issue) => issue.code.startsWith("typescript_")).map((issue) => issue.code);
   const cached = () => check({ cwd: root, paths: [target], cache: true });
   // Different sizes make each test edit observable even on coarse filesystems.
@@ -84,6 +85,17 @@ test("optional cache follows source contents, settings, membership, support, and
     write(root, "node_modules/example-types/package.json", '{"name":"example-types","types":"alternate.d.ts","version":"1.0.0"}\n');
     assert.deepEqual(await cached(), []);
 
+    linked = mkdtempSync(path.join(os.tmpdir(), "compiler-linked-support-"));
+    const logical = path.join(root, "node_modules/example-types");
+    cpSync(logical, linked, { recursive: true });
+    rmSync(logical, { recursive: true });
+    symlinkSync(linked, logical, "dir");
+    assert.deepEqual(await cached(), []);
+    write(linked, "alternate.d.ts", "export type Count = string; // linked declaration changed\n");
+    assert.ok(errors(await cached()).includes("typescript_2322"));
+    write(linked, "alternate.d.ts", "export type Count = number;\n");
+    assert.deepEqual(await cached(), []);
+
     const helper = path.join(root, "analysis/snapshot.mjs");
     writeFileSync(helper, readFileSync(helper, "utf8").replace(
       'await context.read(file)',
@@ -91,5 +103,8 @@ test("optional cache follows source contents, settings, membership, support, and
     ));
     assert.ok(errors(await cached()).includes("typescript_2322"));
     assert.deepEqual(errors(await cached()), errors(await check({ cwd: root, paths: [target] })));
-  } finally { rmSync(root, { recursive: true, force: true }); }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    if (linked) rmSync(linked, { recursive: true, force: true });
+  }
 });

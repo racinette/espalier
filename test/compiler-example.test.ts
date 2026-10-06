@@ -22,8 +22,8 @@ test("the shipped compiler addon example runs its semantic tests and conforms", 
       assert.equal(result.status, 0, result.stdout + result.stderr);
       return result.stdout;
     };
-    const tested = execute(["--test", "--test-isolation=none", "--test-concurrency=1", "tests/compiler.test.mjs", "tests/repository.test.mjs"]);
-    assert.match(tested, /tests 6\b/, "all six recipe tests must execute");
+    const tested = execute(["--test", "--test-isolation=none", "--test-concurrency=1", "tests/compiler.test.mjs", "tests/repository.test.mjs", "tests/locations.test.mjs"]);
+    assert.match(tested, /tests 8\b/, "all eight recipe tests must execute");
     const cli = path.join(PACKAGE_ROOT, "dist/src/cli.js");
     execute([cli, "lint"]);
     execute([cli, "build", "--check"]);

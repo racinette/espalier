@@ -42,6 +42,9 @@ export function createCompilerService(root, { onBuild = () => {} } = {}) {
     host.directoryExists = (dir) => directories.has(path.resolve(dir)) ||
       (supportPath(path.resolve(dir)) && ts.sys.directoryExists(dir));
     host.getDirectories = (dir) => supportPath(path.resolve(dir)) ? ts.sys.getDirectories(dir) : [];
+    // This bounded example treats paths beneath this repository's node_modules
+    // as logical identities, including links used by temporary fixtures.
+    host.realpath = (file) => path.resolve(file);
     host.getSourceFile = (file, languageVersion) => {
       const text = host.readFile(file);
       return text === undefined ? undefined : ts.createSourceFile(file, text, languageVersion, true);
@@ -55,6 +58,25 @@ export function createCompilerService(root, { onBuild = () => {} } = {}) {
         const source = program.getSourceFile(path.resolve(root, file));
         const symbol = source && checker.getSymbolAtLocation(source);
         return Object.freeze(symbol ? checker.getExportsOfModule(symbol).map((entry) => entry.name).sort() : []);
+      },
+      declarationOfImport(file, localName) {
+        const source = program.getSourceFile(path.resolve(root, file));
+        for (const statement of source?.statements ?? []) {
+          if (!ts.isImportDeclaration(statement)) continue;
+          const bindings = statement.importClause?.namedBindings;
+          if (!bindings || !ts.isNamedImports(bindings)) continue;
+          const binding = bindings.elements.find((entry) => entry.name.text === localName);
+          if (!binding) continue;
+          const alias = checker.getSymbolAtLocation(binding.name);
+          const symbol = alias && checker.getAliasedSymbol(alias);
+          const declaration = symbol?.declarations?.[0];
+          if (!declaration) return undefined;
+          const origin = declaration.getSourceFile();
+          const position = origin.getLineAndCharacterOfPosition(declaration.getStart());
+          return Object.freeze({ name: symbol.name, file: origin.fileName,
+            line: position.line + 1, column: position.character + 1 });
+        }
+        return undefined;
       },
       diagnosticsFor(file) {
         const source = program.getSourceFile(path.resolve(root, file));

@@ -42,3 +42,34 @@ source, compiler settings, source membership, an imported declaration, package
 metadata, and the imported analyzer implementation between checks. The same
 scoped target must see each change. These are correctness fixtures, not
 benchmarks; an all-source snapshot means broad invalidation after edits.
+
+`analysis/diagnostic.mjs` turns compiler facts into valid findings. Locations
+in the supplied application snapshot retain their coordinates; dependency and
+external locations fall back to the checked application file. Their origin is
+kept in the message and metadata. A richer analyzer should choose the actual
+application import or type annotation. Declaration coordinates never become
+coordinates in a different primary file. Espalier also permits relative paths
+in `node_modules`; this adapter deliberately favors where the author can fix
+the application.
+
+`tests/locations.test.mjs` links a declaration package into a temporary
+repository and checks its exact logical declaration identity. An unrelated
+package exporting an identically named interface does not acquire trust.
+`declarationOfImport` follows the compiler's alias symbol to its declaration;
+it is an illustrative fact API, not a general proof of safe types.
+
+This host's `realpath` preserves logical paths under its bounded dependency
+model, keeping declarations beneath the temporary repository's `node_modules`.
+Canonical paths instead follow symlinks to their physical installation. A
+workspace, project-reference graph, or compiler host that deliberately unifies
+duplicate packages may need canonical identities. Define one identity policy,
+test linked dependencies, and recognize trusted declarations by their resolved
+origin and symbol rather than a basename or type name. Logical paths are this
+example's choice, not a universal module-resolution fix.
+
+Linked support also needs explicit cache patterns. Node's recursive glob skips
+symlinked directories, so a broad `node_modules/**/*.d.ts` does not record their
+declarations. The addon names TypeScript and the cache test's `example-types`
+package explicitly; replace or extend that list for your actual linked support
+packages, including package metadata. The cache test changes a declaration
+behind a symlink and requires the same scoped application check to see it.

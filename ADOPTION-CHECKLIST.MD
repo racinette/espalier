@@ -6,18 +6,23 @@ where needed, and validation complete before moving to the next.
 - [x] Make persistent findings caching opt-in and move its requirements into
   `espalier help cache`. Commit: `5218f26`; 447 tests passed.
 - [x] Clarify addon ownership: in-process compiler services, helpers versus
-  owned resources, per-check lifetime, deterministic reuse, and disposal. Validation: authoring and init fixtures.
+  owned resources, per-check lifetime, deterministic reuse, and disposal.
+  Commit: `4c9c539`; authoring and init fixtures passed.
 - [x] Ship a runnable TypeScript addon example: lazy compilation from governed
   snapshots, compiler settings, shared facts with policy in rules, and small
   semantic tests proving reuse, changed inputs, order independence, and isolation.
-  Validation: four semantic tests, uncached lint, generated guidance check.
+  Commit: `5e91941`; four semantic tests, uncached lint, guidance freshness,
+  and reuse/freshness mutation checks passed.
 - [x] Complete the compiler testing and optional cache recipe: matching and
   creation tests, source/configuration/membership/support invalidation, and
   explicit resource setup/disposal for rule-body tests.
-  Validation: six executable example tests, lint, and guidance freshness.
-- [ ] Add compiler diagnostic adaptation and linked-dependency coverage:
+  Commit: `cd8d28b`; six executable tests, lint, guidance freshness,
+  and declaration-dependency mutation check passed.
+- [x] Add compiler diagnostic adaptation and linked-dependency coverage:
   application locations, readable origins, safe coordinates, and trusted
   declaration identity with logical paths.
+  Validation: eight executable tests, linked support invalidation, and
+  mutations for path identity, fallback coordinates, and linked declarations.
 - [ ] Explain which example mechanisms to copy, cohesive modules and static
   responsibility names, reusable versus application prose, and profiling real
   workloads without requiring new framework timing APIs.

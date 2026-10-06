@@ -72,6 +72,12 @@ They affect cache validity only: they do not make
 the files available to `read`, add them to `files`, or change where an issue
 may be attached. Ordinary imports do not belong in this export.
 
+Recursive `**` traversal does not enter symlinked package directories. If a
+compiler reads declarations or metadata through a linked package, name that
+package explicitly, for example `node_modules/reviewed-types/**/*.d.ts` and
+`node_modules/reviewed-types/package.json`. Check the expanded membership in
+your fixture; a broad `node_modules/**/*.d.ts` alone can miss linked support.
+
 Implementation dependencies are tracked for the whole run. One
 change reruns every cached invocation. A narrowed run retains the dependencies
 learned by an earlier complete run, including dynamic imports it did not

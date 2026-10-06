@@ -597,6 +597,20 @@ An aggregate constraint instead receives:
  */
 ```
 
+## Compiler diagnostic locations
+
+Compiler diagnostics often name absolute files or dependency declarations.
+Convert locations to repository-relative paths before emitting. An in-repository
+dependency path is permitted even when ungoverned; an absolute or escaping path
+is not. For a dependency type rejected by an application policy, attach the
+finding to the application's import, annotation, or checked file and retain the
+declaration origin in the message or `metadata`.
+
+Line and column belong to the primary file. When falling back from a declaration
+to an application file, omit the declaration's coordinates unless the analyzer
+has an actual application location. `espalier examples compiler-addon` includes
+an adapter and tests for application, dependency, external, and global locations.
+
 ## Execution
 
 Rules execute independently, in unspecified order. An aggregate checks its
