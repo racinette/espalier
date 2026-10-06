@@ -42,6 +42,11 @@ The helper in that tree parses a string it was given. It does not remember
 repository contents. Generated `AGENTS.MD` files in the tree are the
 presentation of those rules.
 
+`espalier examples compiler-addon` shows a compiler service owned for one
+run, source snapshots supplied by rules, lazy reuse, and explicit disposal in
+small rule-body tests. Its README and executable tests are the complete recipe;
+see [CONFIG.MD](CONFIG.MD#addons) for the resource contract.
+
 The compact contract `init` vendors is `authoring/AGENTS.MD`. Keep that file
 and `espalier/AGENTS.MD` the same bytes. Policy, helpers, and shared analysis
 are stated there rather than restated here.

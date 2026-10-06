@@ -1,0 +1,7 @@
+# Package management and the example's executable test recipes.
+package.json
+package-lock.json
+tests/
+
+# Implementation modules imported by the rules, rather than lint data.
+analysis/

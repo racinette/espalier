@@ -1,0 +1,8 @@
+pin: 0.4.0
+name: compiler-addon
+root: espalier
+ignoreFiles:
+  - .gitignore
+skip:
+  - AGENTS.MD
+addons: ./analysis/addons.mjs

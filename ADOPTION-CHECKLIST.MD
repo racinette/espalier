@@ -7,9 +7,10 @@ where needed, and validation complete before moving to the next.
   `espalier help cache`. Commit: `5218f26`; 447 tests passed.
 - [x] Clarify addon ownership: in-process compiler services, helpers versus
   owned resources, per-check lifetime, deterministic reuse, and disposal. Validation: authoring and init fixtures.
-- [ ] Ship a runnable TypeScript addon example: lazy compilation from governed
+- [x] Ship a runnable TypeScript addon example: lazy compilation from governed
   snapshots, compiler settings, shared facts with policy in rules, and small
   semantic tests proving reuse, changed inputs, order independence, and isolation.
+  Validation: four semantic tests, uncached lint, generated guidance check.
 - [ ] Complete the compiler testing and optional cache recipe: matching and
   creation tests, source/configuration/membership/support invalidation, and
   explicit resource setup/disposal for rule-body tests.

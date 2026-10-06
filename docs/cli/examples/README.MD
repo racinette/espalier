@@ -52,3 +52,13 @@ The tree is this package's `examples/` directory, next to `docs/`. It matches th
 A structural owner, a per-file well-formedness constraint, and an aggregate over mix and averages. Toy JSON, so the evaluation unit is visible without a language toolchain. The helper parses a string it was given; it does not remember repository contents. Generated `AGENTS.MD` files in the tree are the presentation of those rules.
 
 How to choose a rule's kind is [`espalier help authoring`](../help/README.MD).
+
+## `compiler-addon`
+
+A TypeScript service owned by an addon, shared by a structural model rule and
+a per-file compiler constraint. Rules supply governed source snapshots and
+compiler settings; the service constructs one program lazily for identical
+inputs. Its executable tests use small virtual trees and explicitly manage
+the resource lifetime. The copied README explains installing its TypeScript
+dependency and running the example. Start with ordinary `lint`; findings
+caching is optional and independent of compiler reuse.
