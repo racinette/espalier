@@ -12,15 +12,22 @@ the two still point at each other, rather than checking style.
 ## Project layout
 
     ./
-    ├─ docs/      the specification
+    ├─ docs/                  the specification
     │
-    ├─ ignores/   the ignore lists espalier ships
+    ├─ ignores/               the ignore lists espalier ships
     │
-    ├─ src/       the implementation
+    ├─ src/                   the implementation
     │
-    ├─ test/      the argument that the tool works
+    ├─ test/                  the argument that the tool works
     │
-    └─ README.MD  the front page (required)
+    ├─ ADOPTION-CHECKLIST.MD  the adoption improvement checklist (optional)
+    │
+    └─ README.MD              the front page (required)
+
+## `ADOPTION-CHECKLIST.MD` — the adoption improvement checklist
+
+Records committable adoption milestones and their completed
+validation. This is a work record rather than part of the specification.
 
 ## `README.MD` — the front page
 
