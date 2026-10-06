@@ -11,9 +11,10 @@ where needed, and validation complete before moving to the next.
   snapshots, compiler settings, shared facts with policy in rules, and small
   semantic tests proving reuse, changed inputs, order independence, and isolation.
   Validation: four semantic tests, uncached lint, generated guidance check.
-- [ ] Complete the compiler testing and optional cache recipe: matching and
+- [x] Complete the compiler testing and optional cache recipe: matching and
   creation tests, source/configuration/membership/support invalidation, and
   explicit resource setup/disposal for rule-body tests.
+  Validation: six executable example tests, lint, and guidance freshness.
 - [ ] Add compiler diagnostic adaptation and linked-dependency coverage:
   application locations, readable origins, safe coordinates, and trusted
   declaration identity with logical paths.

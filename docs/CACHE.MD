@@ -133,3 +133,10 @@ read them through the context.
 Addon setup and disposal run even when every finding is replayed. Construct
 expensive analysis resources lazily so an unchanged cached run need not start
 them. Shared resources must return the same answers regardless of rule order.
+
+`espalier examples compiler-addon` is an executable baseline. Its repository
+tests enable caching explicitly and compare findings after source-content,
+compiler-setting, source-membership, support-declaration, package-metadata,
+and analyzer-implementation changes. Every scoped semantic invocation still
+reads the full governed snapshot. A warm pass followed by a dependency edit
+must agree with a fresh check; sharing analysis does not waive those reads.

@@ -30,3 +30,15 @@ Run-owned state belongs in `setup`, rather than a module-global map. A separate
 `check` gets a separate service. Unit tests call `setup`, pass the returned
 object to `runRule`, and dispose it in `finally`. Their virtual trees contain
 only the sources needed to demonstrate a semantic behavior.
+
+`tests/compiler.test.mjs` exercises rule bodies, identical-input reuse,
+changed snapshots, independent services, and per-invocation reads.
+`tests/repository.test.mjs` uses a few complete temporary repositories to prove
+matching and creation. It rejects `counter.ts` where the static responsibility
+name `model.ts` is required, then creates a new feature with both operations.
+
+The repository cache test opts in with `cache: true`. It changes a sibling
+source, compiler settings, source membership, an imported declaration, package
+metadata, and the imported analyzer implementation between checks. The same
+scoped target must see each change. These are correctness fixtures, not
+benchmarks; an all-source snapshot means broad invalidation after edits.

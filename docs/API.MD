@@ -159,6 +159,37 @@ If the module exports `targets`, `runRule` validates the export but does not
 perform repository matching. The supplied context is already one selected
 invocation; repository-level selector behavior belongs to `check` and `lint`.
 
+### Shared compiler tests
+
+`runRule` and `runAggregate` use the addon object you supply. They never call
+its `setup` or dispose it. Give each fixture its own service and release it
+even if an assertion fails:
+
+```js
+import { setup } from "../analysis/addons.mjs";
+
+const addons = setup();
+try {
+  const issues = await runRule(rule, { path, tree: tinyTree, addons });
+  assert.deepEqual(issues, []);
+} finally {
+  addons[Symbol.dispose]();
+}
+```
+
+Use `await addons[Symbol.asyncDispose]()` for an asynchronously disposed addon.
+Keep semantic counterexamples small: only the imports and declarations needed
+to establish the behavior. A few real-repository tests then prove ownership,
+selection, and creation. Changing a static filename needs a matching test
+that rejects the former name and a creation test that produces the declared
+name; `runRule` cannot establish either.
+
+`espalier examples compiler-addon` supplies both kinds of executable test,
+including changed snapshots, rule order, separate service instances, and
+optional findings-cache invalidation. Test semantic reuse before measuring
+whole-repository performance; copying the entire application into every
+counterexample repeats compiler work without establishing these boundaries.
+
 ## `runAggregate(module, context)`
 
 Runs one aggregate constraint over a complete match set supplied by the test:
