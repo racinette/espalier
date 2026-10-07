@@ -107,14 +107,27 @@ Run the checks before committing:
 
 ```bash
 npm test
-node dist/src/cli.js lint --no-cache
+node dist/src/cli.js lint
 node dist/src/cli.js build
 node dist/src/cli.js build --check
 ```
 
-Commit and push the reviewed changes, then create and push the matching
-annotated tag and publish its GitHub release. Ordinary branch pushes, tag
-pushes, and pull requests do not publish to npm. If publication fails before
-uploading, fix the account setup and rerun the failed workflow. After a
-successful publication, any change requires
-a new version; do not move an existing release tag.
+Write the release notes in `.github/RELEASE-X.Y.Z.md`. Commit and push the
+preparation, wait for CI to pass on both Node versions, then create and push
+the matching annotated tag and create a draft:
+
+```bash
+git tag -a vX.Y.Z -m 'Release X.Y.Z'
+git push origin vX.Y.Z
+gh release create vX.Y.Z --verify-tag --title 'X.Y.Z' \
+  --notes-file .github/RELEASE-X.Y.Z.md --draft
+```
+
+Replace `X.Y.Z` with the prepared version. Review the draft before publishing
+it with `gh release edit vX.Y.Z --draft=false`. Publishing the release starts
+validation and npm publication. Ordinary branch pushes, tag pushes, pull
+requests, and draft releases do not publish to npm.
+
+If publication fails before uploading, fix the account setup and rerun the
+failed workflow. After a successful publication, any change requires a new
+version; do not move an existing release tag.

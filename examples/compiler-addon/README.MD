@@ -3,7 +3,7 @@
 Copy with `espalier examples compiler-addon --copy ./scratch/compiler`.
 In the copy, run `npm install`, `npm test`, `npx espalier lint`, and
 `npx espalier build --check`. Node 24 or later is required. The example uses
-TypeScript 5.9.3 and Espalier 0.4.0; TypeScript is an example dependency, not
+TypeScript 5.9.3 and Espalier 0.5.0; TypeScript is an example dependency, not
 part of Espalier's runtime dependencies.
 
 `repository.ignore` defines filesystem visibility. It uses a named file because

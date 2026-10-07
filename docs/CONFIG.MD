@@ -3,7 +3,7 @@
 `espalier` is configured by an `espalier.config.yaml` at the repository root, and by a `.espalierignore` beside it.
 
 ```yaml
-pin: 0.4.0
+pin: 0.5.0
 
 name: acme-web
 
@@ -45,7 +45,7 @@ Two files rather than one because they answer to different readers. The config i
 The exact Espalier CLI version this repository expects:
 
 ```yaml
-pin: 0.4.0
+pin: 0.5.0
 ```
 
 `pin` is the only version. There is no separate schema identifier: the implementation a repository was authored against is the whole of what “this config means,” and `espalier init` records the running package version. Commands that load repository configuration require that exact version, except `migrate`, which updates it. `help`, `examples`, and `--version` do not load repository configuration.

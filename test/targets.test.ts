@@ -26,7 +26,7 @@ export async function lint(context) { ${body} }
 
 function repository(): string {
   const root = mkdtempSync(path.join(tmpdir(), "espalier-targets-"));
-  write(root, "espalier.config.yaml", "pin: 0.4.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+  write(root, "espalier.config.yaml", "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
   for (const name of ["queries", "schema", "data"]) {
     write(root, `espalier/fixtures/[fixture]/${name}.sql.mjs`, rule());
   }
@@ -139,7 +139,7 @@ export async function lint({ matches, emit }) {
 test("exact filename extensions and broad target globs select and describe different files", () => {
   const root = mkdtempSync(path.join(tmpdir(), "espalier-selector-distinction-"));
   try {
-    write(root, "espalier.config.yaml", "pin: 0.4.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "espalier.config.yaml", "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     write(root, "espalier/[name].{json,schema.json}.mjs", rule());
     write(root, "espalier/[name].md.mjs", rule());
     write(root, "a.json", "{}\n");
@@ -222,7 +222,7 @@ export async function lint({ matches, emit }) {
 test("a compound filename suffix selects its full dotted extension", () => {
   const root = mkdtempSync(path.join(tmpdir(), "espalier-compound-suffix-"));
   try {
-    write(root, "espalier.config.yaml", "pin: 0.4.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "espalier.config.yaml", "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     for (const suffix of ["up.sql", "down.sql"]) {
       write(root, `espalier/migrations/[migration].${suffix}.mjs`, rule());
       write(root, `migrations/001.${suffix}`, "-- migration\n");
@@ -263,7 +263,7 @@ export async function lint({ matches, emit }) {
 test("structural unions and constraint lists match complete extensions once", () => {
   const root = mkdtempSync(path.join(tmpdir(), "espalier-exact-extensions-"));
   try {
-    write(root, "espalier.config.yaml", "pin: 0.4.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "espalier.config.yaml", "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     write(root, "espalier/[file].{ts,d.ts,tsx}.mjs", rule());
     write(root, "espalier/[file].test.ts.mjs", rule());
     for (const name of ["foo.ts", "foo.d.ts", "foo.tsx", "foo.test.ts"]) write(root, name, "export {};\n");
