@@ -215,7 +215,9 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `nested-three-levels` | a child of a child: delegation is a rule, not a first-hop special case |
 | `nested-build-child-failure` | one espalier that will not compile, and nothing written anywhere |
 | `build-check-drift` | `--check` reports `missing`, `changed` and `stale`, and writes nothing |
-| `build-inline` | configured inline output writes one root document and removes distributed files |
+| `build-fold-subtrees` | subtree folding preserves scope, retained boundaries, exclusions, and child espaliers |
+| `build-fold-invalid` | non-boolean descendant folding fails before any build writes |
+| `build-inline` | root folding writes one root document and removes distributed files |
 | `build-empty-rule` | a section with nothing to say is omitted, heading and all |
 | `explain-prefix` | both answer shapes, and the rule that decides which one you get |
 | `explain-ungoverned` | which list excluded a path, and that ignored is not declared |

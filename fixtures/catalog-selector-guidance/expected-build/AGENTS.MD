@@ -27,15 +27,6 @@ the bundle is deployed.
        └─ [revision].{up.sql,down.sql}  a forward or rollback schema migration
                                         (zero or more matching files)
 
-## Other repository paths
-
-These paths are part of the repository but serve specific purposes outside the project layout. Use them only for the purpose stated here.
-
-| Paths | Purpose |
-| --- | --- |
-| `.espalierignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
-
 ## `catalogs/` — locale-specific message catalogs
 
 Each locale has JSON catalogs for its application domains. Checkout is
@@ -144,6 +135,15 @@ Each file with exactly `.up.sql` or `.down.sql` as its extension under
 Each numbered migration begins with a header naming its
 revision and direction, then runs between BEGIN and COMMIT. The standalone
 baseline follows its own setup contract.
+
+## Other repository paths
+
+These paths are part of the repository but serve specific purposes outside the project layout. Use them only for the purpose stated here.
+
+| Paths | Purpose |
+| --- | --- |
+| `.espalierignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
 
 Every path in this directory must fit the project layout or a documented
 repository-specific purpose.

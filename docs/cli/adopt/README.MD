@@ -180,6 +180,11 @@ Singularising is naive — it strips a trailing `s`, and nothing more. `[client]
 
 It will not produce `[provider]`. No input contains that word; only you know it. That is why renaming is step one of what comes next, and why generated documentation is not worth reading until you have done it.
 
+Documentation ownership follows `fold` frontmatter as well as the inferred
+static spine. Beneath a folded directory, a file named like `build.filename`
+is an ordinary repository file unless it bears Espalier's provenance marker.
+The enclosing document remains build-owned.
+
 ## Scope
 
 Adopt one area at a time. `adopt .` is legal and infers across the whole repository, which on anything sizeable produces more guesses than anyone will review — and unreviewed inference is how an espalier ends up describing a shape nobody chose.

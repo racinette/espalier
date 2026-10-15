@@ -96,6 +96,8 @@ export interface Constraint {
 
 /** An `ESPALIER.MD`: what a directory is, rather than what any file in it is. */
 export interface NodeDoc {
+  /** Fold this directory and its descendants into an enclosing document. */
+  fold: boolean;
   /** The one line that appears in the project map. */
   description: string | null;
   /** The markdown long form. Empty when the file is frontmatter only. */
@@ -368,24 +370,30 @@ async function loadModule(
 }
 
 /**
- * Reads an `ESPALIER.MD`. YAML frontmatter carries the `description`; the
- * markdown body is the long form. Both parts are optional.
+ * Reads an `ESPALIER.MD`. YAML frontmatter carries `description` and `fold`;
+ * the markdown body is the long form. All three fields are optional.
  */
 function readNodeDoc(absolute: string, modulePath: string): NodeDoc {
   const text = readFileSync(absolute, "utf8");
-  const framed = /^---[^\S\n]*\r?\n([\s\S]*?)\r?\n---[^\S\n]*(?:\r?\n|$)/.exec(text);
+  const framed = /^---[^\S\n]*\r?\n(?:([\s\S]*?)\r?\n)?---[^\S\n]*(?:\r?\n|$)/.exec(text);
 
-  if (framed === null) return { description: null, body: text.trim() };
+  if (framed === null) return { description: null, body: text.trim(), fold: false };
 
   let front: unknown;
   try {
-    front = parseYaml(framed[1]!);
+    front = parseYaml(framed[1] ?? "");
   } catch (cause) {
     fail("malformed_node_description", `${modulePath}: frontmatter is not valid YAML: ${(cause as Error).message}`);
   }
 
   let description: string | null = null;
+  let fold = false;
   if (front !== null && typeof front === "object" && !Array.isArray(front)) {
+    const folded = (front as Record<string, unknown>)["fold"];
+    if (folded !== undefined && typeof folded !== "boolean") {
+      fail("malformed_node_description", `${modulePath}: \`fold\` must be a boolean`);
+    }
+    fold = folded === true;
     const value = (front as Record<string, unknown>)["description"];
     if (value !== undefined && typeof value !== "string") {
       fail("malformed_node_description", `${modulePath}: \`description\` must be a string`);
@@ -393,7 +401,7 @@ function readNodeDoc(absolute: string, modulePath: string): NodeDoc {
     if (typeof value === "string") description = value;
   }
 
-  return { description, body: text.slice(framed[0].length).trim() };
+  return { description, body: text.slice(framed[0].length).trim(), fold };
 }
 
 /** The first dot separates the rule name from a possibly compound extension. */

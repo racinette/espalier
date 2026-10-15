@@ -1,0 +1,4 @@
+# Fixture scaffolding.
+FIXTURE.MD
+expected.json
+expected-build/

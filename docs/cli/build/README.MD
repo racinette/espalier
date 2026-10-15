@@ -35,7 +35,7 @@ Everything else the agent needs arrives from `espalier lint`, which reports viol
 
 ## Where files go
 
-A generated file is placed at the **longest static prefix** of what it describes. A directory is a valid placement point only if its entire path contains no dynamic segment; one `[name]` or `[...name]` above it and the file would multiply across instances on disk.
+By default, a generated file is placed at the **longest static prefix** of what it describes. A directory is a valid placement point only if its entire path contains no dynamic segment; one `[name]` or `[...name]` above it and the file would multiply across instances on disk.
 
 Only dynamic **directory** segments matter. A dynamic filename does not affect placement, because the directory containing it is real.
 
@@ -58,7 +58,8 @@ generated document: that directory appears, and the document inside it begins
 from the same directory before showing its contents. Intermediate directories
 without a document remain expanded, so every structural node appears somewhere.
 
-**Rule bodies** — only for rules placed *here*. Detail does not propagate upward.
+**Rule bodies** — for rules placed here and sections explicitly folded here.
+Other descendant documents retain their own rule detail.
 
 **Cardinality and the complete account** — which files are required, which may
 appear zero or more times, and the final statement that every path belongs to
@@ -81,8 +82,9 @@ The root file additionally carries the project preamble.
 1. Walk the static spine from the root, stopping at the first dynamic segment. Those are the placement points.
 2. Assign every rule to the longest static prefix of its directory path.
 3. Drop placement points with no assigned rules and no `ESPALIER.MD` — an intermediate directory whose content all lives deeper produces no file, and the map above it stays expanded through that directory. The root is never dropped: it is the one file every tool reads, and it alone carries the Espalier introduction and development loop.
-4. Render each surviving point.
-5. Write with a provenance header, in deterministic order. A file whose rendered bytes match what is already on disk is left alone rather than rewritten. An unchanged human-format run confirms completion without reporting writes.
+4. Fold each directory marked `fold: true`, and every placement beneath it, into the nearest surviving ancestor. The root always survives. Descendant flags cannot reopen a folded subtree.
+5. Render each surviving point, including its folded sections.
+6. Write with a provenance header, in deterministic order. A file whose rendered bytes match what is already on disk is left alone rather than rewritten. An unchanged human-format run confirms completion without reporting writes.
 
 Sibling declarations appear with directories before files, then static names,
 resolved names, and dynamic patterns within each kind. Within dynamic siblings,
@@ -112,6 +114,7 @@ node prose                    the ESPALIER.MD body, verbatim
 ## `<path>` — <description>   one per structural rule placed here
 ## <rule name> — <description>  one per constraint placed here; selection and
                                individual or group scope precede its body
+## `<directory>/`             folded placement prose and level-three rule sections
 ## Other repository paths     one Paths/Purpose table, then the complete account
 ## Working with Espalier      root file only
 ```
@@ -146,7 +149,7 @@ a dynamic node appears as `[provider]/` or `[button].tsx`.
 
 Structural rule headings are relative to the placement point that contains
 them. A document headed `src/` therefore describes `cache.ts`, not
-`src/cache.ts`; an inline `src/` section establishes the same scope before its
+`src/cache.ts`; a folded `src/` section establishes the same scope before its
 rule headings. Espalier keeps repository-relative paths internally and changes
 only their presentation.
 
@@ -156,8 +159,8 @@ several directories down, every intermediate directory remains expanded until
 that boundary. The deeper document begins with the boundary itself, so the two
 maps overlap at exactly one row and the handoff is explicit.
 
-Inline output is the exception: it has no deeper documents to continue into,
-so its one map contains the entire espalier.
+A folded branch has no deeper documents to continue into, so the receiving
+map expands through the entire branch. Root folding shows the whole espalier.
 
 Branches are drawn with box-drawing characters: `├─ ` for an entry with siblings still to come, `└─ ` for the last one, and, under each of those, `│  ` and three spaces respectively for everything nested inside.
 
@@ -356,7 +359,7 @@ where a persistent change belongs.
 
 Every distributed document names its own generated file. The root additionally
 names its config, its espalier root, every `ignoreFiles` entry and
-`.espalierignore` when that file exists. Inline output has the root row only.
+`.espalierignore` when that file exists. Root folding has the root row only.
 
 The generated-file explanation always links to the placement point's
 `ESPALIER.MD`. It says `Modify` when that file exists and `Create` when it does
@@ -591,7 +594,7 @@ Export one interface per endpoint the client calls.
 
 A directory holding an `espalier.config.yaml` of its own is a child espalier, and its subtree belongs to it. See [CONFIG.MD](../../CONFIG.MD#nested-espaliers).
 
-The outer run places no document inside a child's subtree and sweeps nothing there — the subtree is not its to describe. Each child is then built as its own run, with its own `build.filename` and `build.inline`, so a monorepo can keep distributed documents at the root and one inline document inside a package that prefers it. Neither run can see the other's output, which is why neither can delete it.
+The outer run places no document inside a child's subtree and sweeps nothing there — the subtree is not its to describe. Each child is then built as its own run, with its own `build.filename` and `fold` frontmatter, so a monorepo can keep distributed documents at the root and one folded document inside a package that prefers it. Neither run can see the other's output, which is why neither can delete it.
 
 Each child renders exactly as if it had been run alone: its `source:` marker,
 governance boundary and complete account are all relative to the child's own
@@ -674,36 +677,57 @@ written anywhere. Other planning failures still stop the entire build.
 With `--check`, it permits the comparison but still writes nothing; the
 unmarked target is reported as changed. It never deletes an unmarked orphan.
 
-## Inline output
+## Folding subtrees
 
-Set `build.inline: true` in `espalier.config.yaml` to write one document at the
-root containing every rule body, and no distributed files.
-
-The distributed form assumes agents pick up documentation from ancestor directories of the file they are working on. A tool that reads only the repository root gets nothing from distribution, and inline output gives it everything in the one file it does read. The cost is that the whole repository's rules are resident at all times, which is why it is not the default. Placement is configuration rather than a command flag because generated-document ownership must be stable for the repository.
-
-The document is the root document with the other placement points folded into it. After the root's own structure and rules, each remaining point in map order becomes a section:
+Set `fold: true` in a directory's `ESPALIER.MD` frontmatter to fold that
+directory and its entire subtree into the nearest enclosing generated document:
 
 ```markdown
-## `src/clients/`
+---
+description: application source
+fold: true
+---
 
-Outbound API integrations. Every upstream provider gets its own directory;
-nothing outside src/clients/ performs HTTP requests directly.
-
-### `[provider]/client.ts` — an integration with an external API
+Application source guidance.
 ```
 
-**A folded point contributes its prose and its rule sections, and nothing else.** Everything shifts one heading level down, and the rule bodies are the same bytes they would have been distributed.
+Omitted `fold` and `fold: false` retain normal document placement. A true flag
+absorbs the whole branch: descendants cannot reopen documentation boundaries,
+even with an explicit `fold: false`. Sibling branches remain independent.
+Folding changes only documentation placement; structural ownership, lint
+constraints, and creation behavior keep their original scopes.
 
-There is no second map and no second complete-account sentence, because the root's cover the whole repository already. Both are written relative to the point that produced them, so folded in they would state one rule several times over in words that differ every time — `[provider]/` here, `clients/[provider]/` a section up, `src/clients/[provider]/` at the root — leaving the reader to work out that the three are one. The distributed form repeats itself because each of its files is read alone, which is exactly what this mode is not.
+At the project root, `fold: true` keeps the root document and folds all other
+placements into it. This serves tools that read only the repository root.
+Separate child espaliers remain independent and choose their own folding.
 
-A point exists because it has a document or rules of its own, so this leaves it with something to say. One whose document has a description and an empty body would be left with a bare heading, and loses the heading too, under the ordinary rule that a section with nothing in it is not written.
+Dynamic directories already contribute to their longest static ancestor;
+folding below a dynamic segment introduces no per-instance documents and does
+not fold that static ancestor or its siblings. Flags on directories containing
+only constraints still apply. Every `fold` value must be a YAML boolean,
+including flags below an already folded ancestor.
 
-The `Working with Espalier` section appears once, at the end.
+Each folded placement contributes its prose and rule sections under a directory
+heading relative to the receiving document. Rule headings inside that section
+remain relative to their original placement. Constraints retain their explicit
+selection scope. A section with no prose or rule content is omitted.
 
-Switching modes deletes the files the other mode produced. They carry the marker, this run did not produce them, and that is the whole orphan rule doing its ordinary job.
+The receiving document has one map, expanded through folded directories and
+stopping at retained documentation boundaries. Folded sections follow its own
+rules, before Other repository paths and the complete-account sentence.
+Exclusion reasons and machinery paths move to the surviving document covering
+them. Local ignore patterns moved upward by folding retain their authored text
+and name their original directory scope relative to the receiving document. There is one complete-account sentence per
+document and operational guidance remains confined to the Espalier root.
+
+Folding deletes obsolete provenance-marked documents through the ordinary
+orphan sweep. Unfolding restores normal placements. `build --check` reports
+both changes without writing. Unmarked files are never deleted as orphans,
+and an unmarked file at a restored output path still requires `--force`.
 
 ## Configuration
 
-The output filename and inline mode are configured under `build` in `espalier.config.yaml`. See [CONFIG.MD](../../CONFIG.MD).
+The output filename is configured under `build` in `espalier.config.yaml`.
+Document folding is authored in `ESPALIER.MD`. See [CONFIG.MD](../../CONFIG.MD).
 
 Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).

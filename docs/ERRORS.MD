@@ -48,7 +48,7 @@ repository linting begins.
 | `invalid_espalier_entry` | a file that is neither a `.mjs` module nor an `ESPALIER.MD`, and is not skipped |
 | `malformed_placeholder` | an unclosed `[` or `{`, an unmatched `]`, or a name that is not an identifier |
 | `malformed_constraint_leaf` | a constraint missing both selection forms, or a malformed filename extension selector |
-| `malformed_node_description` | an `ESPALIER.MD` whose frontmatter will not parse |
+| `malformed_node_description` | an `ESPALIER.MD` whose frontmatter will not parse or whose `description` or `fold` has the wrong type |
 | `multiple_recursive_placeholders` | more than one `[...name]` in one path |
 | `duplicate_placeholder_name` | the same capture name twice in one path |
 | `unbound_backreference` | a `{name}` with no `[name]` earlier in the same path |

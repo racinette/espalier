@@ -201,6 +201,17 @@ export interface Placement {
   /** In map order. */
   sections: Section[];
   constraints: Constraint[];
+  /** Original placements absorbed here, retaining their local section scope. */
+  folded: Placement[];
+}
+
+/** Whether this non-root directory gives up its document to an ancestor. */
+export function isFolded(espalier: Espalier, at: string): boolean {
+  if (at === "") return false;
+  for (const [directory, doc] of espalier.nodes) {
+    if (doc.fold && (directory === "" || at === directory || at.startsWith(`${directory}/`))) return true;
+  }
+  return false;
 }
 
 /**
@@ -214,7 +225,7 @@ export function plan(espalier: Espalier): Placement[] {
   const ensure = (at: string, node: TrieNode | null): Placement => {
     let found = points.get(at);
     if (found === undefined) {
-      found = { at, node, doc: espalier.nodes.get(at) ?? null, sections: [], constraints: [] };
+      found = { at, node, doc: espalier.nodes.get(at) ?? null, sections: [], constraints: [], folded: [] };
       points.set(at, found);
     } else if (found.node === null) {
       // Unreachable today: the only placements created with a null node are a
@@ -275,7 +286,16 @@ export function plan(espalier: Espalier): Placement[] {
       point.constraints.length > 0,
   );
 
-  return kept.sort((left, right) => (left.at < right.at ? -1 : left.at > right.at ? 1 : 0));
+  kept.sort((left, right) => (left.at < right.at ? -1 : left.at > right.at ? 1 : 0));
+  const retained = kept.filter((point) => !isFolded(espalier, point.at));
+  for (const point of kept) {
+    if (!isFolded(espalier, point.at)) continue;
+    const owner = retained.filter((candidate) =>
+      candidate.at === "" || point.at.startsWith(`${candidate.at}/`),
+    ).reduce((nearest, candidate) => candidate.at.length > nearest.at.length ? candidate : nearest);
+    owner.folded.push(point);
+  }
+  return retained;
 }
 
 /**
@@ -526,6 +546,8 @@ export function readInside(count: number): string {
 
 /** One excluded entry in a directory, and why it is excluded. */
 export interface ExclusionGroup {
+  /** Original directory scope when folding moves local declarations upward. */
+  relativeTo?: string | undefined;
   /** Authored declarations, in evaluation order. */
   rules: string[];
   /** The comment block introducing them, or null when none does. */
@@ -587,7 +609,8 @@ function renderOutside(outside: Outside, level: number): string[] {
 
   const rows = [
     ...outside.exclusions.map((group) => [
-      group.rules.map(markdownCode).join("<br>"),
+      group.rules.map(markdownCode).join("<br>") +
+        (group.relativeTo === undefined ? "" : `<br>(relative to ${markdownCode(group.relativeTo)})`),
       group.reason === null ? "—" : tableText(group.reason),
     ]),
     ...outside.toolOwned.map((group) => [
@@ -842,7 +865,6 @@ function core(
   named: string[],
   outside: Outside,
   stopAt: readonly string[] = [],
-  close = true,
   nested = false,
   espalierGuidance = true,
 ): string[] {
@@ -860,12 +882,20 @@ function core(
 
   blocks.push(...renderChildren(point.at, named, level));
   blocks.push(...renderSections(espalier, point, level));
+  for (const folded of point.folded) {
+    const body: string[] = [];
+    if (folded.doc !== null && folded.doc.body !== "") body.push(folded.doc.body);
+    body.push(...renderSections(espalier, folded, level + 1));
+    if (body.length === 0) continue;
+    const description = folded.doc?.description == null ? "" : ` — ${folded.doc.description}`;
+    blocks.push(`${"#".repeat(level)} ${codeSpan(`${displayPath(point, folded.at)}/`)}${description}`, ...body);
+  }
   blocks.push(...renderOutside(outside, level));
-  if (close && closed !== null) blocks.push(closed);
+  if (closed !== null) blocks.push(closed);
   return blocks;
 }
 
-export function renderDistributed(
+export function renderDocument(
   espalier: Espalier,
   points: Placement[],
   point: Placement,
@@ -883,67 +913,8 @@ export function renderDistributed(
   const blocks = [
     marker(espalierRoot, point.at),
     ...heading(name, point.at),
-    ...core(espalier, point, 2, named, outside, stopAt, true, nested, espalierGuidance),
+    ...core(espalier, point, 2, named, outside, stopAt, nested, espalierGuidance),
   ];
   if (espalierGuidance && point.at === "" && !nested) blocks.push(QUICKSTART);
-  return `${blocks.join("\n\n")}\n`;
-}
-
-/**
- * One document at the root, with every other placement point folded into it a
- * heading level down. There is one map and one closed-set sentence, because
- * the root's were always the whole repository, and one Espalier introduction,
- * because there is one file.
- */
-export function renderInline(
-  espalier: Espalier,
-  points: Placement[],
-  espalierRoot: string,
-  name: string | null,
-  children: string[] = [],
-  outside: Map<string, Outside> = new Map(),
-  nested = false,
-  espalierGuidance = true,
-): string {
-  const root = points.find((point) => point.at === "")!;
-  const assigned = assignChildren(points, children);
-  const blocks = [
-    marker(espalierRoot, ""),
-    ...heading(name, ""),
-    ...core(
-      espalier,
-      root,
-      2,
-      assigned.get("") ?? [],
-      outside.get("") ?? { exclusions: [], toolOwned: [] },
-      [],
-      false,
-      nested,
-      espalierGuidance,
-    ),
-  ];
-
-  for (const point of points) {
-    if (point.at === "") continue;
-    // Prose and rule sections only. The root's map, complete-account sentence and
-    // list of child espaliers cover the whole repository already, and all are
-    // written relative to the point that produced them — folded in, they would
-    // state one rule several times over in words that differ every time.
-    // docs/cli/build/README.MD "Inline output".
-    const body: string[] = [];
-    if (point.doc !== null && point.doc.body !== "") body.push(point.doc.body);
-    body.push(...renderSections(espalier, point, 3));
-    // A point exists because it has a document or rules of its own, so this is
-    // all but unreachable — a description with an empty body and nothing placed
-    // here. A bare heading is still not written.
-    if (body.length === 0) continue;
-
-    const heading = point.doc?.description == null ? "" : ` — ${point.doc.description}`;
-    blocks.push(`## ${codeSpan(`${point.at}/`)}${heading}`, ...body);
-  }
-
-  const closed = renderClosedSet(root);
-  if (closed !== null) blocks.push(closed);
-  if (espalierGuidance && !nested) blocks.push(QUICKSTART);
   return `${blocks.join("\n\n")}\n`;
 }

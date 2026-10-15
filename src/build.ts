@@ -25,9 +25,9 @@ import type { Reporter } from "./output.js";
 import { eachChild } from "./nested.js";
 import {
   assignChildren,
+  isFolded,
   plan,
-  renderDistributed,
-  renderInline,
+  renderDocument,
   type ExclusionGroup,
   type Outside,
   type Placement,
@@ -129,6 +129,7 @@ export async function build(options: BuildOptions, reporter: Reporter): Promise<
  */
 interface ScopedExclusionGroup extends ExclusionGroup {
   scopes: string[];
+  base: string;
 }
 
 function ignoreScope(rule: IgnoreRule): string {
@@ -163,7 +164,7 @@ function exclusionGroups(rules: IgnoreRule[]): ScopedExclusionGroup[] {
       groups[groups.length - 1]!.rules.push(rule.pattern);
       groups[groups.length - 1]!.scopes.push(ignoreScope(rule));
     } else {
-      groups.push({ rules: [rule.pattern], reason: rule.comment, scopes: [ignoreScope(rule)] });
+      groups.push({ rules: [rule.pattern], reason: rule.comment, scopes: [ignoreScope(rule)], base: rule.base });
     }
     previous = rule;
   }
@@ -214,7 +215,6 @@ function outsideAt(
   repository: Repository,
   points: Placement[],
   filename: string,
-  inline: boolean,
 ): Map<string, Outside> {
   const { root, espalierRoot, configPath } = repository.config;
   const configRelative = path.relative(root, configPath).split(path.sep).join("/");
@@ -225,26 +225,27 @@ function outsideAt(
   const exclusions = new Map<string, ExclusionGroup[]>();
   for (const point of points) exclusions.set(point.at, []);
   for (const group of exclusionGroups(repository.activeIgnoreRules)) {
-    const target = inline ? points[0]! : pointFor(points, commonScope(group.scopes));
-    exclusions.get(target.at)!.push({ rules: group.rules, reason: group.reason });
+    const target = pointFor(points, commonScope(group.scopes));
+    const relativeTo = group.base !== target.at && isFolded(repository.espalier, group.base)
+      ? `${path.posix.relative(target.at || ".", group.base)}/`
+      : undefined;
+    exclusions.get(target.at)!.push({ rules: group.rules, reason: group.reason, relativeTo });
   }
 
   const localMachinery = new Map<string, Set<string>>();
   for (const point of points) localMachinery.set(point.at, new Set());
   for (const rule of repository.ignoreRules) {
     if (rule.base === "" || path.posix.basename(rule.origin) !== IGNORE_FILENAME) continue;
-    const target = inline ? points[0]! : pointFor(points, path.posix.dirname(rule.origin));
+    const target = pointFor(points, path.posix.dirname(rule.origin));
     localMachinery.get(target.at)!.add(path.posix.relative(target.at || ".", rule.origin));
   }
   for (const source of repository.visibilityRules) {
     if (source.base === "") continue;
-    const target = inline ? points[0]! : pointFor(points, source.base);
+    const target = pointFor(points, source.base);
     localMachinery.get(target.at)!.add(path.posix.relative(target.at || ".", source.origin));
   }
   const found = new Map<string, Outside>();
   for (const point of points) {
-    if (inline && point.at !== "") continue;
-
     const toolOwned = [
       { entries: [filename], reason: generatedReason(repository, point) },
     ];
@@ -274,7 +275,6 @@ function planFor(
   reporter: Reporter,
 ): Plan {
   const { root, build: settings } = repository.config;
-  const inline = settings.inline;
   const nested = hasAncestorConfig(root);
 
   const points = plan(repository.espalier).filter((point) => {
@@ -283,43 +283,26 @@ function planFor(
   });
 
   const assigned = assignChildren(points, repository.children);
-  const outside = outsideAt(repository, points, settings.filename, inline);
+  const outside = outsideAt(repository, points, settings.filename);
 
   const artifacts: GeneratedArtifact[] = [];
-  if (inline) {
+  for (const point of points) {
+    const at = point.at === "" ? settings.filename : `${point.at}/${settings.filename}`;
     artifacts.push({
       target: "default",
-      path: settings.filename,
-      contents: renderInline(
+      path: at,
+      contents: renderDocument(
         repository.espalier,
         points,
+        point,
         repository.config.espalierRoot,
         repository.config.name,
-        repository.children,
-        outside,
+        assigned.get(point.at) ?? [],
+        outside.get(point.at) ?? { exclusions: [], toolOwned: [] },
         nested,
         settings.espalierGuidance,
       ),
     });
-  } else {
-    for (const point of points) {
-      const at = point.at === "" ? settings.filename : `${point.at}/${settings.filename}`;
-      artifacts.push({
-        target: "default",
-        path: at,
-        contents: renderDistributed(
-          repository.espalier,
-          points,
-          point,
-          repository.config.espalierRoot,
-          repository.config.name,
-          assigned.get(point.at) ?? [],
-          outside.get(point.at) ?? { exclusions: [], toolOwned: [] },
-          nested,
-          settings.espalierGuidance,
-        ),
-      });
-    }
   }
 
   const targets: ArtifactTarget[] = [

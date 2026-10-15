@@ -49,6 +49,13 @@ Every upstream provider gets its own directory. Nothing outside
 `src/clients/` performs HTTP requests directly.
 ```
 
+The optional `fold` frontmatter field must be a boolean. `fold: true` folds
+this directory and its entire subtree into the nearest enclosing generated
+document; at the project root it consolidates all guidance into that document.
+Omitted or false values preserve normal placement unless an ancestor folds the
+branch. It changes documentation placement only. See
+[cli/build/README.MD](cli/build/README.MD#folding-subtrees).
+
 The name is reserved: `espalier/src/clients/ESPALIER.MD` describes the directory, while `espalier/src/clients/ESPALIER.MD.mjs` would be the rule governing a real `src/clients/ESPALIER.MD` file in the repository. Any other non-`.mjs` file in the espalier is an error, unless it is skipped.
 
 **Dotfiles are skipped entirely.** A `.gitkeep` holding an otherwise-empty espalier root, a `.DS_Store` a file browser left behind — neither is a rule module, and failing the whole run over one is a bad trade. A dotfile that was meant to be a rule module is a mistake you find immediately, because nothing it declares takes effect.

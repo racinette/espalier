@@ -1,4 +1,5 @@
 ---
+fold: true
 description: storefront catalogs and schema migrations
 ---
 

@@ -390,8 +390,8 @@ example:
 
 Espalier handles document placement and presentation. Authors declare the
 structure and write the guidance; readers can discover what belongs where
-and which files are required. Set `build.inline: true` when your tooling needs
-all guidance in one root document. See [the build reference](docs/cli/build/README.MD)
+and which files are required. Set `fold: true` in the root `ESPALIER.MD` when your tooling needs
+all guidance in one root document, or in a subtree to fold its guidance upward. See [the build reference](docs/cli/build/README.MD)
 for output details.
 
 ## CI/CD integration

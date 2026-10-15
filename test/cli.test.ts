@@ -296,32 +296,7 @@ test("--dry-run prints what a real adopt prints, and writes nothing", () => {
   });
 });
 
-test("build.inline in the config owns document placement", () => {
-  scratch((root) => {
-    writeFileSync(
-      path.join(root, "espalier", "ESPALIER.MD"),
-      "---\ndescription: the repository\n---\n\nProse.\n",
-    );
-    writeFileSync(
-      path.join(root, "espalier", "src", "ESPALIER.MD"),
-      "---\ndescription: the source\n---\n\nMore prose.\n",
-    );
-
-    writeFileSync(
-      path.join(root, "espalier.config.yaml"),
-      "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  inline: true\n",
-    );
-    assert.equal(run(root, ["build"]).status, 0);
-    assert.ok(existsSync(path.join(root, "AGENTS.MD")));
-    assert.equal(
-      existsSync(path.join(root, "src", "AGENTS.MD")),
-      false,
-      "inline still distributed a document",
-    );
-  });
-});
-
-test("--inline is rejected because document placement is configuration", () => {
+test("--inline is rejected because document placement belongs to the authored tree", () => {
   scratch((root) => {
     const result = run(root, ["build", "--inline"]);
     assert.equal(result.status, 2);
@@ -366,11 +341,11 @@ test("build.espalierGuidance omits only Espalier's canned operational guidance",
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier", "ESPALIER.MD"),
-      "---\ndescription: the repository\n---\n\nPersistent root guidance.\n",
+      "---\ndescription: the repository\nfold: true\n---\n\nPersistent root guidance.\n",
     );
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  inline: true\n  espalierGuidance: false\n",
+      "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  espalierGuidance: false\n",
     );
 
     mkdirSync(path.join(root, "package", "espalier"), { recursive: true });

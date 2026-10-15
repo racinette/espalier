@@ -21,7 +21,6 @@ addons: ./espalier.addons.mjs
 
 build:
   filename: AGENTS.MD
-  inline: false
   espalierGuidance: true
 ```
 
@@ -357,15 +356,17 @@ The object must be safe for concurrent use by many rules in unspecified order. I
 | Key | Default | |
 |---|---|---|
 | `filename` | `AGENTS.MD` | name of the generated documentation file |
-| `inline` | `false` | write one document at the root instead of distributing files |
 | `espalierGuidance` | `true` | include Espalier's operational guidance in generated root documents |
 
 `filename` exists because tools disagree about what to call the file they read — `AGENTS.MD` is converging, but a project whose tooling wants `CLAUDE.md` changes one string rather than gaining a second output format.
 
-`inline` is for tools that read only the repository root. Document placement is
-configuration rather than an invocation flag so `build`, `build --check`, and
-`adopt` always agree about which paths Espalier owns. See
-[cli/build/README.MD](cli/build/README.MD#inline-output).
+Document placement follows the static structure and `fold: true` frontmatter
+in `ESPALIER.MD`. This keeps placement alongside the guidance it groups, and
+lets `build`, `build --check`, and `adopt` agree about output locations. See
+[cli/build/README.MD](cli/build/README.MD#folding-subtrees).
+
+`build.inline` is rejected with migration guidance. Run `espalier migrate` to
+remove it and preserve single-document output using root `fold: true`.
 
 `espalierGuidance: false` omits the canned `Working with Espalier` introduction
 from an outer root and the `Governance boundary` explanation from a nested

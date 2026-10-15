@@ -3,4 +3,3 @@ root: espalier
 ignoreFiles: []
 skip: []
 build:
-  inline: true

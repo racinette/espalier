@@ -7,6 +7,7 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { isFolded } from "./render.js";
 import { fail } from "./errors.js";
 import { probe } from "./files.js";
 import type { Reporter } from "./output.js";
@@ -101,7 +102,7 @@ interface Inference {
 
 interface BuildOutput {
   filename: string;
-  inline: boolean;
+  folded: (at: string) => boolean;
 }
 
 /** One sibling's contribution to the union: the entry, and who has it. */
@@ -303,7 +304,7 @@ function infer(
  */
 function ownsDocumentation(at: string, name: string, build: BuildOutput): boolean {
   if (name !== build.filename) return false;
-  if (build.inline) return at === "";
+  if (build.folded(at)) return false;
   return at.split("/").every((segment) => !segment.startsWith("["));
 }
 
@@ -398,7 +399,7 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
     name,
     found,
     outside,
-    repository.config.build,
+    { filename: repository.config.build.filename, folded: (at) => isFolded(repository.espalier, at) },
     (at, directory) => repository.ungoverned(at, directory) === null,
   );
 

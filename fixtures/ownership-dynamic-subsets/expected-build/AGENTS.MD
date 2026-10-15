@@ -80,15 +80,6 @@
           │
           └─ world.json                 a simulation world (required)
 
-## Other repository paths
-
-These paths are part of the repository but serve specific purposes outside the project layout. Use them only for the purpose stated here.
-
-| Paths | Purpose |
-| --- | --- |
-| `.espalierignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Create [`ESPALIER.MD`](espalier/ESPALIER.MD) to add persistent guidance to this document. |
-
 ## `files/`
 
 ### `test-special-[case].ts` — special simulation tests
@@ -166,6 +157,15 @@ Explain the checks and the data assumptions they enforce.
 ### `[world]/world.json` — a simulation world
 
 Describe the world's data sources and arrival schedule.
+
+## Other repository paths
+
+These paths are part of the repository but serve specific purposes outside the project layout. Use them only for the purpose stated here.
+
+| Paths | Purpose |
+| --- | --- |
+| `.espalierignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
 
 Every path in this directory must fit the project layout or a documented
 repository-specific purpose.

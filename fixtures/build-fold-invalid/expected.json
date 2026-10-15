@@ -1,0 +1,1 @@
+{"exit": 2, "error": "malformed_node_description", "build": {"exit": 2, "report": [{"kind":"failure", "code":"malformed_node_description"}]}}

@@ -1,4 +1,5 @@
 ---
+fold: true
 description: a small example application
 ---
 

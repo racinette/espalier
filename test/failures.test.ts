@@ -385,9 +385,9 @@ export async function lint() {}
     },
   },
   {
-    what: "a config boolean that is not a boolean",
-    code: "config_invalid_value",
-    config: "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  inline: yes please\n",
+    what: "the removed build.inline setting",
+    code: "config_unknown_key",
+    config: "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  inline: true\n",
   },
   {
     what: "an Espalier-guidance setting that is not a boolean",

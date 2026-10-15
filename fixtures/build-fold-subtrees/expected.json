@@ -1,0 +1,13 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
+      { "kind": "written", "path": "src/AGENTS.MD" },
+      { "kind": "written", "path": "other/AGENTS.MD" },
+      { "kind": "written", "path": "src/features/vendor/AGENTS.MD" },
+      { "kind": "written", "path": "src/features/vendor/lib/AGENTS.MD" },
+      { "kind": "deleted", "path": "src/features/shared/AGENTS.MD" }
+    ]
+  }
+}

@@ -17,6 +17,12 @@ the repository root.
 
 Wire up the application and start it.
 
+## `components/buttons/`
+
+### `[button].tsx` — a button component
+
+Default-export a single component named after the file.
+
 ## Other repository paths
 
 These paths are part of the repository but serve specific purposes outside the project layout. Use them only for the purpose stated here.
@@ -25,12 +31,6 @@ These paths are part of the repository but serve specific purposes outside the p
 | --- | --- |
 | `.espalierignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
 | `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
-
-## `components/buttons/`
-
-### `[button].tsx` — a button component
-
-Default-export a single component named after the file.
 
 Every path in this directory must fit the project layout or a documented
 repository-specific purpose.

@@ -1,7 +1,5 @@
 pin: 0.5.0
 name: flight simulation
 root: espalier
-build:
-  inline: true
 ignoreFiles: []
 skip: []

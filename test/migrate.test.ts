@@ -221,3 +221,116 @@ test("migrate updates a still-marked shipped AGENTS.MD", () => {
     assert.equal(readFileSync(path.join(root, "espalier", "AGENTS.MD"), "utf8"), shippedAuthoring());
   });
 });
+
+for (const build of [
+  '# placement\nbuild:\n  inline: true\n  filename: GUIDE.MD # chosen name\n',
+  '# placement\nbuild: { inline: true, filename: GUIDE.MD } # chosen name\n',
+]) {
+  test(`migrate converts inline placement and preserves authored frontmatter (${build.includes('{') ? 'flow' : 'block'})`, () => {
+    scratch((root) => {
+      const config = `pin: ${VERSION}\nroot: rules\nignoreFiles: []\nskip: []\n${build}`;
+      const source = '---\n# local policy\ndescription: "Project guidance"\nfold: false\ncustom: keep\n---\n\n# Authored prose\n\nKeep  spacing.\r\n';
+      mkdirSync(path.join(root, 'rules'));
+      writeFileSync(path.join(root, 'espalier.config.yaml'), config);
+      writeFileSync(path.join(root, 'rules', 'ESPALIER.MD'), source);
+      const rejected = run(root, ['build']);
+      assert.equal(rejected.status, 2);
+      assert.match(rejected.stdout + rejected.stderr, /espalier migrate/);
+      const dry = run(root, ['migrate', '--dry-run', '--format', 'jsonl']);
+      assert.equal(dry.status, 0, dry.stdout + dry.stderr);
+      assert.match(dry.stdout, /rules\/ESPALIER.MD/);
+      assert.equal(readFileSync(path.join(root, 'espalier.config.yaml'), 'utf8'), config);
+      assert.equal(readFileSync(path.join(root, 'rules', 'ESPALIER.MD'), 'utf8'), source);
+      const result = run(root, ['migrate', '--format', 'jsonl']);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.equal(result.stdout, dry.stdout);
+      const migrated = readFileSync(path.join(root, 'rules', 'ESPALIER.MD'), 'utf8');
+      assert.match(migrated, /fold: true/);
+      assert.match(migrated, /# local policy/);
+      assert.match(migrated, /custom: keep/);
+      assert.ok(migrated.endsWith('\n\n# Authored prose\n\nKeep  spacing.\r\n'));
+      const configured = readFileSync(path.join(root, 'espalier.config.yaml'), 'utf8');
+      assert.doesNotMatch(configured, /inline:/);
+      assert.match(configured, /# placement/);
+      assert.match(configured, /# chosen name/);
+      assert.match(configured, /filename: GUIDE.MD/);
+      assert.equal(run(root, ['build']).status, 0);
+      assert.ok(existsSync(path.join(root, 'GUIDE.MD')));
+      assert.equal(run(root, ['migrate']).status, 0);
+      assert.equal(readFileSync(path.join(root, 'rules', 'ESPALIER.MD'), 'utf8'), migrated);
+      assert.equal(readFileSync(path.join(root, 'espalier.config.yaml'), 'utf8'), configured);
+    });
+  });
+}
+
+test('migrate creates root folding frontmatter and visits an inline child independently', () => {
+  scratch((root) => {
+    const config = `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  inline: true\n`;
+    writeFileSync(path.join(root, 'espalier.config.yaml'), config);
+    mkdirSync(path.join(root, 'child', 'espalier'), { recursive: true });
+    writeFileSync(path.join(root, 'child', 'espalier.config.yaml'), config);
+    writeFileSync(path.join(root, 'child', 'espalier', 'ESPALIER.MD'), 'Child prose.\n');
+    const dry = run(root, ['migrate', '--dry-run']);
+    assert.equal(dry.status, 0, dry.stdout + dry.stderr);
+    assert.equal(existsSync(path.join(root, 'espalier', 'ESPALIER.MD')), false);
+    assert.equal(readFileSync(path.join(root, 'child', 'espalier', 'ESPALIER.MD'), 'utf8'), 'Child prose.\n');
+    const result = run(root, ['migrate']);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(result.stdout, dry.stdout);
+    assert.equal(readFileSync(path.join(root, 'espalier', 'ESPALIER.MD'), 'utf8'), '---\nfold: true\n---\n');
+    assert.equal(readFileSync(path.join(root, 'child', 'espalier', 'ESPALIER.MD'), 'utf8'), '---\nfold: true\n---\nChild prose.\n');
+    assert.equal(run(root, ['build']).status, 0);
+    assert.ok(existsSync(path.join(root, 'child', 'AGENTS.MD')));
+  });
+});
+
+test('migrate removes inline false without changing or creating folding frontmatter', () => {
+  for (const source of [undefined, '---\nfold: true\n---\nAuthored.\n']) {
+    scratch((root) => {
+      writeFileSync(path.join(root, 'espalier.config.yaml'), `pin: ${VERSION}\nignoreFiles: []\nskip: []\nbuild: { inline: false }\n`);
+      const filename = path.join(root, 'espalier', 'ESPALIER.MD');
+      if (source !== undefined) writeFileSync(filename, source);
+      const result = run(root, ['migrate']);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.equal(existsSync(filename), source !== undefined);
+      if (source !== undefined) assert.equal(readFileSync(filename, 'utf8'), source);
+      assert.equal(run(root, ['build']).status, 0);
+    });
+  }
+});
+
+test('migrate accepts empty frontmatter and leaves an existing true fold byte-identical', () => {
+  for (const source of ['---\n---\nBody.\n', '---\nfold: true # keep\n---\nBody.\n']) {
+    scratch((root) => {
+      writeFileSync(path.join(root, 'espalier.config.yaml'), `pin: ${VERSION}\nignoreFiles: []\nskip: []\nbuild: { inline: true }\n`);
+      const filename = path.join(root, 'espalier', 'ESPALIER.MD');
+      writeFileSync(filename, source);
+      const result = run(root, ['migrate']);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.equal(readFileSync(filename, 'utf8'), source.includes('fold:') ? source : '---\nfold: true\n---\nBody.\n');
+      assert.equal(run(root, ['build']).status, 0);
+    });
+  }
+});
+
+test('invalid folding migration leaves config and source untouched', () => {
+  for (const [inline, source] of [
+    ['"true"', 'Prose.\n'],
+    ['true', '---\nfold: null\n---\nProse.\n'],
+    ['true', '---\ndescription: [bad]\n---\nProse.\n'],
+    ['true', '---\nfold: [\n---\nProse.\n'],
+    ['true', '---\nfold: false\n'],
+  ]) {
+    scratch((root) => {
+      const config = `pin: ${VERSION}\nignoreFiles: []\nskip: []\nbuild: { inline: ${inline} }\n`;
+      const configPath = path.join(root, 'espalier.config.yaml');
+      const sourcePath = path.join(root, 'espalier', 'ESPALIER.MD');
+      writeFileSync(configPath, config);
+      writeFileSync(sourcePath, source!);
+      const result = run(root, ['migrate']);
+      assert.equal(result.status, 2, result.stdout + result.stderr);
+      assert.equal(readFileSync(configPath, 'utf8'), config);
+      assert.equal(readFileSync(sourcePath, 'utf8'), source);
+    });
+  }
+});

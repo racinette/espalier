@@ -4,8 +4,9 @@
 // `loadConfig` on a pin mismatch; this one is allowed to see the old file,
 // edit it as text, and visit children the way `lint` and `build` do.
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { isMap, parseDocument } from "yaml";
 import { findChildren } from "./children.js";
 import {
   CONFIG_FILENAME,
@@ -61,6 +62,11 @@ export function rewriteConfigText(
   values: Record<string, unknown>,
   version: string,
 ): string {
+  if (legacyInline(values) !== undefined) {
+    const document = parseDocument(text);
+    document.deleteIn(["build", "inline"]);
+    text = document.toString();
+  }
   let lines = text.split(/\r?\n/);
   if (lines[lines.length - 1] === "") lines = lines.slice(0, -1);
 
@@ -85,6 +91,52 @@ export function rewriteConfigText(
   let body = lines.join("\n").replace(/^\n+/, "").replace(/\n+$/, "");
   if (additions.length > 0) body = `${body}\n\n${additions.join("\n\n")}`;
   return `${body}\n`;
+}
+
+/** Validate the obsolete setting before planning either migration write. */
+function legacyInline(values: Record<string, unknown>): boolean | undefined {
+  const build = values["build"];
+  if (build === undefined || build === null) return undefined;
+  if (typeof build !== "object" || Array.isArray(build)) {
+    fail("config_invalid_value", "build must be a mapping");
+  }
+  const entries = build as Record<string, unknown>;
+  for (const key of Object.keys(entries)) {
+    if (!["filename", "espalierGuidance", "inline"].includes(key)) {
+      fail("config_unknown_key", `unknown configuration key "build.${key}"`);
+    }
+  }
+  if (!("inline" in entries)) return undefined;
+  if (typeof entries["inline"] !== "boolean") {
+    fail("config_invalid_value", "build.inline must be a boolean");
+  }
+  return entries["inline"];
+}
+
+/** Change only the frontmatter; the authored Markdown body stays byte-for-byte. */
+function foldRoot(text: string, source: string): string {
+  const framed = /^---[^\S\n]*\r?\n(?:([\s\S]*?)\r?\n)?---[^\S\n]*(?:\r?\n|$)/.exec(text);
+  if (framed === null) {
+    if (/^---[^\S\n]*(?:\r?\n|$)/.test(text)) {
+      fail("malformed_node_description", `${source}: frontmatter has no closing delimiter`);
+    }
+    return `---\nfold: true\n---\n${text}`;
+  }
+  const document = parseDocument(framed[1] ?? "");
+  if (document.errors.length > 0 || (document.contents !== null && !isMap(document.contents))) {
+    fail("malformed_node_description", `${source}: frontmatter must be a valid YAML mapping`);
+  }
+  const description = document.get("description");
+  const fold = document.get("fold");
+  if (document.has("description") && typeof description !== "string") {
+    fail("malformed_node_description", `${source}: \`description\` must be a string`);
+  }
+  if (document.has("fold") && typeof fold !== "boolean") {
+    fail("malformed_node_description", `${source}: \`fold\` must be a boolean`);
+  }
+  if (fold === true) return text;
+  document.set("fold", true);
+  return `---\n${document.toString()}---\n${text.slice(framed[0].length)}`;
 }
 
 function discoverChildren(
@@ -160,7 +212,29 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
     }
   }
 
+  const inline = legacyInline(values);
+  const written = "root" in values ? values["root"] : "espalier";
+  if (typeof written !== "string" || path.isAbsolute(written) || written.split(/[\\/]/).includes("..")) {
+    fail("config_invalid_value", "root must be a relative path inside the repository");
+  }
+  const espalierRoot = path.posix.normalize(written.split(path.sep).join("/")).replace(/\/+$/, "");
+  if (espalierRoot === "" || espalierRoot === ".") {
+    fail("config_invalid_value", "root must name a directory inside the repository");
+  }
   const wanted = rewriteConfigText(text, values, VERSION);
+  const source = `${espalierRoot}/ESPALIER.MD`;
+  const absoluteSource = path.join(root, source);
+  if (inline === true) {
+    const existing = existsSync(absoluteSource) ? readFileSync(absoluteSource, "utf8") : "";
+    const folded = foldRoot(existing, source);
+    if (folded !== existing) {
+      if (!options.dryRun) {
+        mkdirSync(path.dirname(absoluteSource), { recursive: true });
+        writeFileSync(absoluteSource, folded, "utf8");
+      }
+      reporter.record({ kind: "written", path: source });
+    }
+  }
   const reported = path.relative(root, configPath).split(path.sep).join("/") || CONFIG_FILENAME;
   if (wanted === text) {
     reporter.record({ kind: "skipped", path: reported });
@@ -169,10 +243,6 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
     reporter.record({ kind: "written", path: reported });
   }
 
-  const written = typeof values["root"] === "string" ? values["root"] : "espalier";
-  const espalierRoot = path.posix
-    .normalize(written.split(path.sep).join("/"))
-    .replace(/\/+$/, "");
   vendorAuthoring(root, espalierRoot, skipAfterRewrite(values), reporter, options.dryRun);
 
   return { root, children: discoverChildren(root, configPath, values) };
