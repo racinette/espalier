@@ -63,7 +63,7 @@ See [TYPES.MD](TYPES.MD).
 
 | Code | |
 |---|---|
-| `module_import_failed` | the module threw while being imported |
+| `module_import_failed` | the module could not be parsed or threw while being imported |
 | `module_missing_export` | no `rule`, no `lint`, or no `description` on a structural rule |
 | `module_invalid_export` | an export of the wrong type or on the wrong rule kind, or `targets` together with a constraint filename extension |
 | `invalid_reference_implementation` | a `referenceImplementation` that is absent, is not a governed file, or is not actually owned or covered by its rule |
@@ -110,6 +110,21 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | `template_threw` | a template renderer threw instead of producing source |
 | `template_invalid_result` | a template renderer returned something other than a string |
 | `create_write_failed` | the rendered file or staged directory could not be written to its requested path |
+
+## Rule-module parse locations
+
+When a rule file fails to parse, `module_import_failed` includes its
+repository-relative path and available 1-based line and column in the message
+and in JSONL `detail.path`, `detail.line`, and `detail.column`. A nested failure's
+path is relative to the Espalier named by its `espalier` field.
+
+Node's dynamic-import errors can omit source coordinates. After a syntax
+failure, Espalier uses a bounded Node syntax check of that rule's source to
+recover them without executing the module again. This adds no check to a
+successful import. If the rule itself parses, the failure may come from an
+imported helper or runtime code; no location is guessed for the importing rule.
+If the syntax check is unavailable or provides only a line, the original error
+is retained with only the coordinates that could be established.
 
 ## The runner itself
 

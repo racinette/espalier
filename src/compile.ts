@@ -2,6 +2,7 @@
 // "Classification", "Ambiguity is rejected".
 
 import { readFileSync, statSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parse as parseYaml } from "yaml";
@@ -182,13 +183,60 @@ function identify(absolute: string): string {
   return `${stats.dev}:${stats.ino}`;
 }
 
-async function loadModule(absolute: string, modulePath: string, kind: ModuleKind): Promise<LoadedModule> {
+/** Recover V8's parse location without evaluating the failed module again.
+ * docs/ERRORS.MD "Rule-module parse locations".
+ */
+function syntaxLocation(absolute: string, cause: unknown): { line: number; column?: number } | null {
+  if (!(cause instanceof SyntaxError)) return null;
+  try {
+    const checked = spawnSync(process.execPath, ["--check", "--input-type=module"], {
+      input: readFileSync(absolute, "utf8"),
+      encoding: "utf8",
+      timeout: 3000,
+      maxBuffer: 1024 * 1024,
+      // Check only syntax: do not inherit preloads, loaders, or output caches.
+      env: {
+        ...process.env,
+        NODE_OPTIONS: "",
+        NODE_V8_COVERAGE: undefined,
+        NODE_COMPILE_CACHE: undefined,
+        NODE_DISABLE_COMPILE_CACHE: "1",
+      },
+    });
+    if (checked.error || checked.status !== 1) return null;
+    const lines = checked.stderr.split(/\r?\n/);
+    const at = lines.findIndex((line) => /^\[stdin\]:\d+$/.test(line));
+    if (at === -1) return null;
+    const line = Number(lines[at]!.slice("[stdin]:".length));
+    if (!Number.isSafeInteger(line) || line < 1) return null;
+    const caret = /^([ \t]*)\^/.exec(lines[at + 2] ?? "");
+    return { line, ...(caret === null ? {} : { column: caret[1]!.length + 1 }) };
+  } catch {
+    return null;
+  }
+}
+
+async function loadModule(
+  absolute: string,
+  modulePath: string,
+  kind: ModuleKind,
+  root: string,
+): Promise<LoadedModule> {
   const structural = kind !== "constraint";
   let loaded: RuleModule;
   try {
     loaded = (await import(pathToFileURL(absolute).href)) as RuleModule;
   } catch (cause) {
-    fail("module_import_failed", `${modulePath} could not be imported: ${(cause as Error).message}`);
+    const location = syntaxLocation(absolute, cause);
+    const source = path.relative(root, absolute).split(path.sep).join("/");
+    const label = location === null
+      ? modulePath
+      : `${source}:${location.line}${location.column === undefined ? "" : `:${location.column}`}`;
+    fail(
+      "module_import_failed",
+      `${label} could not be imported: ${(cause as Error).message}`,
+      { path: source, ...location },
+    );
   }
 
   if (typeof loaded.rule !== "string") {
@@ -527,7 +575,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     if (recursive.length === 1) {
       const directory = parsed.slice(0, -1);
       const leaf = authored[authored.length - 1]!;
-      const module = await loadModule(absoluteModule, modulePath, "constraint");
+      const module = await loadModule(absoluteModule, modulePath, "constraint", root);
       const prefix = directory.map((segment) => segment.shape).join("/");
 
       const { name, extensions } = splitConstraintLeaf(leaf, modulePath);
@@ -557,7 +605,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     insert(trie, parsed, {
       modulePath,
       pattern: parsed.map((segment) => segment.shape).join("/"),
-      module: await loadModule(absoluteModule, modulePath, leafSegment.dynamic ? "dynamic" : "static"),
+      module: await loadModule(absoluteModule, modulePath, leafSegment.dynamic ? "dynamic" : "static", root),
     });
   }
 

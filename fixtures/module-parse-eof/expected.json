@@ -1,0 +1,11 @@
+{
+  "exit": 2,
+  "error": {
+    "code": "module_import_failed",
+    "espalier": "child",
+    "message": "espalier/a.ts.mjs:4 could not be imported: Unexpected end of input",
+    "detail": { "path": "espalier/a.ts.mjs", "line": 4 }
+  },
+  "issues": [],
+  "human": "human/report.txt"
+}

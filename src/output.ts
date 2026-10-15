@@ -302,39 +302,44 @@ class HumanReporter implements Reporter {
     for (const [target, issues] of [...grouped.entries()].sort(([a], [b]) => (a < b ? -1 : 1))) {
       this.destination.write(`\n${target}\n`);
 
+      const rules = new Map<string, Issue[]>();
       for (const issue of issues) {
-        const position =
-          issue.line === null
-            ? ""
-            : `${issue.line}${issue.column === null ? "" : `:${issue.column}`}  `;
-        this.destination.write(`  ${position}${issue.severity}  ${issue.code}   ${issue.message}\n`);
+        const key = JSON.stringify([issue.espalier ?? null, issue.rule]);
+        const group = rules.get(key);
+        if (group === undefined) rules.set(key, [issue]);
+        else group.push(issue);
+      }
 
-        const recognized = issue.metadata["recognized"];
-        if (typeof recognized === "string") {
-          const captures = (issue.metadata["captures"] ?? {}) as Record<string, CaptureValue>;
-          this.destination.write(
-            `\n    The espalier recognizes  ${recognized}/${describeCaptures(captures)}\n`,
-          );
-          const declared = (issue.metadata["declared"] ?? []) as string[];
-          if (declared.length > 0) {
-            this.destination.write(`    Declared there:\n`);
-            for (const entry of declared) this.destination.write(`      ${entry}\n`);
+      for (const group of rules.values()) {
+        const first = group[0]!;
+        if (first.ruleText !== null) {
+          const heading = first.description == null ? "Rule:" : `Rule (${first.description}):`;
+          this.destination.write(`\n    ${heading}\n${indent(first.ruleText, "      ")}\n`);
+        }
+        if (first.referenceImplementation != null) {
+          this.destination.write(`\n    Reference implementation: ${first.referenceImplementation}\n`);
+        }
+        if (first.ruleText !== null || first.referenceImplementation != null) this.destination.write("\n");
+
+        for (const issue of group) {
+          const position =
+            issue.line === null
+              ? ""
+              : `${issue.line}${issue.column === null ? "" : `:${issue.column}`}  `;
+          this.destination.write(`  ${position}${issue.severity}  ${issue.code}   ${issue.message}\n`);
+
+          const recognized = issue.metadata["recognized"];
+          if (typeof recognized === "string") {
+            const captures = (issue.metadata["captures"] ?? {}) as Record<string, CaptureValue>;
+            this.destination.write(
+              `\n    The espalier recognizes  ${recognized}/${describeCaptures(captures)}\n`,
+            );
+            const declared = (issue.metadata["declared"] ?? []) as string[];
+            if (declared.length > 0) {
+              this.destination.write(`    Declared there:\n`);
+              for (const entry of declared) this.destination.write(`      ${entry}\n`);
+            }
           }
-        }
-
-        if (issue.ruleText !== null) {
-          const heading = issue.description == null ? "Rule:" : `Rule (${issue.description}):`;
-          this.destination.write(`\n    ${heading}\n${indent(issue.ruleText, "      ")}\n`);
-        }
-
-        // A path is one line and reads as one. Source goes under the heading and
-        // is indented like the rule body — interpolating it into a sentence
-        // breaks the indentation a fixed layout exists to keep.
-        // docs/cli/lint/README.MD "human".
-        if (issue.referenceImplementation != null) {
-          this.destination.write(
-            `\n    Reference implementation: ${issue.referenceImplementation}\n`,
-          );
         }
       }
     }

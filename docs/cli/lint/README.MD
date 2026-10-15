@@ -168,7 +168,12 @@ Two codes come from matching rather than from a rule module. Their `rule` is `nu
 
 ### `human`
 
-The default. Issues grouped by path, rule text indented beneath, summary last.
+The default. Issues are grouped by path, then by the Espalier and rule module
+that emitted them. Each group's rule text and reference implementation appear
+once, before its findings. Groups follow first occurrence; findings retain
+their arrival order within each group. Distinct modules remain separate even
+when their prose is identical. Every finding is printed, including findings
+sharing a location, code, or message. The summary counts findings, not groups.
 
 ```text
 clients/acme/random.ts
@@ -179,8 +184,7 @@ clients/acme/random.ts
       client.ts          the provider's HTTP client
       requestModels.ts   request payload types
 
-clients/stripe/client.ts:12:3
-  error  missing_factory   no create<Provider>Client factory is exported
+clients/stripe/client.ts
 
     Rule (the provider's HTTP client):
       Export a single create<Provider>Client(config) factory.
@@ -188,10 +192,14 @@ clients/stripe/client.ts:12:3
 
     Reference implementation: clients/twilio/client.ts
 
+  12:3  error  missing_factory   no create<Provider>Client factory is exported
+
 2 errors
 ```
 
-Built-in issues have no rule behind them, so they show the deepest recognized node instead of rule text. Issues from rule modules show the rule body and its reference implementation.
+Built-in issues have no rule behind them, so they show the deepest recognized
+node beside each finding. `--no-rule-text` omits prose while retaining every
+finding and the reference implementation, when present.
 
 `referenceImplementation` is a repository path and reads as one line:
 `Reference implementation: <path>`. Inline source is deliberately unsupported;
@@ -216,7 +224,9 @@ The runner promises nothing about the order issues arrive in, and never collapse
 
 Both are deliberate. Ordering a stream means buffering it, which is the one thing a stream is for not doing, and collapsing issues means discarding one of two findings that agreed on `path`, `code` and `message` while disagreeing on `captures` or `line` — a silent choice between them, made on execution order.
 
-Presentation is the formatter's business, and formatters may buffer. `human` groups by path, because that is how a person reads a report. `jsonl` does not reorder anything.
+Presentation is the formatter's business, and formatters may buffer. `human`
+groups by path and rule identity. `jsonl` does not reorder or group anything;
+each issue retains its own rule text unless `--no-rule-text` is selected.
 
 ## Exit codes
 

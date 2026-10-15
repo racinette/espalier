@@ -189,6 +189,7 @@ test("issues are grouped under their path, in path order", () => {
       "espalier/[file].ts.mjs",
       `export const description = "a file";
 export const rule = \`R\`;
+export const referenceImplementation = "a.ts";
 export async function lint(context) {
   context.emit({ code: "one", message: "first", severity: "warning" });
   context.emit({ code: "two", message: "second", severity: "warning" });
@@ -204,11 +205,23 @@ export async function lint(context) {
     const paths = [...shown.stdout.matchAll(/^([ab]\.ts)$/gm)].map((match) => match[1]);
     assert.deepEqual(paths, ["a.ts", "b.ts"]);
     // Both of `a.ts`'s issues appear under it, in the order they were emitted,
-    // each with its own rule block between them.
+    // beneath their shared rule block.
     assert.match(
       shown.stdout,
-      /a\.ts\n {2}warning {2}one {3}first\n[\s\S]*? {2}warning {2}two {3}second\n[\s\S]*?\nb\.ts\n/,
+      /a\.ts\n[\s\S]*? {2}warning {2}one {3}first\n {2}warning {2}two {3}second\n\nb\.ts\n/,
     );
+    assert.equal(shown.stdout.match(/Rule \(a file\):/g)?.length, 2);
+    assert.equal(shown.stdout.match(/Reference implementation: a\.ts/g)?.length, 2);
+
+    const terse = run(root, ["lint", "--no-rule-text"]);
+    assert.equal(terse.status, shown.status);
+    assert.doesNotMatch(terse.stdout, /Rule \(a file\):/);
+    assert.equal(terse.stdout.match(/Reference implementation: a\.ts/g)?.length, 2);
+    assert.deepEqual(
+      terse.stdout.match(/^ {2}warning.*$/gm),
+      shown.stdout.match(/^ {2}warning.*$/gm),
+    );
+    assert.match(terse.stdout, /\n4 warnings\n$/);
   });
 });
 
@@ -234,7 +247,7 @@ test("a name too long for its column is still told apart from what follows", () 
   });
 });
 
-test("rule text is indented beneath the issue that cited it", () => {
+test("rule text is indented above the findings that cite it", () => {
   scratch((root) => {
     write(
       root,
