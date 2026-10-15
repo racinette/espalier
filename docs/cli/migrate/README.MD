@@ -23,6 +23,13 @@ espalier migrate [--dry-run]
   --out <dest>     stdout, stderr, or a file path (default: stdout)
 ```
 
+A successful `--dry-run` simulates the normal file records and summary, including
+`written` and `skipped`, and adds one notice:
+“Dry run: no migration files will be changed.”
+Human output places the notice after the summary; JSONL emits it as a `warning`
+record. The notice appears once per invocation, including when child espaliers
+are visited or no changes are needed. It follows `--out` like the other output.
+
 ## What it rewrites
 
 Ordinary pin updates edit the file as text. Removing `build.inline` or extending

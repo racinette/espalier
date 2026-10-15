@@ -1,4 +1,5 @@
-// `espalier migrate`. docs/cli/migrate/README.MD.
+// `espalier migrate`: no-write guarantees, dry-run/real-run output parity,
+// and idempotent rewrites. docs/cli/migrate/README.MD.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -22,6 +23,17 @@ function run(cwd: string, args: string[]) {
   const result = spawnSync(process.execPath, [cli, ...args], { cwd, encoding: "utf8" });
   if (result.error) throw result.error;
   return { status: result.status ?? -1, stdout: result.stdout, stderr: result.stderr };
+}
+
+const DRY_RUN_NOTICE = "Dry run: no migration files will be changed.";
+
+/** Only the notice distinguishes the simulated output from the real run. */
+function simulatedOutput(stdout: string, format: "human" | "jsonl"): string {
+  const notice = format === "jsonl"
+    ? `${JSON.stringify({ kind: "warning", message: DRY_RUN_NOTICE })}\n`
+    : `\n${DRY_RUN_NOTICE}\n`;
+  assert.equal(stdout.split(notice).length, 2, "exactly one dry-run notice");
+  return stdout.replace(notice, "");
 }
 
 function scratch(body: (root: string) => void): void {
@@ -138,7 +150,7 @@ test("migrate --dry-run writes nothing", () => {
     );
     const dry = run(root, ["migrate", "--dry-run", "--format", "jsonl"]);
     assert.equal(dry.status, 0, dry.stdout + dry.stderr);
-    assert.match(dry.stdout, /"kind":"written"/);
+    assert.match(simulatedOutput(dry.stdout, "jsonl"), /"kind":"written"/);
     assert.equal(
       readFileSync(path.join(root, "espalier.config.yaml"), "utf8"),
       "version: 1\npin: 0.1.0\nroot: espalier\n",
@@ -179,6 +191,16 @@ test("a current config is skipped", () => {
     assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
     assert.match(migrated.stdout, /"kind":"skipped"/);
     assert.equal(existsSync(path.join(root, "espalier", "AGENTS.MD")), false);
+    for (const format of ["human", "jsonl"] as const) {
+      const report = path.join(root, `${format}.log`);
+      const dry = run(root, ["migrate", "--dry-run", "--format", format, "--out", report]);
+      assert.equal(dry.status, 0, dry.stdout + dry.stderr);
+      assert.equal(dry.stdout, "");
+      assert.equal(dry.stderr, "");
+      const actual = run(root, ["migrate", "--format", format]);
+      assert.equal(actual.status, 0, actual.stdout + actual.stderr);
+      assert.equal(simulatedOutput(readFileSync(report, "utf8"), format), actual.stdout);
+    }
   });
 });
 
@@ -245,7 +267,7 @@ for (const build of [
       assert.equal(readFileSync(path.join(root, 'rules', 'ESPALIER.MD'), 'utf8'), source);
       const result = run(root, ['migrate', '--format', 'jsonl']);
       assert.equal(result.status, 0, result.stdout + result.stderr);
-      assert.equal(result.stdout, dry.stdout);
+      assert.equal(result.stdout, simulatedOutput(dry.stdout, "jsonl"));
       const migrated = readFileSync(path.join(root, 'rules', 'ESPALIER.MD'), 'utf8');
       assert.match(migrated, /fold: true/);
       assert.match(migrated, /# local policy/);
@@ -278,7 +300,7 @@ test('migrate creates root folding frontmatter and visits an inline child indepe
     assert.equal(readFileSync(path.join(root, 'child', 'espalier', 'ESPALIER.MD'), 'utf8'), 'Child prose.\n');
     const result = run(root, ['migrate']);
     assert.equal(result.status, 0, result.stdout + result.stderr);
-    assert.equal(result.stdout, dry.stdout);
+    assert.equal(result.stdout, simulatedOutput(dry.stdout, "human"));
     assert.equal(readFileSync(path.join(root, 'espalier', 'ESPALIER.MD'), 'utf8'), '---\nfold: true\n---\n');
     assert.equal(readFileSync(path.join(root, 'child', 'espalier', 'ESPALIER.MD'), 'utf8'), '---\nfold: true\n---\nChild prose.\n');
     assert.equal(run(root, ['build']).status, 0);
@@ -353,13 +375,14 @@ test("0.7 migration preserves metadata exclusions and reviews hidden entries wit
     assert.equal(dry.status, 0, dry.stdout + dry.stderr);
     assert.equal(readFileSync(configPath, "utf8"), before);
     assert.equal(readFileSync(path.join(root, ".espalierignore"), "utf8"), "# existing policy\n!.git\n");
-    const records = dry.stdout.trim().split("\n").map((line) => JSON.parse(line));
+    const simulated = simulatedOutput(dry.stdout, "jsonl");
+    const records = simulated.trim().split("\n").map((line) => JSON.parse(line));
     assert.deepEqual(records.filter((r) => r.kind === "warning").map((r) => r.message.split(":")[0]),
       ["espalier/.env.mjs", "espalier/.tools"]);
     assert.ok(records.some((r) => r.path === ".espalierignore" && r.kind === "written"));
     const actual = run(root, ["migrate", "--format", "jsonl"]);
     assert.equal(actual.status, 0, actual.stdout + actual.stderr);
-    assert.equal(actual.stdout, dry.stdout);
+    assert.equal(actual.stdout, simulated);
     const written = readFileSync(configPath, "utf8");
     assert.match(written, /# explicit policy/);
     assert.match(written, /# retain comment/);

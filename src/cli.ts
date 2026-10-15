@@ -189,6 +189,9 @@ async function main(): Promise<number> {
     }
 
     if (command === "migrate") {
+      if (values["dry-run"] === true) {
+        reporter.warning("Dry run: no migration files will be changed.");
+      }
       return await migrate(
         {
           cwd,
