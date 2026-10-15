@@ -25,3 +25,7 @@ happens to contain. That is what the espalier says, and it is why no second
 family of rules lives here: any rule at this depth would collide with it.
 
 Pins: MATCHING.MD "Captures", MATCHING.MD "Back-references".
+
+The concise prefix query also pins cli/explain/README.MD "Concise lookup":
+both bound directory captures remain visible beside the required-file map,
+without individual rule bodies or an empty constraints heading.

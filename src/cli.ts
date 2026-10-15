@@ -63,6 +63,9 @@ const USAGE = `espalier <command> [options]
   --rule <module>       run one rule module only
   --no-rule-text        omit rule bodies from output
   --cache               reuse findings whose recorded inputs are unchanged
+
+  explain only:
+  --concise             show a human summary without authored prose
 `;
 
 async function runCreate(argv: string[]): Promise<number> {
@@ -147,6 +150,7 @@ async function main(): Promise<number> {
         rule: { type: "string" },
         "no-rule-text": { type: "boolean" },
         cache: { type: "boolean" },
+        ...(command === "explain" ? { concise: { type: "boolean" as const } } : {}),
       },
     }) as { values: Record<string, unknown>; positionals: string[] });
   } catch (cause) {
@@ -162,7 +166,9 @@ async function main(): Promise<number> {
 
   const out = (values["out"] ?? "stdout") as string;
   const cwd = process.cwd();
-  const reporter = createReporter(format, out, cwd, command as Mode);
+  const reporter = createReporter(format, out, cwd, command as Mode, {
+    concise: values["concise"] === true,
+  });
 
   try {
     if (command === "init") {

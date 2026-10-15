@@ -41,3 +41,6 @@ cli/explain/README.MD "Output", "Exit codes".
 `human/ignore-file.txt` and `human/ignore.txt` pin the two sentences a reader
 actually sees. The difference between them is the whole answer, so a format
 that drifted between them would be worse than no answer at all.
+
+The configured exclusion also pins "Concise lookup": `--concise` preserves
+the reason for exclusion and the failing exit code in both formats.

@@ -1,0 +1,16 @@
+components/                              shared UI components
+
+  Declared here:
+    ├─ buttons/
+    │  │
+    │  └─ [button].tsx  a button component (zero or more matching files)
+    │
+    └─ layouts/
+       │
+       └─ [layout].tsx  a layout component (zero or more matching files)
+
+  Every path under components/ must fit the project layout or a documented
+  repository-specific purpose.
+
+  Constraints:
+    no-as-any  [...path]/no-as-any.{ts,tsx}.mjs

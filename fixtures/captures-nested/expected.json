@@ -18,6 +18,13 @@
       "message": "{\"area\":\"shipping\",\"module\":\"labels\"}"
     }
   ],
+  "explain": {
+    "billing/invoices/": {
+      "exit": 0,
+      "object": { "prefix": "billing/invoices/", "captures": { "area": "billing", "module": "invoices" } },
+      "conciseHuman": "human/concise-prefix.txt"
+    }
+  },
   "ownership": {
     "billing/invoices/billing-invoices.ts": "[area]/[module]/{area}-{module}.ts.mjs",
     "billing/invoices/index.ts": "[area]/[module]/index.ts.mjs",

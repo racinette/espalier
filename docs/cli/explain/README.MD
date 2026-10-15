@@ -13,9 +13,10 @@ espalier explain components/Modal.tsx
 ## Usage
 
 ```text
-espalier explain <path>
+espalier explain <path> [--concise]
 
   <path>                a file path or a directory prefix
+  --concise             show a human summary without authored prose
   --format human|jsonl  output format (default: human)
   --out <dest>          stdout, stderr, or a file path (default: stdout)
   --config <path>       use this config file instead of discovering one
@@ -26,6 +27,45 @@ A trailing `/` always means a prefix. Without one, the argument is a prefix if t
 Both can be true at once. Where a dynamic directory sits beside a dynamic leaf — the shape [MATCHING.MD](../../MATCHING.MD#ambiguity-is-rejected) permits — `clients/registry.ts` matches `clients/[provider]` as readily as it matches `clients/[summary].ts`. The file wins: something owns it, that owner is what the reader is about to write against, and the subtree answer would describe an instance that does not exist. Write the trailing slash to ask the other question.
 
 The path does not have to exist either way. Matching is pure.
+
+## Concise lookup
+
+Use `--concise` to look up ownership and structure without repeating the full
+policy text. The default remains the complete explanation.
+
+For a file, the summary keeps its description, owning rule, captures, and
+reference implementation. Each applicable constraint appears by name and
+source module path, so constraints with the same name remain distinguishable.
+Rule bodies are omitted:
+
+```text
+$ espalier explain clients/stripe/client.ts --concise
+
+clients/stripe/client.ts                  an integration with an external API
+
+  Owned by  clients/[provider]/client.ts
+            provider = "stripe"
+
+  Reference implementation
+    clients/stripe/client.ts
+
+  Constraints:
+    no-as-any  [...path]/no-as-any.{ts,tsx}.mjs
+```
+
+For a directory, the summary keeps its description, captures, declaration
+tree (including requiredness), closed-set statement, and child Espalier
+boundaries. It omits directory prose and the individual structural-rule
+sections; constraints list names and module paths as in file queries.
+An empty constraint list has no heading.
+
+Nested answers still identify the Espalier that owns the path. Undeclared and
+ungoverned paths retain their complete explanation and exit code. Use the
+same query without `--concise` to read the requirements before changing code.
+
+This flag controls human presentation only. `--format jsonl` always carries
+the complete answer, including rule text, whether or not `--concise` is passed.
+Both human views support the same `--out` destinations.
 
 ## A prefix
 

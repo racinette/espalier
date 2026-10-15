@@ -1,0 +1,6 @@
+main.ts                                  the application entry point
+
+  Owned by  main.ts
+
+  Constraints:
+    no-as-any  [...path]/no-as-any.{ts,tsx}.mjs

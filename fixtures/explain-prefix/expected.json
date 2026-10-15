@@ -48,7 +48,8 @@
           }
         ]
       },
-      "human": "human/prefix.txt"
+      "human": "human/prefix.txt",
+      "conciseHuman": "human/concise-prefix.txt"
     },
     "components": {
       "exit": 0,
@@ -92,10 +93,12 @@
           }
         ]
       },
-      "human": "human/owned.txt"
+      "human": "human/owned.txt",
+      "conciseHuman": "human/concise-owned.txt"
     },
     "components/buttons/SubmitButton.tsx": {
       "exit": 0,
+      "conciseHuman": "human/concise-reference.txt",
       "object": {
         "kind": "explanation",
         "path": "components/buttons/SubmitButton.tsx",
@@ -132,7 +135,8 @@
         ],
         "constraints": []
       },
-      "human": "human/undeclared.txt"
+      "human": "human/undeclared.txt",
+      "conciseHuman": "human/undeclared.txt"
     },
     "components/nosuch/": {
       "exit": 1,
@@ -149,7 +153,8 @@
         ],
         "constraints": []
       },
-      "human": "human/unrecognized-prefix.txt"
+      "human": "human/unrecognized-prefix.txt",
+      "conciseHuman": "human/unrecognized-prefix.txt"
     },
     "nosuch/": {
       "exit": 1,

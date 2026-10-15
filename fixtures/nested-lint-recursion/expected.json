@@ -23,6 +23,7 @@
   "explain": {
     "packages/web/index.ts": {
       "exit": 0,
+      "conciseHuman": "human/concise-child.txt",
       "object": {
         "path": "packages/web/index.ts",
         "espalier": "packages/web",
@@ -45,7 +46,8 @@
         "closedSet": "Every path in this directory must fit the project layout or a documented repository-specific purpose.",
         "governed": ["packages/web/"]
       },
-      "human": "human/root-prefix.txt"
+      "human": "human/root-prefix.txt",
+      "conciseHuman": "human/concise-root.txt"
     }
   }
 }

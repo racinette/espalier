@@ -166,8 +166,19 @@ function body(
   return blocks;
 }
 
-function constraintBlocks(constraints: ConstraintAnswer[], applying: string): string[] {
+function constraintBlocks(
+  constraints: ConstraintAnswer[],
+  applying: string,
+  concise: boolean,
+): string[] {
   if (constraints.length === 0) return [];
+  if (concise) {
+    const lines = [
+      "  Constraints:",
+      ...constraints.map((constraint) => `    ${constraint.name}  ${constraint.rule}`),
+    ];
+    return [lines.join("\n")];
+  }
   const blocks = [section(`Constraints applying ${applying}`)];
 
   for (const constraint of constraints) {
@@ -186,7 +197,7 @@ function constraintBlocks(constraints: ConstraintAnswer[], applying: string): st
   return blocks;
 }
 
-export function renderExplanation(answer: Explanation): string {
+export function renderExplanation(answer: Explanation, concise = false): string {
   const blocks: string[] = [];
 
   // Which espalier is speaking, before what it says. Only ever present in a
@@ -201,7 +212,10 @@ export function renderExplanation(answer: Explanation): string {
     const shown = answer.prefix === "" ? "./" : answer.prefix;
     blocks.push(head(shown, answer.description));
     if (answeredBy !== null) blocks.push(answeredBy);
-    if (answer.body !== "") blocks.push(answer.body);
+    if (!concise && answer.body !== "") blocks.push(answer.body);
+    if (concise && Object.keys(answer.captures).length > 0) {
+      blocks.push(["  Captures:", ...describeCaptures(answer.captures, "    ")].join("\n"));
+    }
 
     // The map `build` draws, from the same code and to the same width less
     // this indent. docs/cli/explain/README.MD "A prefix".
@@ -227,15 +241,17 @@ export function renderExplanation(answer: Explanation): string {
       );
     }
 
-    for (const rule of answer.rules) {
-      blocks.push(section(rule.path));
-      if (rule.description !== null) blocks.push(`  ${rule.description}`);
-      blocks.push(
-        ...body(rule.ruleText, rule.referenceImplementation),
-      );
+    if (!concise) {
+      for (const rule of answer.rules) {
+        blocks.push(section(rule.path));
+        if (rule.description !== null) blocks.push(`  ${rule.description}`);
+        blocks.push(
+          ...body(rule.ruleText, rule.referenceImplementation),
+        );
+      }
     }
 
-    blocks.push(...constraintBlocks(answer.constraints, `under ${shown}`));
+    blocks.push(...constraintBlocks(answer.constraints, `under ${shown}`, concise));
     return `${blocks.join("\n\n")}\n`;
   }
 
@@ -284,9 +300,9 @@ export function renderExplanation(answer: Explanation): string {
     ].join("\n"),
   );
   blocks.push(
-    ...body(answer.ruleText, answer.referenceImplementation),
+    ...body(concise ? "" : answer.ruleText, answer.referenceImplementation),
   );
-  blocks.push(...constraintBlocks(answer.constraints, `to ${answer.path}`));
+  blocks.push(...constraintBlocks(answer.constraints, `to ${answer.path}`, concise));
 
   return `${blocks.join("\n\n")}\n`;
 }

@@ -1,0 +1,10 @@
+components/buttons/SubmitButton.tsx      a button component
+
+  Owned by  components/buttons/[button].tsx
+            button = "SubmitButton"
+
+  Reference implementation
+    components/buttons/SubmitButton.tsx
+
+  Constraints:
+    no-as-any  [...path]/no-as-any.{ts,tsx}.mjs

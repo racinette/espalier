@@ -38,7 +38,7 @@ interface Expected {
    * that was never visited, so a fixture about scoping has to assert it.
    */
   warnings?: string[];
-  explain?: Record<string, { exit: number; object: unknown; human?: string }>;
+  explain?: Record<string, { exit: number; object: unknown; human?: string; conciseHuman?: string }>;
   ownership?: Record<string, string | null>;
   stderr?: string[];
   /** A file holding the exact `--format human` stdout of the same lint run. */
@@ -636,6 +636,20 @@ function lintIn(dir: string, scratch: string, expected: Expected): void {
         readFileSync(path.join(dir, want.human), "utf8"),
         `explain ${target} --format human differs from ${want.human}`,
       );
+    }
+    if (want.conciseHuman !== undefined) {
+      const concise = run(scratch, ["explain", target, "--concise"]);
+      assert.equal(concise.status, want.exit, concise.stdout + concise.stderr);
+      assert.equal(
+        concise.stdout,
+        readFileSync(path.join(dir, want.conciseHuman), "utf8"),
+        `explain ${target} --concise differs from ${want.conciseHuman}`,
+      );
+      const jsonl = run(scratch, ["explain", target, "--concise", "--format", "jsonl"]);
+      assert.equal(jsonl.status, explain.status);
+      assert.equal(jsonl.stdout, explain.stdout, "--concise must preserve the complete JSONL answer");
+      assert.equal(jsonl.stderr, "");
+      assert.equal(concise.stderr, "");
     }
   }
 

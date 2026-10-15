@@ -21,7 +21,8 @@
         "captures": {},
         "constraints": []
       },
-      "human": "human/ignore.txt"
+      "human": "human/ignore.txt",
+      "conciseHuman": "human/ignore.txt"
     },
     "vendor/lib.ts": {
       "exit": 1,

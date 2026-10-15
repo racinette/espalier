@@ -130,7 +130,7 @@ Template options:
     --requestModels.ts:format <types|zod>  Model representation (default: types, examples: zod)
 
 Optional files and collections are created separately.
-Inspect their declarations with: espalier explain clients/stripe/
+Inspect their declarations with: espalier explain clients/stripe/ --concise
 Choose a concrete file path, then run: espalier create <file> help
 ```
 
@@ -147,7 +147,7 @@ required option with no example remains a qualified metavar. Shell quoting is
 unchanged: quote a value containing spaces, not the option name.
 
 The options above belong only to required files. Directory help also points to
-`espalier explain <directory>/`, whose tree includes optional declarations and
+`espalier explain <directory>/ --concise`, whose tree includes optional declarations and
 collections. Select a concrete file from that tree and use its own creation
 help to see its options. For example, an optional `README.md` under
 `clients/stripe/` has help at `espalier create clients/stripe/README.md help`;

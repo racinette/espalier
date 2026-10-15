@@ -23,3 +23,7 @@ cannot say different things about the same espalier.
 
 Pins: CONFIG.MD "Nested espaliers", cli/lint/README.MD "Nested espaliers",
 cli/explain/README.MD "Nested espaliers".
+
+The concise goldens also pin "Concise lookup": a delegated file keeps its
+`Answered by` origin, and a parent prefix keeps its child boundary and closed
+set while omitting authored prose. JSONL remains the complete answer.

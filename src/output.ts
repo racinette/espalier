@@ -190,6 +190,7 @@ class HumanReporter implements Reporter {
   constructor(
     private readonly destination: Destination,
     private readonly mode: Mode,
+    private readonly concise: boolean,
   ) {}
 
   issue(issue: Issue): void {
@@ -215,7 +216,7 @@ class HumanReporter implements Reporter {
   }
 
   explanation(answer: Explanation): void {
-    this.destination.write(renderExplanation(answer));
+    this.destination.write(renderExplanation(answer, this.concise));
   }
 
   help(text: string): void {
@@ -359,7 +360,16 @@ class HumanReporter implements Reporter {
   }
 }
 
-export function createReporter(format: Format, out: string, root: string, mode: Mode): Reporter {
+export function createReporter(
+  format: Format,
+  out: string,
+  root: string,
+  mode: Mode,
+  /** Presentation only: JSONL always carries the complete explanation. */
+  options: { concise?: boolean } = {},
+): Reporter {
   const destination = openDestination(out, root);
-  return format === "jsonl" ? new JsonlReporter(destination) : new HumanReporter(destination, mode);
+  return format === "jsonl"
+    ? new JsonlReporter(destination)
+    : new HumanReporter(destination, mode, options.concise ?? false);
 }

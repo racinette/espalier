@@ -84,6 +84,9 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 An optional `human` names a file, relative to the fixture, holding the exact stdout of the same query at `--format human`. It is compared byte for byte, like a build golden and for the same reason: the layout is fixed by [cli/explain/README.MD](../docs/cli/explain/README.MD#human-layout), and a format nobody pins is a format that drifts. Not every query needs one — pin the shapes, not every instance of them.
 
+`conciseHuman` names the corresponding golden for `explain --concise`. It also
+checks that this flag preserves the exit code and the complete JSONL answer.
+
 **`ownership`** — every file in the fixture, and the rule module that owns it, or `null` for one nothing owns.
 
 ```json

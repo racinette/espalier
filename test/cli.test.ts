@@ -142,6 +142,48 @@ test("explain needs a path", () => {
   });
 });
 
+test("concise explain preserves output routing and operational failures", () => {
+  scratch((root) => {
+    const args = ["explain", "src/a.ts", "--concise"];
+    const concise = run(root, args);
+    assert.equal(concise.status, 0);
+    assert.match(concise.stdout, /Owned by/);
+    assert.doesNotMatch(concise.stdout, /Keep it small/);
+
+    const stderr = run(root, [...args, "--out", "stderr"]);
+    assert.equal(stderr.status, 0);
+    assert.equal(stderr.stdout, "");
+    assert.equal(stderr.stderr, concise.stdout);
+    const file = run(root, [...args, "--out", "explanation.txt"]);
+    assert.equal(file.status, 0);
+    assert.equal(file.stdout, "");
+    assert.equal(file.stderr, "");
+    assert.equal(readFileSync(path.join(root, "explanation.txt"), "utf8"), concise.stdout);
+
+    const missing = run(root, ["explain", "--concise"]);
+    assert.equal(missing.status, 2);
+    assert.match(missing.stdout, /missing_argument/);
+    writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.5.0\nnope: 1\n");
+    const failure = run(root, [...args, "--out", "stderr"]);
+    assert.equal(failure.status, 2);
+    assert.equal(failure.stdout, "");
+    assert.match(failure.stderr, /config_unknown_key/);
+  });
+});
+
+test("concise is advertised for explain and rejected for other parsed commands", () => {
+  scratch((root) => {
+    assert.match(run(root, ["--help"]).stdout, /explain only:\n {2}--concise/);
+    assert.match(run(root, ["help", "explain"]).stdout, /--concise/);
+    for (const command of ["lint", "build", "adopt", "init", "migrate"]) {
+      const wrong = run(root, [command, "--concise"]);
+      assert.equal(wrong.status, 2);
+      assert.equal(wrong.stdout, "");
+      assert.match(wrong.stderr, /Unknown option '--concise'/);
+    }
+  });
+});
+
 // Destinations. docs/cli/lint/README.MD "Output".
 
 test("--out stderr moves the whole report, leaving stdout empty", () => {

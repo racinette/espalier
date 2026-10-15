@@ -1,0 +1,15 @@
+billing/invoices/
+
+  Captures:
+    area = "billing"
+    module = "invoices"
+
+  Declared here:
+    ├─ index.ts            the module index (required)
+    │
+    └─ {area}-{module}.ts  the module entry point (required, {area} repeats what
+                           [area] matched, {module} repeats what [module]
+                           matched)
+
+  Every path under billing/invoices/ must fit the project layout or a documented
+  repository-specific purpose.

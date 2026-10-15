@@ -90,3 +90,8 @@ cli/explain/README.MD; if they ever differ, one of them is wrong.
 copied verbatim and never re-wrapped, and a one-paragraph body that happens to
 break where a greedy wrap would break proves nothing — an earlier draft of this
 fixture had exactly that, and re-wrapping author prose passed it.
+
+The concise goldens pin cli/explain/README.MD "Concise lookup": prose is
+omitted while ownership, file captures, reference paths, the declaration map,
+and constraint identities remain. Undeclared paths keep the full explanation.
+Each concise query also checks that JSONL retains its complete original answer.
