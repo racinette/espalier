@@ -18,6 +18,7 @@ architecture that declares the path.
 
 ```text
 espalier create <path> help
+espalier create <path> preview [template options]
 espalier create <path> [template options]
 ```
 
@@ -32,8 +33,12 @@ repeatability. When schemas provide examples, help assembles them into one
 invocation. A required file without a custom template is identified as an
 empty file.
 
-For a file, every other argument after the path is parsed against the owning
-template's schema. Schema keys become long flags exactly as authored: `varname`
+The positional action `preview`, immediately after the path, renders the
+selected templates without writing target files. Its following arguments use
+the same schema as creation. File and directory help list this invocation too.
+
+For a file, arguments after the path or `preview` action are parsed against the
+owning template's schema. Schema keys become long flags exactly as authored: `varname`
 becomes `--varname`, `withExport` becomes `--withExport`, and `"with-export"`
 becomes `--with-export`. Espalier does not silently translate among naming
 conventions.
@@ -53,6 +58,7 @@ For example, a component template may produce:
 ```text
 Usage:
   espalier create components/AccountCard.tsx help
+  espalier create components/AccountCard.tsx preview [template options]
   espalier create components/AccountCard.tsx [template options]
 
 Creates components/AccountCard.tsx.
@@ -103,6 +109,7 @@ Its help is composed from the directory and the required file rules:
 ```text
 Usage:
   espalier create clients/stripe help
+  espalier create clients/stripe preview [template options]
   espalier create clients/stripe [template options]
 
 Creates clients/stripe/ and its required files.
@@ -194,6 +201,55 @@ Guidance for a dynamic directory is shared at its longest static prefix. For
 example, `src/features/[feature]/` uses guidance in `src/features/`; creating
 another feature can leave `espalier build` with no document changes. Read the
 nearest ancestor guidance as described in [build](../build/README.MD#where-files-go).
+
+## Previewing source
+
+```bash
+espalier create src/constants.ts preview --varname answer
+espalier create clients/stripe preview --client.ts:transport fetch
+```
+
+Preview uses the same structural owner, template options, defaults, captures,
+and required-file selection as creation. The target must be absent and
+governed; an existing or excluded target is refused before rendering. Optional
+files and uninstantiated collections are omitted from a directory preview.
+Preview an optional file by naming its concrete path separately.
+
+Espalier renders every selected template before printing any preview source.
+A missing or invalid argument, a thrown renderer, or a non-string result exits
+`2` with the same operational error as creation and no partial preview. A
+successful preview exits `0`. It creates no directories, writes no target
+files, and reports no `written` events. It does not test write permissions or
+reserve a target for a later creation.
+
+Output is human text on stdout. Each file has a `Preview: "<path>"` header,
+using a repository-relative path, followed by its source in a fenced `text`
+block. Paths are quoted and special characters escaped to keep headers on
+one line. The fence is longer than any backtick run in the source. Source is
+neither indented nor reformatted. When it has no final newline, one is added
+for the closing fence and `(no trailing newline)` follows the block; that
+display newline is not part of the rendered file. An empty source is shown as
+`(empty file)` instead of a fenced block. A directory with no required files
+shows its directory path and `(no required files)`.
+
+The final line counts files: `1 file previewed.` or `N files previewed.`
+For example:
+
+````text
+Preview: "src/constants.ts"
+```text
+export const answer = 42;
+```
+
+1 file previewed.
+````
+
+Preview imports rule modules and executes their renderers, just as creation
+does. Those functions are ordinary JavaScript: side effects in template code
+still run. Renderers should return source from their arguments and context
+without changing the filesystem or depending on changing external state.
+With the same inputs, preview and creation use the same rendered source;
+preview does not cache it for a later invocation.
 
 ## Writing
 

@@ -34,7 +34,7 @@ import type {
 export interface CreateOptions {
   cwd: string;
   target: string;
-  /** `help`, or the template arguments after the concrete target. */
+  /** `help`, `preview` plus template arguments, or ordinary creation arguments. */
   args: string[];
   /** Original spelling retained while a target delegates into a child. */
   displayTarget?: string;
@@ -111,6 +111,7 @@ function templateHelp(
   const lines = [
     "Usage:",
     `  espalier create ${target} help`,
+    `  espalier create ${target} preview${schema === null ? "" : " [template options]"}`,
     schema === null
       ? `  espalier create ${target}`
       : `  espalier create ${target} [template options]`,
@@ -161,6 +162,7 @@ function directoryHelp(
   const lines = [
     "Usage:",
     `  espalier create ${target} help`,
+    `  espalier create ${target} preview${schemas.length === 0 ? "" : " [template options]"}`,
     schemas.length === 0
       ? `  espalier create ${target}`
       : `  espalier create ${target} [template options]`,
@@ -368,7 +370,12 @@ async function createFile(
     });
   }
 
-  const values = parseTemplateOptions(args, parserOptions(template?.schema ?? null), displayTarget);
+  const preview = args[0] === "preview";
+  const values = parseTemplateOptions(
+    preview ? args.slice(1) : args,
+    parserOptions(template?.schema ?? null),
+    displayTarget,
+  );
   const contents =
     template === null
       ? ""
@@ -376,6 +383,10 @@ async function createFile(
           path: target,
           captures: { ...owner.captures },
         });
+  if (preview) {
+    reporter.preview({ target, files: [{ path: target, contents }] });
+    return 0;
+  }
   try {
     mkdirSync(path.dirname(absolute), { recursive: true });
     writeFileSync(absolute, contents, { encoding: "utf8", flag: "wx" });
@@ -438,7 +449,12 @@ async function createDirectory(
     });
   }
 
-  const values = parseTemplateOptions(args, directoryParserOptions(files), shownTarget);
+  const preview = args[0] === "preview";
+  const values = parseTemplateOptions(
+    preview ? args.slice(1) : args,
+    directoryParserOptions(files),
+    shownTarget,
+  );
   const rendered: Array<{ file: DirectoryFile; contents: string }> = [];
   for (const file of files) {
     if (file.template === null) {
@@ -461,6 +477,14 @@ async function createDirectory(
         (name) => `${file.relative}:${name}`,
       ),
     });
+  }
+
+  if (preview) {
+    reporter.preview({
+      target: `${target}/`,
+      files: rendered.map(({ file, contents }) => ({ path: file.path, contents })),
+    });
+    return 0;
   }
 
   let created = false;
@@ -493,7 +517,7 @@ async function createDirectory(
   return 0;
 }
 
-/** Creates one absent structurally declared file or complete directory. */
+/** Creates or previews one absent structurally declared file or complete directory. */
 export async function create(options: CreateOptions, reporter: Reporter): Promise<number> {
   const repository = await open(undefined, options.cwd);
   const { root } = repository.config;

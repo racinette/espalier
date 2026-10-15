@@ -25,7 +25,8 @@ const USAGE = `espalier <command> [options]
   build                 generate the repository's agent-facing documentation
   adopt <path>          infer a directory's shape and write stub rule modules
   create <path>         create a structurally declared absent file or directory
-  create <path> help    show what that creation will write
+  create <path> help    show creation options and required files
+  create <path> preview render source without writing target files
   lint [paths...]       validate the repository against the espalier
   explain <path>        what the espalier says about a path
   help [page]           print this version's reference

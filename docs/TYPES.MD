@@ -152,8 +152,8 @@ The schema is a flat object because command-line flags are flat. Every key is
 the exact long flag name: no camel-case or kebab-case conversion takes place.
 Keys contain letters, numbers, and hyphens and begin with a letter. Every option
 has a non-empty `description`, which is shown by
-`espalier create <path> help`. Help is a positional action rather than a flag,
-so no long flag names are reserved by the create command.
+`espalier create <path> help`. `help` and `preview` are positional actions rather
+than flags, so no long flag names are reserved by the create command.
 
 String options support:
 
@@ -193,9 +193,15 @@ values bound by that rule's structural placeholders, so a rule stored at
 back-references introduce no additional capture.
 
 The renderer may be synchronous or asynchronous and must return a string.
-Espalier writes it verbatim. A template with no options uses the overload that
-omits the schema and the template-arguments object; its sole argument is still
-the creation context:
+`espalier create <path> preview` calls the same renderer with the same options
+and context, displaying its result without writing target files. Renderers
+should compute source without side effects so preview and creation agree for
+the same inputs. Preview runs ordinary template code; it does not sandbox it.
+See [create](cli/create/README.MD#previewing-source) for the display format.
+
+Espalier writes source verbatim when creating files. A template with no options
+uses the overload that omits the schema and the template-arguments object; its
+sole argument is still the creation context:
 
 ```js
 export const template = createTemplate(

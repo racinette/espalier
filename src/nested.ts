@@ -46,6 +46,12 @@ export function delegated(reporter: Reporter, at: string): Reporter {
     help(text: string): void {
       reporter.help(text);
     },
+    preview(result): void {
+      reporter.preview({
+        target: under(at, result.target),
+        files: result.files.map((file) => ({ ...file, path: under(at, file.path) })),
+      });
+    },
     record(entry: BuildEntry): void {
       reporter.record({
         ...entry,

@@ -62,6 +62,13 @@ export interface BuildEntry {
   espalier?: string | null;
 }
 
+/** Rendered source without target writes. docs/cli/create/README.MD "Previewing source". */
+export interface CreationPreview {
+  /** Repository-relative target; directories carry a trailing slash. */
+  target: string;
+  files: Array<{ path: string; contents: string }>;
+}
+
 interface Destination {
   write(text: string): void;
   close(): void;
@@ -89,6 +96,7 @@ export interface Reporter {
   ): void;
   explanation(answer: Explanation): void;
   help(text: string): void;
+  preview(result: CreationPreview): void;
   record(entry: BuildEntry): void;
   buildComplete(files: number): void;
   finish(): void;
@@ -161,6 +169,10 @@ class JsonlReporter implements Reporter {
     this.destination.write(`${JSON.stringify({ kind: "help", text })}\n`);
   }
 
+  preview(result: CreationPreview): void {
+    this.destination.write(`${JSON.stringify({ kind: "preview", ...result })}\n`);
+  }
+
   record(entry: BuildEntry): void {
     this.destination.write(`${JSON.stringify({ espalier: null, ...entry })}\n`);
   }
@@ -221,6 +233,27 @@ class HumanReporter implements Reporter {
 
   help(text: string): void {
     this.destination.write(text);
+  }
+
+  preview(result: CreationPreview): void {
+    const blocks = result.files.map(({ path, contents }) => {
+      const heading = `Preview: ${JSON.stringify(path)}`;
+      if (contents === "") return `${heading}\n(empty file)`;
+
+      let fenceLength = 3;
+      for (const match of contents.matchAll(/`+/g)) {
+        fenceLength = Math.max(fenceLength, match[0].length + 1);
+      }
+      const fence = "`".repeat(fenceLength);
+      const newline = contents.endsWith("\n");
+      return `${heading}\n${fence}text\n${contents}${newline ? "" : "\n"}${fence}` +
+        (newline ? "" : "\n(no trailing newline)");
+    });
+    if (result.files.length === 0) {
+      blocks.push(`Preview: ${JSON.stringify(result.target)}\n(no required files)`);
+    }
+    blocks.push(`${result.files.length} ${result.files.length === 1 ? "file" : "files"} previewed.`);
+    this.destination.write(`${blocks.join("\n\n")}\n`);
   }
 
   record(entry: BuildEntry): void {

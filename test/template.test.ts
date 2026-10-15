@@ -1,6 +1,6 @@
 // Template definition and the create command's write boundary. These are unit
 // tests rather than fixtures because the observable is a newly written source
-// tree, path-specific creation help, or the deliberate absence of a write.
+// tree, path-specific creation help, preview/create parity, or absence of a write.
 
 import { spawnSync } from "node:child_process";
 import {
@@ -341,6 +341,7 @@ test("directory help unions required file schemas under lossless path prefixes",
 
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(result.stdout, /^Usage:\n  espalier create clients\/stripe help/);
+    assert.match(result.stdout, /espalier create clients\/stripe preview \[template options\]/);
     assert.match(result.stdout, /Creates clients\/stripe\/ and its required files\./);
     assert.match(
       result.stdout,
@@ -792,6 +793,7 @@ test("creation help preserves authored flag spelling and writes nothing", () => 
 
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(result.stdout, /^Usage:\n  espalier create src\/answer\.ts help/);
+    assert.match(result.stdout, /espalier create src\/answer\.ts preview \[template options\]/);
     assert.match(result.stdout, /espalier create src\/answer\.ts \[template options\]/);
     assert.match(
       result.stdout,
@@ -1031,12 +1033,223 @@ test("create refuses a declared path excluded by repository policy", () => {
   });
 });
 
+test("file preview renders creation arguments without creating its parent", () => {
+  scratch(SCHEMA_TEMPLATE, (root) => {
+    const args = ["--varname", "answer", "--with-export", "--tag", "public", "--tag", "stable"];
+    const result = run(root, ["create", "src/answer.ts", "preview", ...args]);
+    const contents = JSON.stringify({
+      varname: "answer", "with-export": true, camelCase: false,
+      declaration: "const", tag: ["public", "stable"],
+    }) + "\n";
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(result.stdout, 'Preview: "src/answer.ts"\n```text\n' + contents + "```\n\n1 file previewed.\n");
+    assert.equal(existsSync(path.join(root, "src")), false);
+
+    const created = run(root, ["create", "src/answer.ts", ...args]);
+    assert.equal(created.status, 0, created.stdout + created.stderr);
+    assert.equal(readFileSync(path.join(root, "src/answer.ts"), "utf8"), contents);
+  });
+});
+
+test("directory preview matches every created source and omits optional collections", () => {
+  const root = directoryRepository();
+  try {
+    const args = ["--client.ts:transport", "axios", "--requestModels.ts:tag", "public",
+      "--requestModels.ts:tag", "stable", "--models/error.ts:withDocs"];
+    const result = run(root, ["create", "clients/stripe", "preview", ...args]);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const headers = [...result.stdout.matchAll(/^Preview: (.+)$/gm)].map((match) => JSON.parse(match[1]!));
+    assert.deepEqual(headers, [
+      "clients/stripe/client.ts", "clients/stripe/models/error.ts", "clients/stripe/notes.txt",
+      "clients/stripe/requestModels.ts", "clients/stripe/stripe.config.ts",
+    ]);
+    assert.match(result.stdout, /Preview: "clients\/stripe\/notes.txt"\n\(empty file\)/);
+    assert.match(result.stdout, /\n\n5 files previewed\.\n$/);
+    assert.equal(existsSync(path.join(root, "clients")), false);
+
+    const created = run(root, ["create", "clients/stripe", ...args]);
+    assert.equal(created.status, 0, created.stdout + created.stderr);
+    const blocks = [...result.stdout.matchAll(/^Preview: (.+)\n```text\n([\s\S]*?)\n```$/gm)];
+    assert.equal(blocks.length, 4);
+    for (const [, quotedPath, source] of blocks) {
+      assert.equal(readFileSync(path.join(root, JSON.parse(quotedPath!)), "utf8"), source + "\n");
+    }
+    assert.equal(readFileSync(path.join(root, "clients/stripe/notes.txt"), "utf8"), "");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("preview preserves source whitespace and escapes paths and embedded fences", () => {
+  const contents = "  leading\r\n```text\r\n````\r\n\ttail  ";
+  const target = 'src/line\n"quoted".ts';
+  scratch(`import { createTemplate } from ${JSON.stringify(api)};
+export const description = "source with significant whitespace";
+export const rule = "Preserve source whitespace.";
+export async function lint() {}
+export const template = createTemplate(() => ${JSON.stringify(contents)});
+`, (root) => {
+    const result = run(root, ["create", target, "preview"]);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(result.stdout, `Preview: ${JSON.stringify(target)}\n\`\`\`\`\`text\n${contents}\n\`\`\`\`\`\n(no trailing newline)\n\n1 file previewed.\n`);
+    assert.equal(existsSync(path.join(root, "src")), false);
+    const created = run(root, ["create", target]);
+    assert.equal(created.status, 0, created.stdout + created.stderr);
+    assert.equal(readFileSync(path.join(root, target), "utf8"), contents);
+  });
+});
+
+test("preview identifies empty files and directories without writing either", () => {
+  for (const template of ["", `export const template = createTemplate(() => "");`]) {
+    scratch(`import { createTemplate } from ${JSON.stringify(api)};
+export const description = "optional notes";
+export const rule = "Document the group.";
+export async function lint() {}
+export const optional = true;
+${template}
+`, (root) => {
+      const file = run(root, ["create", "groups/new/notes.md", "preview"]);
+      assert.equal(file.status, 0, file.stdout + file.stderr);
+      assert.equal(file.stdout, 'Preview: "groups/new/notes.md"\n(empty file)\n\n1 file previewed.\n');
+      const directory = run(root, ["create", "groups/new", "preview"]);
+      assert.equal(directory.status, 0, directory.stdout + directory.stderr);
+      assert.equal(directory.stdout, 'Preview: "groups/new/"\n(no required files)\n\n0 files previewed.\n');
+      assert.equal(existsSync(path.join(root, "groups")), false);
+    }, "groups/[group]/notes.md.mjs");
+  }
+});
+
+test("preview keeps all long flags and option values available to templates", () => {
+  scratch(`import { createTemplate } from ${JSON.stringify(api)};
+export const description = "configurable source";
+export const rule = "Keep the selected configuration.";
+export async function lint() {}
+export const template = createTemplate({
+  preview: { type: "flag", description: "Include preview support" },
+  help: { type: "flag", description: "Include help" },
+  format: { type: "string", description: "Source format" },
+  out: { type: "string", description: "Export name" },
+}, (args) => JSON.stringify(args) + "\\n");
+`, (root) => {
+    const args = ["--preview", "--help", "--format", "jsonl", "--out", "preview"];
+    const result = run(root, ["create", "src/options.ts", "preview", ...args]);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /^Preview: "src\/options.ts"\n```text\n/);
+    assert.match(result.stdout, /"preview":true,"help":true,"format":"jsonl","out":"preview"/);
+    assert.equal(existsSync(path.join(root, "src")), false);
+    assert.equal(existsSync(path.join(root, "preview")), false);
+    const created = run(root, ["create", "src/options.ts", ...args]);
+    assert.equal(created.status, 0, created.stdout + created.stderr);
+    assert.ok(result.stdout.includes(readFileSync(path.join(root, "src/options.ts"), "utf8")));
+  });
+});
+
+test("preview argument failures produce neither partial source nor target directories", () => {
+  scratch(SCHEMA_TEMPLATE, (root) => {
+    for (const args of [[], ["--varname", "answer", "--declaration", "var"], ["--unknown"]]) {
+      const result = run(root, ["create", "src/answer.ts", "preview", ...args]);
+      assert.equal(result.status, 2, result.stdout + result.stderr);
+      assert.match(result.stdout, /\(invalid_template_arguments\)/);
+      assert.doesNotMatch(result.stdout, /Preview:|files? previewed\./);
+      assert.equal(existsSync(path.join(root, "src")), false);
+    }
+  });
+  const root = directoryRepository();
+  try {
+    const result = run(root, ["create", "clients/stripe", "preview",
+      "--client.ts:transport", "fetch", "--requestModels.ts:format", "invalid"]);
+    assert.equal(result.status, 2, result.stdout + result.stderr);
+    assert.match(result.stdout, /\(invalid_template_arguments\)/);
+    assert.doesNotMatch(result.stdout, /Preview:|files? previewed\./);
+    assert.equal(existsSync(path.join(root, "clients")), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("preview renderer failures produce no partial source or target directories", () => {
+  for (const body of ['throw new Error("render failed");', "return 42;"]) {
+    const rule = `import { createTemplate } from ${JSON.stringify(api)};
+export const description = "source that cannot render";
+export const rule = "Render the source.";
+export async function lint() {}
+export const template = createTemplate(() => { ${body} });
+`;
+    scratch(rule, (root) => {
+      const result = run(root, ["create", "src/answer.ts", "preview"]);
+      assert.equal(result.status, 2, result.stdout + result.stderr);
+      assert.match(result.stdout, /render failed|must return a string/);
+      assert.doesNotMatch(result.stdout, /Preview:|files? previewed\./);
+      assert.equal(existsSync(path.join(root, "src")), false);
+    });
+    const root = directoryRepository();
+    try {
+      write(root, "espalier/clients/[provider]/requestModels.ts.mjs", rule);
+      const result = run(root, ["create", "clients/stripe", "preview", "--client.ts:transport", "fetch"]);
+      assert.equal(result.status, 2, result.stdout + result.stderr);
+      assert.match(result.stdout, /render failed|must return a string/);
+      assert.doesNotMatch(result.stdout, /Preview:|files? previewed\./);
+      assert.equal(existsSync(path.join(root, "clients")), false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test("preview refuses existing and excluded targets before rendering", () => {
+  scratch(`import { createTemplate } from ${JSON.stringify(api)};
+export const description = "kept source";
+export const rule = "Preserve existing source.";
+export async function lint() {}
+export const template = createTemplate(() => { throw new Error("renderer ran"); });
+`, (root) => {
+    write(root, "groups/kept/index.ts", "hand written\n");
+    write(root, ".espalierignore", "groups/hidden/index.ts\n");
+    for (const [target, code] of [
+      ["groups/kept/index.ts", "create_target_exists"], ["groups/kept", "create_target_exists"],
+      ["groups/hidden/index.ts", "invalid_create_target"], ["groups/hidden", "invalid_create_target"],
+    ] as const) {
+      const result = run(root, ["create", target, "preview"]);
+      assert.equal(result.status, 2, result.stdout + result.stderr);
+      assert.ok(result.stdout.includes(`(${code})`), result.stdout);
+      assert.doesNotMatch(result.stdout, /renderer ran|Preview:|files? previewed\./);
+    }
+    assert.equal(readFileSync(path.join(root, "groups/kept/index.ts"), "utf8"), "hand written\n");
+    assert.equal(existsSync(path.join(root, "groups/hidden")), false);
+  }, "groups/[group]/index.ts.mjs");
+});
+
+test("preview delegates nested paths while keeping renderer context child-relative", () => {
+  const root = repository(SCHEMA_TEMPLATE);
+  try {
+    for (const child of ["packages/web", "packages/web/tools/worker"]) {
+      write(root, `${child}/espalier.config.yaml`, "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+      write(root, `${child}/espalier/groups/[group]/index.ts.mjs`, `import { createTemplate } from ${JSON.stringify(api)};
+export const description = "group source";
+export const rule = "Use the group context.";
+export async function lint() {}
+export const template = createTemplate((context) => JSON.stringify(context) + "\\n");
+`);
+    }
+    for (const target of ["groups/new/index.ts", "groups/new"]) {
+      const result = run(root, ["create", `packages/web/tools/worker/${target}`, "preview"]);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.equal(result.stdout, 'Preview: "packages/web/tools/worker/groups/new/index.ts"\n```text\n' +
+        '{"path":"groups/new/index.ts","captures":{"group":"new"}}\n```\n\n1 file previewed.\n');
+      assert.equal(existsSync(path.join(root, "packages/web/tools/worker/groups")), false);
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("top-level help advertises path-specific create help", () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-template-help-"));
   try {
     const result = run(root, ["--help"]);
     assert.equal(result.status, 0);
-    assert.match(result.stdout, /create <path> help\s+show what that creation will write/);
+    assert.match(result.stdout, /create <path> help\s+show creation options and required files/);
+    assert.match(result.stdout, /create <path> preview\s+render source without writing target files/);
 
     const missing = run(root, ["create"]);
     assert.equal(missing.status, 2);

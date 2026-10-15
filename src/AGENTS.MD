@@ -101,8 +101,8 @@ linter that fails over its own bookkeeping is worse than a slow one.
 
 Carries each command's grammar, and each one is also written into that
 command's page under `docs/cli/`. The duplication is deliberate: a reader
-looking up a command should not have to read the parser. Create reserves only
-the positional `help` action; its long flags belong to the selected template.
+looking up a command should not have to read the parser. Create reserves the
+positional `help` and `preview` actions; its long flags belong to the selected template.
 `help` and `examples` read this package and do not load a repository.
 
 ## `context.ts` — the lint context handed to rules
@@ -119,6 +119,9 @@ resolved leaf, and composes their template arguments under literal
 relative-file prefixes. Never overwrites source or exposes a partially rendered
 directory. File help names the concrete target and its authored owner;
 directory help names the structural directory and every required file.
+Preview renders the same templates and arguments, then reports all source
+without creating target files or directories. A render failure produces no
+partial preview.
 
 ## `errors.ts` — operational failures
 

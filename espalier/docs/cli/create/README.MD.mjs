@@ -1,7 +1,7 @@
 export const description = "the reference page";
 
 export const rule = `Opens with the invocation as its level-one heading, then a
-\`## Usage\` block spelling the path-first create and help forms for files and
+\`## Usage\` block spelling the path-first create, help, and preview forms for files and
 directories. A reader looking up a command should not have to read the parser.
 
 The page and the implementation are two halves of one claim. \`src/create.ts\`
@@ -16,7 +16,7 @@ export async function lint({ read, files, emit }) {
     emit({ code: "wrong_heading", message: `must open with ${heading}`, line: 1 });
   }
   if (!text.includes("\n## Usage\n")) {
-    emit({ code: "no_usage", message: "must carry a `## Usage` block spelling both forms" });
+    emit({ code: "no_usage", message: "must carry a `## Usage` block spelling all three forms" });
   }
   if ((await files("src/create.ts")).length === 0) {
     emit({
