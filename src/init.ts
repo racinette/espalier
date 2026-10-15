@@ -99,7 +99,6 @@ function topLevelIgnores(root: string, espalierRoot: string, written: string[]):
   const files: string[] = [];
 
   for (const entry of readdirSync(root, { withFileTypes: true })) {
-    if (entry.name === ".git") continue;
     if (entry.name === espalierRoot) continue;
     if (entry.name === CONFIG_FILENAME) continue;
 
@@ -282,7 +281,7 @@ export function init(options: InitOptions, reporter: Reporter): number {
 
   // Git does not track empty directories, so without this the espalier root
   // vanishes on the first commit and the next clone fails before anyone has
-  // written a line. Dotfiles in the espalier are skipped rather than read.
+  // written a line. The shipped skip list explicitly excludes this marker.
   mkdirSync(path.join(root, espalierRoot), { recursive: true });
   vendorAuthoring(root, espalierRoot, SHIPPED_SKIP, reporter);
   const keep = path.join(root, espalierRoot, ".gitkeep");

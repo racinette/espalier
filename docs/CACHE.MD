@@ -106,7 +106,7 @@ module observation cannot track them.
 
 ## The cache
 
-`<root>/.cache/lint.jsonl`, inside the espalier. That directory is already invisible to matching and already skipped when the tree is compiled, so the cache needs no rule of its own to stay out of the way. Each espalier writes its own, since a child shares nothing with its parent here either. Add it to `.gitignore`.
+`<root>/.cache/lint.jsonl`, inside the espalier. The root `.cache/` directory is reserved for this bookkeeping and excluded from rule compilation and cache keys, independently of `skip`. Other dot-prefixed directories are ordinary rule-tree entries. Each espalier writes its own, since a child shares nothing with its parent here either. Add it to `.gitignore`.
 
 **A cache that cannot be used is not an error.** Missing, unreadable, unwritable, corrupt, or written by a version that no longer applies: the run discards it, does the work, and says nothing. A linter that fails over its own bookkeeping is worse than a slow one.
 

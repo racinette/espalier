@@ -1,4 +1,5 @@
-# Other version control metadata. Git metadata is excluded automatically.
+# Version control metadata. Remove an entry to govern it explicitly.
+.git
 .hg/
 .svn/
 
@@ -35,9 +36,7 @@ NOTICE
 AUTHORS
 CONTRIBUTORS
 
-# Editor, agent and operating system droppings. The agent directories are here
-# for the same reason as the editor ones: dot-prefixed, so no rule could declare
-# them even if a project wanted to.
+# Editor, agent and operating system files. These defaults are editable.
 .vscode/
 .idea/
 .fleet/

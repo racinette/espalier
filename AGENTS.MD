@@ -34,6 +34,7 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
+| `.git` | Version control metadata. Remove an entry to govern it explicitly. |
 | `.gitignore` | Repository metadata. Tracked on purpose, and dictated by the tool that reads them rather than by this project's architecture. |
 | `.github/` | Continuous integration. |
 | `LICENSE` | Licence and legal. |

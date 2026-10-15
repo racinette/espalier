@@ -30,11 +30,6 @@ export function isLinkedWorktree(directory: string): boolean {
   }
 }
 
-/** Git metadata is excluded at every depth, including gitfiles and symlinks. */
-export function isGitMetadata(relative: string): boolean {
-  return relative.split("/").includes(".git");
-}
-
 /**
  * The opening of the header `espalier build` writes into every file it
  * generates. Generated documentation is identified by provenance rather than by
@@ -171,7 +166,6 @@ export function collectCandidates(
     if (prefix !== "" && loadIgnore !== undefined) rules.push(...loadIgnore(absolute, prefix));
 
     for (const entry of readEntries(absolute, prefix)) {
-      if (entry.name === ".git") continue;
       const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
       if (relative === skip) continue;
       const at = path.join(absolute, entry.name);

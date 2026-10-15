@@ -1,7 +1,15 @@
 {
   "adopt": {
-    "exit": 2,
-    "args": [".cursor"],
-    "report": [{ "kind": "failure", "code": "invalid_adopt_target" }]
+    "exit": 0,
+    "args": [
+      ".cursor"
+    ],
+    "report": [
+      {
+        "espalier": null,
+        "kind": "written",
+        "path": "espalier/.cursor/rules/backwards-compat.mdc.mjs"
+      }
+    ]
   }
 }

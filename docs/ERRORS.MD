@@ -29,7 +29,7 @@ See [CONFIG.MD](CONFIG.MD).
 | `version_mismatch` | the running CLI is not the exact version recorded in `pin`. Install that version, or run `espalier migrate` |
 | `config_missing_ignore_files` | `ignoreFiles` is required. `[]` names none; omit is not a decision |
 | `config_missing_skip` | `skip` is required. `[]` skips nothing; omit is not a decision |
-| `skip_hides_grammar` | a `skip` pattern would hide a `.mjs` rule module or an `ESPALIER.MD` |
+| `skip_hides_grammar` | a `skip` pattern would individually hide a `.mjs` rule module or an `ESPALIER.MD` in an inspected directory |
 | `config_invalid_value` | a key holds the wrong type, or `root` escapes the repository |
 | `espalier_root_missing` | the configured `root` is not a directory |
 | `ignore_file_missing` | a path in `ignoreFiles` is not there. A config that names a file depends on it |
@@ -101,7 +101,7 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | Code | |
 |---|---|
 | `path_outside_repository` | `explain` was given a path outside the root |
-| `invalid_adopt_target` | `adopt` was given a path that is outside the repository, is not a directory, is excluded by repository policy, is the espalier root, or has a dot-prefixed segment and so cannot be declared |
+| `invalid_adopt_target` | `adopt` was given a path that is outside the repository, is not a directory, is excluded by repository policy, would produce skipped rules or prose, or is the espalier root |
 | `unmarked_documentation` | a build-owned documentation path contains an unmarked file; `build --force` may overwrite it, while `adopt --force` first preserves its contents in the corresponding `ESPALIER.MD` |
 | `missing_argument` | a command was invoked without an argument it needs |
 | `invalid_create_target` | `create` was given a path outside the repository, excluded by repository policy, or not structurally declared as a file or directory |

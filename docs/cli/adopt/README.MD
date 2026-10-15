@@ -70,16 +70,14 @@ The original document remains until `espalier build --force` replaces it.
 
 ## What it refuses
 
-Four targets, all for the same reason — the run could not produce a module that governs anything.
+A path outside the repository, one that is not a directory, one repository
+policy excludes, or the espalier root fails with `invalid_adopt_target`.
 
-A path outside the repository, one that is not a directory, or one repository
-policy excludes. The espalier root, which is not itself governed. And a path
-with a dot-prefixed segment: `espalier/.cursor/rules/` is skipped by the
-compiler, so `adopt .cursor` would report modules written and exit `0` while
-`lint` went on calling every file under it undeclared. All four fail with
-`invalid_adopt_target`.
-
-Dot-prefixed paths *inside* an adopted directory are simply not inferred from — they are tooling rather than architecture, and [MATCHING.MD](../../MATCHING.MD#node-kinds) has the reasoning. They are not declared optional either, which is what everything else the inference passes over now becomes: a dot-prefixed path cannot be declared at all, so there is no module to write and nothing for the architect to revisit. `.espalierignore` is where they belong.
+Dot-prefixed targets and descendants participate in inference like any other
+path. To adopt a path such as `.github`, first remove any exclusion for it from
+repository policy (including the editable defaults written by `init`).
+Adoption also refuses, before writing anything, if `skip` or the reserved
+rule-tree cache directory would hide any proposed module or migrated prose.
 
 The espalier root and the configuration are not inferred from either, for the reason they are invisible to matching: espalier does not describe its own machinery. Nor are they evidence of a shape — with `root: tools/espalier`, counting the espalier root as a sibling is how `adopt tools` turns `tools/espalier/` and `tools/lib/` into one dynamic directory nobody chose.
 
@@ -174,6 +172,10 @@ components/*.tsx         →  [tsx]         the extension, when there is no pare
 alpha/, beta/            →  [directory]   at the repository root, which has no name
 ```
 
+Leading dots are removed from a parent name before singularising it. Remaining
+characters that cannot appear in a capture name become underscores; a leading
+digit gains an underscore. Thus `.features/alpha/` suggests `[feature]`.
+
 The root is the one place with no parent to borrow from — paths are root-relative, so its name is the empty string. `[directory]` is the same kind of guess as `[client]`: mechanical, obviously a placeholder, and renaming it is step one of [After adopting](#after-adopting).
 
 Singularising is naive — it strips a trailing `s`, and nothing more. `[client]` for a `clients/` directory is right often enough to be worth doing and wrong in a way that is obvious on sight, which is the useful combination for a name you are being asked to replace.
@@ -226,7 +228,7 @@ The marker is there because the three `written` lines are not equally trustworth
 
 There is no output kind for an eligible file the inference declined to declare:
 every file eligible for adoption is covered by a module when the run finishes.
-Excluded and dot-prefixed paths, child espaliers, and Espalier's own machinery
+Excluded paths, child espaliers, and Espalier's own machinery
 are outside that claim. The report says what was written, not what was given up
 on.
 

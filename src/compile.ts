@@ -141,15 +141,24 @@ function collectEntries(
   for (const entry of readEntries(absolute, prefix).sort((a, b) =>
     a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
   )) {
-    // Dotfiles are skipped entirely: a `.gitkeep` holding an otherwise-empty
-    // espalier root, a `.DS_Store` a file browser left behind. Neither is a
-    // rule module, and failing the whole run over one is a bad trade.
-    if (entry.name.startsWith(".")) continue;
     const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
     const at = path.join(absolute, entry.name);
+    // This directory belongs to the lint cache, not the authored rule tree.
+    if (relative === ".cache") continue;
+    if (entry.isDirectory() && ignores(skip, relative, true)) continue;
+    // Resolve no excluded link, including a broken one. File-shaped grammar
+    // exclusions still fail; a directory-only exclusion is a subtree boundary.
+    if (entry.isSymbolicLink() && ignores(skip, relative, true)) {
+      if (ignores(skip, relative) &&
+          (entry.name === NODE_DESCRIPTION || entry.name.endsWith(".mjs"))) {
+        fail("skip_hides_grammar", `${relative}: skip hides a rule module or ${NODE_DESCRIPTION}`, { path: relative });
+      }
+      continue;
+    }
     const resolved = inspect(entry, at, relative);
 
     if (resolved.kind === "directory") {
+      if (ignores(skip, relative, true)) continue;
       // A link onto an ancestor, which is the only arrangement that would not
       // terminate. Two links onto one directory are two rule paths, and an
       // espalier declaring the same rule twice is caught where every other
@@ -160,9 +169,8 @@ function collectEntries(
       seen.delete(resolved.id!);
     } else if (resolved.kind === "file") {
       if (ignores(skip, relative)) {
-        // docs/CONFIG.MD "`skip`". A pattern that would hide the grammar is
-        // already refused at load; this catches a directory pattern that the
-        // probes did not name, once the file is actually there.
+        // Excluded directories were pruned above. Grammar encountered in an
+        // inspected directory cannot be individually hidden by a file pattern.
         if (entry.name === NODE_DESCRIPTION || entry.name.endsWith(".mjs")) {
           fail(
             "skip_hides_grammar",

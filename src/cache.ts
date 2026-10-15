@@ -125,7 +125,7 @@ function digest(parts: Iterable<string>): string {
  * Telling them apart would mean walking the module graph, and rule modules are
  * ordinary ES modules that may import each other and anything else.
  *
- * `listEntries` skips dotfiles and configured `skip` patterns, so the cache is
+ * `listEntries` excludes the reserved cache directory and configured `skip` patterns, so the cache is
  * never part of its own key and authoring files do not invalidate a run.
  */
 function version(config: Config): string {

@@ -10,6 +10,7 @@ import path from "node:path";
 import { isFolded } from "./render.js";
 import { fail } from "./errors.js";
 import { probe } from "./files.js";
+import { compileIgnore, ignores } from "./ignore.js";
 import type { Reporter } from "./output.js";
 import { delegated } from "./nested.js";
 import { open } from "./repository.js";
@@ -30,8 +31,10 @@ export interface AdoptOptions {
  * capture name. docs/cli/adopt/README.MD "Placeholder names".
  */
 function singular(name: string): string {
-  if (name === "") return "directory";
-  return name.length > 1 && name.endsWith("s") ? name.slice(0, -1) : name;
+  const plain = name.replace(/^\.+/, "");
+  if (plain === "") return "directory";
+  const stem = plain.length > 1 && plain.endsWith("s") ? plain.slice(0, -1) : plain;
+  return extensionCapture(stem);
 }
 
 /** Joins an espalier-relative path, where the root itself is the empty string. */
@@ -72,10 +75,9 @@ interface Entry {
   directory: boolean;
 }
 
-/** Dotfiles are never inferred from: they are tooling, not architecture. */
+/** Infer from every eligible entry, including dot-prefixed names. */
 function entries(absolute: string): Entry[] {
   return readdirSync(absolute, { withFileTypes: true })
-    .filter((entry) => !entry.name.startsWith("."))
     // A link counts as what it points at; one pointing nowhere is nothing to
     // infer a rule from, and the espalier this writes is a draft its author
     // edits. docs/CONFIG.MD "Symlinks".
@@ -366,17 +368,6 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
   if (target === espalierRoot || target.startsWith(`${espalierRoot}/`)) {
     fail("invalid_adopt_target", "the espalier root is not itself governed");
   }
-  // `entries` refuses to infer *from* a dotfile, but the target itself was
-  // never checked — so `adopt .cursor` wrote modules under `espalier/.cursor/`,
-  // which the compiler skips, and reported success while `lint` went on calling
-  // every file under it undeclared.
-  if (target.split("/").some((segment) => segment.startsWith("."))) {
-    fail(
-      "invalid_adopt_target",
-      `${options.target} has a dot-prefixed segment and cannot be declared; use \`.espalierignore\``,
-    );
-  }
-
   const excluded = repository.ungoverned(target, true);
   if (excluded !== null) {
     fail(
@@ -402,6 +393,17 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
     { filename: repository.config.build.filename, folded: (at) => isFolded(repository.espalier, at) },
     (at, directory) => repository.ungoverned(at, directory) === null,
   );
+
+  const skip = compileIgnore(repository.config.skip, "skip");
+  const sources = [
+    ...found.leaves.map((leaf) => `${leaf.at}.mjs`),
+    ...found.documentation.map((at) => path.posix.relative(espalierRoot, guidanceSource(espalierRoot, at))),
+  ];
+  for (const source of sources) {
+    if (source.startsWith(".cache/") || ignores(skip, source)) {
+      fail("invalid_adopt_target", `${source}: proposed rule-tree output is excluded; update skip before adopting`, { path: source });
+    }
+  }
 
   // A provenance-marked document is already build machinery and is simply not
   // inferred. A hand-written collision cannot be made durable by `adopt`: stop

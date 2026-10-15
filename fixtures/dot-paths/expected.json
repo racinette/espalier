@@ -1,0 +1,30 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "code": "workflow_checked",
+      "path": ".github/workflows/verify.yml"
+    }
+  ],
+  "ownership": {
+    ".env": ".env.mjs",
+    ".github/workflows/verify.yml": ".github/workflows/[workflow].yml.mjs",
+    ".editor/settings.json": ".[editor]/settings.json.mjs",
+    ".tools/declared.txt": ".tools/declared.txt.mjs"
+  },
+  "build": {
+    "exit": 0,
+    "report": [
+      {
+        "espalier": null,
+        "kind": "written",
+        "path": ".tools/AGENTS.MD"
+      },
+      {
+        "espalier": null,
+        "kind": "written",
+        "path": "AGENTS.MD"
+      }
+    ]
+  }
+}

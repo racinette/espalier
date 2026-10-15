@@ -279,7 +279,7 @@ function planFor(
 
   const points = plan(repository.espalier).filter((point) => {
     const excluded = repository.ungoverned(point.at, true);
-    return excluded !== "worktree" && excluded !== "git";
+    return excluded !== "worktree";
   });
 
   const assigned = assignChildren(points, repository.children);

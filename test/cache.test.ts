@@ -53,7 +53,7 @@ const CACHE = path.join("espalier", ".cache", "lint.jsonl");
 function repository(rule = EMITS): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-cache-"));
   mkdirSync(path.join(root, "espalier"));
-  writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+  writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.7.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
   writeFileSync(path.join(root, "espalier", "[file].ts.mjs"), rule);
   writeFileSync(path.join(root, "a.ts"), "export const a = 1;\n");
   writeFileSync(path.join(root, "b.ts"), "export const b = 2;\n");
@@ -202,7 +202,7 @@ test("a child espalier keeps its own cache", () => {
   try {
     const child = path.join(root, "packages", "web");
     mkdirSync(path.join(child, "espalier"), { recursive: true });
-    writeFileSync(path.join(child, "espalier.config.yaml"), "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    writeFileSync(path.join(child, "espalier.config.yaml"), "pin: 0.7.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     writeFileSync(path.join(child, "espalier", "[file].ts.mjs"), EMITS);
     writeFileSync(path.join(child, "c.ts"), "export const c = 3;\n");
 
@@ -365,7 +365,7 @@ test("files never lists a path the espalier does not govern", () => {
     writeFileSync(path.join(root, "notes.txt"), "not governed\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
+      "pin: 0.7.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
 
@@ -387,7 +387,7 @@ test("read refuses a path the espalier does not govern", () => {
     writeFileSync(path.join(root, "notes.txt"), "not governed\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
+      "pin: 0.7.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
 
@@ -412,7 +412,7 @@ test("an edited config discards the cache", () => {
     // under the old one describes a run that no longer exists.
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
+      "pin: 0.7.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
 
@@ -433,7 +433,7 @@ test("an edited ignore file discards the cache", () => {
     writeFileSync(path.join(root, ".gitignore"), ".gitignore\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.6.0\nroot: espalier\nskip: []\nignoreFiles:\n  - .gitignore\n",
+      "pin: 0.7.0\nroot: espalier\nskip: []\nignoreFiles:\n  - .gitignore\n",
     );
     assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
 
@@ -494,7 +494,7 @@ test("an edited addons module discards the cache", () => {
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\naddons: espalier.addons.mjs\n",
+      "pin: 0.7.0\nroot: espalier\nignoreFiles: []\nskip: []\naddons: espalier.addons.mjs\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "espalier.addons.mjs\n");
     writeFileSync(
@@ -682,14 +682,12 @@ test("edited prose discards the cache, though no rule changed", () => {
   }
 });
 
-test("a dotfile under the espalier root is not part of the key", () => {
+test("an explicitly skipped dotfile is not part of the key", () => {
   const root = repository();
   try {
+    const config = path.join(root, "espalier.config.yaml");
+    writeFileSync(config, readFileSync(config, "utf8").replace("skip: []", "skip: [.DS_Store]"));
     lint(root, "first");
-    // "`listEntries` skips dotfiles, so the cache is never part of its own
-    // key." The cache is written *into* the espalier root, so a key that read
-    // everything there could never match itself twice — the first warm run
-    // would discard the file it had just written.
     writeFileSync(path.join(root, "espalier", ".DS_Store"), "junk\n");
     assert.deepEqual(lint(root, "second"), { "a.ts": "first", "b.ts": "first" });
   } finally {
@@ -702,7 +700,7 @@ test("an ignore file that appears discards the cache", () => {
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.6.0\nroot: espalier\nskip: []\nignoreFiles:\n  - .espalierignore\n",
+      "pin: 0.7.0\nroot: espalier\nskip: []\nignoreFiles:\n  - .espalierignore\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "");
     assert.deepEqual(lint(root, "first"), { "a.ts": "first", "b.ts": "first" });
@@ -749,7 +747,7 @@ test("an edit to an ungoverned file leaves every entry replayed", () => {
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
+      "pin: 0.7.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "notes.txt\n");
     writeFileSync(path.join(root, "notes.txt"), "one\n");
@@ -957,7 +955,7 @@ test("a glob never sees an ignored path, so one appearing changes nothing", () =
   try {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
+      "pin: 0.7.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
     );
     writeFileSync(path.join(root, ".espalierignore"), "vendor/\n");
     assert.equal(lint(root, "first")["a.ts"], "a.ts,b.ts:first");
@@ -1057,7 +1055,7 @@ function nested(): { root: string; child: string } {
   const root = repository();
   const child = path.join(root, "packages", "web");
   mkdirSync(path.join(child, "espalier"), { recursive: true });
-  writeFileSync(path.join(child, "espalier.config.yaml"), "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+  writeFileSync(path.join(child, "espalier.config.yaml"), "pin: 0.7.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
   writeFileSync(path.join(child, "espalier", "[file].ts.mjs"), EMITS);
   writeFileSync(path.join(child, "c.ts"), "export const c = 3;\n");
   return { root, child };
@@ -1392,7 +1390,7 @@ test("an addon transitive dependency discards the cache", () => {
     writeFileSync(path.join(root, ".espalierignore"), "espalier.addons.mjs\naddon-helper.mjs\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\naddons: espalier.addons.mjs\n",
+      "pin: 0.7.0\nroot: espalier\nignoreFiles: []\nskip: []\naddons: espalier.addons.mjs\n",
     );
     writeFileSync(
       path.join(root, "espalier.addons.mjs"),
@@ -1418,7 +1416,7 @@ export const unobservedImplementationDependencies = ["engine/**/*.wasm"];
     writeFileSync(path.join(root, ".gitignore"), "engine/\n");
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.6.0\nroot: espalier\nskip: []\nignoreFiles:\n  - .gitignore\n",
+      "pin: 0.7.0\nroot: espalier\nskip: []\nignoreFiles:\n  - .gitignore\n",
     );
     assert.equal(lint(root, "cold")["a.ts"], "cold");
     assert.equal(lint(root, "warm")["a.ts"], "cold");
@@ -1505,6 +1503,19 @@ registerHooks({
     assert.equal(lint(root, "first", [], ["--import", register])["a.ts"], "first");
     assert.equal(lint(root, "second", [], ["--import", register])["a.ts"], "second");
     assert.equal(existsSync(path.join(root, CACHE)), false);
+  } finally {
+    discard(root);
+  }
+});
+
+test("a new dotted rule invalidates a warm cache", () => {
+  const root = repository();
+  try {
+    lint(root, "first");
+    assert.deepEqual(lint(root, "warm"), { "a.ts": "first", "b.ts": "first" });
+    writeFileSync(path.join(root, "espalier", ".settings.mjs"),
+      'export const description = "Settings"; export const rule = "Optional settings."; export const optional = true; export function lint() {}\n');
+    assert.deepEqual(lint(root, "changed"), { "a.ts": "changed", "b.ts": "changed" });
   } finally {
     discard(root);
   }

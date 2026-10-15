@@ -1,4 +1,5 @@
-# Other version control metadata. Git metadata is excluded automatically.
+# Version control metadata. Remove an entry to govern it explicitly.
+.git
 .hg/
 .svn/
 

@@ -60,9 +60,11 @@ skip:
   - AGENTS.MD
   - AGENTS.md
   - CLAUDE.md
+  - .git
+  - .gitkeep
 `,
   );
-  assert.deepEqual(SHIPPED_SKIP, ["AGENTS.MD", "AGENTS.md", "CLAUDE.md"]);
+  assert.deepEqual(SHIPPED_SKIP, ["AGENTS.MD", "AGENTS.md", "CLAUDE.md", ".git", ".gitkeep"]);
 });
 
 test("rewrite leaves an existing skip and ignoreFiles alone", () => {
@@ -333,4 +335,39 @@ test('invalid folding migration leaves config and source untouched', () => {
       assert.equal(readFileSync(sourcePath, 'utf8'), source);
     });
   }
+});
+
+test("0.7 migration preserves metadata exclusions and reviews hidden entries without importing", () => {
+  scratch((root) => {
+    const configPath = path.join(root, "espalier.config.yaml");
+    const before = 'pin: 0.6.0\nroot: espalier\nignoreFiles: []\n# explicit policy\nskip: [] # retain comment\n';
+    writeFileSync(configPath, before);
+    writeFileSync(path.join(root, ".espalierignore"), "# existing policy\n!.git\n");
+    mkdirSync(path.join(root, ".git"));
+    writeFileSync(path.join(root, ".git", "espalier.config.yaml"), "not: valid\n");
+    mkdirSync(path.join(root, "espalier", ".tools"));
+    writeFileSync(path.join(root, "espalier", ".tools", "danger.mjs"), 'throw new Error("must never import");');
+    writeFileSync(path.join(root, "espalier", ".env.mjs"), 'throw new Error("must never import");');
+    writeFileSync(path.join(root, "espalier", ".gitkeep"), "");
+    const dry = run(root, ["migrate", "--dry-run", "--format", "jsonl"]);
+    assert.equal(dry.status, 0, dry.stdout + dry.stderr);
+    assert.equal(readFileSync(configPath, "utf8"), before);
+    assert.equal(readFileSync(path.join(root, ".espalierignore"), "utf8"), "# existing policy\n!.git\n");
+    const records = dry.stdout.trim().split("\n").map((line) => JSON.parse(line));
+    assert.deepEqual(records.filter((r) => r.kind === "warning").map((r) => r.message.split(":")[0]),
+      ["espalier/.env.mjs", "espalier/.tools"]);
+    assert.ok(records.some((r) => r.path === ".espalierignore" && r.kind === "written"));
+    const actual = run(root, ["migrate", "--format", "jsonl"]);
+    assert.equal(actual.status, 0, actual.stdout + actual.stderr);
+    assert.equal(actual.stdout, dry.stdout);
+    const written = readFileSync(configPath, "utf8");
+    assert.match(written, /# explicit policy/);
+    assert.match(written, /# retain comment/);
+    assert.match(written, /\.gitkeep/);
+    assert.doesNotMatch(written, /\.tools|\.env/);
+    const again = run(root, ["migrate", "--format", "jsonl"]);
+    assert.equal(again.status, 0, again.stdout);
+    assert.doesNotMatch(again.stdout, /"kind":"written"|"kind":"warning"/);
+    assert.equal(readFileSync(configPath, "utf8"), written);
+  });
 });

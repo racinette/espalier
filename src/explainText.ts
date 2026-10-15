@@ -259,7 +259,6 @@ export function renderExplanation(answer: Explanation, concise = false): string 
     const reason =
       {
         ".espalierignore": "Excluded by a pattern in .espalierignore.",
-        git: "Git metadata is excluded automatically.",
         worktree: "This path belongs to a linked Git worktree. Run Espalier inside that worktree.",
         espalier: "Invisible unconditionally: espalier does not report on its own machinery.",
         child: "Inside an espalier of its own, which is what answers for this path.",

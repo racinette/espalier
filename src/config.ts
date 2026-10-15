@@ -42,7 +42,7 @@ const KNOWN = new Set(["pin", "name", "root", "ignoreFiles", "skip", "addons", "
 const KNOWN_BUILD = new Set(["filename", "espalierGuidance"]);
 
 /** Instruction files `init` and `migrate` write into `skip`. docs/CONFIG.MD "`skip`". */
-export const SHIPPED_SKIP = ["AGENTS.MD", "AGENTS.md", "CLAUDE.md"];
+export const SHIPPED_SKIP = ["AGENTS.MD", "AGENTS.md", "CLAUDE.md", ".git", ".gitkeep"];
 
 /** Root instruction file `init` vendors into the espalier. docs/AUTHORING.MD. */
 export const AUTHORING_FILENAME = "AGENTS.MD";
@@ -285,6 +285,8 @@ function requiredPathList(values: Record<string, unknown>, key: "ignoreFiles" | 
 function refuseSkipHidingGrammar(skip: string[]): void {
   const rules = compileIgnore(skip, "skip");
   for (const probe of GRAMMAR_PROBES) {
+    const parent = path.posix.dirname(probe);
+    if (parent !== "." && ignores(rules, parent, true)) continue;
     const rule = excludedBy(rules, probe);
     if (rule !== null) {
       fail(

@@ -1,0 +1,20 @@
+{
+  "adopt": {
+    "exit": 0,
+    "args": [
+      ".features"
+    ],
+    "report": [
+      {
+        "espalier": null,
+        "kind": "written",
+        "path": "espalier/.features/.env.mjs"
+      },
+      {
+        "espalier": null,
+        "kind": "written",
+        "path": "espalier/.features/[feature]/index.ts.mjs"
+      }
+    ]
+  }
+}

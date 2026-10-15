@@ -222,14 +222,12 @@ The exclusion cases read:
   Excluded by a pattern in .espalierignore.
   Not visible to espalier because of a pattern from .gitignore.
   Invisible unconditionally: espalier does not report on its own machinery.
-  Git metadata is excluded automatically.
   This path belongs to a linked Git worktree. Run Espalier inside that worktree.
 ```
 
 Configured exclusions name their source: `.espalierignore` records a governance
 exclusion, while an external ignore file records that the path was never part
-of Espalier's input. Automatic exclusions identify Git metadata or a linked
-checkout instead. See [CONFIG.MD](../../CONFIG.MD#ignorefiles).
+of Espalier's input. Automatic exclusions identify tool machinery or a linked checkout instead. See [CONFIG.MD](../../CONFIG.MD#ignorefiles).
 
 ## Nested espaliers
 

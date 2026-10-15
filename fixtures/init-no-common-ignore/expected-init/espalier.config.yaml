@@ -1,4 +1,4 @@
-pin: 0.6.0
+pin: 0.7.0
 
 name: init-no-common-ignore
 
@@ -11,3 +11,5 @@ skip:
   - AGENTS.MD
   - AGENTS.md
   - CLAUDE.md
+  - .git
+  - .gitkeep

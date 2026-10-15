@@ -3,7 +3,7 @@
 `espalier` is configured by an `espalier.config.yaml` at the repository root, and by a `.espalierignore` beside it.
 
 ```yaml
-pin: 0.6.0
+pin: 0.7.0
 
 name: acme-web
 
@@ -16,6 +16,8 @@ skip:
   - AGENTS.MD
   - AGENTS.md
   - CLAUDE.md
+  - .git
+  - .gitkeep
 
 addons: ./espalier.addons.mjs
 
@@ -44,7 +46,7 @@ Two files rather than one because they answer to different readers. The config i
 The exact Espalier CLI version this repository expects:
 
 ```yaml
-pin: 0.6.0
+pin: 0.7.0
 ```
 
 `pin` is the only version. There is no separate schema identifier: the implementation a repository was authored against is the whole of what “this config means,” and `espalier init` records the running package version. Commands that load repository configuration require that exact version, except `migrate`, which updates it. `help`, `examples`, and `--version` do not load repository configuration.
@@ -184,20 +186,36 @@ A list this long is easy to let grow, and a growing one means the espalier descr
 
 ## `skip`
 
-Required. Gitignore-syntax patterns, relative to the espalier root, naming files in that tree that are not rule modules and not `ESPALIER.MD`. Matching files are skipped by the compiler: they are not loaded, they are not `invalid_espalier_entry`, and they do not describe the repository.
+Required. Gitignore-syntax patterns relative to the espalier root. Matching
+directories are outside the rule tree: they are pruned without inspecting their
+contents. Matching non-grammar files are omitted from compilation.
 
 ```yaml
 skip:
   - AGENTS.MD
   - AGENTS.md
   - CLAUDE.md
+  - .git
+  - .gitkeep
 ```
 
-Omitting the key is an error. `[]` is the explicit decision to skip nothing. `espalier init` writes the three names above — the instruction files agents load by convention when they sit next to the rules they edit — and vendors the compact authoring contract to `espalier/AGENTS.MD`. [`espalier migrate`](cli/migrate/README.MD) inserts the same list when an older config omitted the key, and writes that root file when it is absent or still the marked shipped text. A config that already has `skip` is left alone, empty list included. A customized `AGENTS.MD` — sentinel removed — is left alone. Nested copies are the project's.
+`init` writes these editable defaults and vendors the authoring contract to
+`espalier/AGENTS.MD`. `.git` covers metadata directories and gitfiles;
+`.gitkeep` covers empty-directory markers. Add tooling directories such as
+`.claude/` or `.codex/` explicitly when they live beside rules. A bare name
+matches at every depth. Dot-prefixed names follow the same rules as other names.
 
-A bare name matches at any depth, which is gitignore's rule and the reason one `AGENTS.MD` entry covers a file in every directory of the tree. Dot-prefixed names do not need this key: `.claude/`, `.codex/`, and `.gitkeep` are skipped with every other dotfile. See [MATCHING.MD](MATCHING.MD#node-kinds).
+Omitting `skip` is an error. `[]` means no configured exclusions. The root
+`.cache/` directory remains reserved for Espalier's lint cache. See [migrate](cli/migrate/README.MD) for upgrading existing configurations. A current config's list is left
+alone. A customized authoring file (shipped sentinel removed) is left alone.
 
-**Skip cannot hide the grammar.** A pattern that would match a `.mjs` rule module or an `ESPALIER.MD` is `skip_hides_grammar`. Those two names are how the espalier is compiled; a hole in them is not a skip, it is a broken tree.
+**Inspected grammar cannot be individually skipped.** A pattern hiding a
+`.mjs` module or `ESPALIER.MD` in an inspected directory is `skip_hides_grammar`.
+An excluded directory may contain either: its contents are never inspected.
+For example `tools/` excludes the whole subtree, whereas `tools/*.mjs` is
+rejected when it hides a discovered module. Excluding a directory also prevents
+negations from restoring its descendants; re-include the directory first.
+Ignored symlinks are omitted before resolution, including broken links.
 
 This is not `.espalierignore`. That file is the governed repository, and `build` quotes its comments into generated documentation. Skip is the espalier tree talking to its compiler about files that must live *inside* the definition so an agent finds them, and that are not themselves rules.
 
@@ -261,25 +279,24 @@ Five kinds of path are invisible unconditionally, because `espalier` reporting o
 - the `root` directory
 - every file `espalier build` generated
 
-`.espalierignore` is on the list for the same reason the config is, and could not be anywhere else: it is dot-prefixed, so no rule can declare it — see [MATCHING.MD](MATCHING.MD#node-kinds) — and a file that cannot be declared and is not invisible is a file every run reports forever.
+`.espalierignore` is configuration this run reads, so it is excluded as tool machinery.
 
 External ignore files are on that list for the same reason the config is: they are configuration this run read. A project naming `.customignore`, or using a nested `.gitignore`, does not have to describe that control file structurally as well.
 
 These cannot be un-ignored. Generated documentation is identified by its provenance header, not by path, because `build` distributes files through the tree rather than confining them to one directory.
 
-Git metadata is also excluded automatically: every path component named `.git`,
-whether a directory, file, or symlink, and everything beneath it. Ignore entries
-and negations cannot change this exclusion. Git metadata is never a structural
-input and contributes no purpose row to generated guidance. Linked worktrees
-are excluded from enclosing runs as described above. Tracked Git configuration
-such as `.gitignore` and `.gitmodules` follows the ordinary rules.
+Git metadata follows explicit ignore policy. The shipped `.espalierignore`
+contains `.git`, covering both files and directories at any depth. Removing
+that entry makes metadata eligible like any other path. `skip` separately
+controls metadata inside the rule tree. Linked worktrees remain isolated from
+enclosing runs as described above; excluding their `.git` marker alone would
+not exclude the checkout around it.
 
 ### What counts as a file
 
 `espalier` walks the filesystem from the repository root. External ignore files first remove paths from that walk; `.espalierignore` then excludes visible paths from governance. Both layers prune matching directories before reading their contents.
 
-Without either ignore layer, the walk still excludes Git metadata and linked
-worktrees. It enumerates `node_modules/` and build directories, and reports
+Without either ignore layer, the walk still excludes linked worktrees. It enumerates `node_modules/` and build directories, and reports
 undeclared files in them as `unexpected_path`.
 
 Untracked files are candidates unless an external ignore file hides them. The file an agent created ten seconds ago is linted because it is there; Git's index has no bearing on the answer.

@@ -4,7 +4,7 @@
 // `loadConfig` on a pin mismatch; this one is allowed to see the old file,
 // edit it as text, and visit children the way `lint` and `build` do.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { isMap, parseDocument } from "yaml";
 import { findChildren } from "./children.js";
@@ -18,7 +18,7 @@ import {
 import { vendorAuthoring } from "./init.js";
 import { fail } from "./errors.js";
 import { collectCandidates } from "./files.js";
-import { compileIgnore } from "./ignore.js";
+import { compileIgnore, ignores } from "./ignore.js";
 import { eachChild } from "./nested.js";
 import type { Reporter } from "./output.js";
 import { readIgnoreFile } from "./repository.js";
@@ -62,9 +62,16 @@ export function rewriteConfigText(
   values: Record<string, unknown>,
   version: string,
 ): string {
-  if (legacyInline(values) !== undefined) {
+  const inline = legacyInline(values);
+  const skip = skipAfterRewrite(values, version);
+  if (inline !== undefined || ("skip" in values && JSON.stringify(skip) !== JSON.stringify(values["skip"]))) {
     const document = parseDocument(text);
-    document.deleteIn(["build", "inline"]);
+    if (inline !== undefined) document.deleteIn(["build", "inline"]);
+    if ("skip" in values) {
+      for (const entry of skip.slice((values["skip"] as string[]).length)) {
+        document.addIn(["skip"], entry);
+      }
+    }
     text = document.toString();
   }
   let lines = text.split(/\r?\n/);
@@ -143,6 +150,7 @@ function discoverChildren(
   root: string,
   configPath: string,
   values: Record<string, unknown>,
+  ignore: string[],
 ): string[] {
   const written = typeof values["root"] === "string" ? values["root"] : "espalier";
   const espalierRoot = path.posix
@@ -158,8 +166,6 @@ function discoverChildren(
     ignoreFiles = listed as string[];
   }
 
-  const ignorePath = path.join(root, IGNORE_FILENAME);
-  const ignore = existsSync(ignorePath) ? readFileSync(ignorePath, "utf8").split("\n") : [];
   const ignoreRules = compileIgnore(ignore);
   const visibilityRules = ignoreFiles.map((entry) =>
     compileVisibility(readIgnoreFile(root, entry), entry),
@@ -222,6 +228,18 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
     fail("config_invalid_value", "root must name a directory inside the repository");
   }
   const wanted = rewriteConfigText(text, values, VERSION);
+  const skip = skipAfterRewrite(values);
+  const ignorePath = path.join(root, IGNORE_FILENAME);
+  const previousIgnore = existsSync(ignorePath) ? readFileSync(ignorePath, "utf8") : "";
+  let wantedIgnore = previousIgnore;
+  if (upgradesDotPaths(values, VERSION)) {
+    const rules = compileIgnore(previousIgnore.split("\n"));
+    if (!ignores(rules, ".git") || !ignores(rules, ".git", true) ||
+        !ignores(rules, "nested/.git") || !ignores(rules, "nested/.git", true)) {
+      wantedIgnore += `${wantedIgnore.endsWith("\n") || wantedIgnore === "" ? "" : "\n"}\n# Version control metadata. Remove this entry to govern it explicitly.\n.git\n`;
+    }
+    reviewDotEntries(path.join(root, espalierRoot), espalierRoot, skip, reporter);
+  }
   const source = `${espalierRoot}/ESPALIER.MD`;
   const absoluteSource = path.join(root, source);
   if (inline === true) {
@@ -243,18 +261,72 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
     reporter.record({ kind: "written", path: reported });
   }
 
-  vendorAuthoring(root, espalierRoot, skipAfterRewrite(values), reporter, options.dryRun);
+  if (wantedIgnore !== previousIgnore) {
+    if (!options.dryRun) writeFileSync(ignorePath, wantedIgnore, "utf8");
+    reporter.record({ kind: "written", path: IGNORE_FILENAME });
+  }
+  vendorAuthoring(root, espalierRoot, skip, reporter, options.dryRun);
 
-  return { root, children: discoverChildren(root, configPath, values) };
+  return { root, children: discoverChildren(root, configPath, values, wantedIgnore.split("\n")) };
 }
 
-function skipAfterRewrite(values: Record<string, unknown>): string[] {
+function upgradesDotPaths(values: Record<string, unknown>, version: string): boolean {
+  return compareRelease(version, "0.7.0") >= 0 &&
+    (typeof values["pin"] !== "string" || compareRelease(values["pin"], "0.7.0") < 0);
+}
+
+/** Report old hidden boundaries without opening them or importing rule modules. */
+function reviewDotEntries(root: string, source: string, skip: string[], reporter: Reporter): void {
+  if (!existsSync(root)) return;
+  const rules = compileIgnore(skip, "skip");
+  const ancestors = new Set<string>();
+  const walk = (directory: string, prefix: string): void => {
+    let identity: string;
+    let entries;
+    try {
+      identity = realpathSync(directory);
+      if (ancestors.has(identity)) return;
+      entries = readdirSync(directory, { withFileTypes: true });
+    } catch {
+      reporter.warning(`${source}${prefix ? `/${prefix}` : ""}: could not inspect rule-tree entries; review dot-prefixed paths before lint or build`);
+      return;
+    }
+    ancestors.add(identity);
+    for (const entry of entries.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)) {
+      const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (relative === ".cache" || ignores(rules, relative, entry.isDirectory()) ||
+          (entry.isSymbolicLink() && ignores(rules, relative, true))) continue;
+      if (entry.name.startsWith(".")) {
+        reporter.warning(`${source}/${relative}: previously hidden rule-tree entry is now eligible; review it as a rule or exclude it explicitly with skip`);
+        continue;
+      }
+      const absolute = path.join(directory, entry.name);
+      let directoryEntry = entry.isDirectory();
+      if (entry.isSymbolicLink()) {
+        try { directoryEntry = statSync(absolute).isDirectory(); } catch { continue; }
+      }
+      if (directoryEntry) walk(absolute, relative);
+    }
+    ancestors.delete(identity);
+  };
+  walk(root, "");
+}
+
+function skipAfterRewrite(values: Record<string, unknown>, version = VERSION): string[] {
   if (!("skip" in values)) return SHIPPED_SKIP;
   const listed = values["skip"];
   if (!Array.isArray(listed) || listed.some((entry) => typeof entry !== "string")) {
     fail("config_invalid_value", "skip must be a list of strings");
   }
-  return listed as string[];
+  const skip = [...listed] as string[];
+  if (upgradesDotPaths(values, version)) {
+    for (const entry of [".git", ".gitkeep"]) {
+      const rules = compileIgnore(skip, "skip");
+      if (!ignores(rules, entry) || !ignores(rules, entry, true) ||
+          !ignores(rules, `nested/${entry}`) || !ignores(rules, `nested/${entry}`, true)) skip.push(entry);
+    }
+  }
+  return skip;
 }
 
 export async function migrate(options: MigrateOptions, reporter: Reporter): Promise<number> {

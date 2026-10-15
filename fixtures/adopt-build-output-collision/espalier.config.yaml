@@ -1,8 +1,9 @@
-pin: 0.6.0
+pin: 0.7.0
 root: espalier
 build:
   filename: PACKAGE.MD
 
 ignoreFiles: []
 
-skip: []
+skip:
+  - .keep

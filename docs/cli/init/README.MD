@@ -35,7 +35,7 @@ espalier init [--config <path>] [--root <dir>] [--lang <name>]...
 ## What it writes
 
 ```yaml
-pin: 0.6.0
+pin: 0.7.0
 
 name: acme-web
 
@@ -48,6 +48,8 @@ skip:
   - AGENTS.MD
   - AGENTS.md
   - CLAUDE.md
+  - .git
+  - .gitkeep
 ```
 
 `pin` is the exact running package version. Commands that load repository
@@ -62,7 +64,8 @@ writes. Rename it to the project's name, or remove it to omit the heading.
 And a `.espalierignore` beside it:
 
 ```
-# Other version control metadata. Git metadata is excluded automatically.
+# Version control metadata. Remove an entry to govern it explicitly.
+.git
 .hg/
 .svn/
 
@@ -80,9 +83,7 @@ And a `.espalierignore` beside it:
 LICENSE
 # …
 
-# Editor, agent and operating system droppings. The agent directories are here
-# for the same reason as the editor ones: dot-prefixed, so no rule could declare
-# them even if a project wanted to.
+# Editor, agent and operating system files. These defaults are editable.
 .vscode/
 # …
 ```
@@ -95,10 +96,10 @@ Plus `espalier/`, holding a `.gitkeep` and the compact authoring contract at `AG
 
 Verbatim includes the comments, and that now costs something to get wrong. `espalier build` writes each comment into the documentation for the directory the entry sits in — see [cli/build/README.MD](../build/README.MD#other-repository-paths) — so a shipped list is also the wording an agent reads beside materialized paths outside the project layout. The comments in `ignores/` are written to be read twice: once by the person editing the file, once by whoever the documents are for.
 
-Git metadata is excluded automatically, independently of this list. The common
-list supplies editable purposes for other repository metadata and tooling.
+The common list explicitly excludes `.git`, including both directories and
+gitfiles. Remove that entry to govern metadata.
 
-The `.gitkeep` is there because git does not track empty directories. Without it the espalier root vanishes on the first commit and the next person to clone gets `espalier_root_missing` before they have written a line. Dotfiles in the espalier are skipped rather than read, so it costs nothing — see [MATCHING.MD](../../MATCHING.MD#node-kinds).
+The `.gitkeep` is there because git does not track empty directories. Without it the espalier root vanishes on the first commit and the next person to clone gets `espalier_root_missing` before they have written a line. The shipped `skip` list excludes `.gitkeep` explicitly — see [MATCHING.MD](../../MATCHING.MD#node-kinds).
 
 `AGENTS.MD` is the compact authoring contract. Skip lists that file, so the compiler does not treat it as a module. Delete the sentinel line at the top to keep a customized copy through later `migrate` runs. Read it with the directory convention; the matching reference is `espalier help authoring`.
 
@@ -122,7 +123,7 @@ espalier init --no-ignore-file
 
 `-i` writes exactly the paths given, in the order given, and each must exist for the same reason `.gitignore` must. `--no-ignore-file` writes `ignoreFiles: []` — recorded rather than omitted, so the config says a decision was made rather than leaving the next reader to wonder. The two together are a contradiction and are refused as `contradictory_flags` rather than resolved by precedence.
 
-`skip` is always written as `AGENTS.MD`, `AGENTS.md`, and `CLAUDE.md`. There is no flag that declines it: a repository that wants none edits the list, or writes `[]`, after `init`. Dot-prefixed agent directories are already skipped and do not appear here. See [CONFIG.MD](../../CONFIG.MD#skip).
+`skip` is always written as `AGENTS.MD`, `AGENTS.md`, `CLAUDE.md`, `.git`, and `.gitkeep`. There is no flag that declines it: a repository that wants none edits the list, or writes `[]`, after `init`. Add dot-prefixed tooling directories explicitly if needed. See [CONFIG.MD](../../CONFIG.MD#skip).
 
 After `init`, the rule still holds: a file named in `ignoreFiles` that is not there fails any command that loads the config. See [CONFIG.MD](../../CONFIG.MD#ignorefiles).
 
@@ -135,7 +136,7 @@ espalier init --no-common-ignore
 ```
 
 ```yaml
-pin: 0.6.0
+pin: 0.7.0
 
 root: espalier
 
@@ -146,12 +147,14 @@ skip:
   - AGENTS.MD
   - AGENTS.md
   - CLAUDE.md
+  - .git
+  - .gitkeep
 ```
 
 Use it when the common list is wrong for this repository — a project that genuinely governs its CI definitions, or one whose visible non-architectural paths need a different documented policy.
 
-Git metadata remains excluded with this flag. Other tooling and metadata need
-explicit exclusions when the repository does not declare them.
+This flag also declines the repository `.git` exclusion. Tooling and metadata
+need explicit exclusions when the repository does not declare them.
 
 There is no matching config key. Nothing here is applied at run time: the block is copied into `.espalierignore` and then belongs to you, so the way to remove an entry after the fact is to delete the line. This flag exists for the case where you did not want it written in the first place.
 

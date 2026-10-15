@@ -58,13 +58,20 @@ branch. It changes documentation placement only. See
 
 The name is reserved: `espalier/src/clients/ESPALIER.MD` describes the directory, while `espalier/src/clients/ESPALIER.MD.mjs` would be the rule governing a real `src/clients/ESPALIER.MD` file in the repository. Any other non-`.mjs` file in the espalier is an error, unless it is skipped.
 
-**Dotfiles are skipped entirely.** A `.gitkeep` holding an otherwise-empty espalier root, a `.DS_Store` a file browser left behind — neither is a rule module, and failing the whole run over one is a bad trade. A dotfile that was meant to be a rule module is a mistake you find immediately, because nothing it declares takes effect.
+**Dot-prefixed paths are ordinary paths.** `.env.mjs` declares `.env`, and
+`.github/workflows/[workflow].yml.mjs` declares workflow files. The same rules
+apply to matching, constraints, creation, documentation, and adoption.
 
-Skipping applies to directories too, and that has a consequence worth stating plainly: **a visible repository path with a dot-prefixed segment cannot be declared.** Governing `.cursor/rules/backwards-compat.mdc` would need a module at `espalier/.cursor/rules/backwards-compat.mdc.mjs`, which the compiler never reads. Such a path belongs in `.espalierignore`; paths already hidden by `.gitignore` never reach matching at all. `adopt` refuses a dot-prefixed target rather than writing a module that would never load. `.claude/` and `.codex/` are skipped the same way, and do not need a config entry.
+**`skip` excludes rule-tree entries.** Patterns are relative to the espalier
+root. Matching directories are pruned before reading their contents, including
+any `.mjs` or `ESPALIER.MD` inside. In directories that are inspected, matching
+non-grammar files are skipped; individually skipping a `.mjs` module or
+`ESPALIER.MD` is `skip_hides_grammar`. Exclude a tooling directory as a whole,
+for example `.claude/`, rather than hiding individual rule files. Bare names
+match at any depth. Dot-prefixed names have no implicit exclusion.
+The root `.cache/` directory is reserved for Espalier's own lint cache and is
+not compiled. See [CONFIG.MD](CONFIG.MD#skip).
 
-**`skip` is the other exception.** The required `skip` list in the config names gitignore-syntax patterns relative to the espalier root. A matching file is not compiled: not a rule module, not an `ESPALIER.MD`, not `invalid_espalier_entry`. That is how an `AGENTS.MD` or `CLAUDE.md` can sit next to the rules an agent is editing, so the agent loads it by convention. A bare name matches at any depth, so one `AGENTS.MD` entry covers every directory in the tree. See [CONFIG.MD](CONFIG.MD#skip).
-
-A pattern that would hide a `.mjs` module or an `ESPALIER.MD` is `skip_hides_grammar`. Those two names are the grammar; skip cannot punch a hole in them.
 
 ## Classification
 
@@ -487,8 +494,8 @@ There is no syntax for "at least one." If a file is mandatory, declare it static
 
 Five kinds of path are invisible unconditionally, because espalier reporting on its own machinery is a bug rather than a finding: `espalier.config.yaml`, discovered `.espalierignore` files, external ignore files Espalier reads, the espalier source root, and files `espalier build` generated.
 
-Git metadata (`.git` files, directories, and symlinks) and nested linked
-worktrees are also excluded automatically — see
+Nested linked worktrees are excluded automatically. Git metadata follows
+explicit ignore policy, with `.git` in the shipped defaults — see
 [CONFIG.MD](CONFIG.MD#what-is-ignored-without-being-configured).
 
 External ignore files first define which paths exist to Espalier. Everything remaining is governed unless `.espalierignore` assigns it a documented purpose outside the project layout — see [CONFIG.MD](CONFIG.MD#espalierignore).

@@ -10,8 +10,8 @@ writes the rules.
 
 You change the architecture by adding or editing rules here. A nested
 `AGENTS.MD` beside a group of rules is a local note for those rules, not
-another copy of this page. `.claude/` and `.codex/` are skipped because they
-are dotfiles; they are not part of the map.
+another copy of this page. Exclude tooling directories such as `.claude/` and `.codex/` explicitly
+with `skip` when they live beside the rules.
 
 ## Three kinds of rule
 
@@ -201,8 +201,9 @@ which paths either selector can reach. `aggregate = true` changes only whether
 
 Files such as `AGENTS.MD` can live beside the rules when the config’s
 `skip` list excludes them from compilation. `espalier init` sets this up
-for common agent instruction files. Dot-prefixed files and directories are
-skipped automatically.
+for common agent instruction files, `.git`, and `.gitkeep`. Dot-prefixed names
+are ordinary paths. Exclude tooling directories explicitly with `skip`; an
+excluded directory may contain modules and `ESPALIER.MD` without compiling them.
 
 `espalier help matching` is the rest of this grammar.
 

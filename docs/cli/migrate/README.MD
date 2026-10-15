@@ -25,9 +25,10 @@ espalier migrate [--dry-run]
 
 ## What it rewrites
 
-Ordinary pin updates edit the file as text. Removing `build.inline` uses a YAML
-document editor so block and flow mappings are both supported; comments and key
-order are retained, though YAML formatting may be normalized.
+Ordinary pin updates edit the file as text. Removing `build.inline` or extending
+an existing `skip` list uses a YAML document editor so block and flow forms are
+both supported; comments and key order are retained, though YAML formatting
+may be normalized.
 
 **`pin`.** Set to the running package version. A pin that is already that version is left as a rewrite of the same line only when something else in the file still needs changing.
 
@@ -45,7 +46,19 @@ without changing either file. Run `build` afterwards to update generated output.
 
 **`ignoreFiles`.** Inserted as `[]` when the key is absent. That is what omit used to mean: do not read a sitting `.gitignore`. The list is not filled with `.gitignore` — a repository that was not reading one must not start reading one because it upgraded. A key that is already present, empty list included, is left alone.
 
-**`skip`.** Inserted as `AGENTS.MD`, `AGENTS.md`, and `CLAUDE.md` when the key is absent. Those are the instruction files `init` writes, and the reason skip exists. A key that is already present, `[]` included, is left alone: `[]` is an explicit decline.
+**`skip`.** When absent, inserted with the defaults from `init`: `AGENTS.MD`,
+`AGENTS.md`, `CLAUDE.md`, `.git`, and `.gitkeep`. Upgrading from before 0.7.0
+also appends `.git` and `.gitkeep` to existing lists, including `[]`, unless
+already excluded. This preserves their formerly implicit exclusion. Current
+configs retain their explicit choices.
+
+**Dot-prefixed paths (0.7.0).** For upgrades from older versions, `.git` is added
+to `.espalierignore` unless already excluded, preserving metadata exclusion for
+both files and directories. Other previously hidden rule-tree entries are
+reported for review without importing modules or adding blanket dot exclusions.
+Keep them as rules or exclude tooling directories explicitly with `skip`.
+`--dry-run` reports the same changes and review warnings without writing files.
+Nested discovery uses the planned exclusions even during a dry run.
 
 **Root `espalier/AGENTS.MD`.** When `skip` would skip `AGENTS.MD` — the shipped list, or a list that already names it — and the espalier root exists, `migrate` writes the compact authoring contract there if the file is absent or still starts with the shipped sentinel. A customized copy (sentinel removed) is left alone. Nested `AGENTS.MD` files are the project's; migrate never creates or overwrites those. `skip: []` is an explicit decline, and no authoring file is written. See [AUTHORING.MD](../../AUTHORING.MD).
 
@@ -63,7 +76,7 @@ A config that is already current is reported `skipped` and not written. The auth
 filenames or selectors are interpreted, and the config alone cannot reveal the
 author's intended match set. Review the rules against [MATCHING.MD](../../MATCHING.MD)
 and [TYPES.MD](../../TYPES.MD) before relying on the new pin. `--dry-run`
-reports configuration, frontmatter, and authoring-file writes; it does not
+reports configuration, exclusion-list, frontmatter, and authoring-file writes; it does not
 validate rule behavior.
 
 Unknown keys other than `version` and `build.inline` still fail. Migration only
