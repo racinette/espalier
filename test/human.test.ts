@@ -40,7 +40,7 @@ function scratch(body: (root: string) => void): void {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-human-"));
   try {
     mkdirSync(path.join(root, "espalier"));
-    writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     body(root);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -54,7 +54,7 @@ export async function lint() {}
 
 test("an operational failure prints one line and no summary", () => {
   scratch((root) => {
-    writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\nnope: 1\n");
+    writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\nnope: 1\n");
 
     const shown = run(root, ["lint"]);
     // "An operational failure here means the run produced nothing to
@@ -152,7 +152,7 @@ test("build completion uses --out and is suppressed by drift or child failure", 
     assert.doesNotMatch(drifted.stdout, /up to date/);
     assert.equal(run(root, ["build"]).status, 0);
 
-    write(root, "child/espalier.config.yaml", "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "child/espalier.config.yaml", "pin: 0.6.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     write(root, "child/espalier/invalid.txt", "not a rule\n");
     for (const args of [["build"], ["build", "--check"]]) {
       const failed = run(root, args);
