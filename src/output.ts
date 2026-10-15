@@ -90,6 +90,7 @@ export interface Reporter {
   explanation(answer: Explanation): void;
   help(text: string): void;
   record(entry: BuildEntry): void;
+  buildComplete(files: number): void;
   finish(): void;
 }
 
@@ -164,6 +165,9 @@ class JsonlReporter implements Reporter {
     this.destination.write(`${JSON.stringify({ espalier: null, ...entry })}\n`);
   }
 
+  // JSONL remains a stream of filesystem events; completion is the exit code.
+  buildComplete(_files: number): void {}
+
   finish(): void {
     this.destination.close();
   }
@@ -173,6 +177,7 @@ class HumanReporter implements Reporter {
   private readonly issues: Issue[] = [];
   private readonly warnings: string[] = [];
   private readonly records: BuildEntry[] = [];
+  private completedFiles: number | null = null;
   private failed = false;
   /**
    * A failure of the run this reporter belongs to, as opposed to one inside a
@@ -221,10 +226,18 @@ class HumanReporter implements Reporter {
     this.records.push(entry);
   }
 
+  buildComplete(files: number): void {
+    this.completedFiles = files;
+  }
+
   private summarizeBuild(): void {
-    // A build that had no work to do should not look like a build that did
-    // some, so an empty run prints nothing at all.
-    if (this.records.length === 0) return;
+    if (this.records.length === 0) {
+      if (!this.failed && this.completedFiles !== null) {
+        const files = this.completedFiles;
+        this.destination.write(`Generated guidance is up to date (${files} ${files === 1 ? "file" : "files"}).\n`);
+      }
+      return;
+    }
 
     const counts = new Map<string, number>();
     for (const entry of [...this.records].sort((a, b) => (a.path < b.path ? -1 : 1))) {

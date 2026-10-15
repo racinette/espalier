@@ -22,7 +22,7 @@ See [CONFIG.MD](CONFIG.MD).
 
 | Code | |
 |---|---|
-| `config_not_found` | no `espalier.config.yaml` here or in any parent |
+| `config_not_found` | no `espalier.config.yaml` found before the filesystem or linked-worktree boundary |
 | `config_malformed` | not valid YAML, or not a mapping |
 | `config_unknown_key` | a key `espalier` does not recognize — usually a typo. A leftover `version` key is this: `pin` is the only version, and `espalier migrate` removes it |
 | `config_missing_pin` | `pin` is required so the repository cannot silently change tool versions |

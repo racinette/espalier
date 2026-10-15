@@ -62,9 +62,7 @@ writes. Rename it to the project's name, or remove it to omit the heading.
 And a `.espalierignore` beside it:
 
 ```
-# Version control metadata. `.gitignore` never lists `.git/` — git has no need
-# to ignore itself — so this is the one exclusion no other file supplies.
-.git/
+# Other version control metadata. Git metadata is excluded automatically.
 .hg/
 .svn/
 
@@ -97,7 +95,8 @@ Plus `espalier/`, holding a `.gitkeep` and the compact authoring contract at `AG
 
 Verbatim includes the comments, and that now costs something to get wrong. `espalier build` writes each comment into the documentation for the directory the entry sits in — see [cli/build/README.MD](../build/README.MD#other-repository-paths) — so a shipped list is also the wording an agent reads beside materialized paths outside the project layout. The comments in `ignores/` are written to be read twice: once by the person editing the file, once by whoever the documents are for.
 
-The VCS entries are the reason it is written unconditionally. `.gitignore` does not list `.git/` — git has no need to ignore itself — so it is the one exclusion no external file supplies. Delete that line and `espalier` walks several tens of thousands of objects and reports every one of them, which is a mistake you will notice within a second.
+Git metadata is excluded automatically, independently of this list. The common
+list supplies editable purposes for other repository metadata and tooling.
 
 The `.gitkeep` is there because git does not track empty directories. Without it the espalier root vanishes on the first commit and the next person to clone gets `espalier_root_missing` before they have written a line. Dotfiles in the espalier are skipped rather than read, so it costs nothing — see [MATCHING.MD](../../MATCHING.MD#node-kinds).
 
@@ -151,7 +150,8 @@ skip:
 
 Use it when the common list is wrong for this repository — a project that genuinely governs its CI definitions, or one whose visible non-architectural paths need a different documented policy.
 
-**The consequence to know before reaching for it.** `.git/` is in that block, and no `.gitignore` names it, so a config without either walks several tens of thousands of objects and reports every one of them. That is loud and immediate rather than subtle, and one `ignore` line fixes it — but it is yours to write.
+Git metadata remains excluded with this flag. Other tooling and metadata need
+explicit exclusions when the repository does not declare them.
 
 There is no matching config key. Nothing here is applied at run time: the block is copied into `.espalierignore` and then belongs to you, so the way to remove an entry after the fact is to delete the line. This flag exists for the case where you did not want it written in the first place.
 

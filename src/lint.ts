@@ -188,6 +188,8 @@ async function lintOne(
   }
 
   for (const required of requiredFiles(espalier, repository.visibleSet)) {
+    const excluded = repository.ungoverned(required.path);
+    if (excluded === "worktree" || excluded === "git") continue;
     if (!inScope(required.path)) continue;
     if (repository.visibleSet.has(required.path)) continue;
     if (ignores(repository.ignoreRules, required.path)) {

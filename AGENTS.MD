@@ -34,7 +34,6 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `.git/` | Version control metadata. `.gitignore` never lists `.git/` — git has no need to ignore itself — so this is the one exclusion no other file supplies. |
 | `.gitignore` | Repository metadata. Tracked on purpose, and dictated by the tool that reads them rather than by this project's architecture. |
 | `.github/` | Continuous integration. |
 | `LICENSE` | Licence and legal. |

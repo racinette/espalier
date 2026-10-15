@@ -12,7 +12,7 @@ import {
 } from "./compile.js";
 import { IGNORE_FILENAME, loadConfig, type Config } from "./config.js";
 import { fail } from "./errors.js";
-import { collectCandidates, isGenerated } from "./files.js";
+import { collectCandidates, isGenerated, isGitMetadata } from "./files.js";
 import { compileIgnore, excludedBy, ignores, type IgnoreRule } from "./ignore.js";
 import {
   isOwnership,
@@ -40,10 +40,8 @@ export interface Repository {
   children: string[];
   resolve(filePath: string): Ownership | Recognition;
   /**
-   * What excludes this path, or null when espalier governs it: `"ignore"`, the
-   * repo-relative path of the `ignoreFiles` entry whose pattern won, `"child"`,
-   * or `"espalier"` for the three things invisible unconditionally, which are
-   * grouped together because a user cannot un-ignore any of them.
+   * What excludes this path, or null when espalier governs it: an ignore-file
+   * origin, `"child"`, `"git"`, `"worktree"`, or `"espalier"` for tool machinery.
    */
   ungoverned(filePath: string, asDirectory?: boolean): string | null;
 }
@@ -168,6 +166,7 @@ export async function openConfig(config: Config): Promise<Repository> {
   const configRelative = path.relative(config.root, config.configPath).split(path.sep).join("/");
 
   const observedIgnoreRules = new Set<IgnoreRule>();
+  const worktrees = new Set<string>();
   const candidates = collectCandidates(
     config.root,
     ignoreRules,
@@ -185,6 +184,7 @@ export async function openConfig(config: Config): Promise<Repository> {
       const origin = `${at}/.gitignore`;
       return [compileVisibility(readNestedIgnoreFile(config.root, origin), origin, at)];
     },
+    worktrees,
   );
   const children = findChildren(candidates, configRelative, ignoreRules);
   const childPrefixes = children.map((child) => `${child}/`);
@@ -200,9 +200,12 @@ export async function openConfig(config: Config): Promise<Repository> {
   };
 
   const ungoverned = (candidate: string, asDirectory = false): string | null => {
+    if (isGitMetadata(candidate)) return "git";
+    for (const at of worktrees) {
+      if (candidate === at || candidate.startsWith(`${at}/`)) return "worktree";
+    }
     // Invisible unconditionally: espalier reporting on its own machinery is a
-    // bug rather than a finding. The VCS directory is not among these — it is
-    // an `ignore` entry like any other, which is how a user can see it.
+    // bug rather than a finding.
     if (candidate === configRelative) return "espalier";
     // Configuration, like the file above it — and dot-prefixed, so no rule
     // could declare it even if a project wanted to. A file that cannot be
@@ -244,6 +247,7 @@ export async function openConfig(config: Config): Promise<Repository> {
   // Ignoring is not declaring. A path both required and ignored is a
   // configuration that asks for both and gets neither.
   for (const required of unconditionallyRequired(espalier)) {
+    if (ungoverned(required) === "worktree" || isGitMetadata(required)) continue;
     if (hiddenBy(visibilityRules, required) !== null || ignores(ignoreRules, required)) {
       fail(
         "ignored_required_path",

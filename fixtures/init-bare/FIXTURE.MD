@@ -4,11 +4,9 @@
 repository's own source is generated, so it stays in scope and the first `lint`
 reports all of it.
 
-The config is not empty, though. Every `init` writes the common list — VCS
-directories, repository metadata, CI, licences, editor droppings — because
-`.gitignore` never names `.git/` and a walk that descends into it is a walk
-through several tens of thousands of objects. Those entries are in the config
-rather than inside the tool, so they can be read and deleted like any other.
+Every `init` writes the common list of editable repository purposes: other VCS
+metadata, CI, licences, and editor droppings. Git metadata is excluded by the
+tool independently of that list.
 
 That is deliberate. You have just run `init` on a repository that declares
 nothing; you are not wiring that into CI before describing anything, so the

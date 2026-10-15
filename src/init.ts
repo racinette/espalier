@@ -17,7 +17,7 @@ import {
   skipCoversAuthoring,
 } from "./config.js";
 import { fail } from "./errors.js";
-import { probe } from "./files.js";
+import { isLinkedWorktree, probe } from "./files.js";
 import { compileIgnore, ignores } from "./ignore.js";
 import type { Reporter } from "./output.js";
 import { VERSION } from "./version.js";
@@ -99,6 +99,7 @@ function topLevelIgnores(root: string, espalierRoot: string, written: string[]):
   const files: string[] = [];
 
   for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (entry.name === ".git") continue;
     if (entry.name === espalierRoot) continue;
     if (entry.name === CONFIG_FILENAME) continue;
 
@@ -108,6 +109,7 @@ function topLevelIgnores(root: string, espalierRoot: string, written: string[]):
     const kind = probe(entry, path.join(root, entry.name));
 
     if (kind === "directory") {
+      if (isLinkedWorktree(path.join(root, entry.name))) continue;
       // A directory is covered only if the list excludes the directory itself;
       // `package.json` says nothing about `src/`.
       if (ignores(covered, entry.name, true)) continue;
@@ -230,9 +232,7 @@ export function init(options: InitOptions, reporter: Reporter): number {
     }
   }
 
-  // `_common` unless declined: `.gitignore` never lists `.git/`, so the walk
-  // would otherwise descend into it, and nothing else supplies that entry.
-  // Declining it is a decision the flag exists to make, not an accident.
+  // Common repository purposes are authored defaults, unless declined.
   const wanted = options.noCommonIgnore ? options.languages : [COMMON, ...options.languages];
   const shipped = wanted.flatMap((name) => readList(name));
   // What the config will already exclude once written: the shipped lists, plus

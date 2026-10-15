@@ -57,6 +57,7 @@ export function delegated(reporter: Reporter, at: string): Reporter {
     // The command owns the destination and closes it once, when everything
     // that had something to say has said it.
     finish(): void {},
+    buildComplete(files): void { reporter.buildComplete(files); },
   };
 }
 

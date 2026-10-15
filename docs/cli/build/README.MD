@@ -82,7 +82,7 @@ The root file additionally carries the project preamble.
 2. Assign every rule to the longest static prefix of its directory path.
 3. Drop placement points with no assigned rules and no `ESPALIER.MD` — an intermediate directory whose content all lives deeper produces no file, and the map above it stays expanded through that directory. The root is never dropped: it is the one file every tool reads, and it alone carries the Espalier introduction and development loop.
 4. Render each surviving point.
-5. Write with a provenance header, in deterministic order. A file whose rendered bytes match what is already on disk is left alone rather than rewritten, so a second run touches nothing and reports nothing.
+5. Write with a provenance header, in deterministic order. A file whose rendered bytes match what is already on disk is left alone rather than rewritten. An unchanged human-format run confirms completion without reporting writes.
 
 Sibling declarations appear with directories before files, then static names,
 resolved names, and dynamic patterns within each kind. Within dynamic siblings,
@@ -649,7 +649,13 @@ Four kinds of line, tagged as such under `--format jsonl`:
 {"kind":"failure","code":"unmarked_documentation","message":"components/AGENTS.MD exists without a provenance marker"}
 ```
 
-The `human` format prints one short line per file and a count, and prints nothing at all for a run that wrote nothing and deleted nothing — a build that had no work to do should not look like a build that did some.
+The `human` format prints one short line per changed file and a count. A
+successful build that writes and deletes nothing, or a passing `--check`, prints
+`Generated guidance is up to date (N files).` The count covers planned generated
+documents across the root and all included child espaliers. One document uses
+`1 file`. Completion is visible even when no files change; a failed or drifting
+check never prints this success line. JSONL remains the event stream described
+above, with no completion record; a successful unchanged run exits zero.
 
 ## `--check`
 

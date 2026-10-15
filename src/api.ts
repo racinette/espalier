@@ -75,6 +75,7 @@ function collector(into: Issue[], failures: OperationalError[]): Reporter {
     explanation: () => {},
     help: () => {},
     record: () => {},
+    buildComplete: () => {},
     finish: () => {},
   };
 }

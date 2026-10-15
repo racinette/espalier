@@ -56,7 +56,11 @@ The pin does not dictate how the CLI is installed. A global installation, a loca
 
 ## Discovery
 
-`espalier` walks upward from the working directory until it finds `espalier.config.yaml`. **The directory containing that file is the repository root**, and every path in the config, every path in an issue, and every path in the espalier tree is relative to it.
+`espalier` walks upward from the working directory until it finds
+`espalier.config.yaml`, stopping at the filesystem root or a linked-worktree
+root. **The directory containing that file is the repository root**, and every
+path in the config, every path in an issue, and every path in the espalier tree
+is relative to it.
 
 For commands that accept it, `--config <path>` overrides discovery. The root
 becomes that file's directory, regardless of where the command was invoked.
@@ -84,6 +88,27 @@ Those two halves are one feature. A subtree that left the outer espalier and wer
 The alternative was to let the outer espalier's rules reach in, which sounds like sharing and is not. A file's answer would then depend on which espalier you happened to run — the root's constraints in CI, the package's on a developer's machine — and a rule that means different things depending on where you stood is not a rule. Rules are shared the way code is shared: a rule module is an ES module, so several espaliers can `import` the same constraint and each declares that it applies.
 
 The trade is explicit. The root can require nothing of a child, because it cannot see one. If every package must have a `README.MD`, each package's espalier says so.
+
+### Linked worktrees
+
+A linked Git worktree is an independent checkout, even when it sits inside
+another repository, such as `.claude/worktrees/task/`. The enclosing Espalier
+excludes its entire subtree before loading its ignore files or discovering
+child espaliers. It does not lint, build, migrate, or sweep generated files
+inside that checkout. Creating a worktree in an otherwise visible directory
+does not add a child handoff or worktree-specific purpose rows to parent guidance.
+Authored declarations remain in the architecture description, but they do not
+require files or place generated documents inside the excluded checkout.
+
+Run Espalier inside the worktree to govern it normally. Configuration discovery
+and the generated governance-boundary explanation do not cross the worktree
+root. Nested Espalier projects inside the worktree still govern their own
+subtrees normally. An explicit `--config` still selects the requested config.
+
+Detection reads Git's gitfile and linked-worktree administrative metadata; it
+does not require a Git executable. A `.git` file alone is insufficient:
+submodules and checkouts with a separate Git directory remain eligible child
+espaliers. See [Git repository layout](https://git-scm.com/docs/gitrepository-layout).
 
 ### Suppressing discovery
 
@@ -243,19 +268,26 @@ External ignore files are on that list for the same reason the config is: they a
 
 These cannot be un-ignored. Generated documentation is identified by its provenance header, not by path, because `build` distributes files through the tree rather than confining them to one directory.
 
-The VCS directory is **not** on this list. `.git/` is excluded by an entry `espalier init` writes into `.espalierignore` like any other, alongside the rest of the common block — CI definitions, licence files, editor droppings, and the repository metadata that is committed on purpose. All of it is visible, appealable, and deletable by anyone who has a reason. Nothing in `espalier` decides on your behalf which paths exist.
+Git metadata is also excluded automatically: every path component named `.git`,
+whether a directory, file, or symlink, and everything beneath it. Ignore entries
+and negations cannot change this exclusion. Git metadata is never a structural
+input and contributes no purpose row to generated guidance. Linked worktrees
+are excluded from enclosing runs as described above. Tracked Git configuration
+such as `.gitignore` and `.gitmodules` follows the ordinary rules.
 
 ### What counts as a file
 
 `espalier` walks the filesystem from the repository root. External ignore files first remove paths from that walk; `.espalierignore` then excludes visible paths from governance. Both layers prune matching directories before reading their contents.
 
-The consequence to keep in mind is that **configuring neither layer means a total walk.** A configuration that names no external ignore file and has no `.espalierignore` will enumerate `.git/`, `node_modules/` and every build directory, and report each file in them as `unexpected_path`.
+Without either ignore layer, the walk still excludes Git metadata and linked
+worktrees. It enumerates `node_modules/` and build directories, and reports
+undeclared files in them as `unexpected_path`.
 
 Untracked files are candidates unless an external ignore file hides them. The file an agent created ten seconds ago is linted because it is there; Git's index has no bearing on the answer.
 
 Every candidate is a file to be read, and reading means UTF-8. There is no binary detection and no extension list: a PNG handed to a rule arrives as the characters UTF-8 decoding produces, replacement characters and all. Rules match on paths, so a rule only sees what its own pattern claimed — and a directory of binaries is a directory to exclude, which is the same answer as for anything else nothing declares.
 
-Nothing consults Git. The command applies configured files directly with one
+Nothing invokes Git. The command applies configured files directly with one
 filesystem walk, so linting and generated documentation receive the same input
 whether or not Git is installed. Global excludes are intentionally absent: a
 machine-local path that must not affect checked-in output belongs in the

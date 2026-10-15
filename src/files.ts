@@ -1,11 +1,39 @@
 // What counts as a file. docs/CONFIG.MD "What counts as a file".
 
-import { readdirSync, readFileSync, statSync, type Dirent } from "node:fs";
+import { readdirSync, readFileSync, realpathSync, statSync, type Dirent } from "node:fs";
 import path from "node:path";
 import { Minimatch } from "minimatch";
 import { fail } from "./errors.js";
 import { excludedBy, type IgnoreRule } from "./ignore.js";
 import { hiddenBy, type VisibilityRules } from "./visibility.js";
+
+/**
+ * Linked worktrees have a gitfile pointing at an administrative directory with
+ * a commondir and a gitdir backlink. Submodules and --separate-git-dir checkouts
+ * also have gitfiles, but do not have this pair. No Git executable is needed.
+ * docs/CONFIG.MD "Linked worktrees".
+ */
+export function isLinkedWorktree(directory: string): boolean {
+  try {
+    const marker = readFileSync(path.join(directory, ".git"), "utf8");
+    const target = /^gitdir: (.+)\r?\n?$/.exec(marker)?.[1]?.trim();
+    if (!target) return false;
+    // Resolve a relative pointer from the physical checkout, including when
+    // the scanner reached it through a directory symlink.
+    const administrative = path.resolve(realpathSync(directory), target);
+    const common = readFileSync(path.join(administrative, "commondir"), "utf8").trim();
+    const backlink = readFileSync(path.join(administrative, "gitdir"), "utf8").trim();
+    return common !== "" && backlink !== "" && path.resolve(administrative, common) !== administrative;
+  } catch {
+    // An absent, unreadable or incomplete marker does not establish a boundary.
+    return false;
+  }
+}
+
+/** Git metadata is excluded at every depth, including gitfiles and symlinks. */
+export function isGitMetadata(relative: string): boolean {
+  return relative.split("/").includes(".git");
+}
 
 /**
  * The opening of the header `espalier build` writes into every file it
@@ -122,6 +150,7 @@ export function collectCandidates(
   observed?: Set<IgnoreRule>,
   visibility: VisibilityRules[] = [],
   loadVisibility?: VisibilityLoader,
+  worktrees?: Set<string>,
 ): string[] {
   const found: string[] = [];
   // The directories on the way down from the root, by `dev:ino`. A link is a
@@ -142,6 +171,7 @@ export function collectCandidates(
     if (prefix !== "" && loadIgnore !== undefined) rules.push(...loadIgnore(absolute, prefix));
 
     for (const entry of readEntries(absolute, prefix)) {
+      if (entry.name === ".git") continue;
       const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
       if (relative === skip) continue;
       const at = path.join(absolute, entry.name);
@@ -161,6 +191,10 @@ export function collectCandidates(
 
       if (resolved.kind === "directory") {
         if (hidden(relative, true)) continue;
+        if (isLinkedWorktree(at)) {
+          worktrees?.add(relative);
+          continue;
+        }
         if (ignored(relative, true)) continue;
         // Only an ancestor is refused, not every directory reached twice.
         // Two links to one directory are two paths, and both of them exist —

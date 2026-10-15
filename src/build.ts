@@ -103,17 +103,20 @@ export async function build(options: BuildOptions, reporter: Reporter): Promise<
   };
 
   const failed = await collect(repository, reporter);
+  const files = plans.reduce((count, entry) => count + entry.planned.size, 0);
 
   if (options.check) {
     // Nothing durable is produced either way, so a failure elsewhere is no
     // reason to withhold the drift this found.
     const drifted = plans.reduce((count, entry) => count + reportDrift(entry), 0);
+    if (failed !== 2 && drifted === 0) reporter.buildComplete(files);
     return failed === 2 ? 2 : drifted === 0 ? 0 : 1;
   }
 
   if (failed === 2) return 2;
 
   for (const entry of plans) apply(entry);
+  reporter.buildComplete(files);
   return 0;
 }
 
@@ -274,7 +277,10 @@ function planFor(
   const inline = settings.inline;
   const nested = hasAncestorConfig(root);
 
-  const points = plan(repository.espalier);
+  const points = plan(repository.espalier).filter((point) => {
+    const excluded = repository.ungoverned(point.at, true);
+    return excluded !== "worktree" && excluded !== "git";
+  });
 
   const assigned = assignChildren(points, repository.children);
   const outside = outsideAt(repository, points, settings.filename, inline);
@@ -403,7 +409,7 @@ function apply({ root, reporter, planned, existing, orphans }: Plan): void {
   for (const at of [...planned.keys()].sort()) {
     const wanted = planned.get(at)!.contents;
     // A file whose rendered bytes already match is left alone, so a second run
-    // touches nothing and reports nothing.
+    // touches nothing and only reports the completion summary.
     if (existing.get(at) === wanted) continue;
     const absolute = path.join(root, at);
     mkdirSync(path.dirname(absolute), { recursive: true });

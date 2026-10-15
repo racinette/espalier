@@ -13,7 +13,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -111,7 +111,7 @@ test("a scoped run says how much of the repository it checked", () => {
   });
 });
 
-test("a writing command prints a tally, and nothing when it wrote nothing", () => {
+test("a writing command prints a tally, and an unchanged build confirms completion", () => {
   scratch((root) => {
     rmSync(path.join(root, "espalier.config.yaml"));
     rmSync(path.join(root, "espalier"), { recursive: true });
@@ -126,13 +126,39 @@ test("a writing command prints a tally, and nothing when it wrote nothing", () =
     assert.match(written.stdout, /^written {3}espalier\/AGENTS\.MD$/m);
     assert.match(written.stdout, /\n4 written\n$/);
 
-    // "A build that had no work to do should not look like a build that did
-    // some, so an empty run prints nothing at all." The first build writes the
-    // root document; the second has nothing left to do.
+    // The first build writes the root document; the second confirms freshness.
     assert.match(run(root, ["build"]).stdout, /\n1 written\n$/);
     const again = run(root, ["build"]);
     assert.equal(again.status, 0);
-    assert.equal(again.stdout, "");
+    assert.equal(again.stdout, "Generated guidance is up to date (1 file).\n");
+  });
+});
+
+// These sequential runs check destination routing and failure suppression,
+// beyond the static successful-check fixture's output contract.
+test("build completion uses --out and is suppressed by drift or child failure", () => {
+  scratch((root) => {
+    write(root, "espalier/main.ts.mjs", RULE);
+    write(root, "main.ts", "export {};\n");
+    assert.equal(run(root, ["build"]).status, 0);
+    const checked = run(root, ["build", "--check", "--out", "result.log"]);
+    assert.equal(checked.status, 0);
+    assert.equal(checked.stdout, "");
+    assert.equal(readFileSync(path.join(root, "result.log"), "utf8"), "Generated guidance is up to date (1 file).\n");
+
+    write(root, "espalier/main.ts.mjs", RULE.replace("Every client", "Each client"));
+    const drifted = run(root, ["build", "--check"]);
+    assert.equal(drifted.status, 1);
+    assert.doesNotMatch(drifted.stdout, /up to date/);
+    assert.equal(run(root, ["build"]).status, 0);
+
+    write(root, "child/espalier.config.yaml", "pin: 0.5.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "child/espalier/invalid.txt", "not a rule\n");
+    for (const args of [["build"], ["build", "--check"]]) {
+      const failed = run(root, args);
+      assert.equal(failed.status, 2);
+      assert.doesNotMatch(failed.stdout, /up to date/);
+    }
   });
 });
 

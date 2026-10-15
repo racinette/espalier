@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { fail } from "./errors.js";
+import { isLinkedWorktree } from "./files.js";
 import { compileIgnore, excludedBy, ignores } from "./ignore.js";
 import { VERSION } from "./version.js";
 
@@ -77,10 +78,10 @@ export function locateConfig(explicit: string | undefined, cwd: string): string 
     const candidate = path.join(at, CONFIG_FILENAME);
     if (existsSync(candidate)) return candidate;
     const up = path.dirname(at);
-    if (up === at) {
+    if (up === at || isLinkedWorktree(at)) {
       fail(
         "config_not_found",
-        `no ${CONFIG_FILENAME} found in ${cwd} or any parent directory`,
+        `no ${CONFIG_FILENAME} found in ${cwd} or its enclosing project`,
       );
     }
     at = up;
@@ -105,12 +106,13 @@ export function readConfigFile(configPath: string): { text: string; values: Reco
 
 /** Whether the config rooted at `from` sits beneath another Espalier config. */
 export function hasAncestorConfig(from: string): boolean {
-  let at = path.dirname(path.resolve(from));
+  let at = path.resolve(from);
   for (;;) {
-    if (existsSync(path.join(at, CONFIG_FILENAME))) return true;
+    if (isLinkedWorktree(at)) return false;
     const up = path.dirname(at);
     if (up === at) return false;
     at = up;
+    if (existsSync(path.join(at, CONFIG_FILENAME))) return true;
   }
 }
 

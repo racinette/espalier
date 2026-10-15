@@ -1,6 +1,4 @@
-# Version control metadata. `.gitignore` never lists `.git/` — git has no need
-# to ignore itself — so this is the one exclusion no other file supplies.
-.git/
+# Other version control metadata. Git metadata is excluded automatically.
 .hg/
 .svn/
 

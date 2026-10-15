@@ -302,7 +302,7 @@ test("init --lang writes the shipped list, and refuses an unknown one", () => {
     assert.ok(config.includes("skip:"), "init wrote no skip decision");
     assert.ok(config.includes("AGENTS.MD"), "init did not write the shipped skip names");
     const excluded = readFileSync(path.join(root, ".espalierignore"), "utf8");
-    for (const entry of [".git/", "go.mod", "pyproject.toml"]) {
+    for (const entry of [".hg/", "go.mod", "pyproject.toml"]) {
       assert.ok(excluded.includes(entry), `init -l go -l python did not write "${entry}"`);
     }
     assert.ok(!excluded.includes("package.json"), "init wrote a list nobody asked for");
@@ -373,10 +373,11 @@ test("init records the ignore-file decision either way", () => {
       /^ignoreFiles:\n {2}- \.gitignore$/m,
     );
 
-    // The common block lands in both, in the file beside the config:
-    // `.gitignore` never names `.git/`.
+    // The common block supplies editable purposes; Git metadata is automatic.
     for (const at of [declined, named]) {
-      assert.ok(readFileSync(path.join(at, ".espalierignore"), "utf8").includes(".git/"));
+      const text = readFileSync(path.join(at, ".espalierignore"), "utf8");
+      assert.ok(text.includes(".hg/"));
+      assert.ok(!text.includes("\n.git/\n"));
     }
   } finally {
     rmSync(declined, { recursive: true, force: true });

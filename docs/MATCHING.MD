@@ -480,7 +480,9 @@ There is no syntax for "at least one." If a file is mandatory, declare it static
 
 Five kinds of path are invisible unconditionally, because espalier reporting on its own machinery is a bug rather than a finding: `espalier.config.yaml`, discovered `.espalierignore` files, external ignore files Espalier reads, the espalier source root, and files `espalier build` generated.
 
-The VCS directory is **not** among them. `.git/` is an `.espalierignore` entry that `espalier init` writes like any other, so it is visible, appealable and deletable — see [CONFIG.MD](CONFIG.MD#what-is-ignored-without-being-configured).
+Git metadata (`.git` files, directories, and symlinks) and nested linked
+worktrees are also excluded automatically — see
+[CONFIG.MD](CONFIG.MD#what-is-ignored-without-being-configured).
 
 External ignore files first define which paths exist to Espalier. Everything remaining is governed unless `.espalierignore` assigns it a documented purpose outside the project layout — see [CONFIG.MD](CONFIG.MD#espalierignore).
 

@@ -22,9 +22,8 @@ was the old answer, and it left the reader nowhere to go.
 
 The two `espalier` cases are grouped under one value on purpose. A user cannot
 un-ignore either, so distinguishing the config file from the espalier root
-would be offering a difference that changes nothing they can act on. The VCS
-directory is no longer among them: `.git/` is an `ignore` entry `init` writes,
-so it answers `ignore` like anything else a config says.
+would be offering a difference that changes nothing they can act on. Git
+metadata has its own automatic exclusion, reported as `git`.
 
 The ignore file is called `.gitignore.fixture` rather than `.gitignore`, because
 git would honour the real name and hide `vendor/` from the repository. What is

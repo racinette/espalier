@@ -13,10 +13,8 @@ just wrote. This says it before the writing.
 
 ## What it costs
 
-`.git/` is in that block and no `.gitignore` names it, so the config this
-fixture produces walks the version control directory. That is the trade the
-flag makes, and it is loud rather than subtle: several tens of thousands of
-paths, reported the first time `lint` runs, fixed by one `ignore` line.
+Git metadata remains excluded automatically. Other repository metadata and
+tooling need explicit exclusions when the project does not declare them.
 
 There is no matching config key, and there could not be a useful one. Nothing
 here is applied at run time — the block is copied into `ignore` and then

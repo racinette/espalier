@@ -176,15 +176,20 @@ package.json is not governed by espalier.
   Excluded by a pattern in .espalierignore.
 ```
 
-The three cases read:
+The exclusion cases read:
 
 ```text
   Excluded by a pattern in .espalierignore.
   Not visible to espalier because of a pattern from .gitignore.
   Invisible unconditionally: espalier does not report on its own machinery.
+  Git metadata is excluded automatically.
+  This path belongs to a linked Git worktree. Run Espalier inside that worktree.
 ```
 
-Every decision is still traceable to a file: `.espalierignore` records a governance exclusion, while an external ignore file records that the path was never part of Espalier's input. See [CONFIG.MD](../../CONFIG.MD#ignorefiles).
+Configured exclusions name their source: `.espalierignore` records a governance
+exclusion, while an external ignore file records that the path was never part
+of Espalier's input. Automatic exclusions identify Git metadata or a linked
+checkout instead. See [CONFIG.MD](../../CONFIG.MD#ignorefiles).
 
 ## Nested espaliers
 
@@ -244,7 +249,11 @@ Carries the owning rule, the normalized pattern that matched, the captures, and 
 
 ### A path espalier does not govern
 
-`ignoredBy` names what removed it from governance: `.espalierignore`, the external ignore file that hid it, or `espalier` for machinery that is invisible unconditionally. The field remains compact for compatibility; the human explanation distinguishes hidden input from an Espalier exclusion:
+`ignoredBy` names what removed it from governance: `.espalierignore`, the external
+ignore file that hid it, `espalier` for tool machinery, `git` for automatically
+excluded Git metadata, or `worktree` for a path in a nested linked worktree.
+The human explanation identifies automatic exclusions and directs worktree
+queries to run inside that checkout:
 
 ```json
 {"kind":"explanation","path":"package.json","ignoredBy":".espalierignore","rule":null,"pattern":null,"captures":{},"constraints":[]}
