@@ -373,6 +373,49 @@ test("directory help unions required file schemas under lossless path prefixes",
   }
 });
 
+test("directory help leads to optional file options without creating or rendering them", () => {
+  const rule = `import { createTemplate } from ${JSON.stringify(api)};
+import { writeFileSync } from 'node:fs';
+export const description = "optional notes";
+export const rule = \`Document the group.\`;
+export const optional = true;
+export function lint() {}
+export const template = createTemplate({
+  title: { type: "string", required: true, description: "Notes heading" },
+}, ({ title }) => {
+  writeFileSync(new URL('../../../rendered', import.meta.url), 'yes');
+  return title;
+});
+`;
+  scratch(rule, (root) => {
+    const directoryHelp = run(root, ["create", "groups/new", "help"]);
+    assert.equal(directoryHelp.status, 0, directoryHelp.stdout);
+    assert.match(directoryHelp.stdout, /No required file template has options\./);
+    assert.match(directoryHelp.stdout, /Optional files and collections are created separately\./);
+    const command = /^Inspect their declarations with: espalier (.+)$/m.exec(directoryHelp.stdout);
+    assert.ok(command, directoryHelp.stdout);
+    const declarations = run(root, command[1]!.split(" "));
+    assert.equal(declarations.status, 0, declarations.stdout);
+    assert.match(declarations.stdout, /notes\.md.*optional/);
+
+    const fileHelp = run(root, ["create", "groups/new/notes.md", "help"]);
+    assert.equal(fileHelp.status, 0, fileHelp.stdout);
+    assert.match(fileHelp.stdout, /--title <value>\s+Notes heading \(required\)/);
+    assert.equal(existsSync(path.join(root, "groups")), false);
+    assert.equal(existsSync(path.join(root, "rendered")), false);
+
+    const directory = run(root, ["create", "groups/new"]);
+    assert.equal(directory.status, 0, directory.stdout);
+    assert.equal(existsSync(path.join(root, "groups/new/notes.md")), false);
+    assert.equal(existsSync(path.join(root, "rendered")), false);
+
+    const file = run(root, ["create", "groups/new/notes.md", "--title", "New group"]);
+    assert.equal(file.status, 0, file.stdout);
+    assert.equal(readFileSync(path.join(root, "groups/new/notes.md"), "utf8"), "New group");
+    assert.equal(readFileSync(path.join(root, "rendered"), "utf8"), "yes");
+  }, "groups/[group]/notes.md.mjs");
+});
+
 test("create directory renders every required file with its own local arguments", () => {
   const root = directoryRepository();
   try {

@@ -208,7 +208,13 @@ function directoryHelp(
   } else {
     lines.push("", "No required file template has options.");
   }
-  lines.push("");
+  lines.push(
+    "",
+    "Optional files and collections are created separately.",
+    `Inspect their declarations with: espalier explain ${commandValue(`${target}/`)}`,
+    "Choose a concrete file path, then run: espalier create <file> help",
+    "",
+  );
   return lines.join("\n");
 }
 

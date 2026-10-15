@@ -33,10 +33,12 @@ Use this loop:
    in the nearest directory.
 2. Run `espalier explain <path>` when you need to understand how a path is
    governed.
-3. Inspect creation options with `espalier create <path> help`, then create the
-   declared file or complete required directory with `espalier create <path>`.
-   A required file without a custom template starts empty.
-4. Make the remaining change without working around the declared structure.
+3. Create a declared file or directory with `espalier create <path>`.
+   Use `espalier create <path> help` when you need to inspect template options
+   or the directory's required files. A file without a custom template starts
+   empty; directory creation includes only required files.
+4. Review the created source, complete any placeholders, and make the remaining
+   change within the declared structure.
 5. Run `espalier lint` and follow the rule text attached to each finding.
 6. Run `espalier build`, review and include any generated guidance changes,
    then run `espalier build --check` immediately before committing.

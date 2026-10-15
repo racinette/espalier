@@ -42,8 +42,11 @@ There are no framework flags in this position: `--help`, `--config`,
 Configuration is always discovered upward from the working directory, and
 creation reports in its one human format to standard output.
 
-`espalier help create` is this page. `espalier create <path> help` is what
-that creation will write.
+`espalier help create` is this page. `espalier create <path> help` describes
+the selected template's options and the files included in creation. It does
+not render a source preview. Use it when you need that information; a template
+with known options, or none, can be invoked directly. Missing required options
+are reported before any file is written, with a command to inspect their help.
 
 For example, a component template may produce:
 
@@ -125,6 +128,10 @@ Template options:
 
   requestModels.ts:
     --requestModels.ts:format <types|zod>  Model representation (default: types, examples: zod)
+
+Optional files and collections are created separately.
+Inspect their declarations with: espalier explain clients/stripe/
+Choose a concrete file path, then run: espalier create <file> help
 ```
 
 A nested file retains `/` in the flag, and the option after `:` retains the
@@ -138,6 +145,15 @@ Directory help groups these qualified options by required file. Its example
 invocation concatenates each template's examples in required-file order. A
 required option with no example remains a qualified metavar. Shell quoting is
 unchanged: quote a value containing spaces, not the option name.
+
+The options above belong only to required files. Directory help also points to
+`espalier explain <directory>/`, whose tree includes optional declarations and
+collections. Select a concrete file from that tree and use its own creation
+help to see its options. For example, an optional `README.md` under
+`clients/stripe/` has help at `espalier create clients/stripe/README.md help`;
+its flags are passed when creating that file separately, without the directory
+command's filename prefixes. “No required file template has options” says
+nothing about the templates on optional files.
 
 The target directory itself must be absent. `create` is not a repair command
 for adding missing required files to an existing instance. When one structural
@@ -168,6 +184,16 @@ is the empty string. Empty creation is useful because ownership often tells an
 agent where a file belongs even when the rule has no opinion about its initial
 contents. Export `template` only when a meaningful starting point or arguments
 exist.
+
+Review the created source and complete any placeholders the template author
+has marked. Templates provide a starting point; creation does not establish
+that the resulting code satisfies its rules or compiles with sibling files.
+Run the project's checks after completing the change.
+
+Guidance for a dynamic directory is shared at its longest static prefix. For
+example, `src/features/[feature]/` uses guidance in `src/features/`; creating
+another feature can leave `espalier build` with no document changes. Read the
+nearest ancestor guidance as described in [build](../build/README.MD#where-files-go).
 
 ## Writing
 

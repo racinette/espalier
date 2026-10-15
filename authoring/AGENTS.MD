@@ -236,6 +236,9 @@ create or change the governed files.
 - Per-file: name the kind of file and what each must or must not contain.
 - Aggregate: name the group and the conditions it must satisfy.
 
+Template literals are convenient for multiline rule prose and apostrophes.
+Escape embedded backticks and literal `${...}` sequences as JavaScript requires.
+
 A diagnostic can refer to a specific location with wording such as
 “This call …”.
 
@@ -253,11 +256,23 @@ be absent. A rule can name an existing example with
 `referenceImplementation`. See `espalier help types` for the full export
 reference.
 
+Write templates as meaningful starting points. Mark unfinished parts in the
+rendered source with TODO comments or an explicit placeholder appropriate to
+the file format, and say what the user needs to replace. Espalier writes the
+rendered string verbatim; the template supplies those markers. Test templates
+that depend on sibling files together, using the project's own checks.
+
 ## The decision stays in the rule file
 
 Keep the decisions about what is permitted, required, and reported in the
 rule file. Helpers can parse data, calculate facts, or perform checks using
 conditions supplied by the rule file.
+
+Keep each owner's prose in its rule file or `ESPALIER.MD`, even when several
+owners currently say the same thing. Each statement can evolve with its owner;
+identical wording alone is no reason to factor it out or require the copies
+to stay identical. Share checking code through helpers supplied with the
+owner's policy values.
 
 ```js
 export async function lint({ read, emit }) {
