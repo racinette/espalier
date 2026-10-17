@@ -66,10 +66,19 @@ needed; every helper does not need its own node. Add checks for enforceable
 invariants and templates where they help create the files correctly.
 
 A feature task can require architecture changes even when it does not mention
-rule files. Within the task's scope, update the corresponding `ESPALIER.MD`
-for guidance and the structural rule modules for structure, then run
-`espalier build`. If placement requires a design decision beyond that scope,
-propose the path and its responsibilities and ask before proceeding.
+rule files. Before changing the architecture, explain the gap in the current
+structure, present the reasonable placement options and their tradeoffs, and
+recommend an approach. Get agreement on that approach before changing
+structural rules or architectural guidance. A feature request authorizes
+implementing the feature; it does not by itself settle its architectural
+design. Raise a missing architectural role before placing the work in a
+catch-all.
+
+Once an approach is agreed, update the corresponding `ESPALIER.MD` for guidance
+and the structural rule modules for structure, then run `espalier build`.
+Implement the agreed design without repeatedly requesting approval. Reopen
+the discussion if implementation requires a materially different design.
+Ordinary code changes that follow the agreed architecture can proceed.
 
 Preserve existing architectural guarantees unless changing them is part of
 the task's agreed design. Loosening checks, widening patterns, or adding
