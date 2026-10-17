@@ -78,10 +78,15 @@ A feature task can require architecture changes even when it does not mention
 rule files. Before changing the architecture, explain the gap in the current
 structure, present the reasonable placement options and their tradeoffs, and
 recommend an approach. Get agreement on that approach before changing
-structural rules or architectural guidance. A feature request authorizes
+architectural policy in rules, guidance, or configuration. A feature request authorizes
 implementing the feature; it does not by itself settle its architectural
 design. Raise a missing architectural role before placing the work in a
 catch-all.
+
+Include changes to constraint selectors, exclusions, and requiredness in that
+discussion. Explain which files become permitted, required, checked, or
+excluded, and identify any guarantees the proposal removes. Moving a file
+outside a check's scope changes enforcement even if the check stays intact.
 
 Once an approach is agreed, update the corresponding `ESPALIER.MD` for guidance
 and the structural rule modules for structure, then run `espalier build`.

@@ -65,6 +65,8 @@ use a suitable general-purpose node.
 Known architectural roles prefer static nodes; dynamic patterns describe
 instances with a shared responsibility and contract, with fixed structure
 kept explicit.
+Architectural proposals also cover selectors, exclusions, requiredness, and
+the guarantees a change removes, including checks bypassed by moving files.
 
 Pins: cli/build/README.MD "Where files go", "Generation", "Rendering",
 "Ownership", and its worked example.

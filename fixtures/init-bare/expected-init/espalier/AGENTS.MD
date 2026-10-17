@@ -13,6 +13,30 @@ You change the architecture by adding or editing rules here. A nested
 another copy of this page. Exclude tooling directories such as `.claude/` and `.codex/` explicitly
 with `skip` when they live beside the rules.
 
+## Agree on the architecture
+
+Before changing architectural policy in rules, guidance, or configuration,
+explain the gap, present reasonable options and their tradeoffs, and recommend
+an approach. Get agreement before implementing it. A feature request does not
+by itself settle the architectural design. Include changes to constraint
+selectors, exclusions, and requiredness: explain which files become permitted,
+required, checked, or excluded, and which existing guarantees would be removed.
+A more specific node or a moved file can bypass checks without editing them.
+
+Choose placement by documented purpose. A catch-all structural location can
+hold general-purpose code that fits that purpose; passing lint alone does not
+establish architectural fit. Raise a missing role before placing work there.
+Prefer static nodes for known roles. Use dynamic patterns for instances with a
+shared responsibility and contract, keeping fixed parts of their structure
+explicit. Matching extensions or similar filenames alone do not establish a
+shared role. Review inferred structure from `adopt` on the same basis.
+
+Implement an agreed design without repeatedly requesting approval. Reopen the
+discussion if implementation requires a materially different design. Ordinary
+code changes that follow the agreed architecture can proceed. Preserve
+existing guarantees unless changing them is part of that agreement; do not
+weaken checks or exclude governed code merely to make the implementation pass.
+
 ## Three kinds of rule
 
 A structural rule is about one file: where it lives, and what it contains.
@@ -25,8 +49,8 @@ A structural rule is about one file: where it lives, and what it contains.
 - `clients/stripe/client.ts` exports `createStripeClient()`.
 - `models/User.ts` exports an interface named `User`.
 
-A per-file constraint is a catch-all. It does not name one path. It reaches
-every file of a kind, and each of those files passes or fails on its own:
+A per-file constraint checks selected files independently. It does not declare
+where files may live; each selected file passes or fails on its own:
 
 - Every `.ts` file contains no `as any`.
 - Every file outside `src/clients/` does not call `fetch`. A file under
@@ -333,9 +357,9 @@ An example's file-per-function layout or global state is not an Espalier rule.
 
 A cohesive module may export several related functions. Use a static
 responsibility name such as `features/[feature]/model.ts` for that module;
-use a dynamic collection such as `shared/[name].ts` where multiple modules
-really belong. The compiler-addon example shows both and tests their matching
-and creation behavior.
+use a dynamic collection such as `shared/[name].ts` where instances share a
+defined responsibility and contract. The compiler-addon example shows both
+and tests their matching and creation behavior.
 
 Keep reusable architecture guidance in the rules and `ESPALIER.MD`. Describe
 the bundled demonstration application's domain and behavior in its own

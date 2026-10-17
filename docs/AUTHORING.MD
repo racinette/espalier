@@ -12,10 +12,11 @@ skip `AGENTS.MD`. A customized file — sentinel removed — is left alone.
 
 The contract is the advice. This page is the route to it.
 
-It opens with what an espalier is, then the three kinds of rule: structural,
-per-file, and aggregate. How each kind is written in the tree comes after
-that. Four plain questions check that the sentence was filed under the right
-kind.
+It opens with what an espalier is and how to agree on architectural changes,
+including placement and enforcement boundaries. It then introduces the three
+kinds of rule: structural, per-file, and aggregate. How each kind is written in
+the tree comes after that. Four plain questions check that the sentence was
+filed under the right kind.
 The contract presents a filename extension and `targets` as alternative ways
 to select files for either kind of constraint. A filename extension is exact;
 `targets` uses glob matching. Selection does not pick whether the check runs

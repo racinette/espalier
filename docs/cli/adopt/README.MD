@@ -91,9 +91,13 @@ A directory holding an `espalier.config.yaml` of its own is a child espalier, an
 
 ## Inference
 
-Three signals, all conservative, and **two of a thing is a pattern**. That threshold comes from the failure being asymmetric rather than from confidence: two directories that happen to look alike cost you a placeholder to rename, while an espalier that declared them separately forbids the third one.
+Inference uses three structural signals. Two observed instances are enough to
+infer a repeating pattern. This threshold identifies candidates for review;
+it does not establish that the instances share an architectural role.
 
-**Sibling directories with matching contents** become a dynamic directory. `stripe/` and `twilio/` holding the same filenames is a strong signal that a provider is a repeating unit rather than two unrelated directories.
+**Sibling directories with matching contents** become a dynamic directory.
+`stripe/` and `twilio/` holding the same filenames suggest a repeating unit.
+The author decides whether they share a responsibility and contract.
 
 **Repeated filename shapes** become a dynamic leaf. Two or more files sharing a complete extension in one directory become `[tsx].tsx` rather than one node each. `.ts` and `.d.ts` are separate groups.
 
@@ -101,7 +105,12 @@ Three signals, all conservative, and **two of a thing is a pattern**. That thres
 
 **The first signal wins where they meet.** Inside a dynamic directory, the shared filenames are the evidence that made it a family — `stripe/` and `twilio/` are a repeating unit *because* both hold a `client.ts` and a `requestModels.ts`. Collapsing those into `[ts].ts` because they share an extension would discard the stronger finding and declare something nobody observed. So the intersection is declared exactly as it is, and the extension rule applies only to a directory that is not part of a family.
 
-When in doubt, `adopt` generalises. An over-general espalier is a working one that you tighten later; an over-specific espalier declares today's files and forbids tomorrow's, so every file anyone adds is a violation. Collapsing a dynamic leaf back into two exact nodes is a two-minute edit. Discovering that your espalier has frozen the repository is a bad afternoon.
+These heuristics can generalize files that have distinct responsibilities.
+The inferred tree describes observed shape, not an agreed design. Review each
+dynamic pattern: retain it for instances sharing a responsibility and contract,
+and use static nodes for distinct known roles. Keep fixed parts of repeated
+structures explicit. A successful adoption or clean lint run does not establish
+that the inferred grouping is appropriate.
 
 ### A file named after its directory
 
@@ -121,7 +130,9 @@ espalier/src/clients/[client]/stripe.ts.mjs    (optional)
 espalier/src/clients/[client]/twilio.ts.mjs    (optional)
 ```
 
-That espalier is wrong rather than loose. It says a client directory may hold any of those three files, so `mailgun/mailgun.ts` is `unexpected_path` on the day it is written — the over-specific failure this document warns about, reached by a route the optional rule was never meant to cover.
+That structure does not express the observed naming relationship. It permits
+those three filenames in any client directory but rejects `mailgun/mailgun.ts`.
+A back-reference preserves the relationship while allowing new instances.
 
 `{client}.ts` is the statement that is actually true, and the language already has it. `adopt` writes it when **every** instance holds a file named after itself:
 
@@ -132,7 +143,11 @@ written   espalier/src/clients/[client]/{client}.ts.mjs
 The repeated name includes any dots in the directory name:
 `foo.bar/foo.bar.ts` follows the same convention.
 
-Every instance, not two of three. The other thresholds are two because a placeholder costs a rename and being wrong costs a forbidden file; here being wrong costs `missing_required_file` on a directory that never had one, reported the moment the espalier is written. Two clients following a convention and a third not following it is not a convention, and the optional leaves are the right answer for it.
+Every observed instance must satisfy the naming relationship. A back-reference
+requires a corresponding file in each instance, so inferring it from only two
+of three directories would report `missing_required_file` for the third.
+When the relationship is not universal, inference retains optional literal
+leaves for review.
 
 ### Siblings that only partly match
 
@@ -158,7 +173,10 @@ The two alternatives were both false, which is why this needed a third statement
 
 Declaring the extras as a dynamic leaf was a third wrong answer, quieter than either — it silently legalises every future `.ts` file in every client directory, which is the over-general failure this document warns about everywhere else. `optional` names one file. That is the difference.
 
-An optional declaration is still a guess, and it is the one worth reviewing first: `adopt` has seen one client with a webhook and cannot know whether that makes webhooks a client-shaped thing or makes stripe unusual. The stub says so, and renaming or deleting it is the same two-minute edit as any other.
+An optional declaration also needs review: `adopt` has seen one client with a
+webhook and cannot know whether webhooks belong in every client's contract or
+whether that sibling needs a distinct role. Resolve that question before
+accepting the declaration.
 
 **A directory only some siblings have is declared where it stands, and everything inside it is optional too.** It never joins a family: the shape it would be claiming to share is one nobody observed twice, so it keeps its own name rather than becoming a placeholder. Optionality is inherited, because a file inside a directory that only sometimes exists only sometimes exists.
 
@@ -176,11 +194,11 @@ Leading dots are removed from a parent name before singularising it. Remaining
 characters that cannot appear in a capture name become underscores; a leading
 digit gains an underscore. Thus `.features/alpha/` suggests `[feature]`.
 
-The root is the one place with no parent to borrow from — paths are root-relative, so its name is the empty string. `[directory]` is the same kind of guess as `[client]`: mechanical, obviously a placeholder, and renaming it is step one of [After adopting](#after-adopting).
+The root is the one place with no parent to borrow from — paths are root-relative, so its name is the empty string. `[directory]` is the same kind of guess as `[client]`: mechanical, obviously a placeholder, and reviewing its role comes before renaming it in [After adopting](#after-adopting).
 
 Singularising is naive — it strips a trailing `s`, and nothing more. `[client]` for a `clients/` directory is right often enough to be worth doing and wrong in a way that is obvious on sight, which is the useful combination for a name you are being asked to replace.
 
-It will not produce `[provider]`. No input contains that word; only you know it. That is why renaming is step one of what comes next, and why generated documentation is not worth reading until you have done it.
+It will not produce `[provider]`. No input contains that word; only you know it. Review the inferred role first, then name the placeholder before generating guidance.
 
 Documentation ownership follows `fold` frontmatter as well as the inferred
 static spine. Beneath a folded directory, a file named like `build.filename`
@@ -195,11 +213,18 @@ The value is in the prose you add afterwards, and prose is written per area. The
 
 ## After adopting
 
-1. Rename placeholders to words that mean something.
-2. Write `description` for each module — briefly describe the governed file using the project's vocabulary.
-3. Write `rule` bodies. This is the part that makes the documentation worth generating.
-4. Add `lint` functions where a check is worth having. Structural enforcement already works without them.
-5. Run [`espalier build`](../build/README.MD), then [`espalier lint`](../lint/README.MD).
+1. Review the inferred structure. Discuss the placement options and agree on
+   the design before accepting or reshaping it. Check whether dynamic groups
+   share a role and contract, which parts should remain static, and whether
+   required and optional files express the intended guarantees.
+2. Rename retained placeholders to words that mean something.
+3. Write `description` for each module using the project's vocabulary, and
+   write `rule` bodies that state the agreed requirements.
+4. Implement checks in the generated `lint` functions where worthwhile. The
+   `lint` export is required; structural enforcement works even when its body
+   is empty. Test implemented checks against valid and violating examples.
+5. Run [`espalier build`](../build/README.MD), review the generated guidance,
+   then run [`espalier lint`](../lint/README.MD) and `espalier build --check`.
 
 ## Output
 

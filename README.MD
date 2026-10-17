@@ -404,22 +404,30 @@ espalier build --check
 
 ## Who changes the espalier
 
-An agent that hits `unexpected_path` has two ways to make the error go away. It can move the file, or it can edit the espalier until the path becomes legal.
+Architecture changes are design decisions to discuss. Before changing rules,
+architectural guidance, or configuration policy, the agent explains the gap,
+presents reasonable options and tradeoffs, and recommends an approach. The
+proposal identifies changes to placement, requiredness, checks, and exclusions,
+including guarantees it would remove. A path that passes lint can still be
+the wrong architectural home.
 
-It will try the second. It is the same instinct that deletes a failing test, and it is worse here, because nothing notices: the repository still lints clean while the espalier quietly comes to mean less every week.
+Once the design is agreed, the agent implements it without repeatedly asking
+for approval. Rules and governed code can change together to realize that
+design. A materially different design needs renewed discussion; ordinary code
+changes that follow the agreed architecture can proceed.
 
-So the espalier is not the agent's to change. The two roles are separate:
+Prefer static nodes for known roles and dynamic patterns for instances sharing
+a defined responsibility and contract. Review inferred structure from `adopt`
+before treating it as the intended architecture.
 
-- **The architect** — a human, or an agent explicitly acting in that role — decides what the project's shape is and edits `espalier/`.
-- **The developer** — usually an agent — builds within that shape. When a task does not fit the declared structure, the correct move is to stop and report the gap, not to widen the pattern.
+Edit the corresponding `ESPALIER.MD`, rule files, or configuration, then
+regenerate guidance. Review the generated documents, test affected rules, run
+`espalier lint`, and check freshness with `espalier build --check`. Generated
+documents are outputs, not edit targets.
 
-Generated guidance explains this workflow and directs readers to the source
-when guidance needs to change. Edit the corresponding `ESPALIER.MD` or rule
-files, then regenerate; do not edit generated documents directly.
-
-That is as far as the tool goes, and deliberately so. `espalier` cannot stop an agent editing `espalier/`, and a warning it emitted afterwards would be worse than nothing. The architect widening a pattern and an agent widening a pattern are the same edit; a check that fired on both would fire constantly on the intended workflow and be muted within a week. Telling them apart means reconstructing the previous espalier and diffing what each one legalises — a real mechanism, but one whose only output is a note in a log that nobody is obliged to read.
-
-**Enforcement belongs where the power to refuse is.** An agent harness that denies writes under `espalier/`. A `CODEOWNERS` entry requiring a human on that path. A CI job that fails when a pull request touches both `espalier/` and the files it governs. Those can say no. A linter reporting on its own configuration can only nag, and this project would rather ship a sharp instruction than a dull alarm.
+Espalier checks the current policy; it cannot establish that a policy change
+was agreed. Projects needing enforced review can require approval for rule and
+configuration changes through repository permissions and code review.
 
 ## Design philosophy
 
