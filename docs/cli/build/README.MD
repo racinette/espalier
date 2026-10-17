@@ -499,6 +499,13 @@ and guidance. Use an existing node that expresses that role, or add one when
 needed; every helper does not need its own node. Add checks for enforceable
 invariants and templates where they help create the files correctly.
 
+Prefer explicit static nodes for known architectural roles. Introduce a
+dynamic pattern when multiple instances share a defined responsibility and
+contract, rather than to accommodate hypothetical future variation or avoid
+naming distinct roles. Keep fixed parts of a repeated structure static. For
+example, `messages/languages/[language].ts` varies the language while keeping
+its architectural location explicit.
+
 A feature task can require architecture changes even when it does not mention
 rule files. Before changing the architecture, explain the gap in the current
 structure, present the reasonable placement options and their tradeoffs, and

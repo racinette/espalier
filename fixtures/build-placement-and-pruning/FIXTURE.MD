@@ -62,6 +62,9 @@ existing guarantees. It proceeds with an agreed design without repeated approval
 unless implementation requires a materially different design. A catch-all
 accepting a file is insufficient evidence of fit; ordinary helpers can still
 use a suitable general-purpose node.
+Known architectural roles prefer static nodes; dynamic patterns describe
+instances with a shared responsibility and contract, with fixed structure
+kept explicit.
 
 Pins: cli/build/README.MD "Where files go", "Generation", "Rendering",
 "Ownership", and its worked example.
