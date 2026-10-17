@@ -1,4 +1,4 @@
-pin: 0.7.0
+pin: 0.7.1
 name: compiler-addon
 root: espalier
 ignoreFiles:
