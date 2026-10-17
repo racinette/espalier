@@ -56,5 +56,10 @@ and remain complete, the alignment column
 paths relative to the placement point, the `Reference implementation:` line appearing only
 where a module exports one, and the two fixed texts.
 
+The root operational guidance chooses placement by documented purpose, allows
+architecture changes within a feature task's scope, and preserves existing
+guarantees. A catch-all accepting a file is insufficient evidence of fit;
+ordinary helpers can still use a suitable general-purpose node.
+
 Pins: cli/build/README.MD "Where files go", "Generation", "Rendering",
 "Ownership", and its worked example.

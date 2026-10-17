@@ -161,7 +161,9 @@ page.
 Use this loop:
 
 1. Find the intended path in **Project layout** and read the generated guidance
-   in the nearest directory.
+   in the nearest directory. Choose by documented purpose, not just by which
+   pattern accepts the path. If the work needs a role the layout does not
+   express, follow the architecture guidance below before placing it.
 2. Run `espalier explain <path>` when you need to understand how a path is
    governed.
 3. Create a declared file or directory with `espalier create <path>`.
@@ -169,15 +171,34 @@ Use this loop:
    or the directory's required files. A file without a custom template starts
    empty; directory creation includes only required files.
 4. Review the created source, complete any placeholders, and make the remaining
-   change within the declared structure.
+   change within the structure established for the task.
 5. Run `espalier lint` and follow the rule text attached to each finding.
 6. Run `espalier build`, review and include any generated guidance changes,
    then run `espalier build --check` immediately before committing.
 
-Generated guidance files are outputs, not edit targets. When a task explicitly
-changes the architecture, update the corresponding `ESPALIER.MD` for guidance
-or the structural rule modules for structure, then run `espalier build`.
-Otherwise, if the work has no valid place or conflicts with a rule, report the
-design gap instead of weakening the espalier. Use `espalier build --force` only
-to restore a generated file whose provenance marker was removed; it authorizes
-overwriting an unmarked document at a planned output path.
+Generated guidance files are outputs, not edit targets.
+
+A catch-all such as `modules/[module].ts` is appropriate for general-purpose
+code that fits its documented purpose. Passing lint alone does not establish
+that a concept belongs there. Repeated file structure, a shared contract, or a
+distinct dependency policy can indicate a role that needs explicit placement
+and guidance. Use an existing node that expresses that role, or add one when
+needed; every helper does not need its own node. Add checks for enforceable
+invariants and templates where they help create the files correctly.
+
+A feature task can require architecture changes even when it does not mention
+rule files. Within the task's scope, update the corresponding `ESPALIER.MD`
+for guidance and the structural rule modules for structure, then run
+`espalier build`. If placement requires a design decision beyond that scope,
+propose the path and its responsibilities and ask before proceeding.
+
+Preserve existing architectural guarantees unless changing them is part of
+the task's agreed design. Loosening checks, widening patterns, or adding
+exemptions merely to make the implementation pass weakens those guarantees.
+A new node can also bypass existing restrictions; check which rules will
+apply. When the work conflicts with the intended architecture, report the
+design gap instead of hiding it in a catch-all or relaxing the rules.
+
+Use `espalier build --force` only to restore a generated file whose provenance
+marker was removed; it authorizes overwriting an unmarked document at a
+planned output path.
