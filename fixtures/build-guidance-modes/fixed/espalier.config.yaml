@@ -1,0 +1,6 @@
+pin: 0.7.1
+root: espalier
+ignoreFiles: []
+skip: []
+build:
+  guidanceMode: fixed

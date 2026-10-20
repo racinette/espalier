@@ -408,7 +408,14 @@ espalier build --check
 
 ## Who changes the espalier
 
-Architecture changes are design decisions to discuss. Before changing rules,
+`build.guidanceMode` selects the agent's architectural initiative. The default,
+`evolving`, invites proposals for agreement. `fixed` directs ordinary feature
+work into the existing architecture and asks the agent to report gaps until
+architecture work is explicitly authorized. Both modes allow authorized
+changes and routine `create` and `build` operations. See
+[guidance modes](docs/CONFIG.MD#architecture-guidance-modes).
+
+Authorized architecture changes are design decisions to discuss. Before changing rules,
 architectural guidance, or configuration policy, the agent explains the gap,
 presents reasonable options and tradeoffs, and recommends an approach. The
 proposal identifies changes to placement, requiredness, checks, and exclusions,

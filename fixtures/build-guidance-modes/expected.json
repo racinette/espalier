@@ -1,0 +1,29 @@
+{
+  "exit": 0,
+  "issues": [],
+  "build": {
+    "exit": 0,
+    "report": [
+      {
+        "kind": "written",
+        "path": "PROJECT.MD",
+        "espalier": null
+      },
+      {
+        "kind": "written",
+        "path": "evolving/AGENTS.MD",
+        "espalier": "evolving"
+      },
+      {
+        "kind": "written",
+        "path": "fixed/AGENTS.MD",
+        "espalier": "fixed"
+      },
+      {
+        "kind": "written",
+        "path": "quiet/AGENTS.MD",
+        "espalier": "quiet"
+      }
+    ]
+  }
+}

@@ -13,6 +13,7 @@ import {
   IGNORE_FILENAME,
   SHIPPED_SKIP,
   locateConfig,
+  parseGuidanceMode,
   readConfigFile,
 } from "./config.js";
 import { vendorAuthoring } from "./init.js";
@@ -109,10 +110,11 @@ function legacyInline(values: Record<string, unknown>): boolean | undefined {
   }
   const entries = build as Record<string, unknown>;
   for (const key of Object.keys(entries)) {
-    if (!["filename", "espalierGuidance", "inline"].includes(key)) {
+    if (!["filename", "espalierGuidance", "guidanceMode", "inline"].includes(key)) {
       fail("config_unknown_key", `unknown configuration key "build.${key}"`);
     }
   }
+  if ("guidanceMode" in entries) parseGuidanceMode(entries["guidanceMode"]);
   if (!("inline" in entries)) return undefined;
   if (typeof entries["inline"] !== "boolean") {
     fail("config_invalid_value", "build.inline must be a boolean");

@@ -71,7 +71,7 @@ from anything an author writes.
 
 **Operational guidance** — the root document introduces Espalier, explains how
 its generated guidance aids development, and gives the working loop. A nested
-Espalier root instead states its governance boundary; placement documents below
+Espalier root states its governance boundary and local architecture-change mode; placement documents below
 either root inherit the applicable guidance rather than repeating a footer. See
 [README.MD](../../../README.MD#who-changes-the-espalier).
 
@@ -109,6 +109,7 @@ provenance marker
 # <name> — `<path>/`          the heading, when the config names the project
 node prose                    the ESPALIER.MD body, verbatim
 ## Governance boundary       nested Espalier root only
+## Architecture changes      nested Espalier root's own guidance mode
 ## Project layout             the tree
 ## Governed elsewhere         child espaliers below this point, when any
 ## `<path>` — <description>   one per structural rule placed here
@@ -454,9 +455,9 @@ retain their globs instead of being described as a broader file kind.
 
 ### Operational guidance
 
-The repository root document ends with an operational introduction, where the
-former checking and amendment sections would otherwise have appeared. The
-introduction names `espalier help` as this CLI version's manual: the working
+The repository root document ends with an operational introduction.
+`build.guidanceMode` selects its architecture-change policy; the default
+`evolving` text is shown below. The introduction names `espalier help` as this CLI version's manual: the working
 loop is not the whole reference.
 
 ```markdown
@@ -538,7 +539,7 @@ planned output path.
 ```
 
 A nested Espalier root does not repeat that introduction. After its node prose
-and before its project layout it states only what changes at the boundary:
+and before its project layout it states the governance boundary:
 
 ```markdown
 ## Governance boundary
@@ -554,7 +555,19 @@ govern only paths beneath this directory; it cannot redefine its parent or
 sibling subtrees.
 ```
 
-Set `build.espalierGuidance: false` to omit both canned sections. The setting
+The boundary is followed by an `Architecture changes` section for that child's
+own mode, including an explicit mode label. This lets a fixed child report
+gaps under an evolving parent, or an evolving child propose changes under a
+fixed parent, within its own governance boundary.
+
+In `fixed` mode the working loop is retained, while the architecture-change
+paragraphs instruct the agent to use existing declared roles, report the path
+and role of a gap, and pause affected work until architecture work is explicitly
+authorized. They prohibit policy changes to force a fit and preserve routine
+`create` and `build`. An explicit architecture task permits changes without
+switching modes. See [guidance modes](../../CONFIG.MD#architecture-guidance-modes).
+
+Set `build.espalierGuidance: false` to omit the canned operational and mode sections. The setting
 does not suppress provenance, structural maps, exclusions, rule bodies, or
 authored `ESPALIER.MD` guidance.
 

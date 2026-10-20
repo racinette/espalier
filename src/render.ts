@@ -6,11 +6,12 @@
 // on something other than the espalier.
 
 import type { Constraint, Espalier, NodeDoc, StructuralRule, TrieNode } from "./compile.js";
+import type { GuidanceMode } from "./config.js";
 import { PROVENANCE } from "./files.js";
 import { backrefNames, isStrictSubset, parseSegment, parseStructuralLeaf, type Segment } from "./pattern.js";
 import { admissionGlobs } from "./targets.js";
 
-export const QUICKSTART = `## Working with Espalier
+const WORKFLOW = `## Working with Espalier
 
 Espalier is the architecture compiler for this repository. It turns structural
 rules and \`ESPALIER.MD\` guidance into this generated document, then checks the
@@ -38,9 +39,9 @@ Use this loop:
 6. Run \`espalier build\`, review and include any generated guidance changes,
    then run \`espalier build --check\` immediately before committing.
 
-Generated guidance files are outputs, not edit targets.
+Generated guidance files are outputs, not edit targets.`;
 
-A catch-all such as \`modules/[module].ts\` is appropriate for general-purpose
+const EVOLVING = `A catch-all such as \`modules/[module].ts\` is appropriate for general-purpose
 code that fits its documented purpose. Passing lint alone does not establish
 that a concept belongs there. Repeated file structure, a shared contract, or a
 distinct dependency policy can indicate a role that needs explicit placement
@@ -80,11 +81,47 @@ the task's agreed design. Loosening checks, widening patterns, or adding
 exemptions merely to make the implementation pass weakens those guarantees.
 A new node can also bypass existing restrictions; check which rules will
 apply. When the work conflicts with the intended architecture, report the
-design gap instead of hiding it in a catch-all or relaxing the rules.
+design gap instead of hiding it in a catch-all or relaxing the rules.`;
 
-Use \`espalier build --force\` only to restore a generated file whose provenance
+const FORCE_GUIDANCE = `Use \`espalier build --force\` only to restore a generated file whose provenance
 marker was removed; it authorizes overwriting an unmarked document at a
 planned output path.`;
+
+const FIXED = `This project uses fixed architecture guidance. Implement ordinary feature
+work within the existing tree, choosing locations by documented purpose.
+When no declared location fits, report the gap to the person directing the
+work, naming the path and architectural role it needs. Pause the affected
+work until architecture work is explicitly authorized; other work that fits
+can continue.
+
+Keep rule declarations, authored architectural guidance, architectural checks,
+and governance configuration unchanged during ordinary feature work. Do not
+widen patterns, loosen checks, add exemptions, or hide a missing role in a
+catch-all. Do not change the guidance mode to bypass this boundary.
+Project-specific protected paths and review requirements remain part of the
+project's own workflow.
+
+Creating declared files with \`espalier create\`, running \`espalier lint\`, and
+regenerating guidance with \`espalier build\` remain ordinary development work.
+Generated documents are outputs; change their sources only within the task's
+authorized scope.
+
+Explicitly authorized architecture work may proceed in fixed mode. Explain
+any unsettled design, its options and tradeoffs, and get agreement before
+implementation. Identify changes to placement, requiredness, checks and
+exclusions, including guarantees they remove. Preserve existing guarantees
+unless changing them is part of that agreement. Update rules and
+\`ESPALIER.MD\` together, regenerate guidance, and follow the project's review
+workflow. Implement the agreed design without repeatedly requesting approval;
+reopen discussion if a materially different design becomes necessary.`;
+
+function architectureGuidance(mode: GuidanceMode): string {
+  return mode === "fixed" ? FIXED : EVOLVING;
+}
+
+function workingGuidance(mode: GuidanceMode): string {
+  return [WORKFLOW, architectureGuidance(mode), FORCE_GUIDANCE].join("\n\n");
+}
 
 export const BOUNDARY = `## Governance boundary
 
@@ -912,11 +949,18 @@ function core(
   stopAt: readonly string[] = [],
   nested = false,
   espalierGuidance = true,
+  guidanceMode: GuidanceMode = "evolving",
 ): string[] {
   const blocks: string[] = [];
 
   if (point.doc !== null && point.doc.body !== "") blocks.push(point.doc.body);
-  if (espalierGuidance && nested && point.at === "") blocks.push(BOUNDARY);
+  if (espalierGuidance && nested && point.at === "") {
+    blocks.push(BOUNDARY, `## Architecture changes
+
+This Espalier uses ${guidanceMode} guidance within this subtree.
+
+${architectureGuidance(guidanceMode)}`);
+  }
 
   const map = renderMap(espalier, point, stopAt);
   const closed = renderClosedSet(point);
@@ -950,6 +994,7 @@ export function renderDocument(
   outside: Outside = { exclusions: [], toolOwned: [] },
   nested = false,
   espalierGuidance = true,
+  guidanceMode: GuidanceMode = "evolving",
 ): string {
   const prefix = point.at === "" ? "" : `${point.at}/`;
   const stopAt = points
@@ -958,8 +1003,8 @@ export function renderDocument(
   const blocks = [
     marker(espalierRoot, point.at),
     ...heading(name, point.at),
-    ...core(espalier, point, 2, named, outside, stopAt, nested, espalierGuidance),
+    ...core(espalier, point, 2, named, outside, stopAt, nested, espalierGuidance, guidanceMode),
   ];
-  if (espalierGuidance && point.at === "" && !nested) blocks.push(QUICKSTART);
+  if (espalierGuidance && point.at === "" && !nested) blocks.push(workingGuidance(guidanceMode));
   return `${blocks.join("\n\n")}\n`;
 }

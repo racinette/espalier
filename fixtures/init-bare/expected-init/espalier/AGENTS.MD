@@ -15,6 +15,19 @@ with `skip` when they live beside the rules.
 
 ## Agree on the architecture
 
+Read `build.guidanceMode` in this Espalier's configuration before changing
+architectural policy. The default, `evolving`, invites identifying gaps and
+proposing changes for agreement. In `fixed` mode, ordinary feature work uses
+the existing architecture: report a missing path and role, and pause the
+affected work until architecture work is explicitly authorized. Do not hide
+the gap in a catch-all or change the mode to bypass that boundary. Each nested
+Espalier uses its own setting.
+
+Explicitly authorized architecture work can proceed in either mode using the
+review process below. Follow the project's own protected-path and commit
+requirements. Creating declared files and regenerating guidance with `create`
+and `build` remain ordinary development operations.
+
 Before changing architectural policy in rules, guidance, or configuration,
 explain the gap, present reasonable options and their tradeoffs, and recommend
 an approach. Get agreement before implementing it. A feature request does not

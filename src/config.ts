@@ -13,6 +13,16 @@ import { VERSION } from "./version.js";
 export const CONFIG_FILENAME = "espalier.config.yaml";
 export const IGNORE_FILENAME = ".espalierignore";
 
+export type GuidanceMode = "evolving" | "fixed";
+
+/** Shared by normal configuration loading and migration validation. */
+export function parseGuidanceMode(value: unknown): GuidanceMode {
+  if (value !== "evolving" && value !== "fixed") {
+    fail("config_invalid_value", "build.guidanceMode must be evolving or fixed");
+  }
+  return value;
+}
+
 export interface Config {
   /** Absolute path of the directory containing the config file. */
   root: string;
@@ -35,11 +45,11 @@ export interface Config {
   ignore: string[];
   /** Repo-relative path to the addons module, or null. */
   addons: string | null;
-  build: { filename: string; espalierGuidance: boolean };
+  build: { filename: string; espalierGuidance: boolean; guidanceMode: GuidanceMode };
 }
 
 const KNOWN = new Set(["pin", "name", "root", "ignoreFiles", "skip", "addons", "build"]);
-const KNOWN_BUILD = new Set(["filename", "espalierGuidance"]);
+const KNOWN_BUILD = new Set(["filename", "espalierGuidance", "guidanceMode"]);
 
 /** Instruction files `init` and `migrate` write into `skip`. docs/CONFIG.MD "`skip`". */
 export const SHIPPED_SKIP = ["AGENTS.MD", "AGENTS.md", "CLAUDE.md", ".git", ".gitkeep"];
@@ -215,6 +225,7 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
 
   let filename = "AGENTS.MD";
   let espalierGuidance = true;
+  let guidanceMode: GuidanceMode = "evolving";
   if ("build" in values && values["build"] !== null) {
     const build = values["build"];
     if (typeof build !== "object" || Array.isArray(build)) {
@@ -233,6 +244,7 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     if ("espalierGuidance" in entries) {
       espalierGuidance = asBoolean(entries["espalierGuidance"], "build.espalierGuidance");
     }
+    if ("guidanceMode" in entries) guidanceMode = parseGuidanceMode(entries["guidanceMode"]);
   }
 
   const espalierAbsolute = path.join(root, espalierRoot);
@@ -250,7 +262,7 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     skip,
     ignore,
     addons,
-    build: { filename, espalierGuidance },
+    build: { filename, espalierGuidance, guidanceMode },
   };
 }
 

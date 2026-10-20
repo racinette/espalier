@@ -222,6 +222,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `nested-three-levels` | a child of a child: delegation is a rule, not a first-hop special case |
 | `nested-build-child-failure` | one espalier that will not compile, and nothing written anywhere |
 | `build-check-drift` | `--check` reports `missing`, `changed` and `stale`, and writes nothing |
+| `build-guidance-modes` | fixed root, independent nested modes, suppressed guidance, folding and custom filenames |
 | `build-fold-subtrees` | subtree folding preserves scope, retained boundaries, exclusions, and child espaliers |
 | `build-fold-invalid` | non-boolean descendant folding fails before any build writes |
 | `build-inline` | root folding writes one root document and removes distributed files |

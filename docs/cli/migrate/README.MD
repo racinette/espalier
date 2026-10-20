@@ -12,6 +12,11 @@ package's version. `migrate` is the exception: it updates `pin`, removes
 obsolete settings, and inserts missing required keys. After it runs, this CLI
 owns the repository. An older CLI will refuse the result.
 
+Migration preserves an explicit `build.guidanceMode` selection and validates
+it before writing that project's migration files. It does not switch between
+evolving and fixed guidance. The refreshed authoring contract reads the mode
+from the governing configuration.
+
 ## Usage
 
 ```text

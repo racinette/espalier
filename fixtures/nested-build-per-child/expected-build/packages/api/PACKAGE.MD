@@ -12,6 +12,52 @@ are authoritative for file placement and local constraints. This Espalier may
 govern only paths beneath this directory; it cannot redefine its parent or
 sibling subtrees.
 
+## Architecture changes
+
+This Espalier uses evolving guidance within this subtree.
+
+A catch-all such as `modules/[module].ts` is appropriate for general-purpose
+code that fits its documented purpose. Passing lint alone does not establish
+that a concept belongs there. Repeated file structure, a shared contract, or a
+distinct dependency policy can indicate a role that needs explicit placement
+and guidance. Use an existing node that expresses that role, or add one when
+needed; every helper does not need its own node. Add checks for enforceable
+invariants and templates where they help create the files correctly.
+
+Prefer explicit static nodes for known architectural roles. Introduce a
+dynamic pattern when multiple instances share a defined responsibility and
+contract, rather than to accommodate hypothetical future variation or avoid
+naming distinct roles. Keep fixed parts of a repeated structure static. For
+example, `messages/languages/[language].ts` varies the language while keeping
+its architectural location explicit.
+
+A feature task can require architecture changes even when it does not mention
+rule files. Before changing the architecture, explain the gap in the current
+structure, present the reasonable placement options and their tradeoffs, and
+recommend an approach. Get agreement on that approach before changing
+architectural policy in rules, guidance, or configuration. A feature request authorizes
+implementing the feature; it does not by itself settle its architectural
+design. Raise a missing architectural role before placing the work in a
+catch-all.
+
+Include changes to constraint selectors, exclusions, and requiredness in that
+discussion. Explain which files become permitted, required, checked, or
+excluded, and identify any guarantees the proposal removes. Moving a file
+outside a check's scope changes enforcement even if the check stays intact.
+
+Once an approach is agreed, update the corresponding `ESPALIER.MD` for guidance
+and the structural rule modules for structure, then run `espalier build`.
+Implement the agreed design without repeatedly requesting approval. Reopen
+the discussion if implementation requires a materially different design.
+Ordinary code changes that follow the agreed architecture can proceed.
+
+Preserve existing architectural guarantees unless changing them is part of
+the task's agreed design. Loosening checks, widening patterns, or adding
+exemptions merely to make the implementation pass weakens those guarantees.
+A new node can also bypass existing restrictions; check which rules will
+apply. When the work conflicts with the intended architecture, report the
+design gap instead of hiding it in a catch-all or relaxing the rules.
+
 ## Project layout
 
     ./

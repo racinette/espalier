@@ -1,0 +1,8 @@
+pin: 0.7.1
+name: fixed project
+root: espalier
+ignoreFiles: []
+skip: []
+build:
+  filename: PROJECT.MD
+  guidanceMode: fixed
