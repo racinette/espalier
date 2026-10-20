@@ -69,10 +69,11 @@ from anything an author writes.
 
 **Node prose** — the body of the directory's `ESPALIER.MD`, if it has one.
 
-**Operational guidance** — the root document introduces Espalier, explains how
+**Operational guidance** — the outer-root document introduces Espalier, explains how
 its generated guidance aids development, and gives the working loop. A nested
-Espalier root states its governance boundary and local architecture-change mode; placement documents below
-either root inherit the applicable guidance rather than repeating a footer. See
+Espalier root states its governance boundary and local architecture-change mode;
+placement documents below either root use the applicable guidance. These sections
+are included when `build.espalierGuidance` is enabled. See
 [README.MD](../../../README.MD#who-changes-the-espalier).
 
 The root file additionally carries the project preamble.
@@ -81,7 +82,7 @@ The root file additionally carries the project preamble.
 
 1. Walk the static spine from the root, stopping at the first dynamic segment. Those are the placement points.
 2. Assign every rule to the longest static prefix of its directory path.
-3. Drop placement points with no assigned rules and no `ESPALIER.MD` — an intermediate directory whose content all lives deeper produces no file, and the map above it stays expanded through that directory. The root is never dropped: it is the one file every tool reads, and it alone carries the Espalier introduction and development loop.
+3. Drop placement points with no assigned rules and no `ESPALIER.MD` — an intermediate directory whose content all lives deeper produces no file, and the map above it stays expanded through that directory. Each Espalier's root is never dropped: it anchors that Espalier's guidance. With operational guidance enabled, the outer root carries the introduction and development loop, while nested roots carry their governance boundary and local architecture policy.
 4. Fold each directory marked `fold: true`, and every placement beneath it, into the nearest surviving ancestor. The root always survives. Descendant flags cannot reopen a folded subtree.
 5. Render each surviving point, including its folded sections.
 6. Write with a provenance header, in deterministic order. A file whose rendered bytes match what is already on disk is left alone rather than rewritten. An unchanged human-format run confirms completion without reporting writes.
@@ -117,7 +118,7 @@ node prose                    the ESPALIER.MD body, verbatim
                                individual or group scope precede its body
 ## `<directory>/`             folded placement prose and level-three rule sections
 ## Other repository paths     one Paths/Purpose table, then the complete account
-## Working with Espalier      root file only
+## Working with Espalier      outer-root file only
 ```
 
 Text `espalier` composes — the map's own text, constraint selection sentences,
@@ -457,8 +458,8 @@ retain their globs instead of being described as a broader file kind.
 
 The repository root document ends with an operational introduction.
 `build.guidanceMode` selects its architecture-change policy; the default
-`evolving` text is shown below. The introduction names `espalier help` as this CLI version's manual: the working
-loop is not the whole reference.
+`evolving` text is shown below. The introduction names `espalier help` as this
+CLI version's manual: the working loop is not the whole reference.
 
 ```markdown
 ## Working with Espalier
@@ -567,9 +568,10 @@ authorized. They prohibit policy changes to force a fit and preserve routine
 `create` and `build`. An explicit architecture task permits changes without
 switching modes. See [guidance modes](../../CONFIG.MD#architecture-guidance-modes).
 
-Set `build.espalierGuidance: false` to omit the canned operational and mode sections. The setting
-does not suppress provenance, structural maps, exclusions, rule bodies, or
-authored `ESPALIER.MD` guidance.
+Set `build.espalierGuidance: false` to omit the canned operational and mode
+sections, including the nested governance boundary. The setting does not
+suppress provenance, structural maps, exclusions, rule bodies, or authored
+`ESPALIER.MD` guidance.
 
 ## Example
 

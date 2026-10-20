@@ -61,7 +61,13 @@ upgrade therefore cannot silently change how this repository is interpreted.
 `name` is the repository directory's own name. It heads every document `build`
 writes. Rename it to the project's name, or remove it to omit the heading.
 
-And a `.espalierignore` beside it:
+`init` omits `build.guidanceMode`, so the project starts with `evolving`
+guidance. To direct ordinary feature work into an established architecture,
+set `build.guidanceMode: fixed` in the configuration and run `espalier build`.
+See [guidance modes](../../CONFIG.MD#architecture-guidance-modes) for how agents
+report gaps and obtain authorization for architecture work.
+
+It also writes a `.espalierignore` beside the configuration:
 
 ```
 # Version control metadata. Remove an entry to govern it explicitly.

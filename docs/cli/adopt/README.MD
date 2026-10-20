@@ -10,6 +10,12 @@ espalier adopt src/clients
 
 `adopt` produces structure. It cannot produce meaning — the `rule` bodies are yours to write, and until you do, the generated documentation says where things go and nothing about how they should be written. Choosing a rule's kind and writing that prose is [`espalier help authoring`](../help/README.MD).
 
+Adoption changes architectural declarations. Under
+[`build.guidanceMode: fixed`](../../CONFIG.MD#architecture-guidance-modes),
+agents need explicit authorization for that architecture work. The command
+remains available in either mode and leaves the selected mode unchanged;
+the setting guides agent decisions rather than enforcing command permissions.
+
 ## Usage
 
 ```text
@@ -77,7 +83,7 @@ Dot-prefixed targets and descendants participate in inference like any other
 path. To adopt a path such as `.github`, first remove any exclusion for it from
 repository policy (including the editable defaults written by `init`).
 Adoption also refuses, before writing anything, if `skip` or the reserved
-reserved rule-tree bookkeeping directory would hide any proposed module or migrated prose.
+rule-tree bookkeeping directory would hide any proposed module or migrated prose.
 
 The espalier root and the configuration are not inferred from either, for the reason they are invisible to matching: espalier does not describe its own machinery. Nor are they evidence of a shape — with `root: tools/espalier`, counting the espalier root as a sibling is how `adopt tools` turns `tools/espalier/` and `tools/lib/` into one dynamic directory nobody chose.
 
@@ -171,7 +177,11 @@ The third module carries `export const optional = true;`, and the run says exact
 
 The two alternatives were both false, which is why this needed a third statement rather than a better guess. Declaring `webhook.ts` required asserts something nobody said — that every client has one — and reports `src/clients/twilio/webhook.ts` as `missing_required_file` on the very first run, which is `adopt` inventing a requirement and then complaining that it is unmet. Leaving it undeclared is the opposite failure: `lint` reports `unexpected_path` for a file everyone agrees belongs there, and the first thing the command does after succeeding is hand you a broken repository.
 
-Declaring the extras as a dynamic leaf was a third wrong answer, quieter than either — it silently legalises every future `.ts` file in every client directory, which is the over-general failure this document warns about everywhere else. `optional` names one file. That is the difference.
+Declaring the extras as a dynamic leaf would silently legalise every future
+`.ts` file in every client directory. The inferred optional declarations name
+the observed files individually, preserving the narrower structure. On a
+dynamic leaf, `optional` instead controls whether its collection may be empty;
+see [TYPES.MD](../../TYPES.MD#optional).
 
 An optional declaration also needs review: `adopt` has seen one client with a
 webhook and cannot know whether webhooks belong in every client's contract or

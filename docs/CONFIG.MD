@@ -24,6 +24,7 @@ addons: ./espalier.addons.mjs
 build:
   filename: AGENTS.MD
   espalierGuidance: true
+  guidanceMode: evolving
 ```
 
 ```
@@ -232,7 +233,7 @@ Omitting the key is an error: an absent list is a question nobody answered. `[]`
 
 Paths are relative to the repository root and read in order using gitignore semantics. Matching paths are removed before Espalier discovers structure, nested configurations, or materialized `.espalierignore` exclusions. They do not appear in generated exclusion tables: from Espalier's perspective they are not repository paths at all.
 
-When the root `.gitignore` is named, Espalier discovers nested `.gitignore` files as it enters directories. Their patterns are relative to the directory containing them, apply only below it, and override earlier files. A `.gitignore` beneath a hidden directory is never discovered because the directory itself does not exist in Espalier's input.
+When the root `.gitignore` is named, Espalier discovers nested `.gitignore` files as it enters directories. Their patterns are relative to the directory containing them, apply only below it, and override earlier files. A `.gitignore` beneath a directory excluded by these patterns is never discovered because the directory itself does not exist in Espalier's input.
 
 Matching is implemented inside Espalier; no Git executable, index, global excludes, or repository metadata is consulted. Character classes, escapes, negation, anchoring, and directory rules follow gitignore syntax. Matching is deliberately case-sensitive on every platform because Git's `core.ignoreCase` is machine configuration, not repository input.
 
