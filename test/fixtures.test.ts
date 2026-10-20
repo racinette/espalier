@@ -66,12 +66,7 @@ interface WriteRun {
   human?: string;
 }
 
-/**
- * A second `lint` over the same copy, after the tree or the environment
- * changed. Only an incremental run has anything to say here: everything else
- * espalier does is settled by the first run, and a fixture that reran without
- * a cache would assert that the same input gives the same answer.
- */
+/** A fresh lint after modifying the same fixture copy. */
 interface Rerun {
   /** A directory copied over the copy: files to add, or to replace. */
   apply?: string;
@@ -552,7 +547,7 @@ async function sweep(
 }
 
 function lintIn(dir: string, scratch: string, expected: Expected): void {
-  const scoped = [...(expected.again === undefined ? [] : ["--cache"]), ...(expected.args ?? [])];
+  const scoped = expected.args ?? [];
   const lint = run(scratch, ["lint", "--format", "jsonl", ...scoped], expected.env);
   const lines = parseLines(lint.stdout, "lint");
 
@@ -656,14 +651,7 @@ function lintIn(dir: string, scratch: string, expected: Expected): void {
   if (expected.again !== undefined) rerun(dir, scratch, expected.again, scoped);
 }
 
-/**
- * Changes the copy and lints it again. What the second run reports is the
- * whole assertion: a rule replayed from cache answers with what it said the
- * first time, and one whose inputs moved answers afresh. The environment is
- * the lever, because it is the one input a rule can read and the cache cannot
- * see — which is exactly what makes a skip visible in output that is
- * otherwise identical warm and cold.
- */
+/** Apply changes and verify a fresh evaluation of the same repository. */
 function rerun(dir: string, scratch: string, again: Rerun, scoped: string[]): void {
   if (again.apply !== undefined) {
     cpSync(path.join(dir, again.apply), scratch, { recursive: true, verbatimSymlinks: true });

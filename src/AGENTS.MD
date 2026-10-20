@@ -27,8 +27,6 @@ place is a list that stops matching the modules.
     │
     ├─ build.ts           the build command (required)
     │
-    ├─ cache.ts           the incremental lint cache (required)
-    │
     ├─ children.ts        finding where one espalier's authority ends (required)
     │
     ├─ cli.ts             argument parsing and dispatch (required)
@@ -45,6 +43,9 @@ place is a list that stops matching the modules.
     │
     ├─ examples.ts        the examples command (required)
     │
+    ├─ execution.ts       addon lifecycle and isolated lint invocations
+    │                     (required)
+    │
     ├─ explain.ts         the explain command (required)
     │
     ├─ explainText.ts     the human layout for explain (required)
@@ -55,7 +56,7 @@ place is a list that stops matching the modules.
     │
     ├─ ignore.ts          gitignore-syntax matching (required)
     │
-    ├─ implementation.ts  rule implementation dependency observation (required)
+    ├─ implementation.ts  fresh rule implementations (required)
     │
     ├─ init.ts            the init command (required)
     │
@@ -84,18 +85,16 @@ place is a list that stops matching the modules.
     │
     ├─ version.ts         the running package version (required)
     │
-    └─ visibility.ts      filesystem visibility from external ignore files
-                          (required)
+    ├─ visibility.ts      filesystem visibility from external ignore files
+    │                     (required)
+    │
+    ├─ worker.ts          the lint worker entry point (required)
+    │
+    └─ workers.ts         the bounded lint worker pool (required)
 
 ## `artifacts.ts` — the target-neutral generated artifact model
 
 Define generated outputs independently of filesystem application so multiple targets can share one atomic build transaction.
-
-## `cache.ts` — the incremental lint cache
-
-Nothing here may throw. A cache that cannot be read, parsed, trusted or
-written is a cache the run does without: the work is always available, and a
-linter that fails over its own bookkeeping is worse than a slow one.
 
 ## `cli.ts` — argument parsing and dispatch
 
@@ -129,9 +128,13 @@ Holds `fail()`, which every operational failure goes through. A code it raises
 that `docs/ERRORS.MD` does not list fails the suite, and so does a documented
 code nothing raises.
 
-## `implementation.ts` — rule implementation dependency observation
+## `execution.ts` — addon lifecycle and isolated lint invocations
 
-Loads fresh rule and addon implementations for each run while preserving shared module identity within it. Collects implementation dependencies only when findings caching is enabled. An observation that cannot be validated disables cache replay; uncertainty is never a cache hit.
+Prepare shared data once from governed inputs. Set up and dispose worker-local addons, and execute independent invocations against the same source snapshot.
+
+## `implementation.ts` — fresh rule implementations
+
+Load fresh ES rule and addon implementations for coordinator runs while preserving shared module identity within each run. Worker implementations have their own isolated lifetime.
 
 ## `linter.ts` — contextual typing helpers for rule linters
 
@@ -176,6 +179,14 @@ truth.
 Model what the repository exposes to Espalier through external
 ignore files. Apply sources in discovery order so deeper rules may override earlier
 ones, and keep visibility distinct from governance exclusions.
+
+## `worker.ts` — the lint worker entry point
+
+Keep addon instances local to one worker. Serialize job handling and disposal; return findings and operational failures through the coordinator protocol.
+
+## `workers.ts` — the bounded lint worker pool
+
+Schedule file and aggregate jobs only after every worker initializes. Report findings centrally and clean up all workers on success or failure. Nested project pools do not overlap.
 
 ## module-header — every implementation module opens with a header
 

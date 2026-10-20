@@ -35,7 +35,6 @@ export interface RuleModule {
   optional?: unknown;
   aggregate?: unknown;
   targets?: unknown;
-  unobservedImplementationDependencies?: unknown;
   template?: unknown;
 }
 
@@ -49,8 +48,6 @@ export interface LoadedModule {
   /** docs/TYPES.MD "aggregate". Always false for structural rules. */
   aggregate: boolean;
   targets: string[] | null;
-  /** Explicit cache inputs that ordinary module observation cannot see. */
-  unobservedImplementationDependencies: string[];
   /** A file-creation template, available only on structural rules. */
   template: TemplateDefinition | null;
 }
@@ -138,7 +135,7 @@ function collectEntries(
   )) {
     const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
     const at = path.join(absolute, entry.name);
-    // This directory belongs to the lint cache, not the authored rule tree.
+    // This directory is reserved for tool bookkeeping, not authored rules.
     if (relative === ".cache") continue;
     if (entry.isDirectory() && ignores(skip, relative, true)) continue;
     // Resolve no excluded link, including a broken one. File-shaped grammar
@@ -244,6 +241,7 @@ async function loadModule(
     );
   }
 
+  if ("unobservedImplementationDependencies" in loaded) fail("module_invalid_export", `${modulePath}: unobservedImplementationDependencies is not supported`);
   if (typeof loaded.rule !== "string") {
     fail("module_missing_export", `${modulePath} must export a string \`rule\``);
   }
@@ -301,23 +299,6 @@ async function loadModule(
       `${modulePath}: \`targets\` must be a non-empty array of non-empty relative positive glob strings`
     );
   }
-  if (
-    loaded.unobservedImplementationDependencies !== undefined &&
-    (!Array.isArray(loaded.unobservedImplementationDependencies) ||
-      loaded.unobservedImplementationDependencies.some(
-        (dependency) =>
-          typeof dependency !== "string" ||
-          dependency.length === 0 ||
-          dependency.startsWith("!") ||
-          path.isAbsolute(dependency) ||
-          dependency.split(/[\\/]/).includes(".."),
-      ))
-  ) {
-    fail(
-      "module_invalid_export",
-      `${modulePath}: \`unobservedImplementationDependencies\` must be an array of non-empty relative positive glob strings`,
-    );
-  }
   if (loaded.template !== undefined) {
     const problem = templateDefinitionProblem(loaded.template);
     if (problem !== null) {
@@ -357,12 +338,6 @@ async function loadModule(
       loaded.targets === undefined
         ? null
         : [...new Set(loaded.targets as string[])].sort((left, right) => left.localeCompare(right)),
-    unobservedImplementationDependencies:
-      loaded.unobservedImplementationDependencies === undefined
-        ? []
-        : [...new Set(loaded.unobservedImplementationDependencies as string[])].sort((left, right) =>
-            left.localeCompare(right),
-          ),
     template: isTemplateDefinition(loaded.template) ? loaded.template : null,
   };
 }

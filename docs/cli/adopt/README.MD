@@ -77,7 +77,7 @@ Dot-prefixed targets and descendants participate in inference like any other
 path. To adopt a path such as `.github`, first remove any exclusion for it from
 repository policy (including the editable defaults written by `init`).
 Adoption also refuses, before writing anything, if `skip` or the reserved
-rule-tree cache directory would hide any proposed module or migrated prose.
+reserved rule-tree bookkeeping directory would hide any proposed module or migrated prose.
 
 The espalier root and the configuration are not inferred from either, for the reason they are invisible to matching: espalier does not describe its own machinery. Nor are they evidence of a shape — with `root: tools/espalier`, counting the espalier root as a sibling is how `adopt tools` turns `tools/espalier/` and `tools/lib/` into one dynamic directory nobody chose.
 

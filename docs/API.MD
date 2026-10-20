@@ -92,7 +92,11 @@ test("the repository conforms", async () => {
 | `config` | discovered | an explicit config file path |
 | `paths` | every visible file | limit the run to a subtree |
 | `rule` | every rule | run one rule module only, by espalier-relative path |
-| `cache` | `false` | `true` is `--cache`: reuse findings whose recorded inputs are unchanged |
+| `jobs` | `"auto"` | positive integer worker limit, or automatic sizing |
+
+The package exports `Jobs` and `PrepareContext` types for worker limits and
+addon preparation. `PrepareContext` provides `read(path)` and `files(pattern)`;
+see [addons](CONFIG.MD#addons).
 
 Returns `Promise<Issue[]>` in the order the runner produced them. Like the CLI,
 it reports identical findings once per lint invocation; findings from separate
@@ -100,11 +104,15 @@ invocations remain separate. See [lint](cli/lint/README.MD#ordering-and-duplicat
 
 Child espaliers are visited exactly as the CLI visits them, and their issues arrive in the same array with paths re-rooted to `cwd` and `espalier` naming the one that reported them. A failure inside a child raises, like any other, once the runs that could still complete have — the first in path order, with the child's directory on the front of the message.
 
-Every applicable rule runs by default, without reading or writing a findings cache. `cache: true` enables the same cache as `espalier lint --cache`. See [CACHE.MD](CACHE.MD) for dependency requirements and when caching helps.
+Every selected rule runs on each call. `cache` is not a supported option.
+`jobs` controls the worker pool; see [lint](cli/lint/README.MD#parallel-execution).
 
-Each check loads fresh ES rule, helper, and addon modules, including repeated calls in one process. ES module identity is shared within one run; separate checks have separate instances. CommonJS libraries retain Node's process-level module caching.
+Each check loads fresh ES modules in the coordinator and starts fresh lint
+workers. Within a worker, rules share imported helpers and its addon instance.
+Separate workers have separate module instances. CommonJS preparation helpers
+in the coordinator retain Node's process-level module caching.
 
-There is no exit code and no partial-run warning. Both are ways of saying something to a person through a stream; a caller holding the issues can decide for itself. Everything else is identical, including `addons` setup and disposal: `check` is the runner with a collecting reporter, not a second implementation.
+There is no exit code and no partial-run warning. Both are ways of saying something to a person through a stream; a caller holding the issues can decide for itself. Everything else is identical, including `addons` preparation, worker setup and disposal: `check` is the runner with a collecting reporter, not a second implementation.
 
 An operational failure — an espalier that does not compile, a rule that throws, an issue with no `code` — raises an `OperationalError` carrying the `code` from [ERRORS.MD](ERRORS.MD). It is thrown rather than returned because it is not a finding about the repository.
 
@@ -189,7 +197,7 @@ name; `runRule` cannot establish either.
 
 `espalier examples compiler-addon` supplies both kinds of executable test,
 including changed snapshots, rule order, separate service instances, and
-optional findings-cache invalidation. Test semantic reuse before measuring
+fresh findings after source and implementation changes. Test semantic reuse before measuring
 whole-repository performance; copying the entire application into every
 counterexample repeats compiler work without establishing these boundaries.
 
@@ -234,10 +242,9 @@ specific path.
 As with `runRule`, `runAggregate` validates `targets` but treats the supplied
 sorted match set as already selected.
 
-Both rule-testing functions also validate
-`unobservedImplementationDependencies` when it is present. They do not expand
-the patterns because they do not open or cache a repository; the export only
-has runtime meaning to `check` and `lint`.
+The unsupported `unobservedImplementationDependencies` export is rejected by
+both rule-testing functions and by compilation. All checks evaluate current
+inputs; there are no persistent dependency declarations.
 
 ## Coverage
 

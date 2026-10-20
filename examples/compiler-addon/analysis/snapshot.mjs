@@ -1,5 +1,6 @@
-// Every invocation gathers its own inputs, even on a shared analysis hit.
+// Preparation gathers the project snapshot once; isolated unit tests supply their own.
 export async function snapshotFor(context) {
+  if (context.addons?.snapshot) return context.addons.snapshot;
   const paths = await context.files("src/**/*.ts");
   const sources = await Promise.all(paths.map(async (file) => [file, await context.read(file)]));
   const settings = JSON.parse(await context.read("compiler.json"));

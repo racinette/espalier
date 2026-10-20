@@ -69,7 +69,7 @@ non-grammar files are skipped; individually skipping a `.mjs` module or
 `ESPALIER.MD` is `skip_hides_grammar`. Exclude a tooling directory as a whole,
 for example `.claude/`, rather than hiding individual rule files. Bare names
 match at any depth. Dot-prefixed names have no implicit exclusion.
-The root `.cache/` directory is reserved for Espalier's own lint cache and is
+The root `.cache/` directory is reserved for Espalier's bookkeeping and is
 not compiled. See [CONFIG.MD](CONFIG.MD#skip).
 
 
@@ -304,9 +304,6 @@ constraint admission globs. A directory named `literal?` in a rule path stays
 literal; only exported target patterns introduce glob syntax there.
 
 External ignore files and `.espalierignore` retain gitignore syntax.
-`unobservedImplementationDependencies` uses Node's filesystem globber to
-discover implementation inputs outside the governed set; it is separate from
-these queries over known lint-data paths.
 
 ## Ownership
 

@@ -148,8 +148,8 @@ Every other directory also carries a trailing `/`. Names are authored form, so
 a dynamic node appears as `[provider]/` or `[button].tsx`.
 
 Structural rule headings are relative to the placement point that contains
-them. A document headed `src/` therefore describes `cache.ts`, not
-`src/cache.ts`; a folded `src/` section establishes the same scope before its
+them. A document headed `src/` therefore describes `context.ts`, not
+`src/context.ts`; a folded `src/` section establishes the same scope before its
 rule headings. Espalier keeps repository-relative paths internally and changes
 only their presentation.
 

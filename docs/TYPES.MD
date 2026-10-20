@@ -48,7 +48,6 @@ aggregate form.
 | `optional` | no | whether a named file may be absent or a dynamic collection may be empty |
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
-| `unobservedImplementationDependencies` | no | optional cache inputs that module observation cannot see |
 | `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
 
 ### `description`
@@ -285,25 +284,6 @@ Use `targets = ["**/*"]` when every file type in the directory pattern belongs
 to the group. The same selector origin applies to per-file and aggregate
 constraints. Existing constraint captures are preserved for every selected path. See
 [MATCHING.MD](MATCHING.MD#target-selectors).
-
-### `unobservedImplementationDependencies`
-
-```js
-export const unobservedImplementationDependencies = [
-  "src/query/worker/**/*",
-  "src/query/**/*.wasm",
-];
-```
-
-Optional implementation inputs for persistent findings caching. When
-`--cache` is enabled, declare support files Node's module loader cannot
-observe, such as worker code, compiler declarations, or parser grammars.
-Ordinary imports are observed automatically in that mode. The export is
-validated but its patterns are not expanded when caching is disabled.
-
-Patterns are non-empty, positive, repository-relative globs. The export grants
-no read or reporting capability. See [CACHE.MD](CACHE.MD#implementation-dependencies)
-(`espalier help cache`) for membership, invalidation, and authoring details.
 
 ### `aggregate`
 
@@ -657,8 +637,9 @@ of opening governed files themselves. They may memoize analysis for identical
 inputs, provided a cache hit produces the same answer as a fresh computation.
 Internal resource state must not change rule results.
 
-Every applicable rule executes by default. Optional persistent findings caching
-and its dependency requirements are described in [CACHE.MD](CACHE.MD).
+Every selected rule executes on every run, in a bounded worker pool. See
+[parallel execution](cli/lint/README.MD#parallel-execution) and the addon
+[prepare/setup lifecycle](CONFIG.MD#addons).
 
 A `lint` function that throws is a bug in the rule, not a finding about the repository: the run fails with exit `2` and reports `rule_threw`. See [cli/lint/README.MD](cli/lint/README.MD) and [ERRORS.MD](ERRORS.MD).
 

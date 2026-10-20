@@ -1,14 +1,14 @@
-# addons: one setup, one object, one disposal
+# addons: one setup, one object, one disposal per worker
 
 `CONFIG.MD` promises three things about `addons` and nothing exercised any of
-them: `setup` runs once before any rule, the returned object reaches every
+them: `setup` runs once per worker before any rule, the returned object reaches every
 `lint` invocation, and disposal runs after the run completes.
 
 The addon counts its own `setup` calls in a module-level variable. Both rules
 report `started: 1`, so a second call would be visible — `import()` caches the
 module, so the counter survives and a per-file setup would read `2`.
 
-Both rules also push into the same `seen` array. The object is shared, not
+This fixture selects `--jobs 1`. Both rules push into that worker's `seen` array. The object is shared, not
 copied: an addon exists so an expensive resource is paid for once, and a rule
 receiving a private copy of a language server would be worse than useless.
 

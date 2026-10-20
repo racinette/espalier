@@ -10,8 +10,8 @@ Two kinds of test, and the division is not stylistic.
 behaviour belongs, because a fixture is readable by someone who has never seen
 the implementation.
 
-Everything else here is for what a fixture cannot see. A cache that was not
-written, a directory that was never entered, a run that refused before writing
+Everything else here is for what a fixture cannot see. Workers that actually ran
+simultaneously, a directory that was never entered, a run that refused before writing
 anything: the observable output is identical either way, so the assertion has
 to reach past it. If a case can be a fixture, it should be.
 

@@ -41,7 +41,7 @@ function repository(): string {
 function lint(root: string, scopes: string[] = [], token?: string) {
   return spawnSync(
     process.execPath,
-    [cli, "lint", ...(token === undefined ? [] : ["--cache"]), "--format", "jsonl", ...scopes],
+    [cli, "lint", "--format", "jsonl", ...scopes],
     {
       cwd: root,
       encoding: "utf8",
@@ -175,11 +175,11 @@ export async function lint({ matches, emit }) {
     assert.equal(result.status, 0, result.stderr);
     const issues = result.stdout.split("\n").filter(Boolean).map((line) => JSON.parse(line));
     assert.deepEqual(
-      issues.filter((issue) => issue.code === "filename.json").map((issue) => issue.path),
+      issues.filter((issue) => issue.code === "filename.json").map((issue) => issue.path).sort(),
       ["a.json"],
     );
     assert.deepEqual(
-      issues.filter((issue) => issue.code === "exported").map((issue) => issue.path),
+      issues.filter((issue) => issue.code === "exported").map((issue) => issue.path).sort(),
       ["a.json", "a.schema.json"],
     );
     assert.equal(issues.find((issue) => issue.code === "group-file.json")?.message, "a.json");
@@ -246,7 +246,7 @@ export async function lint({ matches, emit }) {
     const result = lint(root);
     assert.equal(result.status, 0, result.stderr);
     const issues = result.stdout.split("\n").filter(Boolean).map((line) => JSON.parse(line));
-    assert.deepEqual(issues.filter((issue) => issue.code === "up").map((issue) => issue.path), ["migrations/001.up.sql"]);
+    assert.deepEqual(issues.filter((issue) => issue.code === "up").map((issue) => issue.path).sort(), ["migrations/001.up.sql"]);
     assert.equal(issues.find((issue) => issue.code === "pair")?.message, "migrations/001.down.sql,migrations/001.up.sql");
     assert.deepEqual(issues.find((issue) => issue.code === "pair")?.pattern, "migrations/**/*.down.sql | migrations/**/*.up.sql");
 
@@ -280,9 +280,9 @@ export async function lint({ emit }) { emit({ code: "glob", severity: "info", me
     const result = lint(root);
     assert.equal(result.status, 0, result.stdout + result.stderr);
     const issues = result.stdout.split("\n").filter(Boolean).map((line) => JSON.parse(line));
-    assert.deepEqual(issues.filter((issue) => issue.code === "exact").map((issue) => issue.path),
+    assert.deepEqual(issues.filter((issue) => issue.code === "exact").map((issue) => issue.path).sort(),
       ["foo.d.ts", "foo.ts", "foo.tsx"]);
-    assert.deepEqual(issues.filter((issue) => issue.code === "glob").map((issue) => issue.path),
+    assert.deepEqual(issues.filter((issue) => issue.code === "glob").map((issue) => issue.path).sort(),
       ["foo.d.ts", "foo.test.ts", "foo.ts"]);
 
     const explained = spawnSync(process.execPath, [cli, "explain", "--format", "jsonl", "foo.d.ts"], {
@@ -339,7 +339,7 @@ test("targets are invalid on structural rules", () => {
   }
 });
 
-test("aggregate cache membership follows the selector", () => {
+test("aggregate jobs rerun on current inputs", () => {
   const root = repository();
   try {
     rmSync(path.join(root, "fixtures/beta"), { recursive: true, force: true });
@@ -358,10 +358,10 @@ export async function lint({ emit }) {
     );
 
     assert.match(lint(root, [], "first").stdout, /first/);
-    assert.match(lint(root, [], "second").stdout, /first/);
+    assert.match(lint(root, [], "second").stdout, /second/);
 
     write(root, "fixtures/beta/schema.sql", "-- beta schema\n");
-    assert.match(lint(root, [], "third").stdout, /first/);
+    assert.match(lint(root, [], "third").stdout, /third/);
 
     write(root, "fixtures/beta/queries.sql", "-- beta queries\n");
     assert.match(lint(root, [], "fourth").stdout, /fourth/);

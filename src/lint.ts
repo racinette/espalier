@@ -1,15 +1,12 @@
 // `espalier lint`. docs/cli/lint/README.MD.
 
-import { readFileSync } from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
-import { dependencies, listing, open as openCache, stored, type Dependencies } from "./cache.js";
 import type { Constraint, StructuralRule } from "./compile.js";
 import { loadConfig } from "./config.js";
-import { createEmit, within } from "./context.js";
-import { fail, OperationalError } from "./errors.js";
-import { matchGlob } from "./files.js";
-import { startImplementations, type ImplementationObserver } from "./implementation.js";
+import { fail } from "./errors.js";
+import { startImplementations } from "./implementation.js";
+import { prepareAddons, snapshot, type Invocation, type Job } from "./execution.js";
+import { jobLimit, runJobs, type Jobs } from "./workers.js";
 import { admitConstraint, admissionGlobs, issuePattern } from "./targets.js";
 import { isOwnership, requirements, type CaptureValue } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
@@ -23,64 +20,7 @@ export interface LintOptions {
   paths: string[];
   rule: string | undefined;
   ruleText: boolean;
-  /** Opt into persistent findings caching with `--cache`. */
-  cache: boolean;
-}
-
-async function startAddons(
-  repository: Repository,
-  implementations: ImplementationObserver,
-): Promise<{
-  addons: Record<string, unknown>;
-  dispose: () => Promise<void>;
-}> {
-  const { config } = repository;
-  if (config.addons === null) return { addons: {}, dispose: async () => {} };
-
-  const absolute = path.resolve(config.root, config.addons);
-  let module: { setup?: unknown; unobservedImplementationDependencies?: unknown };
-  try {
-    module = (await import(pathToFileURL(absolute).href)) as typeof module;
-  } catch (cause) {
-    fail("addons_import_failed", `addons module could not be imported: ${(cause as Error).message}`);
-  }
-  if (typeof module.setup !== "function") {
-    fail("addons_missing_setup", "the addons module must export a `setup` function");
-  }
-  const declared = module.unobservedImplementationDependencies;
-  if (
-    declared !== undefined &&
-    (!Array.isArray(declared) ||
-      declared.some(
-        (dependency) =>
-          typeof dependency !== "string" ||
-          dependency.length === 0 ||
-          dependency.startsWith("!") ||
-          path.isAbsolute(dependency) ||
-          dependency.split(/[\\/]/).includes(".."),
-      ))
-  ) {
-    fail(
-      "addons_invalid_export",
-      "the addons module's `unobservedImplementationDependencies` must be an array of non-empty relative positive glob strings",
-    );
-  }
-  implementations.declare((declared ?? []) as string[]);
-
-  let addons: Record<string, unknown>;
-  try {
-    addons = (await (module.setup as () => unknown)()) as Record<string, unknown>;
-  } catch (cause) {
-    fail("addons_setup_failed", `addons setup threw: ${(cause as Error).message}`);
-  }
-
-  return {
-    addons: addons ?? {},
-    dispose: async () => {
-      const disposer = (addons as Record<symbol, unknown>)[Symbol.asyncDispose];
-      if (typeof disposer === "function") await (disposer as () => unknown).call(addons);
-    },
-  };
+  jobs?: Jobs;
 }
 
 /**
@@ -92,13 +32,14 @@ async function startAddons(
  * different root. A child the scope does not reach is not run at all.
  */
 export async function lint(options: LintOptions, reporter: Reporter): Promise<number> {
+  const limit = jobLimit(options.jobs);
   const config = loadConfig(options.config, options.cwd);
-  const implementations = startImplementations(config.root, config.espalierRoot, config.addons, options.cache);
+  const implementations = startImplementations(config.root, config.espalierRoot, config.addons);
   let repository: Repository;
   let here: number;
   try {
     repository = await openConfig(config);
-    here = await lintOne(repository, { ...options, paths: options.paths }, reporter, implementations);
+    here = await lintOne(repository, { ...options, paths: options.paths }, reporter, limit);
   } finally {
     implementations.close();
   }
@@ -122,7 +63,7 @@ async function lintOne(
   repository: Repository,
   options: LintOptions,
   reporter: Reporter,
-  implementations: ImplementationObserver,
+  limit: number,
 ): Promise<number> {
   const { config, espalier } = repository;
 
@@ -218,127 +159,18 @@ async function lintOne(
       });
   }
 
-  if (options.cache) {
-    const declaredModules = new Set<StructuralRule["module"]>();
-    const collect = (node: (typeof espalier)["root"]): void => {
-      if (node.rule !== null) declaredModules.add(node.rule.module);
-      for (const child of node.children.values()) collect(child);
-    };
-    collect(espalier.root);
-    for (const constraint of espalier.constraints) declaredModules.add(constraint.module);
-    for (const module of declaredModules) {
-      implementations.declare(module.unobservedImplementationDependencies);
-    }
-  }
-
-  const { addons, dispose } = await startAddons(repository, implementations);
-
-  const globOf = (pattern: string): string =>
-    listing(repository.visible.filter((target) => matchGlob(pattern, target)));
-
-  const cache = options.cache ? openCache(config, globOf, implementations) : null;
-
-  // What the invocation currently running has looked at. Rules run one at a
-  // time, so one slot is enough; it is null while nothing is running, and the
-  // context functions belong to whichever invocation is holding it.
-  let watching: Dependencies | null = null;
-
-  const contents = new Map<string, string>();
-  const readFile = async (target: string, whose: string): Promise<string> => {
-    const normalized = within(target, whose);
-    // Reads and listings share one governed file set.
-    if (!repository.visibleSet.has(normalized)) {
-      fail(
-        "read_ungoverned",
-        `${whose}: "${normalized}" is not among the files this espalier governs — ignored, invisible, or absent`,
-      );
-    }
-    watching?.reads.add(normalized);
-    const cached = contents.get(normalized);
-    if (cached !== undefined) return cached;
-    let text: string;
-    try {
-      text = readFileSync(path.join(config.root, normalized), "utf8");
-    } catch (cause) {
-      fail("read_failed", `${whose}: could not read "${normalized}": ${(cause as Error).message}`);
-    }
-    contents.set(normalized, text);
-    return text;
-  };
-
-  const listFiles = async (pattern: string): Promise<string[]> => {
-    const found = repository.visible.filter((target) => matchGlob(pattern, target));
-    watching?.globs.set(pattern, listing(found));
-    return found;
-  };
-
-  const invoke = async (
-    modulePath: string,
-    module: StructuralRule["module"],
-    pattern: string,
-    target: string,
-    captures: Record<string, CaptureValue>,
-  ): Promise<void> => {
-    if (options.rule !== undefined && options.rule !== modulePath) return;
-
-    // Everything an issue carries beyond what `emit` was given is derived from
-    // the module and the match, and both are pinned by the cache's key, so a
-    // replayed issue is the issue the rule would have emitted again.
-    const derived = {
-      rule: modulePath,
-      pattern,
-      captures,
-      ruleText: options.ruleText ? module.rule : null,
-      description: module.description,
-      referenceImplementation: module.referenceImplementation,
-    };
-
-    const replayed = cache?.replay(modulePath, pattern, target) ?? null;
-    if (replayed !== null) {
-      for (const issue of replayed) record({ ...issue, ...derived });
-      return;
-    }
-
-    const produced: ReturnType<typeof stored>[] | null = cache === null ? null : [];
-    const emit = createEmit({
-      modulePath,
-      pattern,
-      path: target,
-      captures,
-      ruleText: options.ruleText ? module.rule : null,
-      description: module.description,
-      referenceImplementation: module.referenceImplementation,
-      record: (issue) => {
-        produced?.push(stored(issue));
-        record(issue);
-      },
-    });
-
-    const watched = cache === null ? null : dependencies();
-    watching = watched;
-    try {
-      await module.lint({
-        path: target,
-        pattern,
-        captures,
-        read: (where?: string) => readFile(where ?? target, modulePath),
-        files: listFiles,
-        emit,
-        addons,
-      });
-    } catch (cause) {
-      if (cause instanceof OperationalError) throw cause;
-      // A rule that throws is a bug in the rule, not a finding about the
-      // repository.
-      fail("rule_threw", `${modulePath} threw while linting ${target}: ${(cause as Error).message}`);
-    } finally {
-      watching = null;
-    }
-
-    if (watched !== null && produced !== null) {
-      cache?.record(modulePath, pattern, target, watched, produced);
-    }
-  };
+  const sources = snapshot(config.root, repository.visible);
+  const addon = config.addons === null ? null : path.resolve(config.root, config.addons);
+  const prepared = await prepareAddons(addon, sources);
+  const jobs: Job[] = [];
+  const invocation = (
+    modulePath: string, module: StructuralRule["module"], pattern: string,
+    target: string, captures: Record<string, CaptureValue>,
+  ): Invocation => ({
+    modulePath, pattern, path: target, captures,
+    ruleText: options.ruleText ? module.rule : null,
+    description: module.description, referenceImplementation: module.referenceImplementation,
+  });
 
   interface AggregateInvocation {
     modulePath: string;
@@ -395,81 +227,6 @@ async function lintOne(
       return [...aggregate.matches.keys()].some((target) => pathsIntersect(entry, target));
     });
 
-  const invokeAggregate = async (aggregate: AggregateInvocation): Promise<void> => {
-    if (options.rule !== undefined && options.rule !== aggregate.modulePath) return;
-    if (!aggregateInScope(aggregate)) return;
-
-    const patterns = [...new Set(aggregate.constraints.flatMap((constraint) => admissionGlobs(constraint)))].sort(
-      (left, right) => left.localeCompare(right),
-    );
-    const pattern = issuePattern(patterns);
-    const target = aggregate.prefix === "" ? "." : `${aggregate.prefix}/`;
-    const captures: Record<string, CaptureValue> = {};
-    const derived = {
-      rule: aggregate.modulePath,
-      pattern,
-      captures,
-      ruleText: options.ruleText ? aggregate.module.rule : null,
-      description: aggregate.module.description,
-      referenceImplementation: aggregate.module.referenceImplementation,
-    };
-
-    const membership = cache === null ? undefined : listing([...aggregate.matches.keys()].sort());
-    const replayed = cache?.replay(aggregate.modulePath, pattern, target, membership) ?? null;
-    if (replayed !== null) {
-      for (const issue of replayed) record({ ...issue, ...derived });
-      return;
-    }
-
-    const produced: ReturnType<typeof stored>[] | null = cache === null ? null : [];
-    const emit = createEmit({
-      modulePath: aggregate.modulePath,
-      pattern,
-      path: target,
-      captures,
-      ruleText: options.ruleText ? aggregate.module.rule : null,
-      description: aggregate.module.description,
-      referenceImplementation: aggregate.module.referenceImplementation,
-      record: (issue) => {
-        produced?.push(stored(issue));
-        record(issue);
-      },
-    });
-
-    const watched = cache === null ? null : dependencies();
-    if (watched !== null) watched.membership = membership;
-    watching = watched;
-    try {
-      await aggregate.module.lint({
-        matches: [...aggregate.matches.values()].sort((left, right) => left.path.localeCompare(right.path)),
-        patterns,
-        read: (where?: string) => {
-          if (where === undefined) {
-            fail("read_failed", `${aggregate.modulePath}: an aggregate constraint must name the file to read`);
-          }
-          return readFile(where, aggregate.modulePath);
-        },
-        files: listFiles,
-        emit,
-        addons,
-      });
-    } catch (cause) {
-      if (cause instanceof OperationalError) throw cause;
-      fail(
-        "rule_threw",
-        `${aggregate.modulePath} threw while linting aggregate ${pattern}: ${(cause as Error).message}`,
-      );
-    } finally {
-      watching = null;
-    }
-
-    // An aggregate's target is where its issues default, not an input. Its
-    // selected membership is recorded separately from explicit files() calls.
-    if (watched !== null && produced !== null) {
-      cache?.record(aggregate.modulePath, pattern, target, watched, produced, false);
-    }
-  };
-
   const applicable = (target: string): { constraint: Constraint; captures: Record<string, CaptureValue> }[] =>
     espalier.constraints.flatMap((constraint) => {
       if (constraint.module.aggregate) return [];
@@ -477,24 +234,26 @@ async function lintOne(
       return captures === null ? [] : [{ constraint, captures }];
     });
 
-  try {
-    for (const file of owned) {
-      await invoke(file.rule.modulePath, file.rule.module, file.rule.pattern, file.path, file.captures);
-
-      // Every constraint whose pattern matches runs, in addition to the
-      // structural owner — but only on a file that has one.
-      for (const { constraint, captures } of applicable(file.path)) {
-        await invoke(constraint.modulePath, constraint.module, constraint.pattern, file.path, captures);
-      }
+  for (const file of owned) {
+    const job: Job = [invocation(file.rule.modulePath, file.rule.module, file.rule.pattern, file.path, file.captures)];
+    for (const { constraint, captures } of applicable(file.path)) {
+      job.push(invocation(constraint.modulePath, constraint.module, constraint.pattern, file.path, captures));
     }
-    for (const aggregate of aggregates.values()) await invokeAggregate(aggregate);
-  } finally {
-    await dispose();
+    const selected = job.filter((item) => options.rule === undefined || options.rule === item.modulePath);
+    if (selected.length > 0) jobs.push(selected);
   }
-
-  // Only a run that saw everything may drop what it did not see. A run that
-  // failed does not get here at all: half a work list is not a record of one.
-  cache?.write(scope === null && options.rule === undefined);
+  for (const aggregate of aggregates.values()) {
+    if (options.rule !== undefined && options.rule !== aggregate.modulePath) continue;
+    if (!aggregateInScope(aggregate)) continue;
+    const patterns = [...new Set(aggregate.constraints.flatMap((constraint) => admissionGlobs(constraint)))].sort();
+    const target = aggregate.prefix === "" ? "." : `${aggregate.prefix}/`;
+    jobs.push([{
+      ...invocation(aggregate.modulePath, aggregate.module, issuePattern(patterns), target, {}),
+      patterns,
+      matches: [...aggregate.matches.values()].sort((left, right) => left.path.localeCompare(right.path)),
+    }]);
+  }
+  await runJobs({ ruleRoot: path.resolve(config.root, config.espalierRoot), addon, prepared, sources }, jobs, limit, record);
 
   if (scope !== null) {
     reporter.warning(

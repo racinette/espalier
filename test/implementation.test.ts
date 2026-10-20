@@ -1,5 +1,5 @@
-// Implementation loading without caching, and source-path recovery for loaders.
-// docs/CACHE.MD "Implementation dependencies".
+// Fresh coordinator module loading and source-path recovery for loaders.
+// docs/API.MD "check".
 //
 // tsx (and similar CJS interop) can stuff query identity into the pathname
 // as `%3F…`. That is not a filesystem path. The recovery must work whether
@@ -13,7 +13,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { implementationFile, startImplementations } from "../src/implementation.js";
 
-test("uncached sessions reload transitive helpers without collecting a dependency manifest", async () => {
+test("coordinator sessions reload transitive helpers with shared identity within a run", async () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-implementation-"));
   try {
     mkdirSync(path.join(root, "espalier"));
@@ -24,18 +24,12 @@ test("uncached sessions reload transitive helpers without collecting a dependenc
     writeFileSync(path.join(root, "helper.mjs"), 'import { answer } from "./deep.mjs";\nexport const shared = { answer };\n');
     for (const answer of ["first", "changed"]) {
       writeFileSync(path.join(root, "deep.mjs"), `export const answer = ${JSON.stringify(answer)};\n`);
-      const session = startImplementations(root, "espalier", null, false);
+      const session = startImplementations(root, "espalier", null);
       try {
-        session.declare(["support/**/*.wasm"]);
         const a = await import(pathToFileURL(path.join(root, "espalier", "a.mjs")).href);
         const b = await import(pathToFileURL(path.join(root, "espalier", "b.mjs")).href);
         assert.equal(a.shared.answer, answer);
         assert.equal(a.shared, b.shared, "helpers must remain singletons within a run");
-        const manifest = session.snapshot();
-        assert.equal(manifest.files.size, 0);
-        assert.equal(manifest.edges.size, 0);
-        assert.equal(manifest.globs.size, 0);
-        assert.deepEqual(manifest.conditions, []);
       } finally {
         session.close();
       }

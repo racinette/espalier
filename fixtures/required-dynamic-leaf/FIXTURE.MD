@@ -13,5 +13,5 @@ Static descendants under an instance still require a member, while an absent
 dynamic directory does not need an instance. An extension-list member satisfies
 the collection regardless of which admitted extension it uses.
 
-The warm run adds a root member and removes exactly that missing-match finding.
+The second run adds a root member and removes exactly that missing-match finding.
 The generated map distinguishes one-or-more and zero-or-more collections.

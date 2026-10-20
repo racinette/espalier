@@ -48,10 +48,10 @@ test("help prints a packed page verbatim", () => {
   }
 });
 
-test("help cache prints the optional findings-cache contract", () => {
+test("help no longer advertises a findings-cache page", () => {
   const printed = run(os.tmpdir(), ["help", "cache"]);
-  assert.equal(printed.status, 0, printed.stderr);
-  assert.equal(printed.stdout, readFileSync(path.join(PACKAGE_ROOT, "docs", "CACHE.MD"), "utf8"));
+  assert.equal(printed.status, 2);
+  assert.match(printed.stderr, /unknown help page/);
 });
 
 test("an unknown help page names itself and prints the catalog", () => {

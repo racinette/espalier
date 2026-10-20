@@ -20,7 +20,7 @@ espalier lint [paths...]
   --rule <module>       run one rule module only
   --config <path>       use this config file instead of discovering one
   --no-rule-text        omit rule bodies from output
-  --cache               reuse findings whose recorded inputs are unchanged
+  --jobs <n|auto>       maximum workers (default: auto)
 ```
 
 ## What it does
@@ -87,11 +87,36 @@ Use an unscoped run to establish repository conformance. A scoped run only estab
 
 There is no `--staged`. A hook that genuinely wants a narrow run already knows which files it is about to commit, and passing them as arguments is one shell substitution — `espalier lint $(git diff --name-only --cached)`. Building that into the tool would have meant a git-index dependency, a flag whose behaviour nobody could pin without making fixtures into git repositories, and a second spelling of scoping that already exists.
 
-## Caching
+## Parallel execution
 
-Every applicable rule runs by default. `--cache` enables optional persistent
-findings caching. See [CACHE.MD](../../CACHE.MD) (`espalier help cache`) for
-when it helps and the additional dependency requirements.
+`--jobs auto` uses up to four workers, bounded by available CPU parallelism and
+the number of jobs. `--jobs N` accepts a positive safe integer and caps the
+worker pool at N; `--jobs 1` uses the same worker lifecycle with serial execution.
+The API spelling is `check({ jobs: N })` or `check({ jobs: "auto" })`.
+
+The coordinator resolves ownership, captures a governed source snapshot, and
+awaits addon preparation. It starts only the workers needed for the selected
+jobs, with one worker even when there are no jobs so the addon lifecycle remains
+well-defined. All worker setups finish before checks start.
+
+One file and its applicable structural/per-file rules form a job. Each aggregate
+is one job containing its complete selected match set. Free workers take the next
+job from the queue. Rules and their context API remain unchanged; rules must not
+rely on worker assignment or invocation order. Findings are reported centrally
+as they arrive. The issue set is independent of the worker count; stream order
+is unspecified. Duplicate suppression remains local to each invocation.
+
+Nested projects run in turn, each with separate preparation and worker-local
+addons. Their pools do not overlap, so the job limit bounds the whole command.
+An initialization failure prevents all lint jobs in that project. An execution
+failure stops dispatch, allows active jobs to finish, disposes initialized
+addons, and fails the project. An unexpected worker exit is an operational
+failure, including exit code zero. Successful results from a partial failed run
+are not a conformance claim.
+
+Every selected check executes on every run. No persistent findings cache is
+read or written. `--cache` is not an accepted option. Per-run source snapshots
+and addon analysis reuse do not persist findings between runs.
 
 ## Nested espaliers
 
@@ -238,7 +263,7 @@ Omitted defaults and their explicit equivalents describe the same finding.
 Different locations, severities, or metadata remain distinct. Separate rules
 and separate invocations keep their findings, even when the reported fields
 agree: their matches and captures can carry different meaning. The same
-behavior applies to per-file and aggregate rules, cached runs, and the API.
+behavior applies to per-file and aggregate rules, every worker count, and the API.
 
 Presentation is the formatter's business, and formatters may buffer. `human`
 groups by path and rule identity. `jsonl` does not reorder or group anything;

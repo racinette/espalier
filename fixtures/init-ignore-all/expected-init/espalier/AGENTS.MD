@@ -348,9 +348,11 @@ depend on findings or mutable state left by other rules. Shared parser or
 addon infrastructure may memoize analysis for identical inputs when every
 answer agrees with a fresh computation.
 
-Every applicable rule runs by default. Persistent findings caching is opt-in
-with `--cache`. Authors enabling it should read `espalier help cache` for
-tracked inputs, implementation dependencies, and safe reuse of shared analysis.
+Every selected rule executes on every run. `--jobs` controls the worker pool;
+rule results must not depend on worker assignment. An addon may `prepare`
+cloneable data once from the full governed input snapshot, then `setup` local
+services in each worker. All setups finish before linting starts. See
+`espalier help config` for the preparation context and addon lifetime.
 
 ## Adapting examples
 

@@ -34,8 +34,6 @@ keep the first kind that was buried in it.
     │
     ├─ AUTHORING.MD  how to write a rule module (required)
     │
-    ├─ CACHE.MD      optional persistent findings caching (required)
-    │
     ├─ CONFIG.MD     the configuration file and the ignore list (required)
     │
     ├─ ERRORS.MD     every operational failure and what it means (required)
@@ -57,12 +55,6 @@ into `espalier/AGENTS.MD`, and to `espalier help` and `espalier examples`
 for this CLI version's reference and worked tree. The four questions, the
 policy/helper split, and shared analysis live in that contract, not as a
 second copy here.
-
-## `CACHE.MD` — optional persistent findings caching
-
-Explains when findings caching helps, how to enable it, and the
-dependency requirements for correct replay. Cache-specific authoring details
-belong here so ordinary rule authoring remains simple.
 
 ## `CONFIG.MD` — the configuration file and the ignore list
 

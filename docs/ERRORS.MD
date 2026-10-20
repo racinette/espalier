@@ -93,8 +93,7 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | Code | |
 |---|---|
 | `addons_import_failed` | the addons module threw while being imported |
-| `addons_missing_setup` | it exports no `setup` function |
-| `addons_invalid_export` | its `unobservedImplementationDependencies` export is malformed |
+| `addons_invalid_export` | a prepare/setup hook is not a function, or setup returns something other than an object |
 | `addons_setup_failed` | `setup` threw. Nothing is linted |
 
 ## Command-specific
@@ -133,4 +132,15 @@ is retained with only the coordinates that could be established.
 |---|---|
 | `internal_error` | a bug in `espalier`. The stack trace is reported; please open an issue |
 
-The cache adds no codes. Every way it can fail — missing, unreadable, unwritable, corrupt, or written by a version that no longer applies — is answered by discarding it and doing the work, because a linter that fails over its own bookkeeping is worse than a slow one. See [CACHE.MD](CACHE.MD).
+
+## Parallel execution
+
+| Code | Meaning |
+| --- | --- |
+| `invalid_jobs` | jobs is not a positive safe integer or auto |
+| `addons_prepare_failed` | addon preparation threw |
+| `addons_invalid_prepared` | preparation returned data that cannot be cloned to workers |
+| `addons_dispose_failed` | worker-local addon disposal threw |
+| `worker_failed` | a worker could not start, crashed, or exited before completing its protocol |
+
+| `invalid_check_options` | programmatic check was passed the unsupported cache option |

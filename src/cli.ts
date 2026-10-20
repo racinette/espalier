@@ -63,7 +63,7 @@ const USAGE = `espalier <command> [options]
   lint only:
   --rule <module>       run one rule module only
   --no-rule-text        omit rule bodies from output
-  --cache               reuse findings whose recorded inputs are unchanged
+  --jobs <n|auto>       maximum workers (default: auto)
 
   explain only:
   --concise             show a human summary without authored prose
@@ -150,7 +150,7 @@ async function main(): Promise<number> {
         "dry-run": { type: "boolean" },
         rule: { type: "string" },
         "no-rule-text": { type: "boolean" },
-        cache: { type: "boolean" },
+        ...(command === "lint" ? { jobs: { type: "string" as const } } : {}),
         ...(command === "explain" ? { concise: { type: "boolean" as const } } : {}),
       },
     }) as { values: Record<string, unknown>; positionals: string[] });
@@ -248,7 +248,8 @@ async function main(): Promise<number> {
         paths: positionals,
         rule: values["rule"] as string | undefined,
         ruleText: values["no-rule-text"] !== true,
-        cache: values["cache"] === true,
+        jobs: values["jobs"] === undefined || values["jobs"] === "auto" ? "auto"
+          : /^\d+$/.test(String(values["jobs"])) ? Number(values["jobs"]) : NaN,
       },
       reporter,
     );

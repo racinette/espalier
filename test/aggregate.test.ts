@@ -42,7 +42,7 @@ export async function lint({ matches, emit, files }) {
 }
 
 function aggregateMessage(root: string, token: string): string {
-  const result = spawnSync(process.execPath, [cli, "lint", "--cache", "--format", "jsonl"], {
+  const result = spawnSync(process.execPath, [cli, "lint", "--format", "jsonl"], {
     cwd: root,
     encoding: "utf8",
     env: { ...process.env, ESPALIER_TEST_TOKEN: token },
@@ -127,11 +127,11 @@ test("aggregate is valid only as a boolean on constraints", async () => {
   }
 });
 
-test("aggregate cache entries depend on group membership", () => {
+test("aggregate jobs evaluate current group membership", () => {
   const root = repository();
   try {
     assert.equal(aggregateMessage(root, "first"), "1:first");
-    assert.equal(aggregateMessage(root, "second"), "1:first", "the aggregate was not replayed");
+    assert.equal(aggregateMessage(root, "second"), "1:second", "every invocation must execute");
     write(root, "b.json", "{}\n");
     assert.equal(aggregateMessage(root, "third"), "2:third");
   } finally {
@@ -139,17 +139,16 @@ test("aggregate cache entries depend on group membership", () => {
   }
 });
 
-// Output alone cannot distinguish replay from rerunning this pure count.
-// The test token makes execution observable without changing the rule source.
-test("aggregate cache membership uses exact selectors, not admission globs", () => {
+// Tokens make fresh execution observable while checking exact membership.
+test("aggregate jobs use exact selectors, not admission globs", () => {
   const root = repository("ts");
   try {
     write(root, "espalier/[name].d.ts.mjs", 'export const description = "a declaration";\nexport const rule = "Declare public types.";\nexport async function lint() {}\n');
     assert.equal(aggregateMessage(root, "cold"), "1:cold");
     write(root, "b.d.ts", "export {};\n");
-    assert.equal(aggregateMessage(root, "excluded-added"), "1:cold");
+    assert.equal(aggregateMessage(root, "excluded-added"), "1:excluded-added");
     rmSync(path.join(root, "b.d.ts"));
-    assert.equal(aggregateMessage(root, "excluded-removed"), "1:cold");
+    assert.equal(aggregateMessage(root, "excluded-removed"), "1:excluded-removed");
     write(root, "b.ts", "export {};\n");
     assert.equal(aggregateMessage(root, "selected-added"), "2:selected-added");
     rmSync(path.join(root, "b.ts"));
@@ -157,7 +156,7 @@ test("aggregate cache membership uses exact selectors, not admission globs", () 
     rmSync(path.join(root, "a.ts"));
     assert.equal(aggregateMessage(root, "empty"), "0:empty");
     write(root, "c.d.ts", "export {};\n");
-    assert.equal(aggregateMessage(root, "empty-excluded"), "0:empty");
+    assert.equal(aggregateMessage(root, "empty-excluded"), "0:empty-excluded");
     write(root, "c.ts", "export {};\n");
     assert.equal(aggregateMessage(root, "nonempty"), "1:nonempty");
   } finally {
@@ -172,7 +171,7 @@ test("aggregate explicit files dependencies still use glob semantics", () => {
     assert.equal(aggregateMessage(root, "cold"), "1:cold");
     write(root, "b.d.ts", "export {};\n");
     assert.equal(aggregateMessage(root, "listed-added"), "1:listed-added");
-    assert.equal(aggregateMessage(root, "warm"), "1:listed-added");
+    assert.equal(aggregateMessage(root, "warm"), "1:warm");
     rmSync(path.join(root, "b.d.ts"));
     assert.equal(aggregateMessage(root, "listed-removed"), "1:listed-removed");
   } finally {

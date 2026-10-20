@@ -14,13 +14,8 @@ import { check, OperationalError, runAggregate, runRule } from "../src/api.js";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(here, "..", "..", "fixtures");
 
-/**
- * Fixtures are inputs and are never written into, so these runs do not cache.
- * `check` does not cache by default, like the CLI it shares a runner with;
- * opt-in replay is covered by test/cache.test.ts, against repositories it builds
- * itself and then throws away.
- */
-const cold: typeof check = (options) => check({ ...options, cache: false });
+// Rule invocations are evaluated afresh on every check.
+const cold: typeof check = check;
 
 async function rejects(run: () => Promise<unknown>, code: string): Promise<void> {
   await assert.rejects(run, (error: unknown) => {
@@ -277,14 +272,14 @@ test("runRule rejects something that is not a rule module", async () => {
   await rejects(() => runRule({ rule: "anything" } as never, { path: "a.ts" }), "module_missing_export");
 });
 
-test("runRule validates unobserved implementation dependency declarations", async () => {
+test("runRule rejects unsupported persistent-cache declarations", async () => {
   await rejects(
     () =>
       runRule(
         {
           rule: "anything",
           lint() {},
-          unobservedImplementationDependencies: ["../outside.wasm"],
+          ...{ unobservedImplementationDependencies: ["../outside.wasm"] },
         },
         { path: "a.ts" },
       ),

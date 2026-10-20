@@ -206,7 +206,7 @@ skip:
 matches at every depth. Dot-prefixed names follow the same rules as other names.
 
 Omitting `skip` is an error. `[]` means no configured exclusions. The root
-`.cache/` directory remains reserved for Espalier's lint cache. See [migrate](cli/migrate/README.MD) for upgrading existing configurations. A current config's list is left
+`.cache/` directory remains reserved for Espalier's bookkeeping. See [migrate](cli/migrate/README.MD) for upgrading existing configurations. A current config's list is left
 alone. A customized authoring file (shipped sentinel removed) is left alone.
 
 **Inspected grammar cannot be individually skipped.** A pattern hiding a
@@ -327,46 +327,64 @@ A path the rules exclude is never read, so it never fails this way. For a direct
 
 ## `addons`
 
-A path to a module providing shared resources to every `lint` function, exposed as `context.addons`.
+A path to a module providing shared preparation and worker-local resources.
+The object returned by `setup` becomes each rule's `context.addons`.
 
 ```js
-// espalier.addons.mjs
-export async function setup() {
-  const parser = await startGoParser();
+export async function prepare({ files, read }) {
+  const paths = await files("src/**/*.ts");
+  const sources = await Promise.all(paths.map(async path => [path, await read(path)]));
+  return { graph: buildGraph(sources) };
+}
+
+export async function setup(prepared) {
+  const graph = createGraphReader(prepared.graph);
   return {
-    parseGo: (source) => parser.parse(source),
-    [Symbol.asyncDispose]: () => parser.stop(),
+    graph,
+    [Symbol.asyncDispose]() { graph.close(); },
   };
 }
 ```
 
-An addon may export `unobservedImplementationDependencies` for optional
-persistent findings caching. The declaration is validated in every run;
-its patterns are expanded only with `--cache`. See [CACHE.MD](CACHE.MD#implementation-dependencies).
+Both hooks are optional functions. The unsupported
+`unobservedImplementationDependencies` export is rejected. `prepare(context)` runs once per project
+in the coordinator. Its context has `files(pattern)` and `read(path)`, both
+asynchronous and limited to the full governed project, including for scoped
+lint runs. Paths are project-relative. There is no current file, captures,
+`emit`, or addon object during preparation. Rules own policy and findings.
 
-`setup` runs once before any rule, the returned object is passed to every `lint` invocation, and disposal runs after the run completes — including when it fails. A `setup` that throws is an operational failure: `espalier` exits `2` and lints nothing.
+Preparation and lint use the same input snapshot. The result of `prepare`
+must support structured cloning. Workers receive separate copies of ordinary
+objects; `SharedArrayBuffer` storage is shared. Treat prepared data as immutable.
+No serialization is required of the object returned by `setup`: it remains
+local to its worker and may contain functions, compiler instances and handles.
+Without `prepare`, `setup` receives `undefined`; without `setup`, rules receive
+an empty addon object.
 
-Use an addon to own a resource shared for one lint run: an in-process
-TypeScript program, a parser in a worker, or a language-server process.
-The distinction is ownership and lifetime, not a process boundary. Import
-ordinary packages and stateless helpers directly. An addon can import
-TypeScript normally while owning the expensive compiler instances built with it.
+Each participating worker calls `setup(prepared)` once. All workers must finish
+setup successfully before any lint invocation starts. Within a worker, jobs run
+sequentially and share its addon object. Different workers execute in parallel.
+Addon answers must not depend on job assignment, previous calls, or rule order.
+Cheap initialization belongs in `setup`; expensive transferable analysis belongs
+in `prepare`. Live compiler instances that cannot be cloned remain worker-local.
 
-`setup` owns the returned resource until disposal. Construct expensive programs
-lazily when a rule supplies source contents and compiler settings; some runs
-never need them. Reuse analysis for identical inputs, while keeping policy
-choices and findings in the owning rules. Disposal releases retained programs,
-snapshots, workers, and other resources.
+Disposal runs after each worker finishes, including when a rule or another
+worker fails. Espalier awaits `Symbol.asyncDispose`, or calls `Symbol.dispose`
+when there is no asynchronous disposer. Setup owns resources until it returns;
+a setup that throws must release resources it acquired before throwing.
+Preparation should return data rather than retain resources needing disposal.
+After disposal settles, the worker is terminated so leftover handles cannot
+keep the command alive. A disposal failure is still reported.
 
-Each programmatic `check` and each nested espalier has a separate setup/disposal
-pair. A module-global memo cannot provide that lifetime: it can outlive a run
-and retain another repository's source. Keep run-owned state in the object
-created by `setup`. Tests using `runRule` or `runAggregate` instead supply their
-own addon and explicitly dispose it; these functions do not manage its lifetime.
+Each nested project and each programmatic `check` has its own preparation and
+worker lifetime. No addon state survives between projects or runs. Tests using
+`runRule` or `runAggregate` still supply and dispose their own addon objects.
 
-The object must be safe for concurrent use by many rules in unspecified order. Internal state is fine — a parser is stateful — but nothing a rule does through an addon may change what another rule sees.
-
-**An addon must not read the repository.** A parser handed a path opens lint data outside the rule context. Hand it contents, as the example does. Declaring the parser's own support files as implementation dependencies does not make arbitrary repository reads valid. See [TYPES.MD](TYPES.MD#execution).
+Read repository inputs through the supplied context and pass contents to helpers.
+Neither preparation helpers nor worker addons should open governed source files
+independently: that would bypass the run's consistent input snapshot. Import
+ordinary implementation packages directly. Files those packages need to execute,
+such as compiler libraries, remain their own implementation resources.
 
 ## `build`
 

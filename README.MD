@@ -369,7 +369,11 @@ async function lint({ matches, patterns, read, emit }) {
 
 Rules execute independently, in unspecified order. Read governed repository data through `read` and `files`, and pass contents to helpers and addons. Shared analysis may memoize identical inputs when answers remain independent of rule order and previous calls.
 
-Every applicable rule runs by default. `espalier lint --cache` enables optional persistent findings caching; see [docs/CACHE.MD](docs/CACHE.MD) (`espalier help cache`) for when it helps and its dependency requirements.
+Every selected rule runs on each invocation. `espalier lint --jobs auto` uses a
+bounded worker pool; `--jobs 1` selects serial execution. Addons can prepare
+shared data once and initialize local services in each worker. See
+[parallel execution](docs/cli/lint/README.MD#parallel-execution) and
+[addons](docs/CONFIG.MD#addons).
 
 ## The project layout
 

@@ -55,7 +55,8 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 **`env`** — environment the lint run is given, on top of the harness's own. Only an impure rule has any use for it, and only one fixture family has a use for an impure rule: warm and cold output are identical by design, so a token the runner cannot see is the only way a skipped rule becomes visible.
 
-**`again`** — a second `lint --cache` over the same copy, after something changed. The first run also enables caching. Only an incremental run has anything to say here; a fixture that reran without a cache would be asserting that the same input gives the same answer.
+**`again`** — a fresh lint over the same copy after files or environment change.
+The second run evaluates its current inputs independently of the first.
 
 ```json
 "again": {
@@ -250,11 +251,6 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `adopt-root-target` | the root has no name to singularise, and no empty path segment |
 | `adopt-into-child` | a target inside a child is adopted by the child's espalier |
 | `adopt-named-after-directory` | a file named for its directory becomes `{client}.ts`, not three optional leaves |
-| `lint-cache-replay` | an unchanged file is not linted again |
-| `lint-cache-read-dependency` | a rule reruns when a file it read changed, and only that rule |
-| `lint-cache-glob-dependency` | a listing that gained a file reruns the rules that listed it |
-| `lint-cache-espalier-changed` | an edited espalier discards every entry, not the edited rule's |
-| `lint-cache-not-trusted` | a cache written against another espalier is discarded unread |
 | `read-ungoverned` | `read` refuses an ignored file, though it exists and is readable |
 | `symlink-governed` | a link is the file it points at: owned, listed by `files`, opened by `read` |
 | `symlink-cycle` | a link onto an ancestor is not followed, and nothing is reported twice |
@@ -264,7 +260,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `ignore-reinclude` | un-pruning a directory to re-include one committed file out of it |
 | `shipped-ignore-lists` | what `--lang` writes covers, and what it deliberately does not |
 | `authoring-corpus` | a structural owner, a per-file constraint, and an aggregate over mix and averages. The packed copy `espalier examples` prints is `examples/authoring-corpus/` |
-| `duplicate-findings` | identical emits collapse within one invocation, preserving distinct findings and cache replay |
+| `duplicate-findings` | identical emits collapse within one invocation, preserving distinct findings across repeated runs |
 
 ## Adding one
 

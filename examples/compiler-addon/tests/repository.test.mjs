@@ -11,7 +11,7 @@ const example = fileURLToPath(new URL("../", import.meta.url));
 const cli = fileURLToPath(new URL("./cli.js", import.meta.resolve("espalier")));
 const target = "src/features/counter/model.ts";
 
-// A few complete repositories test matching and persistent replay. Semantic
+// A few complete repositories test matching and fresh semantic execution. Semantic
 // counterexamples belong in the small virtual trees in compiler.test.mjs.
 function repository() {
   const root = mkdtempSync(path.join(os.tmpdir(), "compiler-repository-"));
@@ -48,61 +48,61 @@ test("matching rejects domain filenames; create builds a conforming feature", as
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("optional cache follows source contents, settings, membership, support, and implementations", async () => {
+test("fresh checks follow source contents, settings, membership, support, and implementations", async () => {
   const root = repository();
   let linked;
   const errors = (issues) => issues.filter((issue) => issue.code.startsWith("typescript_")).map((issue) => issue.code);
-  const cached = () => check({ cwd: root, paths: [target], cache: true });
+  const evaluate = () => check({ cwd: root, paths: [target], jobs: 2 });
   // Different sizes make each test edit observable even on coarse filesystems.
   try {
-    assert.deepEqual(await cached(), []);
-    assert.ok(existsSync(path.join(root, "espalier/.cache/lint.jsonl")));
-    assert.deepEqual(await cached(), []);
+    assert.deepEqual(await evaluate(), []);
+    assert.equal(existsSync(path.join(root, "espalier/.cache/lint.jsonl")), false);
+    assert.deepEqual(await evaluate(), []);
     write(root, "src/shared/count.ts", "export type Count = string; // changed dependency\n");
-    assert.ok(errors(await cached()).includes("typescript_2322"));
+    assert.ok(errors(await evaluate()).includes("typescript_2322"));
     write(root, "src/shared/count.ts", "export type Count = number;\n");
-    assert.deepEqual(await cached(), []);
+    assert.deepEqual(await evaluate(), []);
 
     write(root, target, "export function createModel(): number { return null; }\nexport function updateModel(value: number) { return value; }\n");
-    assert.ok(errors(await cached()).includes("typescript_2322"));
+    assert.ok(errors(await evaluate()).includes("typescript_2322"));
     write(root, "compiler.json", JSON.stringify({ compilerOptions: { strict: false, types: [], skipLibCheck: true } }));
-    assert.deepEqual(await cached(), []);
+    assert.deepEqual(await evaluate(), []);
 
     write(root, target, "export function createModel(): number { return FEATURE_READY; }\nexport function updateModel(value: number) { return value; }\n");
-    assert.ok(errors(await cached()).includes("typescript_2304"));
+    assert.ok(errors(await evaluate()).includes("typescript_2304"));
     write(root, "src/shared/globals.ts", "declare const FEATURE_READY: number;\n");
-    assert.deepEqual(await cached(), []);
+    assert.deepEqual(await evaluate(), []);
     rmSync(path.join(root, "src/shared/globals.ts"));
-    assert.ok(errors(await cached()).includes("typescript_2304"));
+    assert.ok(errors(await evaluate()).includes("typescript_2304"));
 
     write(root, "node_modules/example-types/package.json", '{"name":"example-types","types":"index.d.ts"}\n');
     write(root, "node_modules/example-types/index.d.ts", "export type Count = number;\n");
     write(root, target, 'import type { Count } from "example-types";\nexport function createModel(): Count { return 0; }\nexport function updateModel(value: Count): Count { return value; }\n');
-    assert.deepEqual(await cached(), []);
+    assert.deepEqual(await evaluate(), []);
     write(root, "node_modules/example-types/index.d.ts", "export type Count = string; // native support changed\n");
-    assert.ok(errors(await cached()).includes("typescript_2322"));
+    assert.ok(errors(await evaluate()).includes("typescript_2322"));
     write(root, "node_modules/example-types/alternate.d.ts", "export type Count = number;\n");
     write(root, "node_modules/example-types/package.json", '{"name":"example-types","types":"alternate.d.ts","version":"1.0.0"}\n');
-    assert.deepEqual(await cached(), []);
+    assert.deepEqual(await evaluate(), []);
 
     linked = mkdtempSync(path.join(os.tmpdir(), "compiler-linked-support-"));
     const logical = path.join(root, "node_modules/example-types");
     cpSync(logical, linked, { recursive: true });
     rmSync(logical, { recursive: true });
     symlinkSync(linked, logical, "dir");
-    assert.deepEqual(await cached(), []);
+    assert.deepEqual(await evaluate(), []);
     write(linked, "alternate.d.ts", "export type Count = string; // linked declaration changed\n");
-    assert.ok(errors(await cached()).includes("typescript_2322"));
+    assert.ok(errors(await evaluate()).includes("typescript_2322"));
     write(linked, "alternate.d.ts", "export type Count = number;\n");
-    assert.deepEqual(await cached(), []);
+    assert.deepEqual(await evaluate(), []);
 
     const helper = path.join(root, "analysis/snapshot.mjs");
     writeFileSync(helper, readFileSync(helper, "utf8").replace(
       'await context.read(file)',
       '(await context.read(file)).replace("return 0;", \'return "changed implementation";\')',
     ));
-    assert.ok(errors(await cached()).includes("typescript_2322"));
-    assert.deepEqual(errors(await cached()), errors(await check({ cwd: root, paths: [target] })));
+    assert.ok(errors(await evaluate()).includes("typescript_2322"));
+    assert.deepEqual(errors(await evaluate()), errors(await check({ cwd: root, paths: [target] })));
   } finally {
     rmSync(root, { recursive: true, force: true });
     if (linked) rmSync(linked, { recursive: true, force: true });

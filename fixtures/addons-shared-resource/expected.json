@@ -27,5 +27,9 @@
   },
   "stderr": [
     "addons disposed after 2 file(s)"
+  ],
+  "args": [
+    "--jobs",
+    "1"
   ]
 }

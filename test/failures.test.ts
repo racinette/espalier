@@ -402,10 +402,10 @@ export async function lint() {}
     config: "pin: 0.7.1\nroot: espalier\nignoreFiles: []\nskip: []\naddons: missing.addons.mjs\n",
   },
   {
-    what: "an addons module exporting no setup",
-    code: "addons_missing_setup",
+    what: "an addons module exporting a non-function setup",
+    code: "addons_invalid_export",
     config: "pin: 0.7.1\nroot: espalier\nignoreFiles: []\nskip: []\naddons: espalier.addons.mjs\n",
-    files: { "espalier.addons.mjs": "export const teardown = () => {};\n" },
+    files: { "espalier.addons.mjs": "export const setup = 42;\n" },
   },
   {
     what: "an addons module with malformed implementation dependencies",

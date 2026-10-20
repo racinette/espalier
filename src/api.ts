@@ -12,6 +12,9 @@ import { matchGlob } from "./files.js";
 import { lint as runLint } from "./lint.js";
 import type { CaptureValue } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
+import type { Jobs } from "./workers.js";
+export type { Jobs } from "./workers.js";
+export type { PrepareContext } from "./execution.js";
 import { templateDefinitionProblem } from "./template.js";
 
 export type { Issue } from "./output.js";
@@ -51,8 +54,8 @@ export interface CheckOptions {
   paths?: string[];
   /** Run one rule module only, by espalier-relative path. */
   rule?: string;
-  /** Opt into persistent findings caching. Defaults to false. */
-  cache?: boolean;
+  /** Maximum lint workers; defaults to auto. */
+  jobs?: Jobs;
 }
 
 /**
@@ -83,6 +86,7 @@ function collector(into: Issue[], failures: OperationalError[]): Reporter {
 
 /** Runs the same lint the CLI runs, over a real repository. docs/API.MD. */
 export async function check(options: CheckOptions): Promise<Issue[]> {
+  if ("cache" in options) fail("invalid_check_options", "cache is not supported; use jobs to control parallel execution");
   const issues: Issue[] = [];
   const failures: OperationalError[] = [];
   await runLint(
@@ -92,7 +96,7 @@ export async function check(options: CheckOptions): Promise<Issue[]> {
       paths: options.paths ?? [],
       rule: options.rule,
       ruleText: true,
-      cache: options.cache ?? false,
+      jobs: options.jobs ?? "auto",
     },
     collector(issues, failures),
   );
@@ -154,26 +158,6 @@ function validateTargets(targets: unknown, caller: string): void {
   }
 }
 
-function validateImplementationDependencies(dependencies: unknown, caller: string): void {
-  if (
-    dependencies !== undefined &&
-    (!Array.isArray(dependencies) ||
-      dependencies.some(
-        (dependency) =>
-          typeof dependency !== "string" ||
-          dependency.length === 0 ||
-          dependency.startsWith("!") ||
-          path.isAbsolute(dependency) ||
-          dependency.split(/[\\/]/).includes(".."),
-      ))
-  ) {
-    fail(
-      "module_invalid_export",
-      `${caller}: \`unobservedImplementationDependencies\` must be an array of non-empty relative positive glob strings`,
-    );
-  }
-}
-
 function validateTemplate(template: unknown, caller: string): void {
   if (template === undefined) return;
   const problem = templateDefinitionProblem(template);
@@ -191,11 +175,11 @@ export async function runRule(module: RuleModule, context: RuleContext): Promise
   if (module === null || typeof module !== "object") {
     fail("module_invalid_export", "runRule expects a rule module");
   }
+  if ("unobservedImplementationDependencies" in module) fail("module_invalid_export", "unobservedImplementationDependencies is not supported");
   if (typeof module.lint !== "function") {
     fail("module_missing_export", "the module must export a `lint` function");
   }
   validateTargets(module.targets, "runRule");
-  validateImplementationDependencies(module.unobservedImplementationDependencies, "runRule");
   validateTemplate(module.template, "runRule");
   if (module.aggregate !== undefined && typeof module.aggregate !== "boolean") {
     fail("module_invalid_export", "`aggregate` must be a boolean");
@@ -272,11 +256,11 @@ export async function runAggregate(
   if (module === null || typeof module !== "object") {
     fail("module_invalid_export", "runAggregate expects a rule module");
   }
+  if ("unobservedImplementationDependencies" in module) fail("module_invalid_export", "unobservedImplementationDependencies is not supported");
   if (typeof module.lint !== "function") {
     fail("module_missing_export", "the module must export a `lint` function");
   }
   validateTargets(module.targets, "runAggregate");
-  validateImplementationDependencies(module.unobservedImplementationDependencies, "runAggregate");
   validateTemplate(module.template, "runAggregate");
   if (module.template !== undefined) {
     fail(

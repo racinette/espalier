@@ -20,7 +20,7 @@ const repo = path.resolve(here, "..", "..");
 const fixture = path.join(repo, "fixtures", "authoring-corpus");
 const cli = path.join(repo, "dist", "src", "cli.js");
 
-const cold: typeof check = (options) => check({ ...options, cache: false });
+const cold: typeof check = check;
 
 async function load(relative: string): Promise<RuleModule> {
   return (await import(pathToFileURL(path.join(fixture, relative)).href)) as RuleModule;
@@ -129,11 +129,11 @@ test("a scoped check still receives the full aggregate population", async () => 
   }
 });
 
-test("editing a shared helper invalidates a scoped check of its caller", () => {
-  const scratch = mkdtempSync(path.join(os.tmpdir(), "espalier-authoring-cache-"));
+test("a scoped check loads an edited shared helper", () => {
+  const scratch = mkdtempSync(path.join(os.tmpdir(), "espalier-authoring-fresh-"));
   try {
     cpSync(fixture, scratch, { recursive: true });
-    const first = spawnSync(process.execPath, [cli, "lint", "--cache", "--format", "jsonl"], {
+    const first = spawnSync(process.execPath, [cli, "lint", "--format", "jsonl"], {
       cwd: scratch,
       encoding: "utf8",
     });
@@ -148,7 +148,7 @@ test("editing a shared helper invalidates a scoped check of its caller", () => {
     );
     const second = spawnSync(
       process.execPath,
-      [cli, "lint", "--cache", "fixtures/alpha", "--format", "jsonl"],
+      [cli, "lint", "fixtures/alpha", "--format", "jsonl"],
       { cwd: scratch, encoding: "utf8" },
     );
     assert.equal(second.status, 1, second.stdout + second.stderr);
