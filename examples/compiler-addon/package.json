@@ -7,7 +7,7 @@
     "lint": "espalier lint"
   },
   "devDependencies": {
-    "espalier": "0.7.1",
+    "espalier": "0.8.0",
     "typescript": "5.9.3"
   }
 }
