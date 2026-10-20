@@ -11,7 +11,7 @@ import { fail, OperationalError } from "./errors.js";
 import { matchGlob } from "./files.js";
 import { startImplementations, type ImplementationObserver } from "./implementation.js";
 import { admitConstraint, admissionGlobs, issuePattern } from "./targets.js";
-import { isOwnership, requiredFiles, type CaptureValue } from "./match.js";
+import { isOwnership, requirements, type CaptureValue } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
 import { eachChild } from "./nested.js";
 import { openConfig, type Repository } from "./repository.js";
@@ -187,7 +187,8 @@ async function lintOne(
     });
   }
 
-  for (const required of requiredFiles(espalier, repository.visibleSet)) {
+  const requiredEntries = requirements(espalier.root, "", {}, repository.visibleSet);
+  for (const required of requiredEntries.files) {
     const excluded = repository.ungoverned(required.path);
     if (excluded === "worktree") continue;
     if (!inScope(required.path)) continue;
@@ -200,6 +201,21 @@ async function lintOne(
       );
     }
     builtin(required.path, "missing_required_file", "this file is required but does not exist", {});
+  }
+
+  const populated = new Set(allOwned.map((file) =>
+    JSON.stringify([path.posix.dirname(file.path), file.rule.modulePath])));
+  for (const collection of requiredEntries.collections) {
+    if (repository.ungoverned(collection.path, true) === "worktree") continue;
+    if (!inScope(collection.path)) continue;
+    const directory = collection.path || ".";
+    if (populated.has(JSON.stringify([directory, collection.rule.modulePath]))) continue;
+    builtin(directory, "missing_required_match",
+      `at least one file owned by ${collection.declared} is required`, {
+        declared: collection.declared,
+        rule: collection.rule.modulePath,
+        captures: collection.captures,
+      });
   }
 
   if (options.cache) {

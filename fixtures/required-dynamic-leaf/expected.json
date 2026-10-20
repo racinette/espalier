@@ -1,0 +1,216 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "path": ".",
+      "code": "missing_required_match",
+      "metadata": {
+        "declared": "[name].ts",
+        "rule": "[name].ts.mjs",
+        "captures": {}
+      }
+    },
+    {
+      "path": "empty",
+      "code": "missing_required_match",
+      "metadata": {
+        "declared": "empty/[name].js",
+        "rule": "empty/[name].js.mjs",
+        "captures": {}
+      }
+    },
+    {
+      "path": "ignored",
+      "code": "missing_required_match",
+      "metadata": {
+        "declared": "ignored/[name].js",
+        "rule": "ignored/[name].js.mjs",
+        "captures": {}
+      }
+    },
+    {
+      "path": "features/missing",
+      "code": "missing_required_match",
+      "metadata": {
+        "declared": "features/missing/[test].test.ts",
+        "rule": "features/[feature]/[test].test.ts.mjs",
+        "captures": {
+          "feature": "missing"
+        }
+      }
+    },
+    {
+      "path": "features/shadowed",
+      "code": "missing_required_match",
+      "metadata": {
+        "declared": "features/shadowed/[test].test.ts",
+        "rule": "features/[feature]/[test].test.ts.mjs",
+        "captures": {
+          "feature": "shadowed"
+        }
+      }
+    },
+    {
+      "path": "features/narrow-x",
+      "code": "missing_required_match",
+      "metadata": {
+        "declared": "features/narrow-x/[check].ts",
+        "rule": "features/narrow-[feature]/[check].ts.mjs",
+        "captures": {
+          "feature": "x"
+        }
+      }
+    },
+    {
+      "path": "deep/one/tests",
+      "code": "missing_required_match",
+      "metadata": {
+        "declared": "deep/one/tests/[test].ts",
+        "rule": "deep/[group]/tests/[test].ts.mjs",
+        "captures": {
+          "group": "one"
+        }
+      }
+    }
+  ],
+  "again": {
+    "apply": "after",
+    "exit": 1,
+    "issues": [
+      {
+        "path": "empty",
+        "code": "missing_required_match",
+        "metadata": {
+          "declared": "empty/[name].js",
+          "rule": "empty/[name].js.mjs",
+          "captures": {}
+        }
+      },
+      {
+        "path": "ignored",
+        "code": "missing_required_match",
+        "metadata": {
+          "declared": "ignored/[name].js",
+          "rule": "ignored/[name].js.mjs",
+          "captures": {}
+        }
+      },
+      {
+        "path": "features/missing",
+        "code": "missing_required_match",
+        "metadata": {
+          "declared": "features/missing/[test].test.ts",
+          "rule": "features/[feature]/[test].test.ts.mjs",
+          "captures": {
+            "feature": "missing"
+          }
+        }
+      },
+      {
+        "path": "features/shadowed",
+        "code": "missing_required_match",
+        "metadata": {
+          "declared": "features/shadowed/[test].test.ts",
+          "rule": "features/[feature]/[test].test.ts.mjs",
+          "captures": {
+            "feature": "shadowed"
+          }
+        }
+      },
+      {
+        "path": "features/narrow-x",
+        "code": "missing_required_match",
+        "metadata": {
+          "declared": "features/narrow-x/[check].ts",
+          "rule": "features/narrow-[feature]/[check].ts.mjs",
+          "captures": {
+            "feature": "x"
+          }
+        }
+      },
+      {
+        "path": "deep/one/tests",
+        "code": "missing_required_match",
+        "metadata": {
+          "declared": "deep/one/tests/[test].ts",
+          "rule": "deep/[group]/tests/[test].ts.mjs",
+          "captures": {
+            "group": "one"
+          }
+        }
+      }
+    ]
+  },
+  "build": {
+    "exit": 0,
+    "report": [
+      {
+        "kind": "written",
+        "path": "AGENTS.MD"
+      }
+    ]
+  },
+  "explain": {
+    "empty/": {
+      "exit": 0,
+      "object": {
+        "rules": [
+          {
+            "path": "empty/[name].js",
+            "required": true
+          }
+        ],
+        "map": [
+          {
+            "path": "[name].js",
+            "required": true
+          }
+        ]
+      }
+    },
+    "optional/": {
+      "exit": 0,
+      "object": {
+        "rules": [
+          {
+            "path": "optional/notes.md",
+            "required": false
+          },
+          {
+            "path": "optional/[name].js",
+            "required": false
+          }
+        ],
+        "map": [
+          {
+            "path": "notes.md",
+            "required": false
+          },
+          {
+            "path": "[name].js",
+            "required": null
+          }
+        ]
+      }
+    },
+    "features/missing/": {
+      "exit": 0,
+      "object": {
+        "rules": [
+          {
+            "path": "features/missing/notes.md",
+            "required": false
+          },
+          {
+            "path": "features/missing/special.test.ts",
+            "required": false
+          },
+          {
+            "path": "features/missing/[test].test.ts",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}

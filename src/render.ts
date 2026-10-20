@@ -193,7 +193,7 @@ function* subtree(node: TrieNode, depth = 0, at = ""): Generator<Visit> {
 }
 
 /**
- * Static leaves reachable through static directories only, in map order,
+ * Named leaves and required collections reachable through static directories,
  * split by whether the espalier insists they exist. These are the files an
  * agent is being told about — either always, when the walk starts at a
  * placement point, or per instance, when it starts at a dynamic directory.
@@ -203,7 +203,10 @@ export function leavesUnder(node: TrieNode, at = ""): { required: string[]; opti
   const optional: string[] = [];
 
   for (const child of ordered(node)) {
-    if (child.segment.dynamic) continue;
+    if (child.segment.dynamic) {
+      if (child.rule !== null && !child.rule.module.optional) required.push(under(at, child.display));
+      continue;
+    }
     const path = under(at, child.display);
     if (child.rule !== null) (child.rule.module.optional ? optional : required).push(path);
     if (isDirectory(child)) {
@@ -350,8 +353,8 @@ export interface MapEntry {
   path: string;
   description: string | null;
   /**
-   * Null where the espalier names no file: a directory, whose existence is its
-   * contents', and a dynamic leaf, which answers `zero or more matching files`.
+   * Null for directories and zero-or-more collections. A required dynamic
+   * leaf uses true to render its one-or-more count rather than a named file.
    */
   required: boolean | null;
 }
@@ -379,7 +382,7 @@ export function mapEntries(
         ? (espalier.nodes.get(absolute)?.description ?? null)
         : (visit.node.rule?.module.description ?? null),
       required:
-        directory || visit.node.segment.dynamic
+        directory || (visit.node.segment.dynamic && visit.node.rule?.module.optional !== false)
           ? null
           : visit.node.rule?.module.optional !== true,
     });
@@ -402,10 +405,10 @@ function suffixes(entry: MapEntry): string[] {
     ? parseSegment(leaf, "map")
     : parseStructuralLeaf(leaf, "map");
 
-  if (entry.required !== null) marks.push(entry.required ? "required" : "optional");
+  if (!segment.dynamic && entry.required !== null) marks.push(entry.required ? "required" : "optional");
   if (segment.dynamic) marks.push(entry.path.endsWith("/")
     ? "zero or more matching directories"
-    : "zero or more matching files");
+    : entry.required === true ? "one or more matching files" : "zero or more matching files");
 
   // What the capture holds, not what the segment was: under
   // `[provider]-provider/`, `{provider}Impl.ts` is `stripeImpl.ts`, and "the

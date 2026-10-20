@@ -37,7 +37,7 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 **`exit`** — the process exit code. `0` clean, `1` violations, `2` operational failure.
 
-**`issues`** — every issue the run must produce, and no others. Order is not compared: the runner does not promise one, so a fixture asserting one would be pinning an accident. Count is compared — two identical issues are not one issue, now that nothing is deduplicated.
+**`issues`** — every issue the run must produce, and no others. Order is not compared: the runner does not promise one, so a fixture asserting one would be pinning an accident. Count is compared, including findings retained from separate invocations.
 
 **Only the fields present are compared.** An expected issue naming `path`, `code` and `severity` asserts nothing about `line` or `ruleText`. This keeps fixtures readable and stops them failing over cosmetic changes to fields they were not written to test. The rule applies at every depth, so an expected `metadata` naming two keys asserts nothing about a third.
 
@@ -229,7 +229,9 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `addons-disposed-on-failure` | disposal runs even when a rule throws |
 | `invalid-example` | a reference implementation not owned by its declaring rule |
 | `optional-leaf` | an optional leaf on the spine and inside a dynamic directory, and both new sentences |
-| `invalid-optional` | `optional` on a dynamic leaf is rejected, not ignored |
+| `invalid-optional` | a non-boolean `optional` on a dynamic leaf is rejected |
+| `optional-constraint` | constraints still reject `optional` |
+| `required-dynamic-leaf` | optional collections, required owned matches per instance, specificity, and count guidance |
 | `backreference-leaf` | `{name}` resolves, is required per instance, and coexists with a dynamic sibling |
 | `backreference-directory` | `{name}` as a directory: a constraint below one still runs, and `explain` still declares it |
 | `backreference-with-capture` | a segment holding a back-reference and a placeholder: bound per instance, dynamic tier |
@@ -262,6 +264,7 @@ That is a fixture technique, not a pattern for real espaliers. `info` does not a
 | `ignore-reinclude` | un-pruning a directory to re-include one committed file out of it |
 | `shipped-ignore-lists` | what `--lang` writes covers, and what it deliberately does not |
 | `authoring-corpus` | a structural owner, a per-file constraint, and an aggregate over mix and averages. The packed copy `espalier examples` prints is `examples/authoring-corpus/` |
+| `duplicate-findings` | identical emits collapse within one invocation, preserving distinct findings and cache replay |
 
 ## Adding one
 

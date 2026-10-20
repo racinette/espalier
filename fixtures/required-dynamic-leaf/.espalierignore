@@ -1,0 +1,6 @@
+FIXTURE.MD
+expected.json
+expected-build/
+after/
+analysis.mjs
+ignored/file.js

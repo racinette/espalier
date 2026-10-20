@@ -44,7 +44,7 @@ export interface LoadedModule {
   rule: string;
   lint: (context: unknown) => unknown;
   referenceImplementation: string | null;
-  /** docs/TYPES.MD "optional". Always false for anything but a static leaf. */
+  /** docs/TYPES.MD "optional". Dynamic leaves default to true; named leaves to false. */
   optional: boolean;
   /** docs/TYPES.MD "aggregate". Always false for structural rules. */
   aggregate: boolean;
@@ -55,12 +55,7 @@ export interface LoadedModule {
   template: TemplateDefinition | null;
 }
 
-/**
- * Which of the three module kinds is being read. `optional` is meaningless on
- * two of them — a dynamic leaf is already a collection that may be empty, and a
- * constraint never requires anything — so the kind has to reach the loader
- * rather than being recovered from the path afterwards.
- */
+/** The module kind determines requiredness defaults and valid exports. */
 type ModuleKind = "constraint" | "static" | "dynamic";
 
 export interface StructuralRule {
@@ -279,15 +274,10 @@ async function loadModule(
   if (loaded.optional !== undefined && typeof loaded.optional !== "boolean") {
     fail("module_invalid_export", `${modulePath}: \`optional\` must be a boolean`);
   }
-  // Rejected rather than ignored on the other two kinds: a module that exports
-  // it has said something, and silently dropping it would leave the author
-  // believing a file is governed one way while it is governed another.
-  if (loaded.optional !== undefined && kind !== "static") {
+  if (loaded.optional !== undefined && kind === "constraint") {
     fail(
       "module_invalid_export",
-      `${modulePath}: \`optional\` has no meaning on a ${kind === "constraint" ? "constraint" : "dynamic leaf"}; ${
-        kind === "constraint" ? "constraints never require a file" : "a dynamic leaf may already match nothing"
-      }`,
+      `${modulePath}: \`optional\` has no meaning on a constraint; constraints never require a file`,
     );
   }
   if (loaded.aggregate !== undefined && typeof loaded.aggregate !== "boolean") {
@@ -361,7 +351,7 @@ async function loadModule(
       typeof loaded.referenceImplementation === "string"
         ? loaded.referenceImplementation
         : null,
-    optional: loaded.optional === true,
+    optional: kind === "dynamic" ? loaded.optional !== false : loaded.optional === true,
     aggregate: loaded.aggregate === true,
     targets:
       loaded.targets === undefined

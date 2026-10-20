@@ -713,6 +713,58 @@ export const template = createTemplate(() => "directory\\n");
   }
 });
 
+test("directory help lists nonempty collections while create leaves their filenames to the author", () => {
+  const root = repository(`export const description = "a member";
+export const rule = "Each group has at least one member.";
+export const optional = false;
+export function lint() {}
+`, "groups/[group]/[member].js.mjs");
+  try {
+    const rule = `export const description = "a test";
+export const rule = "Each group has a test.";
+export const optional = false;
+export function lint() {}
+`;
+    write(root, "espalier/groups/[group]/tests/[test].ts.mjs", rule);
+    write(root, "espalier/groups/[group]/future/[instance]/[test].ts.mjs", rule);
+    write(root, "espalier/groups/[group]/notes.md.mjs", rule);
+    const help = run(root, ["create", "groups/new", "help"]);
+    assert.equal(help.status, 0, help.stdout + help.stderr);
+    assert.match(help.stdout, /Required collections \(choose a filename and create separately\):/);
+    assert.match(help.stdout, /\[member\]\.js — one or more owned files/);
+    assert.match(help.stdout, /tests\/\[test\]\.ts — one or more owned files/);
+    assert.doesNotMatch(help.stdout, /future\/\[instance\]/);
+    assert.equal(existsSync(path.join(root, "groups/new")), false);
+
+    const preview = run(root, ["create", "groups/new", "preview"]);
+    assert.equal(preview.status, 0, preview.stdout + preview.stderr);
+    assert.match(preview.stdout, /groups\/new\/notes\.md/);
+    assert.doesNotMatch(preview.stdout, /\[member\]|\[test\]/);
+    assert.equal(existsSync(path.join(root, "groups/new")), false);
+    const created = run(root, ["create", "groups/new"]);
+    assert.equal(created.status, 0, created.stdout + created.stderr);
+    assert.equal(readFileSync(path.join(root, "groups/new/notes.md"), "utf8"), "");
+    assert.equal(existsSync(path.join(root, "groups/new/tests")), false);
+    assert.equal(existsSync(path.join(root, "groups/new/[member].js")), false);
+    const lint = run(root, ["lint", "--format", "jsonl"]);
+    assert.equal(lint.status, 1, lint.stdout + lint.stderr);
+    const issues = lint.stdout.trim().split("\n").map((line) => JSON.parse(line))
+      .filter((line) => line.kind === "issue");
+    assert.deepEqual(issues.map((issue) => [issue.path, issue.code]).sort(), [
+      ["groups/new", "missing_required_match"],
+      ["groups/new/tests", "missing_required_match"],
+    ]);
+    for (const target of ["groups/new/a.js", "groups/new/tests/one.ts"]) {
+      const result = run(root, ["create", target]);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+    }
+    const complete = run(root, ["lint"]);
+    assert.equal(complete.status, 0, complete.stdout + complete.stderr);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a declared directory with no required leaves is created empty", () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-create-empty-directory-"));
   try {

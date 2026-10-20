@@ -1,0 +1,538 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "a"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "warning",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "a"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 4,
+      "column": 2,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "a"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 3,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "a"
+      }
+    },
+    {
+      "path": "elsewhere.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "a"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "other",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "a"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "other problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "a"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {
+        "a": 1,
+        "b": [
+          2
+        ]
+      },
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "a"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {
+        "a": 1,
+        "b": [
+          3
+        ]
+      },
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "a"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "b"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "warning",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "b"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 4,
+      "column": 2,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "b"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 3,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "b"
+      }
+    },
+    {
+      "path": "elsewhere.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "b"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "other",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "b"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "other problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "b"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {
+        "a": 1,
+        "b": [
+          2
+        ]
+      },
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "b"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {
+        "a": 1,
+        "b": [
+          3
+        ]
+      },
+      "rule": "[name].ts.mjs",
+      "captures": {
+        "name": "b"
+      }
+    },
+    {
+      "path": "shared.ts",
+      "code": "problem",
+      "message": "shared problem",
+      "line": 3,
+      "column": 2,
+      "severity": "error",
+      "metadata": {},
+      "rule": "[...path]/group.ts.mjs"
+    }
+  ],
+  "again": {
+    "exit": 1,
+    "issues": [
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "a"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "warning",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "a"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 4,
+        "column": 2,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "a"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 3,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "a"
+        }
+      },
+      {
+        "path": "elsewhere.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "a"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "other",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "a"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "other problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "a"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {
+          "a": 1,
+          "b": [
+            2
+          ]
+        },
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "a"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {
+          "a": 1,
+          "b": [
+            3
+          ]
+        },
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "a"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "b"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "warning",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "b"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 4,
+        "column": 2,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "b"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 3,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "b"
+        }
+      },
+      {
+        "path": "elsewhere.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "b"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "other",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "b"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "other problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "b"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {
+          "a": 1,
+          "b": [
+            2
+          ]
+        },
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "b"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {
+          "a": 1,
+          "b": [
+            3
+          ]
+        },
+        "rule": "[name].ts.mjs",
+        "captures": {
+          "name": "b"
+        }
+      },
+      {
+        "path": "shared.ts",
+        "code": "problem",
+        "message": "shared problem",
+        "line": 3,
+        "column": 2,
+        "severity": "error",
+        "metadata": {},
+        "rule": "[...path]/group.ts.mjs"
+      }
+    ]
+  }
+}

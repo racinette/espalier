@@ -18,7 +18,7 @@ import {
 import type { Issue, Severity } from "./output.js";
 
 /** Bump when a line stops meaning what it meant. Older files are discarded. */
-const FORMAT = 4;
+const FORMAT = 5;
 
 const DIRECTORY = ".cache";
 const FILENAME = "lint.jsonl";

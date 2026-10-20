@@ -461,9 +461,23 @@ Only files are validated. Directories are not checked for their own sake — a d
 **Resolved leaves are required per instance.** `[provider]/{provider}.ts.mjs` means each provider directory must contain a file named after itself. It behaves as a static leaf does, one instance at a time: `clients/stripe/` without `stripe.ts` reports `missing_required_file`, and `optional` relaxes it the same way. A back-reference cannot occur above the placeholder it refers to, so there is no such thing as an unconditionally required resolved leaf.
 
 **Dynamic leaves are collections.** `[util].ts.mjs` allows zero or more owned
-files. Each owned file follows its rule; a matching file claimed by a more
-specific sibling follows that sibling's rule instead. Zero owned files is not
-a violation.
+files when `optional` is omitted or `true`. Explicit `optional = false`
+requires at least one owned file in the containing directory. Each owned file
+follows its rule; a matching file claimed by a more specific sibling follows
+that sibling's rule instead and does not count toward the collection.
+
+A required collection on the static spine must have a member even if its
+containing directory is absent. Beneath a dynamic directory, each instantiated
+owning directory must satisfy it separately. Static subdirectories retain that
+requirement, but uninstantiated dynamic subdirectories do not. An extension
+list such as `[name].{ts,tsx}` is one collection: either extension can satisfy
+it. Ignored, externally invisible, and child-espalier files do not count.
+Linked worktrees remain outside the parent's authority.
+
+An empty required collection reports `missing_required_match` against its
+containing directory (`.` at the repository root), with the declaration,
+rule module and bound directory captures in metadata. The author chooses a
+concrete filename; Espalier cannot derive one from a placeholder.
 
 **Dynamic directories are collections.** `clients/[provider]/` may have zero instances.
 
@@ -488,7 +502,8 @@ Any governed file under the instance instantiates it, whether or not a structura
 
 **Constraints require nothing.** They describe how matching files are written. They never make a file mandatory.
 
-There is no syntax for "at least one." If a file is mandatory, declare it statically.
+Use a static leaf when a particular file is mandatory, and a dynamic leaf with
+`optional = false` when a collection must be nonempty.
 
 ## Files espalier does not see
 
@@ -529,11 +544,15 @@ What is declared at a node is every child it has, files and directories together
 
 ## Built-in issues
 
-Two issue codes come from matching rather than from a rule module. Their `rule` field is null, because no module produced them, and their severity is fixed at `error`.
+Three issue codes come from matching rather than from a rule module. Their `rule` field is null, because no module produced them, and their severity is fixed at `error`.
 
 `unexpected_path` — the file is not owned by any structural rule.
 
-`missing_required_file` — a required static leaf has no corresponding file. A leaf its module marks `optional` never reports it.
+`missing_required_file` — a required static or resolved leaf has no corresponding
+file. A leaf marked `optional = true` never reports it.
+
+`missing_required_match` — a dynamic leaf marked `optional = false` owns no
+files in an owning directory.
 
 Everything that makes the espalier itself invalid — ambiguous siblings, inconsistent capture names, more than one recursive placeholder in a path, a duplicate placeholder name, a contradiction between an exclusion and a required leaf — is an operational failure, not an issue. It exits `2` and no files are linted. Every code is listed in [ERRORS.MD](ERRORS.MD).
 

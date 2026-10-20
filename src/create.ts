@@ -13,6 +13,8 @@ import {
   isDirectoryOwnership,
   isOwnership,
   requiredDescendants,
+  requirements,
+  type RequiredCollection,
   resolveDirectory,
   type DirectoryOwnership,
   type Ownership,
@@ -154,6 +156,7 @@ function directoryHelp(
   owner: string,
   description: string,
   files: DirectoryFile[],
+  collections: RequiredCollection[],
 ): string {
   const schemas = files.filter(
     (file) =>
@@ -182,6 +185,13 @@ function directoryHelp(
       const description = file.rule.module.description ?? "the required file";
       const implicit = file.template === null ? " (empty file; no template defined)" : "";
       lines.push(`  ${file.relative} — ${description}${implicit}`);
+    }
+  }
+
+  if (collections.length > 0) {
+    lines.push("", "Required collections (choose a filename and create separately):");
+    for (const collection of collections) {
+      lines.push(`  ${collection.declared} — one or more owned files`);
     }
   }
 
@@ -438,6 +448,7 @@ async function createDirectory(
         directory.path === "" ? "." : directory.path,
         description,
         files,
+        requirements(directory.node, "", directory.captures).collections,
       ),
     );
     return 0;

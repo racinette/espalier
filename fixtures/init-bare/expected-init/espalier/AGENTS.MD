@@ -277,12 +277,16 @@ guidance instead.
 
 A structural rule file can also export a `template` for `espalier create`.
 For a file that would otherwise be required, `optional = true` allows it to
-be absent. A rule can name an existing example with
+be absent. On a dynamic leaf, omission or `optional = true` permits zero or
+more owned files; explicit `optional = false` requires at least one per owning
+directory. A rule can name an existing example with
 `referenceImplementation`. See `espalier help types` for the full export
 reference.
 
-Write templates as meaningful starting points. Mark unfinished parts in the
-rendered source with TODO comments or an explicit placeholder appropriate to
+Write templates as meaningful starting points for the node's shape. Rendered
+source need not parse or pass lint; do not invent placeholder implementations
+merely to satisfy checks before the author completes the work. Mark unfinished
+parts in the rendered source with TODO comments or an explicit placeholder appropriate to
 the file format, and say what the user needs to replace. Espalier writes the
 rendered string verbatim; the template supplies those markers. Test templates
 that depend on sibling files together, using the project's own checks.

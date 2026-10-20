@@ -205,18 +205,17 @@ There are three kinds, and each is true of the line it sits on and of nothing el
 
 **`required` and `optional`** mark every leaf the espalier names — every static and resolved one — and neither is a default. A named file carrying no such suffix is not a file whose requiredness is left to inference; there is no such file. Both read against the line's own position, so `requestModels.ts` drawn inside `[provider]/` is required in a `[provider]/` directory, which is where the reader is looking.
 
-A dynamic leaf carries neither. `zero or more matching files` says the count
-itself, and there is no named file there to require. Marking one `optional` is
-rejected rather than ignored — see [TYPES.MD](../../TYPES.MD#optional) — because
-an author writing it believes it changes something.
+A dynamic leaf carries neither. Its count suffix is `zero or more matching
+files` when `optional` is omitted or `true`, and `one or more matching files`
+when it explicitly exports `optional = false`. Only files owned by the rule
+count; a more specific sibling cannot satisfy the requirement.
 
 Directories carry neither. A directory exists exactly when the files described inside it do, so marking one required would either restate its contents or claim that an empty directory satisfies something, and the second is false.
 
-**`zero or more matching files`** marks a file pattern containing a `[name]`
+**`zero or more matching files`** or **`one or more matching files`** marks a file pattern containing a `[name]`
 placeholder, such as `[button].tsx` or `test-[name].ts`. A directory pattern
-uses **`zero or more matching directories`**. Both state that the collection
-may be empty while preserving the restrictions expressed by the pattern;
-neither promises that an arbitrary name is accepted.
+uses **`zero or more matching directories`**. These counts preserve the restrictions expressed by the pattern; none
+promises that an arbitrary name is accepted.
 
 **`{provider} repeats what [provider] matched`** marks every node whose name holds a back-reference, one clause per placeholder, comma-joined inside the parentheses. It describes what the capture holds rather than what the segment was, which is the only phrasing that survives an affix: under `[provider]-provider/`, a `{provider}Impl.ts` in the directory named `stripe-provider` is `stripeImpl.ts`, and a suffix promising "the same name as the directory" would be wrong three times out of four.
 

@@ -45,7 +45,7 @@ aggregate form.
 | `rule` | yes | the natural-language conventions, in markdown |
 | `lint` | yes | deterministic validation |
 | `referenceImplementation` | no | a path to a canonical conforming file |
-| `optional` | no | whether this file has to exist |
+| `optional` | no | whether a named file may be absent or a dynamic collection may be empty |
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
 | `unobservedImplementationDependencies` | no | optional cache inputs that module observation cannot see |
@@ -199,7 +199,13 @@ should compute source without side effects so preview and creation agree for
 the same inputs. Preview runs ordinary template code; it does not sandbox it.
 See [create](cli/create/README.MD#previewing-source) for the display format.
 
-Espalier writes source verbatim when creating files. A template with no options
+Espalier writes source verbatim when creating files. Rendered source need not
+parse or pass lint: a template provides the node's meaningful starting shape,
+with TODO comments or format-appropriate placeholders for work the author must
+complete. It need not invent an implementation to satisfy checks before that
+work is done.
+
+A template with no options
 uses the overload that omits the schema and the template-arguments object; its
 sole argument is still the creation context:
 
@@ -229,7 +235,22 @@ structurally owned and subject to its rule.
 
 It exists for the file that some instances of a shape have and others do not. Without it, an espalier has two ways to describe `webhook.ts` when one client has one and another does not, and both say something false. Declare it and every client without a webhook is missing a required file. Leave it undeclared and the client that has one is reporting `unexpected_path` for a file everybody agrees belongs there. Optional is the third statement — *a client may have a webhook, and here is how to write it* — and it is the only one of the three that is true.
 
-Only structural leaves take it. A dynamic leaf is already a collection that may be empty, and a constraint never requires anything, so `optional` on either has nothing to say and is rejected as `module_invalid_export` rather than ignored.
+Structural leaves accept a boolean `optional` export:
+
+| Leaf | Omitted | `true` | `false` |
+| --- | --- | --- | --- |
+| Static or resolved | Required | May be absent | Required |
+| Dynamic | Zero or more owned files | Zero or more owned files | At least one owned file |
+
+On a dynamic leaf, explicit `optional = false` requires a nonempty collection
+in each owning directory. Within a dynamic directory, it applies separately
+per instantiated directory; it does not require any directory instances.
+Only files owned by that rule count. A more specific sibling's files cannot
+satisfy it. See [requiredness](MATCHING.MD#what-must-exist).
+
+Shared factories can return `optional: true` for both static and dynamic leaves.
+A non-boolean value is rejected as `module_invalid_export`. Constraints never
+require files and reject `optional` as `module_invalid_export`.
 
 ### `targets`
 
@@ -477,8 +498,10 @@ matcher enforces that relationship before `lint` runs.
  * often one the espalier has not described yet. An absolute path, or one
  * escaping the root, fails the run.
  *
- * Nothing is deduplicated. A rule that reaches the same conclusion from
- * forty files reports it forty times; emitting once is the rule's job.
+ * Identical findings within one lint invocation are reported once, after
+ * normalizing paths and defaults. Identity includes code, message, path,
+ * severity, line, column, and deeply equal metadata (object key order does
+ * not matter). Findings from separate invocations remain separate.
  *
  * @property {number} [line]
  * 1-based line number associated with the issue.

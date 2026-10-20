@@ -6,6 +6,7 @@
 // would make the promise a coincidence.
 
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { fail } from "./errors.js";
 import type { CaptureValue } from "./match.js";
 import type { Issue, Severity } from "./output.js";
@@ -42,6 +43,7 @@ export interface EmitOptions {
 
 export function createEmit(options: EmitOptions): (raw: unknown) => void {
   const whose = options.modulePath ?? "rule";
+  const seen = new Map<string, Issue[]>();
 
   return (raw: unknown): void => {
     if (raw === null || typeof raw !== "object") {
@@ -66,7 +68,7 @@ export function createEmit(options: EmitOptions): (raw: unknown) => void {
     // has not described yet.
     const attachedTo = issue["path"] === undefined ? options.path : within(issue["path"], whose);
 
-    options.record({
+    const normalized: Issue = {
       path: attachedTo,
       code: issue["code"],
       message: issue["message"],
@@ -80,6 +82,20 @@ export function createEmit(options: EmitOptions): (raw: unknown) => void {
       ruleText: options.ruleText,
       description: options.description,
       referenceImplementation: options.referenceImplementation,
-    });
+    };
+    // The context fixes rule identity, pattern and captures. Only emitted
+    // fields vary; compare metadata structurally without serializing it.
+    const key = JSON.stringify([
+      normalized.path, normalized.code, normalized.message, normalized.severity,
+      normalized.line, normalized.column,
+    ]);
+    const previous = seen.get(key);
+    if (previous?.some((prior) =>
+      Object.is(prior.line, normalized.line) &&
+      Object.is(prior.column, normalized.column) &&
+      isDeepStrictEqual(prior.metadata, normalized.metadata))) return;
+    if (previous === undefined) seen.set(key, [normalized]);
+    else previous.push(normalized);
+    options.record(normalized);
   };
 }

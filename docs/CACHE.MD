@@ -85,7 +85,7 @@ execute itself.
 
 **A constraint is an invocation like any other.** A file with a structural owner and two constraints reaching it carries three entries, one per module, each with its own reads and globs — so a constraint that listed something notices when that listing changes, and a rule that listed nothing does not re-run because a constraint beside it did.
 
-**Structural findings are never cached.** Ownership resolution reads no file contents and runs in full every time, so `unexpected_path` and `missing_required_file` are always fresh. Only rule bodies are skipped.
+**Structural findings are never cached.** Ownership resolution reads no file contents and runs in full every time, so `unexpected_path`, `missing_required_file`, and `missing_required_match` are always fresh. Only rule bodies are skipped.
 
 **A `files` glob depends on which paths exist, not on what is in them.** Editing a sibling does not invalidate a peer comparison; adding or deleting one does.
 

@@ -27,9 +27,9 @@ espalier lint [paths...]
 
 1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, and build the matcher. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `rule` export — stops the run before repository linting begins.
 2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and anything unreadable stops the run. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
-3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required leaves with no file report `missing_required_file`. See [MATCHING.MD](../../MATCHING.MD).
+3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required named leaves with no file report `missing_required_file`; empty required collections report `missing_required_match`. See [MATCHING.MD](../../MATCHING.MD).
 4. **Run rules.** For every owned file: its structural rule's `lint`, plus each per-file constraint whose directory pattern and selector admit it. Run each aggregate once over its complete selected group.
-5. **Report.** Every issue every rule emitted.
+5. **Report.** Each distinct issue within each rule invocation.
 
 Rules execute independently and in unspecified order. A rule may read any governed file through `read` and list governed files through `files`, but must not depend on another rule having run. Helpers and addons receive repository contents from those functions. Shared analysis may reuse identical inputs when answers remain independent of previous calls. See [TYPES.MD](../../TYPES.MD#execution).
 
@@ -78,6 +78,7 @@ A path argument restricts the file set, at the cost of completeness:
 
 - `unexpected_path` is reported for files in scope
 - `missing_required_file` is reported only for required leaves inside the scope
+- `missing_required_match` is reported only for containing directories inside the scope, counting their full owned membership
 - structural and per-file constraint invocations are limited to owned files in scope; an aggregate whose selection intersects the scope still receives its complete group
 
 A scoped run cannot tell you the repository conforms — only that the part you asked about does. The human summary says so explicitly. **CI runs unscoped.**
@@ -142,15 +143,23 @@ A rule that discovers a problem while examining one file can report it against t
 
 The target must be a repository-relative path inside the repository. It does not have to be governed, declared, or even to exist: a rule may well find that the file which must change is one the espalier has not got around to describing yet, and refusing to report that would punish exactly the person doing the work incrementally. An absolute path, or one escaping the root, is malformed rather than merely undeclared and fails the run.
 
-A rule that reaches the same conclusion from forty files emits it forty times. Emitting once is the rule's job — see ordering below.
+A rule invoked separately for forty files can report the same conclusion forty
+times. Deduplication is local to one invocation; use an aggregate constraint
+when the conclusion belongs to the group.
 
 ### Built-in issues
 
-Two codes come from matching rather than from a rule module. Their `rule` is `null` and their severity is fixed at `error`; the "severity is decided by the rule" principle does not apply where no rule exists to decide.
+Three codes come from matching rather than from a rule module. Their `rule` is `null` and their severity is fixed at `error`; the "severity is decided by the rule" principle does not apply where no rule exists to decide.
 
 `unexpected_path` — no structural rule owns this file.
 
-`missing_required_file` — a required static or resolved leaf has no corresponding file in its owning branch. A leaf whose module exports `optional` never reports it, at any depth or in any instance of a dynamic directory.
+`missing_required_file` — a required static or resolved leaf has no corresponding file in its owning branch. A leaf whose module exports `optional = true` never reports it, at any depth or in any instance of a dynamic directory.
+
+`missing_required_match` — a dynamic leaf with explicit `optional = false`
+owns no files in a required collection. The path is its containing directory
+(`.` at the root); metadata names `declared`, `rule`, and enclosing `captures`.
+The check uses the full governed file set, even during a partial run, but
+reports only collections whose containing directory is inside the scope.
 
 `unexpected_path` carries the **deepest recognized node** in `metadata`: how far the path was recognized by the espalier, and what is declared at that point. It is never a ranked guess at where the file belongs — see [MATCHING.MD](../../MATCHING.MD).
 
@@ -218,11 +227,18 @@ Every line carries a `kind` — `issue`, `warning`, or `failure`. A reader dispa
 {"kind":"failure","code":"ambiguous_siblings","message":"…"}
 ```
 
-### Ordering
+### Ordering and duplicates
 
-The runner promises nothing about the order issues arrive in, and never collapses two of them into one. Rules run independently; what they emit is what comes out.
+The runner promises nothing about the order issues arrive in. Within one lint
+invocation, it reports the first occurrence of each distinct finding and drops
+identical repeats. Equality uses the normalized path, code, message, severity,
+line, column, and deeply equal metadata; object key order does not matter.
+Omitted defaults and their explicit equivalents describe the same finding.
 
-Both are deliberate. Ordering a stream means buffering it, which is the one thing a stream is for not doing, and collapsing issues means discarding one of two findings that agreed on `path`, `code` and `message` while disagreeing on `captures` or `line` — a silent choice between them, made on execution order.
+Different locations, severities, or metadata remain distinct. Separate rules
+and separate invocations keep their findings, even when the reported fields
+agree: their matches and captures can carry different meaning. The same
+behavior applies to per-file and aggregate rules, cached runs, and the API.
 
 Presentation is the formatter's business, and formatters may buffer. `human`
 groups by path and rule identity. `jsonl` does not reorder or group anything;

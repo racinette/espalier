@@ -163,70 +163,55 @@ export interface RequiredFile {
   captures: Record<string, CaptureValue>;
 }
 
-/** Required leaves beneath one concrete directory, without inventing dynamic instances. */
-export function requiredDescendants(
-  node: TrieNode,
-  prefix: string,
-  captures: Record<string, CaptureValue>,
-): RequiredFile[] {
-  const required: RequiredFile[] = [];
-
-  const descend = (parent: TrieNode, at: string): void => {
-    for (const child of parent.children.values()) {
-      if (child.segment.dynamic) continue;
-      const name = child.segment.resolved
-        ? resolveSegment(child.segment, captures)
-        : child.display;
-      if (name === null) continue;
-      const childPath = at === "" ? name : `${at}/${name}`;
-
-      if (child.rule !== null && !child.rule.module.optional) {
-        required.push({ path: childPath, rule: child.rule, captures: { ...captures } });
-      }
-      if (child.children.size > 0) descend(child, childPath);
-    }
-  };
-
-  descend(node, prefix);
-  return required.sort((left, right) => left.path.localeCompare(right.path));
+export interface RequiredCollection {
+  /** Concrete containing directory; empty at the repository root. */
+  path: string;
+  /** Declaration with concrete directory instances and an authored leaf pattern. */
+  declared: string;
+  rule: StructuralRule;
+  captures: Record<string, CaptureValue>;
 }
 
 /**
- * Every file the espalier requires to exist.
- *
- * Static leaves are required unless their module marks them `optional`.
- * Dynamic leaves are collections and require nothing. A dynamic directory
- * requires nothing until it is instantiated — after which its static
- * descendants are required, for that instance only.
+ * Required named files and collections under a concrete directory.
+ * Visible files instantiate dynamic directories using the ownership winner.
+ * Without a visible set (as in create), only static/resolved directories descend.
  */
-export function requiredFiles(espalier: Espalier, visible: Set<string>): RequiredFile[] {
-  const required: RequiredFile[] = [];
+export function requirements(
+  node: TrieNode,
+  prefix: string,
+  captures: Record<string, CaptureValue>,
+  visible: ReadonlySet<string> = new Set(),
+): { files: RequiredFile[]; collections: RequiredCollection[] } {
+  const files: RequiredFile[] = [];
+  const collections: RequiredCollection[] = [];
   const paths = [...visible];
 
   const descend = (
-    node: TrieNode,
+    parent: TrieNode,
     prefix: string,
     captures: Record<string, CaptureValue>,
   ): void => {
-    for (const child of node.children.values()) {
-      // A resolved segment is one filename per instance, so the path it
-      // requires is the substituted one rather than the authored one.
+    for (const child of parent.children.values()) {
       const here = child.segment.resolved ? resolveSegment(child.segment, captures) : child.display;
       if (here === null) continue;
       const at = prefix === "" ? here : `${prefix}/${here}`;
 
-      if (child.rule !== null && !child.segment.dynamic && !child.rule.module.optional) {
-        required.push({ path: at, rule: child.rule, captures: { ...captures } });
+      if (child.rule !== null && !child.rule.module.optional) {
+        if (child.segment.dynamic) {
+          collections.push({ path: prefix, declared: at, rule: child.rule, captures: { ...captures } });
+        } else {
+          files.push({ path: at, rule: child.rule, captures: { ...captures } });
+        }
       }
 
       if (child.children.size === 0) continue;
-
       if (!child.segment.dynamic) {
         descend(child, at, captures);
         continue;
       }
 
-      // Any visible file beneath an instance instantiates it.
+      // Any governed file beneath the winning instance instantiates it.
       const instances = new Map<string, Record<string, string>>();
       const root = prefix === "" ? "" : `${prefix}/`;
       for (const candidate of paths) {
@@ -236,24 +221,32 @@ export function requiredFiles(espalier: Espalier, visible: Set<string>): Require
         if (cut === -1) continue;
         const name = rest.slice(0, cut);
         if (instances.has(name)) continue;
-        const winner = selectChild(node, name, captures, true);
+        const winner = selectChild(parent, name, captures, true);
         if (winner?.node === child) instances.set(name, winner.captures);
       }
-
       for (const [name, bound] of instances) {
         descend(child, prefix === "" ? name : `${prefix}/${name}`, { ...captures, ...bound });
       }
     }
   };
 
-  descend(espalier.root, "", {});
-  return required;
+  descend(node, prefix, captures);
+  return { files, collections };
+}
+
+/** Required named leaves for creation, without inventing dynamic instances. */
+export function requiredDescendants(
+  node: TrieNode,
+  prefix: string,
+  captures: Record<string, CaptureValue>,
+): RequiredFile[] {
+  return requirements(node, prefix, captures).files.sort((left, right) => left.path.localeCompare(right.path));
 }
 
 /**
  * Static leaves required regardless of what the repository contains. An
  * optional leaf is absent here for the same reason it is absent from
- * `requiredFiles`: nothing promises it exists, so `ignore` covering it is a
+ * `requirements`: nothing promises it exists, so `ignore` covering it is a
  * configuration choice rather than a contradiction.
  */
 export function unconditionallyRequired(espalier: Espalier): string[] {

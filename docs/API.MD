@@ -94,7 +94,9 @@ test("the repository conforms", async () => {
 | `rule` | every rule | run one rule module only, by espalier-relative path |
 | `cache` | `false` | `true` is `--cache`: reuse findings whose recorded inputs are unchanged |
 
-Returns `Promise<Issue[]>` — every issue, in the order the runner produced them, deduplicated no more than the CLI deduplicates them, which is not at all.
+Returns `Promise<Issue[]>` in the order the runner produced them. Like the CLI,
+it reports identical findings once per lint invocation; findings from separate
+invocations remain separate. See [lint](cli/lint/README.MD#ordering-and-duplicates).
 
 Child espaliers are visited exactly as the CLI visits them, and their issues arrive in the same array with paths re-rooted to `cwd` and `espalier` naming the one that reported them. A failure inside a child raises, like any other, once the runs that could still complete have — the first in path order, with the child's directory on the front of the message.
 
@@ -148,7 +150,8 @@ Nothing is inferred from `path`. A rule reading a file it was not given gets `re
 
 The same `Issue` objects `check` returns, with the same fields, so an assertion written against one transfers to the other. `pattern`, `captures` and `rule` echo the context; `ruleText`, `description`, and `referenceImplementation` come off the module.
 
-`emit` is the runner's own, with the runner's validation. A rule emitting an issue with no `code`, an unknown `severity`, or an absolute `path` fails here for the same reason and with the same code it would fail for in production — which is most of the value of testing through this rather than by calling `lint` with a hand-written stub.
+`emit` is the runner's own, with the same validation and per-invocation
+deduplication. A rule emitting an issue with no `code`, an unknown `severity`, or an absolute `path` fails here for the same reason and with the same code it would fail for in production — which is most of the value of testing through this rather than by calling `lint` with a hand-written stub.
 
 A `lint` that throws throws out of `runRule`, wrapped as `rule_threw`. The real run treats that as a bug in the rule rather than a finding, and so does this; a test framework will report it as the error it is.
 

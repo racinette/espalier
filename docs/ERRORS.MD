@@ -4,7 +4,8 @@ Every code `espalier` reports with `kind: "failure"`. All of them exit `2`.
 
 An operational failure is not a finding about the repository. It means the run could not be performed — the configuration is wrong, the espalier does not compile, a rule module misbehaved — and nothing is reported besides the failure itself. A broken setup must not be able to look like a clean repository.
 
-Two codes are **issues** rather than failures and are not listed here: `unexpected_path` and `missing_required_file`. They come from matching, exit `1`, and are documented in [MATCHING.MD](MATCHING.MD#built-in-issues).
+Three codes are **issues** rather than failures and are not listed here:
+`unexpected_path`, `missing_required_file`, and `missing_required_match`. They come from matching, exit `1`, and are documented in [MATCHING.MD](MATCHING.MD#built-in-issues).
 
 Codes emitted by rule modules are free-form strings chosen by their authors. `espalier` neither validates nor namespaces them. Everything below is `espalier`'s own.
 

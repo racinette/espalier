@@ -9,7 +9,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { check, OperationalError, runRule } from "../src/api.js";
+import { check, OperationalError, runAggregate, runRule } from "../src/api.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(here, "..", "..", "fixtures");
@@ -54,6 +54,16 @@ test("check scopes to the paths it is given", async () => {
 
   assert.ok(scoped.length < all.length);
   assert.ok(scoped.every((issue) => issue.path.startsWith("components/")));
+});
+
+test("required dynamic collections are scoped by directory and count full membership", async () => {
+  const cwd = path.join(fixturesDir, "required-dynamic-leaf");
+  const missing = await cold({ cwd, paths: ["features/missing"] });
+  assert.deepEqual(missing.map((issue) => [issue.path, issue.code]), [
+    ["features/missing", "missing_required_match"],
+  ]);
+  assert.deepEqual(await cold({ cwd, paths: ["features/good"] }), []);
+  assert.deepEqual(await cold({ cwd, paths: ["features/shadowed/special.test.ts"] }), []);
 });
 
 test("check throws an OperationalError rather than returning it", async () => {
@@ -204,6 +214,29 @@ test("runRule hands the addons through untouched", async () => {
   const [issue] = await runRule(module, { path: "src/index.ts", addons: { parser } });
 
   assert.equal(issue?.message, "parsed");
+});
+
+test("API emit deduplicates within each invocation for per-file and aggregate rules", async () => {
+  const module = {
+    rule: "Report once per distinct finding.",
+    lint({ emit }: any) {
+      const issue = { code: "repeated", message: "same finding" };
+      emit(issue);
+      emit({ ...issue, severity: "error", path: "./a.ts", metadata: {} });
+      emit({ ...issue, metadata: { detail: [1, 2] } });
+      emit({ ...issue, metadata: { detail: [1, 2] } });
+      emit({ ...issue, severity: "warning" });
+    },
+  };
+  const perFile = await runRule(module, { path: "a.ts" });
+  assert.equal(perFile.length, 3);
+  assert.deepEqual(await runRule(module, { path: "a.ts" }), perFile);
+  const aggregate = await runAggregate(
+    { ...module, aggregate: true },
+    { matches: [{ path: "a.ts" }], at: "a.ts" },
+  );
+  assert.deepEqual(aggregate.map(({ pattern, ...issue }) => issue),
+    perFile.map(({ pattern, ...issue }) => issue));
 });
 
 test("runRule validates emitted issues exactly as the runner does", async () => {

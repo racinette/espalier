@@ -90,8 +90,12 @@ contents. Espalier recursively creates every required static or resolved leaf
 beneath that node. A broader sibling contributes no required files or template
 options to the winning branch. A dynamic directory below it is an uninstantiated
 collection, so creation does not invent a name for it or create anything under
-it. Dynamic file collections and leaves marked `optional` are likewise absent:
-neither is required for the new directory to be valid.
+it. Dynamic file collections and leaves marked `optional = true` are likewise
+absent. A collection with `optional = false` still needs a member after
+creation: Espalier cannot invent its filename. Directory help lists these
+required collections, including those below static subdirectories, and asks
+the author to choose a concrete path and create a member separately. Preview
+and creation include only the named required files.
 
 Each required file keeps its own template. Their schemas form the directory
 command's arguments, always namespaced as

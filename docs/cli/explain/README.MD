@@ -303,11 +303,18 @@ queries to run inside that checkout:
 {"kind":"explanation","prefix":"components/","description":"shared UI components","body":"","rules":[{"path":"components/buttons/[button].tsx","pattern":"components/buttons/*.tsx","rule":"components/buttons/[button].tsx.mjs","description":"a button component","ruleText":"Default-export a single component named after the file.","referenceImplementation":"components/buttons/SubmitButton.tsx","required":false}],"map":[{"path":"buttons/","description":null,"required":null},{"path":"buttons/[button].tsx","description":"a button component","required":null}],"closedSet":"Every path under components/ must fit the project layout or a documented repository-specific purpose.","governed":[],"constraints":[]}
 ```
 
-`rules` is every structural rule in the subtree, in the same order `build` lists them, with `required` false for anything the espalier does not insist on — a collection that may be empty, and a static leaf whose module exports `optional`. The two are different declarations and `path` tells them apart, but the question `required` answers is whether `lint` will report the file's absence, and for both the answer is no. `description` and `body` come from the directory's `ESPALIER.MD`.
+`rules` is every structural rule in the subtree, in the same order `build`
+lists them. `required` is true for named required files and nonempty collections
+reachable without inventing dynamic directory instances. It is false for
+optional named files, collections that may be empty, and declarations beneath
+uninstantiated dynamic directories. For a required dynamic leaf, absence means
+no owned matches, rather than a missing literal filename. `description` and
+`body` come from the directory's `ESPALIER.MD`.
 
 It is called `rules` rather than `declared` because `declared` already means something narrower and is already in the output above: the names of a node's immediate children, which is what `lint` attaches to `unexpected_path`. One key, one shape.
 
-`map` is the same subtree the human form draws, as data: one entry per node in map order, `path` relative to the prefix and carrying a trailing `/` for a directory. `required` is null where the espalier names no file — a directory, or a dynamic leaf that already answers `zero or more matching files`. The drawing is not in the JSON, because branch characters and line breaks are a rendering, and a consumer of this format is not reading prose.
+`map` is the same subtree the human form draws, as data: one entry per node in map order, `path` relative to the prefix and carrying a trailing `/` for a directory. `required` is null for directories and zero-or-more dynamic leaves; it is true
+for a dynamic leaf requiring one or more matching files. The drawing is not in the JSON, because branch characters and line breaks are a rendering, and a consumer of this format is not reading prose.
 
 `closedSet` is a single unwrapped string, for the same reason.
 
