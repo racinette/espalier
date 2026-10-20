@@ -89,7 +89,7 @@ concrete path and the owning rule's placeholder captures.
 4. Drift is reported as findings with the applicable rule text; `--format jsonl` provides machine-readable output.
 5. The agent revises until the project's constraints are satisfied.
 
-Guidance steers; the linter corrects. Generated-document freshness prevents stale copies. Executable checks give the same answer for the same recorded inputs. Tests and review establish whether those checks implement the intended architecture. Incomplete, contradictory, or unsatisfiable policy remains the author's.
+Guidance steers; the linter corrects. Generated-document freshness prevents stale copies. Executable checks give the same answer for the same source inputs. Tests and review establish whether those checks implement the intended architecture. Incomplete, contradictory, or unsatisfiable policy remains the author's.
 
 ## Quick start
 

@@ -2,7 +2,11 @@
 
 Every code `espalier` reports with `kind: "failure"`. All of them exit `2`.
 
-An operational failure is not a finding about the repository. It means the run could not be performed — the configuration is wrong, the espalier does not compile, a rule module misbehaved — and nothing is reported besides the failure itself. A broken setup must not be able to look like a clean repository.
+An operational failure means the run could not complete: the configuration is
+wrong, the espalier does not compile, or a rule or addon failed. Findings
+already emitted can remain in CLI output, and other child projects may still
+run. Exit `2` means that output cannot establish conformance. Programmatic
+`check` rejects with `OperationalError` instead of returning partial findings.
 
 Three codes are **issues** rather than failures and are not listed here:
 `unexpected_path`, `missing_required_file`, and `missing_required_match`. They come from matching, exit `1`, and are documented in [MATCHING.MD](MATCHING.MD#built-in-issues).
@@ -81,8 +85,8 @@ See [TYPES.MD](TYPES.MD).
 |---|---|
 | `rule_threw` | a `lint` function threw. A bug in the rule, not a finding about the repository |
 | `invalid_issue` | `emit` was called with something that is not a well-formed issue |
-| `invalid_issue_path` | an issue's `path` is absolute, empty, or escapes the repository |
-| `read_failed` | `read` could not open a file — check with `files` first if existence is in question |
+| `invalid_issue_path` | an emitted or read path is not a non-empty relative string, or escapes the repository |
+| `read_failed` | a snapshot file could not be read, an aggregate read omitted its path, or an isolated rule test lacks the requested contents |
 | `read_ungoverned` | `read` was given a path outside the governed set — ignored, invisible, another espalier's, or not there |
 | `unreadable_path` | a path under the root could not be read — a broken symlink, or permissions. What cannot be read cannot be pronounced correct |
 
@@ -93,8 +97,18 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | Code | |
 |---|---|
 | `addons_import_failed` | the addons module threw while being imported |
-| `addons_invalid_export` | a prepare/setup hook is not a function, or setup returns something other than an object |
-| `addons_setup_failed` | `setup` threw. Nothing is linted |
+| `addons_invalid_export` | a prepare/setup hook is not a function, setup returns neither a non-null non-array object nor undefined, or the module declares unsupported implementation dependencies |
+| `addons_prepare_failed` | addon preparation threw an ordinary exception; context validation failures retain their specific codes |
+| `addons_invalid_prepared` | preparation returned data that cannot be cloned to workers |
+| `addons_setup_failed` | `setup` threw; no lint invocations start in that project |
+| `addons_dispose_failed` | worker-local addon disposal threw |
+
+## Parallel execution
+
+| Code | |
+|---|---|
+| `invalid_jobs` | jobs is not a positive safe integer or auto |
+| `worker_failed` | a worker could not start, crashed, or exited unexpectedly, including exit code zero |
 
 ## Command-specific
 
@@ -110,6 +124,7 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | `template_threw` | a template renderer threw instead of producing source |
 | `template_invalid_result` | a template renderer returned something other than a string |
 | `create_write_failed` | the rendered file or staged directory could not be written to its requested path |
+| `invalid_check_options` | programmatic check was passed the unsupported cache option |
 
 ## Rule-module parse locations
 
@@ -131,16 +146,3 @@ is retained with only the coordinates that could be established.
 | Code | |
 |---|---|
 | `internal_error` | a bug in `espalier`. The stack trace is reported; please open an issue |
-
-
-## Parallel execution
-
-| Code | Meaning |
-| --- | --- |
-| `invalid_jobs` | jobs is not a positive safe integer or auto |
-| `addons_prepare_failed` | addon preparation threw |
-| `addons_invalid_prepared` | preparation returned data that cannot be cloned to workers |
-| `addons_dispose_failed` | worker-local addon disposal threw |
-| `worker_failed` | a worker could not start, crashed, or exited before completing its protocol |
-
-| `invalid_check_options` | programmatic check was passed the unsupported cache option |

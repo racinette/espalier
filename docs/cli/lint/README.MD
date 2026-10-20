@@ -26,10 +26,11 @@ espalier lint [paths...]
 ## What it does
 
 1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, and build the matcher. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `rule` export — stops the run before repository linting begins.
-2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and anything unreadable stops the run. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
+2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and a traversal failure stops the run. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
 3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required named leaves with no file report `missing_required_file`; empty required collections report `missing_required_match`. See [MATCHING.MD](../../MATCHING.MD).
-4. **Run rules.** For every owned file: its structural rule's `lint`, plus each per-file constraint whose directory pattern and selector admit it. Run each aggregate once over its complete selected group.
-5. **Report.** Each distinct issue within each rule invocation.
+4. **Prepare execution.** Capture governed source contents, await addon preparation, and initialize all participating workers.
+5. **Run rules.** For every owned file: its structural rule's `lint`, plus each per-file constraint whose directory pattern and selector admit it. Run each aggregate once over its complete selected group.
+6. **Report and clean up.** Report distinct issues from each invocation as they arrive, then dispose worker-local addons.
 
 Rules execute independently and in unspecified order. A rule may read any governed file through `read` and list governed files through `files`, but must not depend on another rule having run. Helpers and addons receive repository contents from those functions. Shared analysis may reuse identical inputs when answers remain independent of previous calls. See [TYPES.MD](../../TYPES.MD#execution).
 
@@ -89,21 +90,26 @@ There is no `--staged`. A hook that genuinely wants a narrow run already knows w
 
 ## Parallel execution
 
+Lint callbacks execute in Node worker threads with separate JavaScript heaps.
+The coordinator owns repository discovery, preparation, scheduling, and output.
+
 `--jobs auto` uses up to four workers, bounded by available CPU parallelism and
 the number of jobs. `--jobs N` accepts a positive safe integer and caps the
 worker pool at N; `--jobs 1` uses the same worker lifecycle with serial execution.
-The API spelling is `check({ jobs: N })` or `check({ jobs: "auto" })`.
+The API spelling is `check({ cwd: ".", jobs: N })` or
+`check({ cwd: ".", jobs: "auto" })`.
 
 The coordinator resolves ownership, captures a governed source snapshot, and
 awaits addon preparation. It starts only the workers needed for the selected
 jobs, with one worker even when there are no jobs so the addon lifecycle remains
-well-defined. All worker setups finish before checks start.
+well-defined. All worker setups finish before any rule callback starts.
 
 One file and its applicable structural/per-file rules form a job. Each aggregate
 is one job containing its complete selected match set. Free workers take the next
 job from the queue. Rules and their context API remain unchanged; rules must not
 rely on worker assignment or invocation order. Findings are reported centrally
-as they arrive. The issue set is independent of the worker count; stream order
+as they arrive. Findings, including metadata, must support structured cloning
+to cross the worker boundary. The issue set is independent of the worker count; stream order
 is unspecified. Duplicate suppression remains local to each invocation.
 
 Nested projects run in turn, each with separate preparation and worker-local
@@ -289,7 +295,8 @@ and reports the failure through the chosen format and destination:
 - config missing, malformed, or contradictory
 - the espalier is ambiguous, or a rule path is invalid
 - a rule module fails to import, or is missing a required export
-- `addons` setup throws
+- addon preparation, setup, or disposal fails
+- prepared data cannot be cloned, or a worker exits unexpectedly
 - a path under the root cannot be read
 - a `lint` function throws
 

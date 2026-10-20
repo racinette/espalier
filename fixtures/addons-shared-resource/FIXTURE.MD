@@ -14,8 +14,9 @@ receiving a private copy of a language server would be worse than useless.
 
 ## Disposal has no reporting channel
 
-It runs after the last issue is emitted and after the exit code is decided, so
-there is nothing for it to emit into. The disposer writes to stderr instead,
+The disposer has no rule context or `emit`. It runs after the worker's lint
+invocations, and a disposal failure can still make the command exit `2`.
+This successful disposer writes to stderr instead,
 and `expected.json` asserts the fragment — the only way a fixture can see that
 it happened at all.
 

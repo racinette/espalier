@@ -323,9 +323,9 @@ someone reading the rule file. Keep those choices here so the written
 requirements and the check can be reviewed together.
 
 Import ordinary helpers and packages directly. Use an addon to own a shared
-resource for one lint run, such as an in-process compiler service, a worker
-parser, or a language server. Importing a compiler package and owning its
-instances are separate choices. Build expensive analysis lazily from contents
+resource within each lint worker, such as a compiler service, parser, or
+language server. Importing a compiler package and owning its instances are
+separate choices. Build analysis from prepared data or lazily from contents
 and settings supplied by rules; release retained state at disposal.
 Its exposed functions must be pure: the same inputs must produce
 the same results, regardless of previous calls or which rule calls them.

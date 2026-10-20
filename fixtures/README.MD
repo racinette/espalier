@@ -47,13 +47,19 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 **`warnings`** — the warning messages a run must emit, in order, and no others. At the top level it describes the `lint` run; inside an `init`, `build` or `adopt` block it describes that one. A warning is advice about the run rather than part of the record of it, so it is compared separately from `issues` and from `report`. Only `lint` emits one today — this key is per-command because a warning belongs to the run that produced it, not because every command has one. A scoped `lint` uses it to say how much of the repository it actually checked, which for a run spanning child espaliers is one line per espalier and the only place a child that was visited and found nothing differs from one that was never visited at all.
 
-**`args`** — extra arguments for the `lint` run, and for its `again` rerun. Scoping is the one thing about `lint` that cannot be expressed by the tree alone: a fixture pinning what a path argument does has to be able to pass one. Everything else the harness runs — `explain`, the ownership sweep — is unscoped regardless, because those answer questions about the espalier rather than about a run.
+**`args`** — extra arguments for the `lint` run and its `again` rerun, such as
+scope paths or a worker limit. Everything else the harness runs — `explain`,
+the ownership sweep — is unscoped, because those answer questions about the
+espalier rather than about a run.
 
 ```json
 "args": ["packages/api"]
 ```
 
-**`env`** — environment the lint run is given, on top of the harness's own. Only an impure rule has any use for it, and only one fixture family has a use for an impure rule: warm and cold output are identical by design, so a token the runner cannot see is the only way a skipped rule becomes visible.
+**`env`** — environment the lint run is given, on top of the harness's own.
+A fixture may use an environment token to distinguish separate executions.
+Such instrumentation is for the test; production findings must follow from
+governed inputs and rule implementations.
 
 **`again`** — a fresh lint over the same copy after files or environment change.
 The second run evaluates its current inputs independently of the first.

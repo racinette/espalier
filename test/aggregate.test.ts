@@ -1,4 +1,4 @@
-// Aggregate constraint execution and caching. docs/TYPES.MD "aggregate".
+// Aggregate constraint selection and execution. docs/TYPES.MD "aggregate".
 
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";

@@ -6,7 +6,7 @@ the same run. The espalier root is invisible to matching either way.
 It was not. Every other use of this value compares it against a
 repository-relative path, and those carry neither a leading `./` nor a trailing
 slash — so the espalier compiled from the right directory and then reported
-every rule module inside it as `unexpected_path`, including its own cache file.
+every rule module inside it as `unexpected_path`.
 A spelling was deciding whether the tool could see itself.
 
 The spelling is not a contrivance. The rest of the file invites it: `ignore`

@@ -491,6 +491,8 @@ matcher enforces that relationship before `lint` runs.
  *
  * @property {Record<string, unknown>} [metadata]
  * Additional structured issue data.
+ * Findings cross a worker boundary during lint/check, so metadata must
+ * support structured cloning. Use data rather than functions or handles.
  */
 
 /**
@@ -502,7 +504,7 @@ matcher enforces that relationship before `lint` runs.
  */
 
 /**
- * Reads file contents from the working tree.
+ * Reads UTF-8 file contents from the run's governed source snapshot.
  *
  * If the optional `path` argument is provided, reads that file.
  * Otherwise (or if `path` is `undefined`), reads the file indicated
@@ -514,8 +516,8 @@ matcher enforces that relationship before `lint` runs.
  * an operational failure — check with `files` first if a file's existence
  * is in question.
  *
- * The result is cached for the duration of the lint run,
- * so repeated calls do not re-read the file.
+ * Preparation and rules use the same snapshot. Repeated calls return the
+ * captured contents; changes on disk during execution are not reread.
  *
  * @callback ReadFile
  * @param {string} [path]
@@ -568,13 +570,13 @@ matcher enforces that relationship before `lint` runs.
  * @property {EmitIssue} emit
  *
  * @property {Record<string, unknown>} addons
- * Shared resources built once per run by the module named in
- * `espalier.config.yaml`. Owns resources for that run, including an
- * in-process compiler service, a worker parser, or a language server.
+ * Worker-local resources returned by the configured addon's `setup`.
+ * Jobs in one worker share this object; other workers have their own
+ * instances. Resources can include a compiler service or language server.
  *
  * Import packages and ordinary helpers directly. An addon may import a
  * compiler package while owning its expensive instances. Construct them
- * lazily from contents and settings supplied by rules.
+ * lazily from prepared data or contents and settings supplied by rules.
  *
  * Addons may hold internal state, but nothing a rule does through an
  * addon may change what another rule sees. Rules execute in unspecified
@@ -641,6 +643,8 @@ Every selected rule executes on every run, in a bounded worker pool. See
 [parallel execution](cli/lint/README.MD#parallel-execution) and the addon
 [prepare/setup lifecycle](CONFIG.MD#addons).
 
-A `lint` function that throws is a bug in the rule, not a finding about the repository: the run fails with exit `2` and reports `rule_threw`. See [cli/lint/README.MD](cli/lint/README.MD) and [ERRORS.MD](ERRORS.MD).
+An ordinary exception from `lint` fails the run with exit `2` and `rule_threw`.
+Context validation failures preserve their specific codes, such as
+`invalid_issue` or `read_ungoverned`. Neither is a finding about the repository. See [cli/lint/README.MD](cli/lint/README.MD) and [ERRORS.MD](ERRORS.MD).
 
 A `lint` function is ordinary code and can be called from an ordinary test. [API.MD](API.MD) describes `runRule`, which builds this context from values you supply and returns the issues rather than printing them.

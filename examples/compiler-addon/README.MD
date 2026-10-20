@@ -17,9 +17,10 @@ Each worker owns its compiler service and reuses analysis for identical inputs.
 The TypeScript program is a live object with methods, so it is built locally
 rather than cloned. Policies and findings stay in the rule files.
 
-`compiler.json` through its context, even when the addon reuses analysis.
-The service retains one identical snapshot, constructs a program lazily,
-and releases it at disposal. Policies and findings stay in the rule files.
+Preparation reads `compiler.json` and governed source files through its
+context. Each worker receives that snapshot, constructs a program lazily,
+and releases it at disposal. Isolated rule tests supply a virtual tree and
+gather the same inputs through the rule context.
 
 `compiler.json` is deliberately governed. This small example accepts only
 `compilerOptions`; it does not implement tsconfig inheritance, filesystem
@@ -78,7 +79,7 @@ the same scoped application check to see it in the next run.
 
 ## Applying the pattern
 
-This example demonstrates resource ownership, tracked snapshots, rules that
+This example demonstrates resource ownership, governed snapshots, rules that
 choose policy, creation templates, and independent tests. Choose your own
 vocabulary, module size, and state boundaries. `model.ts` groups two related
 operations; it does not require all applications to use a model layer. Static

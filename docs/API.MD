@@ -92,17 +92,30 @@ test("the repository conforms", async () => {
 | `config` | discovered | an explicit config file path |
 | `paths` | every visible file | limit the run to a subtree |
 | `rule` | every rule | run one rule module only, by espalier-relative path |
-| `jobs` | `"auto"` | positive integer worker limit, or automatic sizing |
+| `jobs` | `"auto"` | positive safe integer worker limit, or automatic sizing |
 
 The package exports `Jobs` and `PrepareContext` types for worker limits and
-addon preparation. `PrepareContext` provides `read(path)` and `files(pattern)`;
-see [addons](CONFIG.MD#addons).
+addon preparation:
+
+```ts
+type Jobs = number | "auto";
+interface PrepareContext {
+  files(pattern: string): Promise<string[]>;
+  read(path: string): Promise<string>;
+}
+```
+
+`PrepareContext` reads the full governed project snapshot, including during
+scoped checks. It has no current file or `emit`; see [addons](CONFIG.MD#addons).
 
 Returns `Promise<Issue[]>` in the order the runner produced them. Like the CLI,
 it reports identical findings once per lint invocation; findings from separate
 invocations remain separate. See [lint](cli/lint/README.MD#ordering-and-duplicates).
 
-Child espaliers are visited exactly as the CLI visits them, and their issues arrive in the same array with paths re-rooted to `cwd` and `espalier` naming the one that reported them. A failure inside a child raises, like any other, once the runs that could still complete have — the first in path order, with the child's directory on the front of the message.
+Child espaliers are visited exactly as the CLI visits them, and their issues arrive in the same array with paths relative to the outer project root and `espalier` naming the one that reported them. A failure inside a child raises, like any other, once the runs that could still complete have — the first in path order, with the child's directory on the front of the message.
+
+Issue arrival order is unspecified, including across repeated calls. Compare
+findings independently of order when testing equivalent runs.
 
 Every selected rule runs on each call. `cache` is not a supported option.
 `jobs` controls the worker pool; see [lint](cli/lint/README.MD#parallel-execution).
@@ -150,7 +163,7 @@ The first argument is the module — whatever `import` gave you. It is not looke
 | `addons` | `{}` | whatever the rule expects to find there |
 | `rule` | `null` | the module path to record on emitted issues |
 
-`tree` is the common case and backs both `read` and `files`. Reading a path it does not hold fails with `read_failed`, exactly as reading a missing file does in a real run; globbing matches its keys with the same matcher `context.files` uses, and returns them sorted. Supply `read` or `files` directly when a test needs something a map cannot express — a reader that counts its calls, a lister that returns thousands of paths without holding their contents.
+`tree` is the common case and backs both `read` and `files`. Reading a path it does not hold fails with `read_failed`; a real run instead uses `read_ungoverned` for a path absent from its governed snapshot. Globbing matches its keys with the same matcher `context.files` uses, and returns them sorted. Supply `read` or `files` directly when a test needs something a map cannot express — a reader that counts its calls, a lister that returns thousands of paths without holding their contents.
 
 Nothing is inferred from `path`. A rule reading a file it was not given gets `read_failed` rather than an empty string, because a test that silently linted nothing is the failure mode this exists to prevent.
 
@@ -173,13 +186,13 @@ invocation; repository-level selector behavior belongs to `check` and `lint`.
 ### Shared compiler tests
 
 `runRule` and `runAggregate` use the addon object you supply. They never call
-its `setup` or dispose it. Give each fixture its own service and release it
-even if an assertion fails:
+`prepare` or `setup`, start workers, or dispose the supplied object. Give each
+fixture its own service and release it even if an assertion fails:
 
 ```js
 import { setup } from "../analysis/addons.mjs";
 
-const addons = setup();
+const addons = await setup();
 try {
   const issues = await runRule(rule, { path, tree: tinyTree, addons });
   assert.deepEqual(issues, []);
@@ -188,7 +201,12 @@ try {
 }
 ```
 
-Use `await addons[Symbol.asyncDispose]()` for an asynchronously disposed addon.
+This example assumes setup needs no prepared data and returns a synchronous
+disposer. Supply prepared data yourself when the addon requires it, and use
+`await addons[Symbol.asyncDispose]()` for an asynchronous disposer.
+These tests run in the caller's process; use `check` to exercise preparation,
+worker isolation, and structured-clone transfer of prepared data and findings.
+
 Keep semantic counterexamples small: only the imports and declarations needed
 to establish the behavior. A few real-repository tests then prove ownership,
 selection, and creation. Changing a static filename needs a matching test

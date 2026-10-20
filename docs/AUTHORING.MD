@@ -43,9 +43,9 @@ The helper in that tree parses a string it was given. It does not remember
 repository contents. Generated `AGENTS.MD` files in the tree are the
 presentation of those rules.
 
-`espalier examples compiler-addon` shows a compiler service owned for one
-run, source snapshots supplied by rules, lazy reuse, and explicit disposal in
-small rule-body tests. Its README and executable tests are the complete recipe;
+`espalier examples compiler-addon` shows preparation of governed inputs once
+per project, compiler services owned per worker, lazy reuse, and explicit
+disposal in small rule-body tests. Its README and executable tests are the complete recipe;
 see [CONFIG.MD](CONFIG.MD#addons) for the resource contract.
 
 The contract's **Adapting examples** section distinguishes mechanisms worth

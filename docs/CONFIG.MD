@@ -79,7 +79,7 @@ A package in a monorepo may hold an `espalier.config.yaml` of its own. Finding o
 **`lint`, `build`, and `migrate` visit child espaliers.** Each child uses its
 own configuration and rules, and each command continues into that child's
 children. Nothing is inherited. `lint` performs a separate run for each
-espalier, including addon setup and disposal. `build` plans all generated
+espalier, including addon preparation, worker setup and disposal. `build` plans all generated
 documents before writing any; `migrate` updates each child's configuration
 and shipped authoring contract. `explain`, `create`, and `adopt` instead
 resolve their requested path to its governing espalier.
@@ -321,7 +321,11 @@ The consequence is worth stating plainly: **a link pointing outside the reposito
 
 **Two links onto the same directory are two directories**, and everything under them is governed twice, under both paths. Deduplicating would mean reporting a file under whichever path the walk happened to reach it by first, and directory listings are not returned in an order anything promises — the same repository would answer differently on two machines. Both paths exist; a repository that does not want both says so in `.espalierignore`.
 
-**A link pointing nowhere is a failure**, and so is a file or directory this process may not read. `espalier` exits `2` with `unreadable_path` and lints nothing. Something that could not be read cannot be pronounced correct, and a run that quietly stepped over it would report a clean repository it never finished inspecting — the same reasoning as [Errors](#errors) below.
+**A link pointing nowhere is a failure**, as is a directory the walk cannot
+read. These traversal failures stop lint before rules run, with
+`unreadable_path`. A failure to capture a file's contents is retained in the
+source snapshot and reported as `read_failed` if preparation or a rule reads
+that file. A path absent from the snapshot instead produces `read_ungoverned`.
 
 A path the rules exclude is never read, so it never fails this way. For a directory that means the *pruning* form: `vendor/` skips it unopened, while `vendor/**` ignores what is inside and still opens it to find out what that is. A directory you cannot read at all is excluded with `vendor/`.
 
@@ -341,25 +345,33 @@ export async function setup(prepared) {
   const graph = createGraphReader(prepared.graph);
   return {
     graph,
-    [Symbol.asyncDispose]() { graph.close(); },
+    async [Symbol.asyncDispose]() { await graph.close(); },
   };
 }
 ```
 
-Both hooks are optional functions. The unsupported
+Both hooks are optional and may be synchronous or asynchronous. The unsupported
 `unobservedImplementationDependencies` export is rejected. `prepare(context)` runs once per project
 in the coordinator. Its context has `files(pattern)` and `read(path)`, both
 asynchronous and limited to the full governed project, including for scoped
 lint runs. Paths are project-relative. There is no current file, captures,
 `emit`, or addon object during preparation. Rules own policy and findings.
+`files(pattern)` returns sorted paths using the same glob matching as rule
+contexts; `read(path)` requires an explicit path.
+
+The addon module is imported in the coordinator and in each worker. Allocate
+worker resources inside `setup`, so importing the module for preparation does
+not allocate an extra service in the coordinator.
 
 Preparation and lint use the same input snapshot. The result of `prepare`
 must support structured cloning. Workers receive separate copies of ordinary
 objects; `SharedArrayBuffer` storage is shared. Treat prepared data as immutable.
 No serialization is required of the object returned by `setup`: it remains
 local to its worker and may contain functions, compiler instances and handles.
-Without `prepare`, `setup` receives `undefined`; without `setup`, rules receive
-an empty addon object.
+Without `prepare`, `setup` receives `undefined`. Setup may return an object
+or `undefined`; `undefined` and an absent setup hook both give rules an empty
+addon object. Arrays, `null`, and primitive return values are rejected.
+Prepared data is passed to setup, not automatically exposed as `context.addons`.
 
 Each participating worker calls `setup(prepared)` once. All workers must finish
 setup successfully before any lint invocation starts. Within a worker, jobs run
@@ -368,8 +380,9 @@ Addon answers must not depend on job assignment, previous calls, or rule order.
 Cheap initialization belongs in `setup`; expensive transferable analysis belongs
 in `prepare`. Live compiler instances that cannot be cloned remain worker-local.
 
-Disposal runs after each worker finishes, including when a rule or another
-worker fails. Espalier awaits `Symbol.asyncDispose`, or calls `Symbol.dispose`
+Each surviving initialized worker runs disposal, including when a rule or
+another worker fails. A worker that crashes or exits abruptly cannot run its
+disposer. Espalier awaits `Symbol.asyncDispose`, or calls `Symbol.dispose`
 when there is no asynchronous disposer. Setup owns resources until it returns;
 a setup that throws must release resources it acquired before throwing.
 Preparation should return data rather than retain resources needing disposal.
@@ -377,8 +390,10 @@ After disposal settles, the worker is terminated so leftover handles cannot
 keep the command alive. A disposal failure is still reported.
 
 Each nested project and each programmatic `check` has its own preparation and
-worker lifetime. No addon state survives between projects or runs. Tests using
-`runRule` or `runAggregate` still supply and dispose their own addon objects.
+worker lifetime. Worker-local addon state does not survive between projects
+or runs. Coordinator imports follow the module-lifetime rules documented under
+[`check`](API.MD#checkoptions), including Node's CommonJS module caching.
+Tests using `runRule` or `runAggregate` supply and dispose their own addon objects.
 
 Read repository inputs through the supplied context and pass contents to helpers.
 Neither preparation helpers nor worker addons should open governed source files
@@ -417,6 +432,10 @@ Files bearing the marker are regenerated and, when the espalier no longer produc
 
 ## Errors
 
-Everything in this document that fails — a missing config, an unknown key, a missing `pin`, `ignoreFiles` or `skip`, an addon that will not start, an exclusion that contradicts a required leaf — is an operational failure. `espalier` exits `2` and reports nothing else. A broken configuration must not be able to look like a clean repository.
+Everything in this document that fails — a missing config, an unknown key,
+a missing `pin`, `ignoreFiles` or `skip`, an addon that will not start, an
+exclusion that contradicts a required leaf — is an operational failure.
+`espalier` exits `2`. Findings emitted before a runtime failure may remain in
+the output; they cannot establish conformance.
 
 Every code is listed in [ERRORS.MD](ERRORS.MD).
