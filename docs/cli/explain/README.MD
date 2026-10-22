@@ -307,14 +307,17 @@ queries to run inside that checkout:
 lists them. `required` is true for named required files and nonempty collections
 reachable without inventing dynamic directory instances. It is false for
 optional named files, collections that may be empty, and declarations beneath
-uninstantiated dynamic directories. For a required dynamic leaf, absence means
-no owned matches, rather than a missing literal filename. `description` and
+uninstantiated dynamic directories. For a required dynamic leaf, the requirement is a minimum number of owned
+matches rather than a literal filename. `description` and
 `body` come from the directory's `ESPALIER.mjs`.
 
 It is called `rules` rather than `declared` because `declared` already means something narrower and is already in the output above: the names of a node's immediate children, which is what `lint` attaches to `unexpected_path`. One key, one shape.
 
-`map` is the same subtree the human form draws, as data: one entry per node in map order, `path` relative to the prefix and carrying a trailing `/` for a directory. `required` is null for directories and zero-or-more dynamic leaves; it is true
-for a dynamic leaf requiring one or more matching files. The drawing is not in the JSON, because branch characters and line breaks are a rendering, and a consumer of this format is not reading prose.
+`map` is the same subtree the human form draws, as data: one entry per node in map order, `path` relative to the prefix and carrying a trailing `/` for a directory. `required` is null for ordinary directories and zero-or-more dynamic leaves.
+It is true for required named leaves, required named directory instances, and
+collections with a positive minimum; it is false for optional named leaves
+and directory instances. Collection entries include `minMatches` when the
+minimum exceeds one. The drawing is not in the JSON, because branch characters and line breaks are a rendering, and a consumer of this format is not reading prose.
 
 `closedSet` is a single unwrapped string, for the same reason.
 

@@ -60,5 +60,6 @@ a per-file compiler constraint. Rules supply governed source snapshots and
 compiler settings; the service constructs one program lazily for identical
 inputs. Its executable tests use small virtual trees and explicitly manage
 the resource lifetime. The copied README explains installing its TypeScript
-dependency and running the example. Start with ordinary `lint`; findings
-caching is optional and independent of compiler reuse.
+dependency and running the example. Every selected check executes on each run.
+Use `--jobs` to compare worker counts and `lint.jobs` to record a project
+default; each worker owns its own compiler program.

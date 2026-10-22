@@ -101,7 +101,7 @@ and passes lint.
 
 A structural rule may export a file-creation template:
 
-```js
+```ts
 import { createTemplate, type TemplateContext } from "espalier";
 
 interface ComponentCaptures {
@@ -238,7 +238,7 @@ It exists for the file that some instances of a shape have and others do not. Wi
 
 Named leaves and named directory instances accept a boolean `optional`:
 false or omitted requires the member; true permits absence. An existing member
-always satisfies its inherited contract. Optional directory instances retain
+must satisfy its inherited contract. Optional directory instances retain
 required contents when present. Required inherited named members cannot be
 made optional. Dynamic leaves and constraints reject `optional`.
 
@@ -254,6 +254,17 @@ instantiate dynamic directories. Named specializations remain members of their
 inherited collections; unrelated static owners do not. A collection can require
 some member while a particular named member is optional. Named leaves and
 constraints reject `minMatches`.
+
+### `instanceOf`
+
+`instanceOf` is a nonempty contract reference on a named structural leaf or
+on a directory module. It is not valid on constraints or dynamic leaves.
+Named structural rules keep their `description`, `rule`, and `lint` exports;
+their lint adds to inherited checks. Their optional `template` replaces the
+inherited creation recipe, without replacing checks. Without a local template,
+creation uses the inherited template and its original captures.
+
+See [Named instances](MATCHING.MD#named-instances) for composition and requiredness.
 
 ### `targets`
 
@@ -332,6 +343,51 @@ As with any issue, `emit({ path })` may attach it somewhere more specific.
 
 An issue's `pattern` field remains one string: the sole admission glob, or the
 sorted list joined with ` | ` when there are several.
+
+## Directory modules
+
+`ESPALIER.mjs` describes its containing directory. It does not export a
+structural `rule`, `lint`, or `template`. Its exports are:
+
+| Export | Default | Meaning |
+|---|---|---|
+| `description` | absent | a string describing the directory in maps |
+| `guidance` | empty | Markdown string or function returning a string, synchronously or asynchronously |
+| `fold` | `false` | fold this subtree's generated documents into its enclosing document |
+| `instanceOf` | absent | a matching sibling dynamic directory contract, such as `"../[feature]"` |
+| `optional` | `false` | permit a named directory instance to be absent; valid only with `instanceOf` |
+
+For example, computed guidance can follow the configured architecture mode:
+
+```js
+export const description = "shared application runtime";
+
+/** @param {import("espalier").DirectoryGuidanceContext} context */
+export function guidance({ config }) {
+  return config.build.guidanceMode === "fixed"
+    ? "Use the established runtime. Report missing capabilities before changing its architecture."
+    : "Discuss missing runtime capabilities and agree on placement before changing its architecture.";
+}
+```
+
+The function receives `{ config, pattern, path, captures }`. `config` is an
+isolated snapshot of the loaded configuration, including `build` and `lint`
+settings. `pattern` is the authored directory path, relative to the rule-tree
+root. `path` is the concrete repository-relative path when known at compile
+time, otherwise null; both paths are the empty string at the root. `captures`
+contains known inherited bindings. An ordinary `[feature]` declaration does
+not acquire a different context for each directory discovered on disk.
+
+Guidance functions run during repository compilation, including commands that
+only inspect or lint the tree. Keep them deterministic and free of side
+effects; return prose from their explicit inputs. A thrown error or a
+non-string result is `malformed_node_description`. `build --check` compares
+the rendered result with generated output and detects stale guidance.
+
+See [matching](MATCHING.MD#named-instances) for inheritance and
+[build placement](cli/build/README.MD#where-files-go) for static prefixes,
+named instances, and folding. Legacy `ESPALIER.MD` remains readable during
+migration, but a directory cannot contain both formats.
 
 ## Typed linter helpers
 
@@ -419,7 +475,8 @@ Path placeholders are exposed to `lint` through `captures`.
 - `[name]` captures a string from one path segment
 - `[...name]` captures an array containing each matched path segment
 - `{name}` captures nothing; it matches what `[name]` already captured
-- an exact path produces an empty object
+- an independent exact path produces an empty object
+- a named specialization retains captures bound by its inherited contract
 
 Matching `clients/stripe/stripe.ts` against `clients/[provider]/[implementation].ts`:
 
@@ -560,7 +617,8 @@ matcher enforces that relationship before `lint` runs.
  * Normalized glob that matched `path`.
  * `[name]` placeholders are represented as `*`; `[...name]`
  * placeholders are represented as `**`.
- * `pattern === path` for exact structural rules.
+ * `pattern === path` for a local exact structural rule. Inherited checks
+ * retain their base pattern and capture names, even for a named instance.
  *
  * @property {Record<string, CaptureValue>} captures
  * Values extracted from named placeholders in the rule's path.
@@ -652,17 +710,3 @@ Context validation failures preserve their specific codes, such as
 `invalid_issue` or `read_ungoverned`. Neither is a finding about the repository. See [cli/lint/README.MD](cli/lint/README.MD) and [ERRORS.MD](ERRORS.MD).
 
 A `lint` function is ordinary code and can be called from an ordinary test. [API.MD](API.MD) describes `runRule`, which builds this context from values you supply and returns the issues rather than printing them.
-
-## Specialization exports
-
-`instanceOf` is a nonempty contract reference on a named structural leaf or
-on a directory module. It is not valid on constraints or dynamic leaves.
-Named structural rules keep their `description`, `rule`, and `lint` exports;
-their lint adds to inherited checks. Their optional `template` replaces the
-inherited creation recipe, without replacing checks. Without a local template,
-creation uses the inherited template and its original captures.
-
-`minMatches` is a nonnegative safe integer on dynamic structural leaves only.
-It defaults to zero. `optional` is reserved for named leaves and named
-directory instances. A named declaration defaults to required. See
-[Named instances](MATCHING.MD#named-instances) for composition and requiredness.

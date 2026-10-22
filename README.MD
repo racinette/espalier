@@ -73,7 +73,8 @@ Guidance steers and the linter corrects. Both derive from the same rule file, so
 
 `espalier create <path>` can create any structurally declared absent file or
 directory. A file selects its owning template; a directory creates every
-required descendant and namespaces each file's flags with its relative path.
+required descendant plus selected optional leaves, and namespaces each file's
+flags with its relative path. Template arguments follow `--`.
 A rule without a template creates an empty file. Every renderer receives its
 concrete path and the owning rule's placeholder captures.
 `espalier create <path> help` describes either operation without writing. See
@@ -278,6 +279,14 @@ selected files, each with its own path and captures.
 
 Full grammar, matching precedence, and requiredness: [docs/MATCHING.MD](docs/MATCHING.MD) (`espalier help matching`).
 
+Named directory and file instances can specialize dynamic contracts with
+`instanceOf`. They retain inherited structure and checks while supplying
+domain-specific guidance and additional requirements. Named members are
+required by default; `optional` controls their presence and `minMatches`
+controls dynamic collection size. See [named instances](docs/MATCHING.MD#named-instances)
+for the complete contract and [migration](docs/cli/migrate/README.MD) for
+converting Markdown directory guidance to `ESPALIER.mjs`.
+
 ## Writing rules
 
 Every rule file exports `rule` and `lint`. Structural rules also require a
@@ -478,11 +487,3 @@ work with the project's existing test framework. See [docs/API.MD](docs/API.MD)
 - **Not a replacement for general-purpose linters.** ESLint, ruff, golangci-lint, and their peers do excellent work on language-specific code quality. `espalier` is about _architectural_ enforcement: where code lives, what shape it takes, how modules relate. The two are complementary.
 - **Not an agent.** `espalier` does not invent code, generate suggestions, or decide architecture. It enforces decisions you have already made; `create` can write initial source from templates you supply.
 - **Not an attempt to constrain agents.** The goal is not to prevent agents from doing things — it is to give them a clear, machine-verifiable target so that correction is reachable through iteration. A well-shaped espalier makes the agent's job _easier_, not harder.
-
-Named directory and file instances can specialize dynamic contracts with
-`instanceOf`. They retain inherited structure and checks while supplying
-domain-specific guidance and additional requirements. Named members are
-required by default; `optional` controls their presence and `minMatches`
-controls dynamic collection size. See [named instances](docs/MATCHING.MD#named-instances)
-for the complete contract and [migration](docs/cli/migrate/README.MD) for
-converting Markdown directory guidance to `ESPALIER.mjs`.

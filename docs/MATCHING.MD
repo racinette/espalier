@@ -39,7 +39,7 @@ export const fold = false;
 ```
 
 All three exports are optional. `guidance` may instead be an async function
-of the build context. `fold = true` folds this directory and its entire subtree
+of the compilation context. `fold = true` folds this directory and its entire subtree
 into the nearest enclosing generated document. It changes placement only.
 See [Named instances](#named-instances) for context and inheritance.
 
@@ -175,7 +175,11 @@ does not change how constraints classify the resulting filename.
 
 **A back-reference resolves to exactly one name once its capture is bound.** Everything else follows from that sentence. It is required for each instance, the way a static leaf is required — `clients/twilio/` without a `twilio.ts` reports `missing_required_file`. It beats a dynamic sibling for ownership, because naming one file is more specific than matching many. And it can never be ambiguous with a static sibling, because by the time it is compared it is a literal too.
 
-It must refer to a `[name]` **earlier in the same path**. `{provider}` with no `[provider]` above it is `unbound_backreference`, reported at compile time. This also means a back-reference always sits beneath a placeholder, so it is always a per-instance requirement and never an unconditional one.
+It must refer to a `[name]` **earlier in the effective contract path**. A named
+`instanceOf` specialization retains captures from its base. For example, a
+required `stripe/` specializing `[provider]/` binds `provider = "stripe"`, so
+an inherited `{provider}.ts` requires `stripe/stripe.ts`. An unbound
+`{provider}` is `unbound_backreference`, reported at compile time.
 
 It carries literal text like any other segment part: `[provider]/{provider}.test.ts`, `[provider]/test-{provider}.ts`. Nothing stops it appearing in a directory segment either — `[provider]/{provider}-config/settings.ts` — though the leaf is where it earns its keep.
 
@@ -444,11 +448,15 @@ Ambiguity is never resolved by declaration order or alphabetically. An espalier 
 
 ## What must exist
 
-Only files are validated. Directories are not checked for their own sake — a directory matters exactly as much as the files declared inside it.
+Ordinary directories derive their requirements from their contents. A named
+directory specialization declared with `instanceOf` is itself required unless
+it exports `optional = true`; an absent required instance reports
+`missing_required_directory`, even when all its children are optional.
 
 **Static leaves are required unless their module says otherwise.** `main.ts.mjs` means `main.ts` must exist, and its absence is `missing_required_file`. A module exporting `optional = true` declares a file that *may* exist: it is owned, documented and linted whenever it is there, and nothing is reported when it is not. See [TYPES.MD](TYPES.MD#optional).
 
-**Resolved leaves are required per instance.** `[provider]/{provider}.ts.mjs` means each provider directory must contain a file named after itself. It behaves as a static leaf does, one instance at a time: `clients/stripe/` without `stripe.ts` reports `missing_required_file`, and `optional` relaxes it the same way. A back-reference cannot occur above the placeholder it refers to, so there is no such thing as an unconditionally required resolved leaf.
+**Resolved leaves are required per instance.** `[provider]/{provider}.ts.mjs` means each provider directory must contain a file named after itself. It behaves as a static leaf does, one instance at a time: `clients/stripe/` without `stripe.ts` reports `missing_required_file`, and `optional` relaxes it the same way. A required named specialization can bind the placeholder and make the resolved
+file required without waiting for an unnamed dynamic instance to appear.
 
 **Dynamic leaves are collections.** `[util].ts.mjs` allows zero or more owned
 files by default. `minMatches = N` requires at least N owned files in the
@@ -457,7 +465,7 @@ follows its rule; a matching file claimed by a more specific sibling follows
 that sibling's rule instead and does not count toward the collection, unless
 the sibling specializes this collection through `instanceOf`.
 
-A required collection on the static spine must have a member even if its
+A required collection on the static spine must meet its minimum even if its
 containing directory is absent. Beneath a dynamic directory, each instantiated
 owning directory must satisfy it separately. Static subdirectories retain that
 requirement, but uninstantiated dynamic subdirectories do not. An extension
@@ -465,8 +473,8 @@ list such as `[name].{ts,tsx}` is one collection: either extension can satisfy
 it. Ignored, externally invisible, and child-espalier files do not count.
 Linked worktrees remain outside the parent's authority.
 
-An empty required collection reports `missing_required_match` against its
-containing directory (`.` at the repository root), with the declaration,
+A collection with fewer owned files than its `minMatches` reports
+`missing_required_match` against its containing directory (`.` at the repository root), with the declaration,
 rule module and bound directory captures in metadata. The author chooses a
 concrete filename; Espalier cannot derive one from a placeholder.
 
@@ -487,7 +495,8 @@ Any governed file under the instance instantiates it, whether or not a structura
 
 **An independent directory a more specific sibling describes is not an instance.** Requiredness uses the same specificity as ownership: static, then resolved, then the narrowest matching dynamic pattern. Thus `clients/` beside `[area]/` is `clients/`, and nothing under it is asked to satisfy `[area]/`. A directory declaring `instanceOf` retains its inherited requirements. Likewise `[name]-checksonly/` beside `[world]/` requires only the checksonly branch's descendants in matching directories. Otherwise a broad pattern would demand files inside a directory a different rule describes. The two questions — who owns this file, and what must exist — are answered from one tree and must be answered the same way.
 
-**Optional descendants stay optional per instance.** `clients/[provider]/webhook.ts.mjs` marked optional means any provider may have a webhook and none has to. This is the case the espalier could not state before: the shared files stay required for every instance, and the one that only some instances carry is declared with its rule rather than left undeclared.
+**Optional descendants stay optional per instance.** `clients/[provider]/webhook.ts.mjs` marked optional means any provider may have a webhook and none has to. The shared files remain required for every instance; the optional file has
+an explicit rule whenever it is present.
 
 **Ordinary directories derive requiredness from their contents.** Named directory
 instances are required themselves, even when their inherited contents are optional.

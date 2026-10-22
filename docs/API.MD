@@ -273,7 +273,9 @@ inputs; there are no persistent dependency declarations.
 `DirectoryGuidanceContext` types a directory module's guidance function. It
 contains an isolated `config` snapshot, the authored directory `pattern`, a
 concrete `path` when known (otherwise null), and known `captures`. Guidance may
-return a string or a promise of one.
+return a string or a promise of one. See the
+[directory module contract](TYPES.MD#directory-modules) for an executable
+example, evaluation timing, and path semantics.
 
 `check` resolves and checks complete inheritance chains. `runRule` tests only
 the supplied callback; it does not load or resolve `instanceOf`. Use `check`

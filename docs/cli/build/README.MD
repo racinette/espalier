@@ -35,9 +35,17 @@ Everything else the agent needs arrives from `espalier lint`, which reports viol
 
 ## Where files go
 
-By default, a generated file is placed at the **longest static prefix** of what it describes. A directory is a valid placement point only if its entire path contains no dynamic segment; one `[name]` or `[...name]` above it and the file would multiply across instances on disk.
+By default, a generated file is placed at the **longest static prefix** of
+what it describes. Placement paths consist of static directory names.
+Placeholder and back-reference directory segments stop that prefix; a dynamic
+filename does not affect it.
 
-Only dynamic **directory** segments matter. A dynamic filename does not affect placement, because the directory containing it is real.
+A named `instanceOf` specialization contributes an explicit static branch and
+can have local generated guidance. An unnamed dynamic instance does not
+receive a generated document merely because it exists on disk. Shared
+guidance stays at the static prefix; `fold` may move it upward. See
+[Named instances](#named-instances) and
+[handwritten notes](#handwritten-notes-inside-dynamic-instances).
 
 | Rule | Placed at |
 |---|---|
@@ -146,8 +154,9 @@ describes and then proceeding depth-first in sibling order. The first row is
 slash at every deeper placement point. The project [`name`](../../CONFIG.MD#name)
 is not used there: it names the project, not necessarily its directory.
 
-Every other directory also carries a trailing `/`. Names are authored form, so
-a dynamic node appears as `[provider]/` or `[button].tsx`.
+Every other directory also carries a trailing `/`. Dynamic names retain their
+authored form, such as `[provider]/` or `[button].tsx`. Back-references whose
+bindings are known in a named instance appear as concrete names.
 
 Structural rule headings are relative to the placement point that contains
 them. A document headed `src/` therefore describes `context.ts`, not

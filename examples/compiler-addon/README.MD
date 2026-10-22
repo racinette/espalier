@@ -101,7 +101,9 @@ Keep source, dependencies, scope, and output format identical. Alternate run
 order and compare findings independently of order. Measure elapsed time and
 peak memory: each worker retains its own compiler program. Count program
 builds with `onBuild`, and time preparation, setup, queries and disposal
-separately. Observations go to stderr, never into policy or findings.
+separately. Observations go to stderr, never into policy or findings. Record
+the chosen default as `lint.jobs` in `espalier.config.yaml`; an explicit
+`--jobs` overrides it for a particular invocation.
 
 Use small `runRule` fixtures for semantic counterexamples and a few complete
 repository checks for conformance. Choose a worker limit appropriate to the

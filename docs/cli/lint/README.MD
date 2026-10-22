@@ -27,7 +27,7 @@ espalier lint [paths...]
 
 1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, and build the matcher. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `rule` export — stops the run before repository linting begins.
 2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and a traversal failure stops the run. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
-3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required named leaves with no file report `missing_required_file`; empty required collections report `missing_required_match`. See [MATCHING.MD](../../MATCHING.MD).
+3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required named leaves with no file report `missing_required_file`; absent required named directory instances report `missing_required_directory`; collections below their minimum report `missing_required_match`. See [MATCHING.MD](../../MATCHING.MD).
 4. **Prepare execution.** Capture governed source contents, await addon preparation, and initialize all participating workers.
 5. **Run rules.** For every owned file: its inherited structural checks and local `lint`, plus each per-file constraint whose directory pattern and selector admit it. Run each aggregate once over its complete selected group.
 6. **Report and clean up.** Report distinct issues from each invocation as they arrive, then dispose worker-local addons.
@@ -198,8 +198,14 @@ Three codes come from matching rather than from a rule module. Their `rule` is `
 
 `missing_required_file` — a required static or resolved leaf has no corresponding file in its owning branch. A leaf whose module exports `optional = true` never reports it, at any depth or in any instance of a dynamic directory.
 
-`missing_required_match` — a dynamic leaf with explicit `minMatches = 1`
-owns no files in a required collection. The path is its containing directory
+`missing_required_directory` — a required named `instanceOf` directory does
+not exist. Its contents can all be optional and the directory itself still be
+required. An optional instance is permitted to be absent, but its required
+contents are checked when it exists.
+
+`missing_required_match` — a dynamic leaf with `minMatches = N` owns fewer
+than N files in an existing owning directory or on the required static spine.
+Named specializations count toward their inherited collections. The path is its containing directory
 (`.` at the root); metadata names `declared`, `rule`, and enclosing `captures`.
 The check uses the full governed file set, even during a partial run, but
 reports only collections whose containing directory is inside the scope.

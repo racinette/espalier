@@ -501,13 +501,13 @@ explicit selection. Unknown mode names or non-string values fail with
 
 Generated files carry a provenance header, and that marker is what `espalier` uses to decide what it may delete, what to ignore while matching, and what it must not touch.
 
-Files bearing the marker are regenerated and, when the espalier no longer produces them, removed — a stale document that keeps steering agents after its rule was deleted is worse than no document. The removal is confined to the paths this configuration governs: a marked file that is excluded is left where it is. A documentation file **without** the marker halts the build rather than being overwritten; move its content into the corresponding `ESPALIER.mjs` and run again. First contact with a tool is not the right moment to lose your agent instructions.
+Files bearing the marker are regenerated and, when the espalier no longer produces them, removed — a stale document that keeps steering agents after its rule was deleted is worse than no document. The removal is confined to the paths this configuration governs: a marked file that is excluded is left where it is. An unmarked file at a planned generated output path halts the build rather than being overwritten; move its content into the corresponding `ESPALIER.mjs` and run again. First contact with a tool is not the right moment to lose your agent instructions.
 
 ## Errors
 
 Everything in this document that fails — a missing config, an unknown key,
 a missing `pin`, `ignoreFiles` or `skip`, an addon that will not start, an
-exclusion that contradicts a required leaf — is an operational failure.
+exclusion that contradicts a required file or named directory instance — is an operational failure.
 `espalier` exits `2`. Findings emitted before a runtime failure may remain in
 the output; they cannot establish conformance.
 

@@ -12,9 +12,9 @@ package's version. `migrate` is the exception: it updates `pin`, removes
 obsolete settings, and inserts missing required keys. After it runs, this CLI
 owns the repository. An older CLI will refuse the result.
 
-Migration preserves an explicit `build.guidanceMode` selection and validates
-it before writing that project's migration files. It does not switch between
-evolving and fixed guidance. The refreshed authoring contract reads the mode
+Migration preserves explicit `build.guidanceMode` and `lint.jobs` settings
+and validates them before writing that project's migration files. It does not
+switch between evolving and fixed guidance. The refreshed authoring contract reads the mode
 from the governing configuration.
 
 ## Usage
@@ -51,12 +51,27 @@ repository configuration reject this leftover schema identifier as an unknown ke
 removes the Markdown source. The prose becomes a string export; `description`
 and `fold` become exports. Original frontmatter is retained as comments.
 Malformed frontmatter and conflicting destination modules fail before any
-planned source or configuration writes. Migration never imports authored code.
+planned source or configuration writes within that project. Migration never
+imports authored code.
 
 **Dynamic collection cardinality.** Rewrites direct literal dynamic-leaf
 `optional = false` to `minMatches = 1`, and true to zero. Computed or re-exported
 values require a manual conversion; migration reports the source and stops
-before writing. Named leaves retain their optional semantics.
+before writing. Named leaves retain their optional semantics. For example:
+
+```js
+// Dynamic leaf before migration:
+export const optional = false;
+
+// Dynamic leaf after migration:
+export const minMatches = 1;
+```
+
+For factories or re-exports, remove `optional` from each dynamic leaf's public
+exports and export `minMatches` instead. Use zero for a collection allowed to
+be empty. Static leaves may continue exporting `optional`; a shared factory
+must expose the appropriate fields for each node kind. Migration does not
+execute the factory to guess its intent.
 
 **`build.inline`.** Removed. A true value sets the root directory module's
 `fold = true`, creating the module when absent. A false value leaves authored
@@ -96,8 +111,9 @@ A config that is already current is reported `skipped` and not written. The auth
 filenames or selectors are interpreted, and the config alone cannot reveal the
 author's intended match set. Review the rules against [MATCHING.MD](../../MATCHING.MD)
 and [TYPES.MD](../../TYPES.MD) before relying on the new pin. `--dry-run`
-reports configuration, exclusion-list, directory-module, and authoring-file writes and legacy-source removals; it does not
-validate rule behavior.
+reports configuration, exclusion-list, rule-module, directory-module, and
+authoring-file writes and legacy-source removals; it does not validate rule
+behavior.
 
 Unknown keys other than `version` and `build.inline` still fail. Migration only
 removes recognized obsolete settings; it does not guess at typos.

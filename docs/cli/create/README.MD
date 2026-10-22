@@ -8,7 +8,10 @@ renders source; a required rule without one contributes an empty file.
 espalier create src/constants.ts -- --varname answer
 ```
 
-The argument is a concrete repository path, not a template name. Espalier
+The argument is a concrete file or directory path, resolved from the current
+working directory. Config discovery finds the governing project; it does not
+change the base for resolving the target. An undeclared-target diagnostic
+names the resolved repository-relative path and project root. Espalier
 resolves files and directories with the same
 [structural specificity](../../MATCHING.MD#ownership) used by `lint` and
 `explain`, including narrower placeholder patterns, so creation follows the
@@ -41,8 +44,8 @@ The positional action `preview`, immediately after the path, renders the
 selected templates without writing target files. Its following arguments use
 the same schema as creation. File and directory help list this invocation too.
 
-For a file, arguments after the path or `preview` action are parsed against the
-owning template's schema. Schema keys become long flags exactly as authored: `varname`
+For a file, arguments after `--` are parsed against the owning template's
+schema. The separator follows the path or `preview` action. Schema keys become long flags exactly as authored: `varname`
 becomes `--varname`, `withExport` becomes `--withExport`, and `"with-export"`
 becomes `--with-export`. Espalier does not silently translate among naming
 conventions.
@@ -272,8 +275,8 @@ one line. The fence is longer than any backtick run in the source. Source is
 neither indented nor reformatted. When it has no final newline, one is added
 for the closing fence and `(no trailing newline)` follows the block; that
 display newline is not part of the rendered file. An empty source is shown as
-`(empty file)` instead of a fenced block. A directory with no required files
-shows its directory path and `(no required files)`.
+`(empty file)` instead of a fenced block. When no files are included, preview shows the directory path and
+`(no required files)`. Selected optional files appear like required files.
 
 The final line counts files: `1 file previewed.` or `N files previewed.`
 For example:
@@ -299,7 +302,7 @@ preview does not cache it for a later invocation.
 When present, a renderer must return a string. Espalier writes that string—or
 the implicit empty string—verbatim and adds no newline, marker, or formatting
 of its own. A file renderer completes before the write. For a directory, every
-required renderer completes before any target file is written. Espalier then
+included renderer completes before any target file is written. Espalier then
 claims the target directory with an exclusive creation and removes that new
 directory if a file write fails, so the failed operation leaves no partial
 target behind.
