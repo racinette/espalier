@@ -212,7 +212,7 @@ Constraints do not appear. They declare no file and permit none, so a map that l
 
 ### Suffixes
 
-There are three kinds, and each is true of the line it sits on and of nothing else. That is the rule they are written to: a suffix whose subject the reader has to locate — which directory, how far up the tree — has spent more attention than it saved.
+There are four kinds, and each is true of the line it sits on and of nothing else. That is the rule they are written to: a suffix whose subject the reader has to locate — which directory, how far up the tree — has spent more attention than it saved.
 
 **`required` and `optional`** mark every leaf the espalier names — every static and resolved one — and neither is a default. A named file carrying no such suffix is not a file whose requiredness is left to inference; there is no such file. Both read against the line's own position, so `requestModels.ts` drawn inside `[provider]/` is required in a `[provider]/` directory, which is where the reader is looking.
 
@@ -229,6 +229,16 @@ their inherited contents.
 placeholder, such as `[button].tsx` or `test-[name].ts`. A directory pattern
 uses **`zero or more matching directories`**. These counts preserve the restrictions expressed by the pattern; none
 promises that an arbitrary name is accepted.
+
+**`instance of <contract>`** identifies a named specialization alongside its
+requiredness: `Flights/` can read `(required, instance of [feature]/)`, and
+`search.ts` can read `(required, instance of [operation].ts)`. The contract is
+the sibling name in the effective inherited tree, with a trailing `/` for a
+directory and without the rule module's `.mjs` suffix for a file. This remains
+visible on a directory where the map stops at a deeper generated document.
+Optional instances carry the same relationship with `optional`. Ordinary
+inherited children without their own `instanceOf` declaration do not acquire
+this annotation; they follow the containing directory's contract.
 
 **`{provider} repeats what [provider] matched`** marks every node whose name holds a back-reference, one clause per placeholder, comma-joined inside the parentheses. It describes what the capture holds rather than what the segment was, which is the only phrasing that survives an affix: under `[provider]-provider/`, a `{provider}Impl.ts` in the directory named `stripe-provider` is `stripeImpl.ts`, and a suffix promising "the same name as the directory" would be wrong three times out of four.
 

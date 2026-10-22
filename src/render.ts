@@ -390,11 +390,13 @@ export interface MapEntry {
   path: string;
   description: string | null;
   /**
-   * Null for directories and zero-or-more collections. A required dynamic
+   * Null for ordinary directories and zero-or-more collections. A required dynamic
    * leaf uses true to render its one-or-more count rather than a named file.
    */
   required: boolean | null;
   minMatches?: number;
+  /** Sibling contract name, without the module suffix; directories end in `/`. */
+  instanceOf?: string;
 }
 
 export function mapEntries(
@@ -434,12 +436,15 @@ export function mapEntries(
     if (stopAt.some((boundary) => absolute.startsWith(`${boundary}/`))) continue;
 
     const directory = isDirectory(visit.node);
+    const reference = directory ? visit.node.instanceOf : visit.node.rule?.module.instanceOf;
+    const contract = reference?.slice(reference.lastIndexOf("/") + 1);
     entries.push({
       path: (display.get(visit.at) ?? visit.at) + (directory ? "/" : ""),
       description: directory
         ? (espalier.nodes.get(absolute)?.description ?? null)
         : (visit.node.rule?.module.description ?? null),
       ...(visit.node.segment.dynamic && (visit.node.rule?.module.minMatches ?? 0) > 1 ? { minMatches: visit.node.rule!.module.minMatches } : {}),
+      ...(contract === undefined ? {} : { instanceOf: directory ? `${contract}/` : contract.replace(/\.mjs$/, "") }),
       required:
         visit.node.instanceOf !== undefined ? !visit.node.optional : directory || (visit.node.segment.dynamic && visit.node.rule?.module.optional !== false)
           ? null
@@ -468,6 +473,7 @@ function suffixes(entry: MapEntry): string[] {
   if (segment.dynamic) marks.push(entry.path.endsWith("/")
     ? "zero or more matching directories"
     : (entry.minMatches ?? 0) > 1 ? `at least ${entry.minMatches} matching files` : entry.required === true ? "one or more matching files" : "zero or more matching files");
+  if (entry.instanceOf !== undefined) marks.push(`instance of ${entry.instanceOf}`);
 
   // What the capture holds, not what the segment was: under
   // `[provider]-provider/`, `{provider}Impl.ts` is `stripeImpl.ts`, and "the

@@ -19,6 +19,83 @@
           }
         ]
       }
+    },
+    ".": {
+      "exit": 0,
+      "object": {
+        "map": [
+          {
+            "path": "flights/",
+            "description": "flight planning",
+            "instanceOf": "[group]/",
+            "required": true
+          },
+          {
+            "path": "flights/offline.ts",
+            "description": "offline flight lookup",
+            "instanceOf": "[module].ts",
+            "required": false
+          },
+          {
+            "path": "flights/search.ts",
+            "description": "flight search",
+            "instanceOf": "[module].ts",
+            "required": true
+          },
+          {
+            "path": "flights/[module].ts",
+            "description": "a shared module",
+            "required": true
+          },
+          {
+            "path": "trains/",
+            "description": "rail planning",
+            "instanceOf": "[group]/",
+            "required": false
+          },
+          {
+            "path": "trains/[module].ts",
+            "description": "a shared module",
+            "required": true
+          },
+          {
+            "path": "[group]/",
+            "description": "a shared group",
+            "required": null
+          },
+          {
+            "path": "[group]/[module].ts",
+            "description": "a shared module",
+            "required": true
+          }
+        ]
+      },
+      "conciseHuman": "human/root.txt"
+    },
+    "flights/": {
+      "exit": 0,
+      "object": {
+        "map": [
+          {
+            "path": "offline.ts",
+            "description": "offline flight lookup",
+            "instanceOf": "[module].ts",
+            "required": false
+          },
+          {
+            "path": "search.ts",
+            "description": "flight search",
+            "instanceOf": "[module].ts",
+            "required": true
+          },
+          {
+            "path": "[module].ts",
+            "description": "a shared module",
+            "required": true
+          }
+        ]
+      },
+      "conciseHuman": "human/flights.txt"
     }
   },
   "again": {
@@ -27,5 +104,20 @@
     ],
     "exit": 0,
     "issues": []
+  },
+  "build": {
+    "exit": 0,
+    "report": [
+      {
+        "espalier": null,
+        "kind": "written",
+        "path": "AGENTS.MD"
+      },
+      {
+        "espalier": null,
+        "kind": "written",
+        "path": "flights/AGENTS.MD"
+      }
+    ]
   }
 }

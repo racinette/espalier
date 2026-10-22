@@ -1,0 +1,14 @@
+flights/                                 flight planning
+
+  Captures:
+    group = "flights"
+
+  Declared here:
+    ├─ offline.ts   offline flight lookup (optional, instance of [module].ts)
+    │
+    ├─ search.ts    flight search (required, instance of [module].ts)
+    │
+    └─ [module].ts  a shared module (one or more matching files)
+
+  Every path under flights/ must fit the project layout or a documented
+  repository-specific purpose.

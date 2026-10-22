@@ -1,0 +1,21 @@
+./
+
+  Declared here:
+    ├─ flights/        flight planning (required, instance of [group]/)
+    │  │
+    │  ├─ offline.ts   offline flight lookup (optional, instance of [module].ts)
+    │  │
+    │  ├─ search.ts    flight search (required, instance of [module].ts)
+    │  │
+    │  └─ [module].ts  a shared module (one or more matching files)
+    │
+    ├─ trains/         rail planning (optional, instance of [group]/)
+    │  │
+    │  └─ [module].ts  a shared module (one or more matching files)
+    │
+    └─ [group]/        a shared group (zero or more matching directories)
+       │
+       └─ [module].ts  a shared module (one or more matching files)
+
+  Every path in this directory must fit the project layout or a documented
+  repository-specific purpose.

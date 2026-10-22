@@ -317,7 +317,10 @@ It is called `rules` rather than `declared` because `declared` already means som
 It is true for required named leaves, required named directory instances, and
 collections with a positive minimum; it is false for optional named leaves
 and directory instances. Collection entries include `minMatches` when the
-minimum exceeds one. The drawing is not in the JSON, because branch characters and line breaks are a rendering, and a consumer of this format is not reading prose.
+minimum exceeds one. Named specializations include `instanceOf`, the sibling
+contract name without a module suffix and with a trailing `/` for directories.
+Human maps, including `--concise`, render it as `instance of <contract>`.
+The drawing is not in the JSON, because branch characters and line breaks are a rendering, and a consumer of this format is not reading prose.
 
 `closedSet` is a single unwrapped string, for the same reason.
 
