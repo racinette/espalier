@@ -1,0 +1,4 @@
+pin: 0.8.0
+ignoreFiles: []
+skip: [.gitkeep]
+lint: []

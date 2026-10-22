@@ -14,6 +14,7 @@ import {
   SHIPPED_SKIP,
   locateConfig,
   parseGuidanceMode,
+  parseLintConfig,
   readConfigFile,
 } from "./config.js";
 import { listEntries, readLegacyNodeDoc, sourceCode } from "./compile.js";
@@ -36,6 +37,7 @@ const CURRENT_KEYS = new Set([
   "skip",
   "addons",
   "build",
+  "lint",
   "version",
 ]);
 
@@ -65,6 +67,7 @@ export function rewriteConfigText(
   values: Record<string, unknown>,
   version: string,
 ): string {
+  parseLintConfig(values["lint"]);
   const inline = legacyInline(values);
   const skip = skipAfterRewrite(values, version);
   if (inline !== undefined || ("skip" in values && JSON.stringify(skip) !== JSON.stringify(values["skip"]))) {

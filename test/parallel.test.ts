@@ -238,3 +238,60 @@ test("job limits are validated and removed cache options are rejected", async ()
     }
   } finally {rmSync(root,{recursive:true,force:true});}
 });
+
+test("configured jobs controls worker setup counts and explicit API or CLI options override it", async () => {
+  const root = repository('export function lint() {}', `${tracing}\nexport function setup() { trace('setup'); }`);
+  const config = readFileSync(path.join(root, "espalier.config.yaml"), "utf8");
+  const cli = path.join(PACKAGE_ROOT, "dist/src/cli.js");
+  const count = () => readFileSync(path.join(root, "trace.txt"), "utf8").trim().split("\n").length;
+  const clear = () => rmSync(path.join(root, "trace.txt"), { force: true });
+  try {
+    write(root, "espalier.config.yaml", config + "lint:\n  jobs: 1\n");
+    await check({ cwd: root });
+    assert.equal(count(), 1);
+    clear();
+    const automatic = Math.min(2, os.availableParallelism());
+    for (const [jobs, expected] of [[2, 2], ["auto", automatic]] as const) {
+      await check({ cwd: root, jobs });
+      assert.equal(count(), expected);
+      clear();
+    }
+    for (const [args, expected] of [[[], 1], [["--jobs", "2"], 2], [["--jobs", "auto"], automatic]] as const) {
+      const result = spawnSync(process.execPath, [cli, "lint", ...args], { cwd: root, encoding: "utf8" });
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.equal(count(), expected);
+      clear();
+    }
+    write(root, "espalier.config.yaml", config + "lint:\n  jobs: 2\n");
+    await check({ cwd: root, jobs: 1 });
+    assert.equal(count(), 1);
+    clear();
+    for (const setting of ["", "lint: {}\n", "lint:\n  jobs: auto\n"]) {
+      write(root, "espalier.config.yaml", config + setting);
+      await check({ cwd: root });
+      assert.equal(count(), automatic);
+      clear();
+    }
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("nested projects use their own jobs defaults unless the invocation overrides them", async () => {
+  const root = repository('export function lint() {}', `${tracing}\nexport function setup() { trace('setup'); }`);
+  const child = path.join(root, "packages/child");
+  try {
+    const config = readFileSync(path.join(root, "espalier.config.yaml"), "utf8");
+    write(root, "espalier.config.yaml", config + "lint:\n  jobs: 1\n");
+    write(child, "espalier.config.yaml", config + "lint:\n  jobs: 2\n");
+    for (const file of [".espalierignore", "addon.mjs", "espalier/[file].ts.mjs", "a.ts", "b.ts"]) {
+      write(child, file, readFileSync(path.join(root, file), "utf8"));
+    }
+    for (const jobs of [undefined, 1, 2] as const) {
+      await check({ cwd: root, jobs });
+      for (const [project, expected] of [[root, jobs ?? 1], [child, jobs ?? 2]] as const) {
+        const trace = path.join(project, "trace.txt");
+        assert.equal(readFileSync(trace, "utf8").trim().split("\n").length, expected);
+        rmSync(trace);
+      }
+    }
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

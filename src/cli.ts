@@ -63,7 +63,7 @@ const USAGE = `espalier <command> [options]
   lint only:
   --rule <module>       run one rule module only
   --no-rule-text        omit rule bodies from output
-  --jobs <n|auto>       maximum workers (default: auto)
+  --jobs <n|auto>       maximum workers (default: lint.jobs, otherwise auto)
 
   explain only:
   --concise             show a human summary without authored prose
@@ -248,7 +248,7 @@ async function main(): Promise<number> {
         paths: positionals,
         rule: values["rule"] as string | undefined,
         ruleText: values["no-rule-text"] !== true,
-        jobs: values["jobs"] === undefined || values["jobs"] === "auto" ? "auto"
+        jobs: values["jobs"] === undefined ? undefined : values["jobs"] === "auto" ? "auto"
           : /^\d+$/.test(String(values["jobs"])) ? Number(values["jobs"]) : NaN,
       },
       reporter,

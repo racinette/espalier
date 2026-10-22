@@ -398,3 +398,22 @@ test("0.7 migration preserves metadata exclusions and reviews hidden entries wit
     assert.equal(readFileSync(configPath, "utf8"), written);
   });
 });
+
+test("migration preserves configured jobs and rejects malformed settings before writes", () => {
+  scratch(root => {
+    const config = "pin: 0.8.0\nignoreFiles: []\nskip: []\nlint:\n  jobs: 1 # expensive compiler setup\n";
+    writeFileSync(path.join(root, "espalier.config.yaml"), config);
+    const result = run(root, ["migrate"]);
+    assert.equal(result.status, 0, result.stdout);
+    assert.match(readFileSync(path.join(root, "espalier.config.yaml"), "utf8"), /jobs: 1 # expensive compiler setup/);
+    const malformed = config.replace("jobs: 1", "jobs: 0");
+    writeFileSync(path.join(root, "espalier.config.yaml"), malformed);
+    writeFileSync(path.join(root, "espalier/ESPALIER.MD"), "Keep my guidance.\n");
+    const rejected = run(root, ["migrate"]);
+    assert.equal(rejected.status, 2, rejected.stdout);
+    assert.match(rejected.stdout, /lint.jobs must be a positive safe integer/);
+    assert.equal(readFileSync(path.join(root, "espalier.config.yaml"), "utf8"), malformed);
+    assert.ok(existsSync(path.join(root, "espalier/ESPALIER.MD")));
+    assert.equal(existsSync(path.join(root, "espalier/ESPALIER.mjs")), false);
+  });
+});

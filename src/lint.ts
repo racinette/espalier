@@ -33,8 +33,8 @@ export interface LintOptions {
  * different root. A child the scope does not reach is not run at all.
  */
 export async function lint(options: LintOptions, reporter: Reporter): Promise<number> {
-  const limit = jobLimit(options.jobs);
   const config = loadConfig(options.config, options.cwd);
+  const limit = jobLimit(options.jobs === undefined ? config.lint.jobs : options.jobs);
   const implementations = startImplementations(config.root, config.espalierRoot, config.addons);
   let repository: Repository;
   let here: number;

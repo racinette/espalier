@@ -21,6 +21,9 @@ skip:
 
 addons: ./espalier.addons.mjs
 
+lint:
+  jobs: auto
+
 build:
   filename: AGENTS.MD
   espalierGuidance: true
@@ -329,6 +332,36 @@ source snapshot and reported as `read_failed` if preparation or a rule reads
 that file. A path absent from the snapshot instead produces `read_ungoverned`.
 
 A path the rules exclude is never read, so it never fails this way. For a directory that means the *pruning* form: `vendor/` skips it unopened, while `vendor/**` ignores what is inside and still opens it to find out what that is. A directory you cannot read at all is excluded with `vendor/`.
+
+## `lint.jobs`
+
+The default maximum number of lint workers for this project:
+
+```yaml
+lint:
+  jobs: 1
+```
+
+Accepts a positive safe integer or `auto`. Omitting `lint` or `lint.jobs`
+selects `auto`, which uses up to four workers subject to available CPU
+parallelism and the number of jobs. `lint` must be a mapping when present;
+unknown keys are errors. Invalid values, including quoted numeric strings,
+zero, fractions, and null, fail with `config_invalid_value`.
+
+CLI `lint --jobs N` and API `check({ jobs: N })` override this default for the
+entire invocation, including nested projects. An explicit `auto` also overrides
+the config. Without an override, each nested project uses its own `lint.jobs`;
+a parent's setting is not inherited. Projects run in turn, so their worker
+pools do not overlap. Migration preserves an authored `lint` mapping and does
+not insert one when absent.
+
+Every worker runs addon `setup` once and owns its own resources. A TypeScript
+program built there costs CPU time and memory for every worker. More workers
+help when per-file work outweighs initialization; they can add cost with
+little wall-time benefit when setup dominates. Compare `--jobs 1`, `2`, and
+`auto` on representative lint runs, including memory use, then record the
+appropriate default here. Put expensive transferable analysis in `prepare`,
+which runs once per project; live compiler instances still belong in `setup`.
 
 ## `addons`
 

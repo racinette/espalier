@@ -45,10 +45,11 @@ export interface Config {
   ignore: string[];
   /** Repo-relative path to the addons module, or null. */
   addons: string | null;
+  lint: { jobs: number | "auto" };
   build: { filename: string; espalierGuidance: boolean; guidanceMode: GuidanceMode };
 }
 
-const KNOWN = new Set(["pin", "name", "root", "ignoreFiles", "skip", "addons", "build"]);
+const KNOWN = new Set(["pin", "name", "root", "ignoreFiles", "skip", "addons", "build", "lint"]);
 const KNOWN_BUILD = new Set(["filename", "espalierGuidance", "guidanceMode"]);
 
 /** Instruction files `init` and `migrate` write into `skip`. docs/CONFIG.MD "`skip`". */
@@ -138,6 +139,23 @@ function asBoolean(value: unknown, key: string): boolean {
     fail("config_invalid_value", `${key} must be true or false`);
   }
   return value;
+}
+
+/** The configured limit stays unevaluated so each project sizes its own pool. */
+export function parseLintConfig(value: unknown): Config["lint"] {
+  if (value === undefined) return { jobs: "auto" };
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    fail("config_invalid_value", "lint must be a mapping");
+  }
+  const entries = value as Record<string, unknown>;
+  for (const key of Object.keys(entries)) {
+    if (key !== "jobs") fail("config_unknown_key", `unknown configuration key "lint.${key}"`);
+  }
+  const jobs = "jobs" in entries ? entries["jobs"] : "auto";
+  if (jobs !== "auto" && (typeof jobs !== "number" || !Number.isSafeInteger(jobs) || jobs < 1)) {
+    fail("config_invalid_value", "lint.jobs must be a positive safe integer or auto");
+  }
+  return { jobs };
 }
 
 export function loadConfig(explicit: string | undefined, cwd: string): Config {
@@ -262,6 +280,7 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     skip,
     ignore,
     addons,
+    lint: parseLintConfig(values["lint"]),
     build: { filename, espalierGuidance, guidanceMode },
   };
 }

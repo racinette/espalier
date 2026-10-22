@@ -20,7 +20,7 @@ espalier lint [paths...]
   --rule <module>       run one rule module only
   --config <path>       use this config file instead of discovering one
   --no-rule-text        omit rule bodies from output
-  --jobs <n|auto>       maximum workers (default: auto)
+  --jobs <n|auto>       maximum workers (default: lint.jobs, otherwise auto)
 ```
 
 ## What it does
@@ -93,6 +93,11 @@ There is no `--staged`. A hook that genuinely wants a narrow run already knows w
 Lint callbacks execute in Node worker threads with separate JavaScript heaps.
 The coordinator owns repository discovery, preparation, scheduling, and output.
 
+Without an explicit CLI or API jobs option, each project uses
+[`lint.jobs`](../../CONFIG.MD#lintjobs), defaulting to `auto`. An explicit
+number or `auto` overrides every project's setting for this invocation;
+otherwise nested projects use their own defaults.
+
 `--jobs auto` uses up to four workers, bounded by available CPU parallelism and
 the number of jobs. `--jobs N` accepts a positive safe integer and caps the
 worker pool at N; `--jobs 1` uses the same worker lifecycle with serial execution.
@@ -111,6 +116,13 @@ rely on worker assignment or invocation order. Findings are reported centrally
 as they arrive. Findings, including metadata, must support structured cloning
 to cross the worker boundary. The issue set is independent of the worker count; stream order
 is unspecified. Duplicate suppression remains local to each invocation.
+
+Each worker pays the CPU and memory cost of addon `setup`. Building a compiler
+program in every worker can dominate a small lint run, making additional
+workers more expensive without reducing elapsed time. Compare worker counts
+on the actual project and set `lint.jobs` accordingly. Share transferable
+analysis through `prepare` where possible; live compiler resources remain
+local to each worker.
 
 Nested projects run in turn, each with separate preparation and worker-local
 addons. Their pools do not overlap, so the job limit bounds the whole command.

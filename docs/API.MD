@@ -92,7 +92,7 @@ test("the repository conforms", async () => {
 | `config` | discovered | an explicit config file path |
 | `paths` | every visible file | limit the run to a subtree |
 | `rule` | every rule | run one rule module only, by espalier-relative path |
-| `jobs` | `"auto"` | positive safe integer worker limit, or automatic sizing |
+| `jobs` | each project's `lint.jobs`, otherwise `"auto"` | positive safe integer worker limit, or automatic sizing; an explicit value overrides nested projects too |
 
 The package exports `Jobs` and `PrepareContext` types for worker limits and
 addon preparation:

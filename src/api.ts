@@ -55,7 +55,7 @@ export interface CheckOptions {
   paths?: string[];
   /** Run one rule module only, by espalier-relative path. */
   rule?: string;
-  /** Maximum lint workers; defaults to auto. */
+  /** Maximum lint workers; defaults to each project's lint.jobs setting. */
   jobs?: Jobs;
 }
 
@@ -97,7 +97,7 @@ export async function check(options: CheckOptions): Promise<Issue[]> {
       paths: options.paths ?? [],
       rule: options.rule,
       ruleText: true,
-      jobs: options.jobs ?? "auto",
+      jobs: options.jobs,
     },
     collector(issues, failures),
   );
