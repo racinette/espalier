@@ -17,7 +17,7 @@ function scratch(body: (root: string) => void): void {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-parse-location-"));
   try {
     mkdirSync(path.join(root, "espalier"));
-    writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.9.1\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.9.2\nroot: espalier\nignoreFiles: []\nskip: []\n");
     body(root);
   } finally {
     rmSync(root, { recursive: true, force: true });

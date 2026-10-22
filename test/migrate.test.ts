@@ -402,7 +402,7 @@ test("0.7 migration preserves metadata exclusions and reviews hidden entries wit
 
 test("migration preserves configured jobs and rejects malformed settings before writes", () => {
   scratch(root => {
-    const config = "pin: 0.9.1\nignoreFiles: []\nskip: []\nlint:\n  jobs: 1 # expensive compiler setup\n";
+    const config = "pin: 0.9.2\nignoreFiles: []\nskip: []\nlint:\n  jobs: 1 # expensive compiler setup\n";
     writeFileSync(path.join(root, "espalier.config.yaml"), config);
     const result = run(root, ["migrate"]);
     assert.equal(result.status, 0, result.stdout);
