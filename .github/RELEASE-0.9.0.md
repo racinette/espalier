@@ -1,9 +1,9 @@
 # Espalier 0.9.0
 
 Named instances can specialize shared directory and file contracts while
-retaining their structure and checks. This release also adds computed directory
-guidance, optional files in directory scaffolds, and project-level lint worker
-defaults.
+retaining their structure and checks. This release also adds computed directory,
+file, and constraint guidance, optional files in directory scaffolds, and
+project-level lint worker defaults.
 
 There are breaking changes to dynamic-leaf requiredness and template arguments.
 Review the upgrade instructions below before migrating.
@@ -87,6 +87,38 @@ module exports, preserves the original frontmatter as comments, and removes
 the old source without importing authored code. `adopt` writes module guidance;
 force-adoption refuses to merge arbitrary authored or computed modules and asks
 for a manual merge before writing.
+
+## Computed file and constraint guidance
+
+Structural file rules and per-file or aggregate constraints can export `rule`
+as a string or a synchronous or asynchronous function:
+
+```js
+export function rule({ config }) {
+  return config.build.guidanceMode === "fixed"
+    ? "Changes to this file's responsibilities require architecture authorization."
+    : "Discuss changes to this file's responsibilities before implementing them.";
+}
+```
+
+The exported `RuleGuidanceContext` supplies `{ config, pattern, path, captures }`.
+Configuration is an isolated snapshot; `pattern` is the authored declaration
+without its final `.mjs`. A structural path is concrete only when known from the
+declaration; constraints always receive `path: null`. Captures contain known
+named-instance bindings, without inventing values for dynamic matches.
+
+Callbacks render once per authored declaration during compilation, before
+workers start. Build, explain, and lint findings use the same rendered prose;
+workers do not recompute it. Inherited base prose keeps its base declaration
+context, and local prose adds requirements in its own context. Callbacks should
+be deterministic and free of side effects. `build --check` detects stale output.
+Thrown or rejected callbacks fail with `rule_guidance_failed`; non-string
+results fail with `module_invalid_export`.
+
+Standalone `runRule` and `runAggregate` tests supply an explicit `guidance`
+context when testing a module with function-valued prose. Those helpers render
+it before lint without inferring project configuration or declaration bindings
+from a lint match. Existing string exports need no migration.
 
 ## Dynamic collection minimums
 
