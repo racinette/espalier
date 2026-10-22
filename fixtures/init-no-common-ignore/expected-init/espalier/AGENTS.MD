@@ -110,11 +110,12 @@ The espalier tree mirrors the repository’s directories: rules in
 `espalier/src/clients/` apply under `src/clients/`. Each rule is written in
 one `.mjs` file, called a rule file.
 
-**`ESPALIER.MD` describes the directory.** Its `description` field in the
-frontmatter briefly describes what the directory is for. Its body supplies
-guidance for working in that directory. It does not
-declare which files may exist or provide a lint check. Leave it out when
-the directory needs no description or guidance.
+**`ESPALIER.mjs` describes the directory.** It exports a short `description`
+and a `guidance` string or function. A function receives the config, authored
+pattern, concrete path when known, and inherited captures. `fold = true` folds
+the subtree's documents into its ancestor. Keep structural exports stable;
+compute prose from explicit inputs. Leave the module out when it has nothing
+to say and declares no named instance.
 
 **A structural rule file names the repository file it governs, with `.mjs`
 appended.** The name can be literal, such as `main.ts.mjs`, or contain a
@@ -166,8 +167,8 @@ Overlapping patterns also conflict when neither contains the other, such as
 `test-[name].ts.mjs` and `[name]-test.ts.mjs`.
 
 The same rule applies to directories: `[name]-checksonly/` wins its matches
-beside `[world]/`. Only the winning branch declares the directory's contents
-and required files; its unmatched contents do not fall back to `[world]/`.
+beside `[world]/`. For independent declarations, only the winning branch
+declares the directory's contents and required files; its unmatched contents do not fall back to `[world]/`.
 Distinct prefixes such as `a-[name]/` and `b-[name]/` are disjoint and may
 both sit beside a broad fallback. A directory placeholder and a file
 placeholder may coexist, because they match different kinds of path.
@@ -240,7 +241,7 @@ Files such as `AGENTS.MD` can live beside the rules when the config’s
 `skip` list excludes them from compilation. `espalier init` sets this up
 for common agent instruction files, `.git`, and `.gitkeep`. Dot-prefixed names
 are ordinary paths. Exclude tooling directories explicitly with `skip`; an
-excluded directory may contain modules and `ESPALIER.MD` without compiling them.
+excluded directory may contain modules and `ESPALIER.mjs` without compiling them.
 
 `espalier help matching` is the rest of this grammar.
 
@@ -286,15 +287,15 @@ paths and functions to read file contents and report findings.
 
 Guidance under a directory placeholder must apply to every directory the branch
 owns. A directory claimed by a more specific sibling follows that sibling's
-guidance instead.
+guidance instead, unless it explicitly specializes the shared contract through
+`instanceOf`. A specialization retains the shared obligations and adds local
+domain guidance.
 
 A structural rule file can also export a `template` for `espalier create`.
 For a file that would otherwise be required, `optional = true` allows it to
-be absent. On a dynamic leaf, omission or `optional = true` permits zero or
-more owned files; explicit `optional = false` requires at least one per owning
-directory. A rule can name an existing example with
-`referenceImplementation`. See `espalier help types` for the full export
-reference.
+be absent. Dynamic leaves use `minMatches`, a nonnegative integer defaulting to zero;
+`minMatches = 1` requires a nonempty collection per existing owning directory.
+They reject `optional`. Named leaves use `optional = true` to permit absence.
 
 Write templates as meaningful starting points for the node's shape. Rendered
 source need not parse or pass lint; do not invent placeholder implementations
@@ -310,7 +311,7 @@ Keep the decisions about what is permitted, required, and reported in the
 rule file. Helpers can parse data, calculate facts, or perform checks using
 conditions supplied by the rule file.
 
-Keep each owner's prose in its rule file or `ESPALIER.MD`, even when several
+Keep each owner's prose in its rule file or `ESPALIER.mjs`, even when several
 owners currently say the same thing. Each statement can evolve with its owner;
 identical wording alone is no reason to factor it out or require the copies
 to stay identical. Share checking code through helpers supplied with the
@@ -380,7 +381,7 @@ use a dynamic collection such as `shared/[name].ts` where instances share a
 defined responsibility and contract. The compiler-addon example shows both
 and tests their matching and creation behavior.
 
-Keep reusable architecture guidance in the rules and `ESPALIER.MD`. Describe
+Keep reusable architecture guidance in the rules and `ESPALIER.mjs`. Describe
 the bundled demonstration application's domain and behavior in its own
 documentation. A new adopter should inherit the architecture without inheriting
 the demonstration's product requirements.
@@ -410,3 +411,22 @@ implementation. Confirm that the generated guidance agrees with the rules,
 then run `espalier build --check` to verify it is current.
 
 `espalier help` lists every page of this CLI version's manual.
+
+## Named instances of shared contracts
+
+Use dynamic nodes for a repeated architectural role, and named instances to
+explain concrete domain responsibilities without copying its checks. A static
+directory exports `instanceOf = "../[group]"` from `ESPALIER.mjs`; a named file
+exports `instanceOf = "[module].ts.mjs"` to specialize a matching dynamic leaf
+in its inherited directory. These references name contracts, not JS imports.
+
+Every inherited check still runs. Local rules add checks and domain guidance;
+they cannot admit unsupported paths, remove required members, or suppress base
+checks. Unmentioned children remain inherited. Named instances are required
+by default; `optional = true` allows absence where the base permits it. An
+inherited template supplies the creation recipe unless a local template is
+provided. Shared prose stays at the contract; local prose explains the domain.
+
+Removing a specialization must leave passing source valid under its base.
+Matching a broad filename pattern alone does not establish the right role:
+read the shared guidance before declaring a named instance.

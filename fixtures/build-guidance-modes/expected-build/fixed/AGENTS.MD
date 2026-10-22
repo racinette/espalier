@@ -42,7 +42,7 @@ any unsettled design, its options and tradeoffs, and get agreement before
 implementation. Identify changes to placement, requiredness, checks and
 exclusions, including guarantees they remove. Preserve existing guarantees
 unless changing them is part of that agreement. Update rules and
-`ESPALIER.MD` together, regenerate guidance, and follow the project's review
+`ESPALIER.mjs` together, regenerate guidance, and follow the project's review
 workflow. Implement the agreed design without repeatedly requesting approval;
 reopen discussion if a materially different design becomes necessary.
 

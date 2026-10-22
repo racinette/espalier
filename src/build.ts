@@ -205,10 +205,11 @@ function generatedReason(repository: Repository, point: Placement): string {
       ? repository.config.espalierRoot
       : `${repository.config.espalierRoot}/${point.at}`;
   const fixed = "Generated repository guidance; edits here will be overwritten.";
-  const href = linkFrom(point.at, `${source}/ESPALIER.MD`);
+  const filename = point.doc?.source ?? "ESPALIER.mjs";
+  const href = linkFrom(point.at, `${source}/${filename}`);
   return point.doc === null
-    ? `${fixed} Create [\`ESPALIER.MD\`](${href}) to add persistent guidance to this document.`
-    : `${fixed} Modify [\`ESPALIER.MD\`](${href}) to change this document's persistent guidance.`;
+    ? `${fixed} Create [\`${filename}\`](${href}) to add persistent guidance to this document.`
+    : `${fixed} Modify [\`${filename}\`](${href}) to change this document's persistent guidance.`;
 }
 
 function outsideAt(
@@ -279,7 +280,13 @@ function planFor(
 
   const points = plan(repository.espalier).filter((point) => {
     const excluded = repository.ungoverned(point.at, true);
-    return excluded !== "worktree";
+    if (excluded === "worktree") return false;
+    // Rendering must not instantiate an absent optional source subtree.
+    for (const [at, doc] of repository.espalier.nodes) {
+      if (doc.instanceOf && doc.optional && (point.at === at || point.at.startsWith(`${at}/`)) &&
+          !existsSync(path.join(root, at))) return false;
+    }
+    return true;
   });
 
   const assigned = assignChildren(points, repository.children);
@@ -344,7 +351,7 @@ function planFor(
     if (options.force) continue;
     fail(
       "unmarked_documentation",
-      `${at} exists without a provenance marker; move its content into the corresponding ESPALIER.MD and run again`,
+      `${at} exists without a provenance marker; move its content into the corresponding ESPALIER.mjs and run again`,
       { path: at },
     );
   }

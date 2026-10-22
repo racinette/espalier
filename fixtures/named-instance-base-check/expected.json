@@ -1,0 +1,13 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "code": "base_required",
+      "rule": "[group]/[module].ts.mjs",
+      "captures": {
+        "group": "flights",
+        "module": "search"
+      }
+    }
+  ]
+}

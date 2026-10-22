@@ -45,7 +45,7 @@ discussion. Explain which files become permitted, required, checked, or
 excluded, and identify any guarantees the proposal removes. Moving a file
 outside a check's scope changes enforcement even if the check stays intact.
 
-Once an approach is agreed, update the corresponding `ESPALIER.MD` for guidance
+Once an approach is agreed, update the corresponding `ESPALIER.mjs` for guidance
 and the structural rule modules for structure, then run `espalier build`.
 Implement the agreed design without repeatedly requesting approval. Reopen
 the discussion if implementation requires a materially different design.
@@ -73,7 +73,7 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Create [`ESPALIER.MD`](espalier/ESPALIER.MD) to add persistent guidance to this document. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Create [`ESPALIER.mjs`](espalier/ESPALIER.mjs) to add persistent guidance to this document. |
 | `espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
 
 Every path in this directory must fit the project layout or a documented

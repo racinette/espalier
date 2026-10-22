@@ -16,7 +16,7 @@ These paths are part of the repository but serve specific purposes outside the p
 | Paths | Purpose |
 | --- | --- |
 | `.espalierignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Create [`ESPALIER.MD`](espalier/ESPALIER.MD) to add persistent guidance to this document. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Create [`ESPALIER.mjs`](espalier/ESPALIER.mjs) to add persistent guidance to this document. |
 
 Every path in this directory must fit the project layout or a documented
 repository-specific purpose.

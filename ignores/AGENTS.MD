@@ -2,6 +2,7 @@
 
 # espalier — `ignores/`
 
+
 Data, not code. `espalier init --lang go` copies `go.gitignore` into the user's
 `.espalierignore` and nothing at lint time ever opens these files again, so upgrading
 `espalier` cannot change what an existing repository governs.
@@ -14,6 +15,7 @@ and `Dockerfile` are deliberately absent while every lockfile is here.
 
 `_common` belongs to no language and is written by every `init`. The leading
 underscore is what keeps it out of the `--lang` names.
+
 
 ## Project layout
 
@@ -36,7 +38,7 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](../espalier/ignores/ESPALIER.MD) to change this document's persistent guidance. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](../espalier/ignores/ESPALIER.mjs) to change this document's persistent guidance. |
 
 Every path under ignores/ must fit the project layout or a documented
 repository-specific purpose.

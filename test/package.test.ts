@@ -137,9 +137,9 @@ export const template = createTemplate(
     );
     assert.match(
       succeed(bin, ["create", "src/answer.ts", "help"], app),
-      /Example:\n  espalier create src\/answer\.ts --name answer --exported/,
+      /Example:\n  espalier create src\/answer\.ts -- --name answer --exported/,
     );
-    succeed(bin, ["create", "src/answer.ts", "--name", "answer", "--exported"], app);
+    succeed(bin, ["create", "src/answer.ts", "--", "--name", "answer", "--exported"], app);
     assert.equal(
       readFileSync(path.join(app, "src", "answer.ts"), "utf8"),
       "export const answer = 1;\n",

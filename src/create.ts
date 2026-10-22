@@ -16,6 +16,7 @@ import {
   requirements,
   type RequiredCollection,
   resolveDirectory,
+  structuralChecks,
   type DirectoryOwnership,
   type Ownership,
   type Recognition,
@@ -100,7 +101,7 @@ function exampleInvocation(target: string, schema: TemplateSchema): string | nul
   const options = exampleOptions(schema);
   return options.length === 0
     ? null
-    : ["espalier", "create", commandValue(target), ...options].join(" ");
+    : ["espalier", "create", commandValue(target), "--", ...options].join(" ");
 }
 
 function templateHelp(
@@ -113,10 +114,10 @@ function templateHelp(
   const lines = [
     "Usage:",
     `  espalier create ${target} help`,
-    `  espalier create ${target} preview${schema === null ? "" : " [template options]"}`,
+    `  espalier create ${target} preview${schema === null ? "" : " -- [template options]"}`,
     schema === null
       ? `  espalier create ${target}`
-      : `  espalier create ${target} [template options]`,
+      : `  espalier create ${target} -- [template options]`,
     "",
     `Creates ${target}.`,
     "",
@@ -165,10 +166,10 @@ function directoryHelp(
   const lines = [
     "Usage:",
     `  espalier create ${target} help`,
-    `  espalier create ${target} preview${schemas.length === 0 ? "" : " [template options]"}`,
+    `  espalier create ${target} preview${schemas.length === 0 ? "" : " -- [template options]"}`,
     schemas.length === 0
       ? `  espalier create ${target}`
-      : `  espalier create ${target} [template options]`,
+      : `  espalier create ${target} -- [template options]`,
     "",
     `Creates ${target}/ and its required files.`,
     "",
@@ -191,16 +192,16 @@ function directoryHelp(
   if (collections.length > 0) {
     lines.push("", "Required collections (choose a filename and create separately):");
     for (const collection of collections) {
-      lines.push(`  ${collection.declared} — one or more owned files`);
+      lines.push(`  ${collection.declared} — ${collection.rule.module.minMatches === 1 ? "one or more" : `at least ${collection.rule.module.minMatches}`} owned files`);
     }
   }
 
-  const example = ["espalier", "create", commandValue(target)];
+  const example = ["espalier", "create", commandValue(target), "--"];
   for (const file of files) {
     if (file.template?.schema === null || file.template?.schema === undefined) continue;
     example.push(...exampleOptions(file.template.schema, (name) => `${file.relative}:${name}`));
   }
-  if (example.length > 3) lines.push("", "Example:", `  ${example.join(" ")}`);
+  if (example.length > 4) lines.push("", "Example:", `  ${example.join(" ")}`);
 
   if (schemas.length > 0) {
     lines.push("", "Template options:");
@@ -333,8 +334,11 @@ function parseTemplateOptions(
   options: ParseArgsOptionsConfig,
   displayTarget: string,
 ): Record<string, unknown> {
+  if (args.length > 0 && args[0] !== "--") {
+    fail("invalid_template_arguments", `template arguments must follow --; run \`espalier create ${displayTarget} help\` for usage`);
+  }
   try {
-    return (parseArgs({ args, allowPositionals: false, strict: true, options }) as {
+    return (parseArgs({ args: args.slice(1), allowPositionals: false, strict: true, options }) as {
       values: Record<string, unknown>;
     }).values;
   } catch (cause) {
@@ -391,7 +395,7 @@ async function createFile(
       ? ""
       : await render(template, values, owner.rule.modulePath, displayTarget, {
           path: target,
-          captures: { ...owner.captures },
+          captures: templateCaptures(owner.rule, target, owner.captures),
         });
   if (preview) {
     reporter.preview({ target, files: [{ path: target, contents }] });
@@ -484,7 +488,7 @@ async function createDirectory(
         local,
         file.rule.modulePath,
         shownTarget,
-        { path: file.path, captures: { ...file.captures } },
+        { path: file.path, captures: templateCaptures(file.rule, file.path, file.captures) },
         (name) => `${file.relative}:${name}`,
       ),
     });
@@ -504,6 +508,9 @@ async function createDirectory(
     mkdirSync(parent, { recursive: true });
     mkdirSync(absolute);
     created = true;
+    for (const directoryPath of requirements(directory.node, target, directory.captures).directories) {
+      mkdirSync(path.join(absolute, path.posix.relative(target, directoryPath)), { recursive: true });
+    }
     for (const { file, contents } of rendered) {
       const output = path.join(absolute, ...file.relative.split("/"));
       mkdirSync(path.dirname(output), { recursive: true });
@@ -608,9 +615,14 @@ export async function create(options: CreateOptions, reporter: Reporter): Promis
   const recognition = (
     !isDirectoryOwnership(directoryAnswer) ? directoryAnswer : fileAnswer
   ) as Recognition;
-  fail("invalid_create_target", `${options.target} is not structurally declared`, {
+  fail("invalid_create_target", `${options.target} resolves to ${target || "."} in project ${root}, which is not structurally declared (paths are relative to the working directory)`, {
     path: target,
     recognized: recognition.recognized,
     declared: recognition.declared,
   });
+}
+
+function templateCaptures(rule: Ownership["rule"], target: string, captures: Ownership["captures"]): Ownership["captures"] {
+  const source = rule.templateRule ?? rule;
+  return structuralChecks(rule, target, captures).find((entry) => entry.rule.modulePath === source.modulePath)?.captures ?? captures;
 }

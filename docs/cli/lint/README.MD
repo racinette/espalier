@@ -29,7 +29,7 @@ espalier lint [paths...]
 2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and a traversal failure stops the run. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
 3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required named leaves with no file report `missing_required_file`; empty required collections report `missing_required_match`. See [MATCHING.MD](../../MATCHING.MD).
 4. **Prepare execution.** Capture governed source contents, await addon preparation, and initialize all participating workers.
-5. **Run rules.** For every owned file: its structural rule's `lint`, plus each per-file constraint whose directory pattern and selector admit it. Run each aggregate once over its complete selected group.
+5. **Run rules.** For every owned file: its inherited structural checks and local `lint`, plus each per-file constraint whose directory pattern and selector admit it. Run each aggregate once over its complete selected group.
 6. **Report and clean up.** Report distinct issues from each invocation as they arrive, then dispose worker-local addons.
 
 Rules execute independently and in unspecified order. A rule may read any governed file through `read` and list governed files through `files`, but must not depend on another rule having run. Helpers and addons receive repository contents from those functions. Shared analysis may reuse identical inputs when answers remain independent of previous calls. See [TYPES.MD](../../TYPES.MD#execution).
@@ -186,7 +186,7 @@ Three codes come from matching rather than from a rule module. Their `rule` is `
 
 `missing_required_file` — a required static or resolved leaf has no corresponding file in its owning branch. A leaf whose module exports `optional = true` never reports it, at any depth or in any instance of a dynamic directory.
 
-`missing_required_match` — a dynamic leaf with explicit `optional = false`
+`missing_required_match` — a dynamic leaf with explicit `minMatches = 1`
 owns no files in a required collection. The path is its containing directory
 (`.` at the root); metadata names `declared`, `rule`, and enclosing `captures`.
 The check uses the full governed file set, even during a partial run, but
@@ -308,3 +308,10 @@ The exit code is the authority on whether the run means anything: a `2` says
 the output cannot establish conformance, however much of it arrived.
 
 Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).
+
+`missing_required_directory` reports an absent required named directory
+instance, including an instance whose inherited contents are all optional.
+Optional instances are checked when present. Inherited file checks execute
+before local checks in the same per-file job. `--rule` selects the authored
+module, including a shared base module. Findings retain that module's pattern
+and captures.

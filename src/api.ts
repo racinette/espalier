@@ -13,6 +13,7 @@ import { lint as runLint } from "./lint.js";
 import type { CaptureValue } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
 import type { Jobs } from "./workers.js";
+export type { DirectoryGuidanceContext } from "./compile.js";
 export type { Jobs } from "./workers.js";
 export type { PrepareContext } from "./execution.js";
 import { templateDefinitionProblem } from "./template.js";

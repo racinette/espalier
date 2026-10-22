@@ -1,5 +1,6 @@
 // `espalier lint`. docs/cli/lint/README.MD.
 
+import { statSync } from "node:fs";
 import path from "node:path";
 import type { Constraint, StructuralRule } from "./compile.js";
 import { loadConfig } from "./config.js";
@@ -8,7 +9,7 @@ import { startImplementations } from "./implementation.js";
 import { prepareAddons, snapshot, type Invocation, type Job } from "./execution.js";
 import { jobLimit, runJobs, type Jobs } from "./workers.js";
 import { admitConstraint, admissionGlobs, issuePattern } from "./targets.js";
-import { isOwnership, requirements, type CaptureValue } from "./match.js";
+import { isOwnership, requirements, structuralChecks, type CaptureValue } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
 import { eachChild } from "./nested.js";
 import { openConfig, type Repository } from "./repository.js";
@@ -128,7 +129,18 @@ async function lintOne(
     });
   }
 
-  const requiredEntries = requirements(espalier.root, "", {}, repository.visibleSet);
+  const requiredEntries = requirements(espalier.root, "", {}, repository.visibleSet, (at) => {
+    try { return statSync(path.join(config.root, at)).isDirectory(); } catch { return false; }
+  });
+  for (const directory of requiredEntries.directories) {
+    if (!inScope(directory) || repository.ungoverned(directory, true) === "worktree") continue;
+    let exists = false;
+    try { exists = statSync(path.join(config.root, directory)).isDirectory(); } catch { /* absent */ }
+    if (repository.ungoverned(directory, true) !== null) {
+      fail("ignored_required_path", `${directory} is a required named directory and is excluded from governance`, { path: directory });
+    }
+    if (!exists) builtin(directory, "missing_required_directory", "this named directory instance is required but does not exist", {});
+  }
   for (const required of requiredEntries.files) {
     const excluded = repository.ungoverned(required.path);
     if (excluded === "worktree") continue;
@@ -144,15 +156,21 @@ async function lintOne(
     builtin(required.path, "missing_required_file", "this file is required but does not exist", {});
   }
 
-  const populated = new Set(allOwned.map((file) =>
-    JSON.stringify([path.posix.dirname(file.path), file.rule.modulePath])));
+  const populated = new Map<string, number>();
+  for (const file of allOwned) {
+    for (const source of new Set(structuralChecks(file.rule, file.path, file.captures).map((entry) => entry.rule.modulePath))) {
+      const key = JSON.stringify([path.posix.dirname(file.path), source]);
+      populated.set(key, (populated.get(key) ?? 0) + 1);
+    }
+  }
   for (const collection of requiredEntries.collections) {
     if (repository.ungoverned(collection.path, true) === "worktree") continue;
     if (!inScope(collection.path)) continue;
     const directory = collection.path || ".";
-    if (populated.has(JSON.stringify([directory, collection.rule.modulePath]))) continue;
+    const minimum = collection.rule.module.minMatches ?? 1;
+    if ((populated.get(JSON.stringify([directory, collection.rule.modulePath])) ?? 0) >= minimum) continue;
     builtin(directory, "missing_required_match",
-      `at least one file owned by ${collection.declared} is required`, {
+      minimum === 1 ? `at least one file owned by ${collection.declared} is required` : `at least ${minimum} files owned by ${collection.declared} are required`, {
         declared: collection.declared,
         rule: collection.rule.modulePath,
         captures: collection.captures,
@@ -235,7 +253,7 @@ async function lintOne(
     });
 
   for (const file of owned) {
-    const job: Job = [invocation(file.rule.modulePath, file.rule.module, file.rule.pattern, file.path, file.captures)];
+    const job: Job = structuralChecks(file.rule, file.path, file.captures).map(({ rule, captures }) => invocation(rule.modulePath, rule.module, rule.pattern, file.path, captures));
     for (const { constraint, captures } of applicable(file.path)) {
       job.push(invocation(constraint.modulePath, constraint.module, constraint.pattern, file.path, captures));
     }

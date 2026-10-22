@@ -23,7 +23,7 @@ espalier adopt <path> [--force]
 
   <path>           directory to bring under the espalier
   --dry-run        print what would be written, write nothing
-  --force          migrate build-output conflicts into ESPALIER.MD
+  --force          migrate build-output conflicts into ESPALIER.mjs
   --config <path>  use this config file instead of discovering one
   --format <fmt>   human or jsonl (default: human)
   --out <dest>     stdout, stderr, or a file path (default: stdout)
@@ -68,11 +68,16 @@ contents before adopting it. Excluded descendants remain ungoverned
 and produce no inferred modules.
 
 If a visible file occupies a documentation path the configured build will own,
-the run names every conflict and its corresponding source-side `ESPALIER.MD`,
+the run names every conflict and its corresponding source-side `ESPALIER.mjs`,
 then writes nothing. `adopt --force` preserves each document verbatim in a
-source-tagged block in that `ESPALIER.MD`. Existing source prose is retained,
+source-tagged block in that `ESPALIER.mjs`. Existing source prose is retained,
 and rerunning the migration replaces the same block rather than duplicating it.
 The original document remains until `espalier build --force` replaces it.
+New guidance modules store the preserved text as a string export. Existing
+legacy Markdown and the serialized string exports produced by adoption or
+migration can be updated automatically. Other authored module forms, including
+computed guidance, require merging the document into the module manually;
+adoption reports the source and refuses before writing its planned changes.
 
 ## What it refuses
 
@@ -180,8 +185,8 @@ The two alternatives were both false, which is why this needed a third statement
 Declaring the extras as a dynamic leaf would silently legalise every future
 `.ts` file in every client directory. The inferred optional declarations name
 the observed files individually, preserving the narrower structure. On a
-dynamic leaf, `optional` instead controls whether its collection may be empty;
-see [TYPES.MD](../../TYPES.MD#optional).
+dynamic leaf, `minMatches` controls collection cardinality and `optional` is
+not accepted; see [TYPES.MD](../../TYPES.MD#minmatches).
 
 An optional declaration also needs review: `adopt` has seen one client with a
 webhook and cannot know whether webhooks belong in every client's contract or
@@ -210,7 +215,7 @@ Singularising is naive — it strips a trailing `s`, and nothing more. `[client]
 
 It will not produce `[provider]`. No input contains that word; only you know it. Review the inferred role first, then name the placeholder before generating guidance.
 
-Documentation ownership follows `fold` frontmatter as well as the inferred
+Documentation ownership follows `fold` exports as well as the inferred
 static spine. Beneath a folded directory, a file named like `build.filename`
 is an ordinary repository file unless it bears Espalier's provenance marker.
 The enclosing document remains build-owned.
@@ -244,7 +249,7 @@ Three kinds of line, tagged as such under `--format jsonl`:
 |---|---|
 | `written` | a stub rule module this run created |
 | `skipped` | a rule module that already existed and was left alone |
-| `migrated` | a build-owned document preserved in its durable `ESPALIER.MD` source |
+| `migrated` | a build-owned document preserved in its durable `ESPALIER.mjs` source |
 
 A `written` line carries `optional` when the module it wrote declares the file optional, and `--format human` marks the same line:
 
@@ -252,7 +257,7 @@ A `written` line carries `optional` when the module it wrote declares the file o
 {"kind":"written","path":"espalier/src/clients/[client]/client.ts.mjs"}
 {"kind":"written","path":"espalier/src/clients/[client]/webhook.ts.mjs","optional":true}
 {"kind":"skipped","path":"espalier/src/clients/[client]/requestModels.ts.mjs"}
-{"kind":"migrated","from":"src/AGENTS.MD","path":"espalier/src/ESPALIER.MD"}
+{"kind":"migrated","from":"src/AGENTS.MD","path":"espalier/src/ESPALIER.mjs"}
 ```
 
 ```text

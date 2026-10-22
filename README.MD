@@ -394,7 +394,7 @@ example:
 
 Espalier handles document placement and presentation. Authors declare the
 structure and write the guidance; readers can discover what belongs where
-and which files are required. Set `fold: true` in the root `ESPALIER.MD` when your tooling needs
+and which files are required. Set `fold = true` in the root `ESPALIER.mjs` when your tooling needs
 all guidance in one root document, or in a subtree to fold its guidance upward. See [the build reference](docs/cli/build/README.MD)
 for output details.
 
@@ -431,7 +431,7 @@ Prefer static nodes for known roles and dynamic patterns for instances sharing
 a defined responsibility and contract. Review inferred structure from `adopt`
 before treating it as the intended architecture.
 
-Edit the corresponding `ESPALIER.MD`, rule files, or configuration, then
+Edit the corresponding `ESPALIER.mjs`, rule files, or configuration, then
 regenerate guidance. Review the generated documents, test affected rules, run
 `espalier lint`, and check freshness with `espalier build --check`. Generated
 documents are outputs, not edit targets.
@@ -477,3 +477,11 @@ work with the project's existing test framework. See [docs/API.MD](docs/API.MD)
 - **Not a replacement for general-purpose linters.** ESLint, ruff, golangci-lint, and their peers do excellent work on language-specific code quality. `espalier` is about _architectural_ enforcement: where code lives, what shape it takes, how modules relate. The two are complementary.
 - **Not an agent.** `espalier` does not invent code, generate suggestions, or decide architecture. It enforces decisions you have already made; `create` can write initial source from templates you supply.
 - **Not an attempt to constrain agents.** The goal is not to prevent agents from doing things — it is to give them a clear, machine-verifiable target so that correction is reachable through iteration. A well-shaped espalier makes the agent's job _easier_, not harder.
+
+Named directory and file instances can specialize dynamic contracts with
+`instanceOf`. They retain inherited structure and checks while supplying
+domain-specific guidance and additional requirements. Named members are
+required by default; `optional` controls their presence and `minMatches`
+controls dynamic collection size. See [named instances](docs/MATCHING.MD#named-instances)
+for the complete contract and [migration](docs/cli/migrate/README.MD) for
+converting Markdown directory guidance to `ESPALIER.mjs`.

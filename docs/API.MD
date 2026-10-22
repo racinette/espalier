@@ -267,3 +267,14 @@ inputs; there are no persistent dependency declarations.
 ## Coverage
 
 `espalier` does not report which rules have tests. A rule with no test is a module nothing imports, and every language already has tooling that finds those — the same tooling the rest of the project's coverage runs through. A bespoke report would only cover rule modules, only when someone remembered to run it, and would be one more thing to keep true.
+
+## Directory guidance and inheritance
+
+`DirectoryGuidanceContext` types a directory module's guidance function. It
+contains an isolated `config` snapshot, the authored directory `pattern`, a
+concrete `path` when known (otherwise null), and known `captures`. Guidance may
+return a string or a promise of one.
+
+`check` resolves and checks complete inheritance chains. `runRule` tests only
+the supplied callback; it does not load or resolve `instanceOf`. Use `check`
+against a fixture to verify inherited structure, requiredness, and base checks.

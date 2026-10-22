@@ -1,0 +1,31 @@
+{
+  "exit": 0,
+  "issues": [],
+  "ownership": {
+    "flights/search.ts": "flights/search.ts.mjs"
+  },
+  "explain": {
+    "flights/search.ts": {
+      "exit": 0,
+      "object": {
+        "rule": "flights/search.ts.mjs",
+        "inherited": [
+          {
+            "rule": "[group]/[module].ts.mjs",
+            "captures": {
+              "group": "flights",
+              "module": "search"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "again": {
+    "delete": [
+      "espalier/flights"
+    ],
+    "exit": 0,
+    "issues": []
+  }
+}

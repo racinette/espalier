@@ -7,6 +7,7 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { sourceCode } from "./compile.js";
 import { isFolded } from "./render.js";
 import { fail } from "./errors.js";
 import { probe } from "./files.js";
@@ -310,11 +311,11 @@ function ownsDocumentation(at: string, name: string, build: BuildOutput): boolea
   return at.split("/").every((segment) => !segment.startsWith("["));
 }
 
-function guidanceSource(espalierRoot: string, documentation: string): string {
+function guidanceSource(espalierRoot: string, documentation: string, filename = "ESPALIER.mjs"): string {
   const directory = path.posix.dirname(documentation);
   return directory === "."
-    ? `${espalierRoot}/ESPALIER.MD`
-    : `${espalierRoot}/${directory}/ESPALIER.MD`;
+    ? `${espalierRoot}/${filename}`
+    : `${espalierRoot}/${directory}/${filename}`;
 }
 
 function migrationContents(existing: string, from: string, contents: string): string {
@@ -395,9 +396,13 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
   );
 
   const skip = compileIgnore(repository.config.skip, "skip");
+  const sourceFor = (at: string): string => {
+    const dir = path.posix.dirname(at);
+    return guidanceSource(espalierRoot, at, repository.espalier.nodes.get(dir === "." ? "" : dir)?.source);
+  };
   const sources = [
     ...found.leaves.map((leaf) => `${leaf.at}.mjs`),
-    ...found.documentation.map((at) => path.posix.relative(espalierRoot, guidanceSource(espalierRoot, at))),
+    ...found.documentation.map((at) => path.posix.relative(espalierRoot, sourceFor(at))),
   ];
   for (const source of sources) {
     if (source.startsWith(".cache/") || ignores(skip, source)) {
@@ -413,7 +418,7 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
     .filter((at) => repository.ungoverned(at) !== "espalier");
   if (conflicts.length > 0 && !options.force) {
     const named = conflicts
-      .map((at) => `${at} -> ${guidanceSource(espalierRoot, at)}`)
+      .map((at) => `${at} -> ${sourceFor(at)}`)
       .join(", ");
     fail(
       "unmarked_documentation",
@@ -421,26 +426,38 @@ export async function adopt(options: AdoptOptions, reporter: Reporter): Promise<
       {
         conflicts: conflicts.map((at) => ({
           path: at,
-          source: guidanceSource(espalierRoot, at),
+          source: sourceFor(at),
         })),
       },
     );
   }
 
-  let migrated = 0;
+  const guidanceChanges: Array<{source: string; sourceAbsolute: string; wanted: string; from: string}> = [];
   for (const from of conflicts) {
-    const source = guidanceSource(espalierRoot, from);
+    const source = sourceFor(from);
     const sourceAbsolute = path.join(root, source);
     const existing = existsSync(sourceAbsolute) ? readFileSync(sourceAbsolute, "utf8") : "";
-    const wanted = migrationContents(existing, from, readFileSync(path.join(root, from), "utf8"));
+    const contents = readFileSync(path.join(root, from), "utf8");
+    let wanted: string;
+    if (source.endsWith(".MD")) wanted = migrationContents(existing, from, contents);
+    else if (existing === "") wanted = `export const guidance = ${JSON.stringify(migrationContents("", from, contents))};\n`;
+    else {
+      const declaration = /^export const guidance = ("(?:[^"\\]|\\.)*");$/m.exec(existing);
+      if (declaration === null || !sourceCode(existing).slice(declaration.index).startsWith("export const guidance")) fail("unmarked_documentation", `${source}: merge ${from} into the authored guidance function or string before rebuilding`);
+      const text = JSON.parse(declaration[1]!) as string;
+      wanted = existing.replace(declaration[0], () => `export const guidance = ${JSON.stringify(migrationContents(text, from, contents))};`);
+    }
     if (wanted === existing) continue;
 
+    guidanceChanges.push({source, sourceAbsolute, wanted, from});
+  }
+  const migrated = guidanceChanges.length;
+  for (const { source, sourceAbsolute, wanted, from } of guidanceChanges) {
     if (!options.dryRun) {
       mkdirSync(path.dirname(sourceAbsolute), { recursive: true });
       writeFileSync(sourceAbsolute, wanted, "utf8");
     }
     reporter.record({ kind: "migrated", from, path: source });
-    migrated += 1;
   }
 
   const written: { path: string; optional: boolean }[] = [];

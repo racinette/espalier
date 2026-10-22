@@ -8,13 +8,13 @@
 import type { Constraint, Espalier, NodeDoc, StructuralRule, TrieNode } from "./compile.js";
 import type { GuidanceMode } from "./config.js";
 import { PROVENANCE } from "./files.js";
-import { backrefNames, isStrictSubset, parseSegment, parseStructuralLeaf, type Segment } from "./pattern.js";
+import { matchSegment, resolveSegment, type CaptureValue, backrefNames, isStrictSubset, parseSegment, parseStructuralLeaf, type Segment } from "./pattern.js";
 import { admissionGlobs } from "./targets.js";
 
 const WORKFLOW = `## Working with Espalier
 
 Espalier is the architecture compiler for this repository. It turns structural
-rules and \`ESPALIER.MD\` guidance into this generated document, then checks the
+rules and \`ESPALIER.mjs\` guidance into this generated document, then checks the
 working tree against them. Use it to place new code, discover the constraints on
 a path, and catch architectural drift while a change is still small.
 
@@ -70,7 +70,7 @@ discussion. Explain which files become permitted, required, checked, or
 excluded, and identify any guarantees the proposal removes. Moving a file
 outside a check's scope changes enforcement even if the check stays intact.
 
-Once an approach is agreed, update the corresponding \`ESPALIER.MD\` for guidance
+Once an approach is agreed, update the corresponding \`ESPALIER.mjs\` for guidance
 and the structural rule modules for structure, then run \`espalier build\`.
 Implement the agreed design without repeatedly requesting approval. Reopen
 the discussion if implementation requires a materially different design.
@@ -111,7 +111,7 @@ any unsettled design, its options and tradeoffs, and get agreement before
 implementation. Identify changes to placement, requiredness, checks and
 exclusions, including guarantees they remove. Preserve existing guarantees
 unless changing them is part of that agreement. Update rules and
-\`ESPALIER.MD\` together, regenerate guidance, and follow the project's review
+\`ESPALIER.mjs\` together, regenerate guidance, and follow the project's review
 workflow. Implement the agreed design without repeatedly requesting approval;
 reopen discussion if a materially different design becomes necessary.`;
 
@@ -171,7 +171,7 @@ function under(prefix: string, name: string): string {
 }
 
 function isDirectory(node: TrieNode): boolean {
-  return node.children.size > 0;
+  return (node.children.size > 0 || node.directory === true);
 }
 
 /** Directories first, then specificity; alphabetical choice among ready peers. */
@@ -326,9 +326,9 @@ export function plan(espalier: Espalier): Placement[] {
     for (const child of ordered(node)) {
       const path = under(at, child.display);
       const directory = isDirectory(child);
-      const onSpine = spine && directory && !child.segment.dynamic;
+      const onSpine = spine && directory && !child.segment.dynamic && !child.segment.resolved;
 
-      if (child.rule !== null) {
+      if (child.rule !== null && child.rule.modulePath === `${path}.mjs`) {
         ensure(point, null).sections.push({ kind: "rule", at: path, rule: child.rule });
       }
 
@@ -394,6 +394,7 @@ export interface MapEntry {
    * leaf uses true to render its one-or-more count rather than a named file.
    */
   required: boolean | null;
+  minMatches?: number;
 }
 
 export function mapEntries(
@@ -403,6 +404,26 @@ export function mapEntries(
   stopAt: readonly string[] = [],
 ): MapEntry[] {
   const entries: MapEntry[] = [];
+  const bindings: Record<string, CaptureValue> = {};
+  let ancestor = espalier.root;
+  for (const part of at.split("/").filter(Boolean)) {
+    const next = [...ancestor.children.values()].find((child) => child.display === part);
+    if (!next) break;
+    if (next.baseSegment && !next.segment.dynamic && !next.segment.resolved) Object.assign(bindings, matchSegment(next.baseSegment, part, bindings));
+    ancestor = next;
+  }
+  const display = new Map<string, string>();
+  const names = (parent: TrieNode, authored: string, rendered: string, captures: Record<string, CaptureValue>): void => {
+    for (const child of parent.children.values()) {
+      const name = child.segment.resolved ? resolveSegment(child.segment, captures) ?? child.display : child.display;
+      const key = under(authored, child.display);
+      const shown = under(rendered, name);
+      display.set(key, shown);
+      const bound = child.baseSegment && !child.segment.dynamic ? matchSegment(child.baseSegment, name, captures) : null;
+      names(child, key, shown, { ...captures, ...bound });
+    }
+  };
+  names(node, "", "", bindings);
 
   for (const visit of subtree(node)) {
     const absolute = under(at, visit.at);
@@ -414,12 +435,13 @@ export function mapEntries(
 
     const directory = isDirectory(visit.node);
     entries.push({
-      path: visit.at + (directory ? "/" : ""),
+      path: (display.get(visit.at) ?? visit.at) + (directory ? "/" : ""),
       description: directory
         ? (espalier.nodes.get(absolute)?.description ?? null)
         : (visit.node.rule?.module.description ?? null),
+      ...(visit.node.segment.dynamic && (visit.node.rule?.module.minMatches ?? 0) > 1 ? { minMatches: visit.node.rule!.module.minMatches } : {}),
       required:
-        directory || (visit.node.segment.dynamic && visit.node.rule?.module.optional !== false)
+        visit.node.instanceOf !== undefined ? !visit.node.optional : directory || (visit.node.segment.dynamic && visit.node.rule?.module.optional !== false)
           ? null
           : visit.node.rule?.module.optional !== true,
     });
@@ -445,7 +467,7 @@ function suffixes(entry: MapEntry): string[] {
   if (!segment.dynamic && entry.required !== null) marks.push(entry.required ? "required" : "optional");
   if (segment.dynamic) marks.push(entry.path.endsWith("/")
     ? "zero or more matching directories"
-    : entry.required === true ? "one or more matching files" : "zero or more matching files");
+    : (entry.minMatches ?? 0) > 1 ? `at least ${entry.minMatches} matching files` : entry.required === true ? "one or more matching files" : "zero or more matching files");
 
   // What the capture holds, not what the segment was: under
   // `[provider]-provider/`, `{provider}Impl.ts` is `stripeImpl.ts`, and "the
@@ -890,6 +912,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
     const { module } = section.rule;
     const body: string[] = [];
 
+    if (section.rule.inherited?.length) body.push(`Shared contract: ${section.rule.inherited.map((rule) => codeSpan(rule.modulePath.replace(/\.mjs$/, ""))).join(", ")}. Inherited requirements still apply.`);
     if (module.rule.trim() !== "") body.push(module.rule.trim());
 
     // The reference is a repository path and therefore reads as one line.

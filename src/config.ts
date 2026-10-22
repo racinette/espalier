@@ -72,7 +72,7 @@ export function skipCoversAuthoring(skip: string[]): boolean {
 }
 
 /** Paths a `skip` pattern must not match, at the root or one directory down. */
-const GRAMMAR_PROBES = ["ESPALIER.MD", "placeholder.mjs", "nested/ESPALIER.MD", "nested/placeholder.mjs"];
+const GRAMMAR_PROBES = ["ESPALIER.mjs", "nested/ESPALIER.mjs", "ESPALIER.MD", "placeholder.mjs", "nested/ESPALIER.MD", "nested/placeholder.mjs"];
 
 export function locateConfig(explicit: string | undefined, cwd: string): string {
   if (explicit !== undefined) {
@@ -233,7 +233,7 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     }
     const entries = build as Record<string, unknown>;
     if ("inline" in entries) {
-      fail("config_unknown_key", "build.inline has been removed; run espalier migrate to use ESPALIER.MD fold frontmatter");
+      fail("config_unknown_key", "build.inline has been removed; run espalier migrate to use the ESPALIER.mjs fold export");
     }
     for (const key of Object.keys(entries)) {
       if (!KNOWN_BUILD.has(key)) {
@@ -303,7 +303,7 @@ function refuseSkipHidingGrammar(skip: string[]): void {
     if (rule !== null) {
       fail(
         "skip_hides_grammar",
-        `skip pattern "${rule.pattern}" would hide a rule module or ESPALIER.MD`,
+        `skip pattern "${rule.pattern}" would hide a rule module or ESPALIER.mjs`,
         { pattern: rule.pattern },
       );
     }

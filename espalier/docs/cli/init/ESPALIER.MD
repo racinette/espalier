@@ -1,3 +1,0 @@
----
-description: bootstrapping a repository
----

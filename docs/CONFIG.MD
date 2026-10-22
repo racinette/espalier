@@ -66,7 +66,7 @@ is relative to it.
 
 For commands that accept it, `--config <path>` overrides discovery. The root
 becomes that file's directory, regardless of where the command was invoked.
-`create` deliberately has no framework flags after its path, so it always uses
+`create` reserves flags after `--` for templates and always uses
 discovery and leaves every long option name available to the selected template.
 
 If no config is found, `espalier` exits `2`. There is no implicit default configuration, because guessing a repository root is a good way to lint someone's home directory.
@@ -132,7 +132,7 @@ Patterns from `ignoreFiles` count here too, which is worth knowing before it sur
 
 What the project is called. It heads every document `espalier build` writes — see [cli/build/README.MD](cli/build/README.MD#the-heading).
 
-One line, and a name rather than a description: it is read by someone who already has the repository open, so `acme-web` earns its place and *the Acme customer-facing web application* does not. The prose under the heading is where a description belongs, and the root `ESPALIER.MD` is where that prose is written.
+One line, and a name rather than a description: it is read by someone who already has the repository open, so `acme-web` earns its place and *the Acme customer-facing web application* does not. The prose under the heading is where a description belongs, and the root `ESPALIER.mjs` is where that prose is written.
 
 Optional, and a project that has not named itself gets no heading rather than a guessed one. `espalier init` writes the directory's own name, which is a guess an author can see and correct rather than one buried in the tool.
 
@@ -211,7 +211,7 @@ Omitting `skip` is an error. `[]` means no configured exclusions. The root
 alone. A customized authoring file (shipped sentinel removed) is left alone.
 
 **Inspected grammar cannot be individually skipped.** A pattern hiding a
-`.mjs` module or `ESPALIER.MD` in an inspected directory is `skip_hides_grammar`.
+`.mjs` module or `ESPALIER.mjs` in an inspected directory is `skip_hides_grammar`.
 An excluded directory may contain either: its contents are never inspected.
 For example `tools/` excludes the whole subtree, whereas `tools/*.mjs` is
 rejected when it hides a discovered module. Excluding a directory also prevents
@@ -412,8 +412,8 @@ such as compiler libraries, remain their own implementation resources.
 
 `filename` exists because tools disagree about what to call the file they read — `AGENTS.MD` is converging, but a project whose tooling wants `CLAUDE.md` changes one string rather than gaining a second output format.
 
-Document placement follows the static structure and `fold: true` frontmatter
-in `ESPALIER.MD`. This keeps placement alongside the guidance it groups, and
+Document placement follows the static structure and `fold = true` export
+in `ESPALIER.mjs`. This keeps placement alongside the guidance it groups, and
 lets `build`, `build --check`, and `adopt` agree about output locations. See
 [cli/build/README.MD](cli/build/README.MD#folding-subtrees).
 
@@ -423,7 +423,7 @@ remove it and preserve single-document output using root `fold: true`.
 `espalierGuidance: false` omits the canned `Working with Espalier` introduction
 from an outer root and the `Governance boundary` and `Architecture changes`
 sections from a nested Espalier root. It does not remove provenance, project
-structure, exclusions, rule text, persistent `ESPALIER.MD` prose, or guidance
+structure, exclusions, rule text, persistent `ESPALIER.mjs` prose, or guidance
 about the generated document's edit target.
 
 ### Architecture guidance modes
@@ -456,7 +456,7 @@ instructions state the applicable policy. Each Espalier reads its own setting;
 children do not inherit a parent's mode. Deeper placement documents use their
 Espalier root's guidance. `espalierGuidance: false` suppresses the canned text
 for either mode, while the selected mode remains available in configuration
-to the rule-authoring contract. Authored `ESPALIER.MD` prose is preserved.
+to the rule-authoring contract. Authored `ESPALIER.mjs` prose is preserved.
 
 The shipped authoring contract tells rule authors to consult this setting
 before architectural work. It is the same contract in both modes. `init`
@@ -468,7 +468,7 @@ explicit selection. Unknown mode names or non-string values fail with
 
 Generated files carry a provenance header, and that marker is what `espalier` uses to decide what it may delete, what to ignore while matching, and what it must not touch.
 
-Files bearing the marker are regenerated and, when the espalier no longer produces them, removed — a stale document that keeps steering agents after its rule was deleted is worse than no document. The removal is confined to the paths this configuration governs: a marked file that is excluded is left where it is. A documentation file **without** the marker halts the build rather than being overwritten; move its content into the corresponding `ESPALIER.MD` and run again. First contact with a tool is not the right moment to lose your agent instructions.
+Files bearing the marker are regenerated and, when the espalier no longer produces them, removed — a stale document that keeps steering agents after its rule was deleted is worse than no document. The removal is confined to the paths this configuration governs: a marked file that is excluded is left where it is. A documentation file **without** the marker halts the build rather than being overwritten; move its content into the corresponding `ESPALIER.mjs` and run again. First contact with a tool is not the right moment to lose your agent instructions.
 
 ## Errors
 

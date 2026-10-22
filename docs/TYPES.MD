@@ -45,7 +45,9 @@ aggregate form.
 | `rule` | yes | the natural-language conventions, in markdown |
 | `lint` | yes | deterministic validation |
 | `referenceImplementation` | no | a path to a canonical conforming file |
-| `optional` | no | whether a named file may be absent or a dynamic collection may be empty |
+| `optional` | no | whether a named file may be absent |
+| `instanceOf` | no | matching inherited contract for a named member |
+| `minMatches` | no | minimum membership of a dynamic collection |
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
 | `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
@@ -234,22 +236,24 @@ structurally owned and subject to its rule.
 
 It exists for the file that some instances of a shape have and others do not. Without it, an espalier has two ways to describe `webhook.ts` when one client has one and another does not, and both say something false. Declare it and every client without a webhook is missing a required file. Leave it undeclared and the client that has one is reporting `unexpected_path` for a file everybody agrees belongs there. Optional is the third statement — *a client may have a webhook, and here is how to write it* — and it is the only one of the three that is true.
 
-Structural leaves accept a boolean `optional` export:
+Named leaves and named directory instances accept a boolean `optional`:
+false or omitted requires the member; true permits absence. An existing member
+always satisfies its inherited contract. Optional directory instances retain
+required contents when present. Required inherited named members cannot be
+made optional. Dynamic leaves and constraints reject `optional`.
 
-| Leaf | Omitted | `true` | `false` |
-| --- | --- | --- | --- |
-| Static or resolved | Required | May be absent | Required |
-| Dynamic | Zero or more owned files | Zero or more owned files | At least one owned file |
+### `minMatches`
 
-On a dynamic leaf, explicit `optional = false` requires a nonempty collection
-in each owning directory. Within a dynamic directory, it applies separately
-per instantiated directory; it does not require any directory instances.
-Only files owned by that rule count. A more specific sibling's files cannot
-satisfy it. See [requiredness](MATCHING.MD#what-must-exist).
+```js
+export const minMatches = 1;
+```
 
-Shared factories can return `optional: true` for both static and dynamic leaves.
-A non-boolean value is rejected as `module_invalid_export`. Constraints never
-require files and reject `optional` as `module_invalid_export`.
+A dynamic structural leaf accepts a nonnegative safe integer, defaulting to
+zero. The minimum applies in each existing owning directory. It does not
+instantiate dynamic directories. Named specializations remain members of their
+inherited collections; unrelated static owners do not. A collection can require
+some member while a particular named member is optional. Named leaves and
+constraints reject `minMatches`.
 
 ### `targets`
 
@@ -648,3 +652,17 @@ Context validation failures preserve their specific codes, such as
 `invalid_issue` or `read_ungoverned`. Neither is a finding about the repository. See [cli/lint/README.MD](cli/lint/README.MD) and [ERRORS.MD](ERRORS.MD).
 
 A `lint` function is ordinary code and can be called from an ordinary test. [API.MD](API.MD) describes `runRule`, which builds this context from values you supply and returns the issues rather than printing them.
+
+## Specialization exports
+
+`instanceOf` is a nonempty contract reference on a named structural leaf or
+on a directory module. It is not valid on constraints or dynamic leaves.
+Named structural rules keep their `description`, `rule`, and `lint` exports;
+their lint adds to inherited checks. Their optional `template` replaces the
+inherited creation recipe, without replacing checks. Without a local template,
+creation uses the inherited template and its original captures.
+
+`minMatches` is a nonnegative safe integer on dynamic structural leaves only.
+It defaults to zero. `optional` is reserved for named leaves and named
+directory instances. A named declaration defaults to required. See
+[Named instances](MATCHING.MD#named-instances) for composition and requiredness.

@@ -10,11 +10,11 @@
           "conflicts": [
             {
               "path": "area/PACKAGE.MD",
-              "source": "espalier/area/ESPALIER.MD"
+              "source": "espalier/area/ESPALIER.mjs"
             },
             {
               "path": "area/sub/PACKAGE.MD",
-              "source": "espalier/area/sub/ESPALIER.MD"
+              "source": "espalier/area/sub/ESPALIER.mjs"
             }
           ]
         }

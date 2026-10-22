@@ -67,7 +67,7 @@ the project layout or a documented repository-specific purpose. These come
 from the compiled structure and the materialized repository paths rather than
 from anything an author writes.
 
-**Node prose** — the body of the directory's `ESPALIER.MD`, if it has one.
+**Node prose** — the rendered `guidance` from the directory's `ESPALIER.mjs`, if it has one.
 
 **Operational guidance** — the outer-root document introduces Espalier, explains how
 its generated guidance aids development, and gives the working loop. A nested
@@ -82,8 +82,8 @@ The root file additionally carries the project preamble.
 
 1. Walk the static spine from the root, stopping at the first dynamic segment. Those are the placement points.
 2. Assign every rule to the longest static prefix of its directory path.
-3. Drop placement points with no assigned rules and no `ESPALIER.MD` — an intermediate directory whose content all lives deeper produces no file, and the map above it stays expanded through that directory. Each Espalier's root is never dropped: it anchors that Espalier's guidance. With operational guidance enabled, the outer root carries the introduction and development loop, while nested roots carry their governance boundary and local architecture policy.
-4. Fold each directory marked `fold: true`, and every placement beneath it, into the nearest surviving ancestor. The root always survives. Descendant flags cannot reopen a folded subtree.
+3. Drop placement points with no assigned rules and no `ESPALIER.mjs` — an intermediate directory whose content all lives deeper produces no file, and the map above it stays expanded through that directory. Each Espalier's root is never dropped: it anchors that Espalier's guidance. With operational guidance enabled, the outer root carries the introduction and development loop, while nested roots carry their governance boundary and local architecture policy.
+4. Fold each directory marked `fold = true`, and every placement beneath it, into the nearest surviving ancestor. The root always survives. Descendant flags cannot reopen a folded subtree.
 5. Render each surviving point, including its folded sections.
 6. Write with a provenance header, in deterministic order. A file whose rendered bytes match what is already on disk is left alone rather than rewritten. An unchanged human-format run confirms completion without reporting writes.
 
@@ -108,7 +108,7 @@ The document is assembled in a fixed order. A section with nothing to say is omi
 ```text
 provenance marker
 # <name> — `<path>/`          the heading, when the config names the project
-node prose                    the ESPALIER.MD body, verbatim
+node prose                    the rendered ESPALIER.mjs guidance
 ## Governance boundary       nested Espalier root only
 ## Architecture changes      nested Espalier root's own guidance mode
 ## Project layout             the tree
@@ -195,7 +195,7 @@ it is a corner with no line to turn.
 
 **Text starts at one column across the whole map:** two spaces after the longest rendered line, counting the branch characters and not the four spaces of the code block, which are added to every line afterwards and so cannot change the alignment. Text too long for the remaining width wraps into that column and hangs there, under the branch characters of its own line.
 
-A line's text is the node's description, then its suffixes in parentheses. A file's description is the rule module's `description`; a directory's is the `description` in its `ESPALIER.MD` frontmatter. A node with neither a description nor a suffix gets no text rather than a blank column.
+A line's text is the node's description, then its suffixes in parentheses. A file's description is the rule module's `description`; a directory's is the `description` in its `ESPALIER.mjs` exports. A node with neither a description nor a suffix gets no text rather than a blank column.
 
 **The parentheses are what separate the two voices.** The description is a sentence somebody wrote; the suffixes are the espalier's annotation of it. Joined by a comma they read as one clause, and a description that already contains commas — `ownership, requiredness, and the deepest recognized node` — swallows the annotation entirely. They are parenthesized on a line that carries no description too, so the count remains visibly generated.
 
@@ -208,11 +208,13 @@ There are three kinds, and each is true of the line it sits on and of nothing el
 **`required` and `optional`** mark every leaf the espalier names — every static and resolved one — and neither is a default. A named file carrying no such suffix is not a file whose requiredness is left to inference; there is no such file. Both read against the line's own position, so `requestModels.ts` drawn inside `[provider]/` is required in a `[provider]/` directory, which is where the reader is looking.
 
 A dynamic leaf carries neither. Its count suffix is `zero or more matching
-files` when `optional` is omitted or `true`, and `one or more matching files`
-when it explicitly exports `optional = false`. Only files owned by the rule
-count; a more specific sibling cannot satisfy the requirement.
+files` by default, `one or more matching files` for `minMatches = 1`, and
+`at least N matching files` for larger minimums. Named specializations count
+toward their base collections; independent static siblings do not.
 
-Directories carry neither. A directory exists exactly when the files described inside it do, so marking one required would either restate its contents or claim that an empty directory satisfies something, and the second is false.
+Ordinary directories carry neither. Named directory instances carry `required`
+or `optional`, because they have their own existence policy in addition to
+their inherited contents.
 
 **`zero or more matching files`** or **`one or more matching files`** marks a file pattern containing a `[name]`
 placeholder, such as `[button].tsx` or `test-[name].ts`. A directory pattern
@@ -354,7 +356,7 @@ where a persistent change belongs.
 ```markdown
 | Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](espalier/ESPALIER.mjs) to change this document's persistent guidance. |
 | `.espalierignore`, `espalier.config.yaml`, `espalier/` | Sources used to generate and check this repository guidance. |
 ```
 
@@ -363,7 +365,7 @@ names its config, its espalier root, every `ignoreFiles` entry and
 `.espalierignore` when that file exists. Root folding has the root row only.
 
 The generated-file explanation always links to the placement point's
-`ESPALIER.MD`. It says `Modify` when that file exists and `Create` when it does
+`ESPALIER.mjs`. It says `Modify` when that file exists and `Create` when it does
 not, so a reader has one concrete place for persistent document guidance in
 either case. Links are relative to the generated document and their path
 segments are percent-encoded.
@@ -390,12 +392,12 @@ is valid for that purpose without becoming a destination for unrelated work.
 Reference implementation: src/clients/stripe/client.ts
 ```
 
-A directory below the placement point may have prose too — a dynamic directory is never a placement point, so its `ESPALIER.MD` body has nowhere of its own to go. It takes the same section, headed by its path with a trailing `/`:
+A directory below the placement point may have prose too — a dynamic directory is never a placement point, so its rendered `ESPALIER.mjs` guidance has nowhere of its own to go. It takes the same section, headed by its path with a trailing `/`:
 
 ```markdown
 ## `[provider]/` — one directory per upstream provider
 
-<the ESPALIER.MD body, verbatim>
+<the rendered ESPALIER.mjs guidance>
 ```
 
 Sections appear in map order, so the map doubles as a table of contents, and a
@@ -465,7 +467,7 @@ CLI version's manual: the working loop is not the whole reference.
 ## Working with Espalier
 
 Espalier is the architecture compiler for this repository. It turns structural
-rules and `ESPALIER.MD` guidance into this generated document, then checks the
+rules and `ESPALIER.mjs` guidance into this generated document, then checks the
 working tree against them. Use it to place new code, discover the constraints on
 a path, and catch architectural drift while a change is still small.
 
@@ -521,7 +523,7 @@ discussion. Explain which files become permitted, required, checked, or
 excluded, and identify any guarantees the proposal removes. Moving a file
 outside a check's scope changes enforcement even if the check stays intact.
 
-Once an approach is agreed, update the corresponding `ESPALIER.MD` for guidance
+Once an approach is agreed, update the corresponding `ESPALIER.mjs` for guidance
 and the structural rule modules for structure, then run `espalier build`.
 Implement the agreed design without repeatedly requesting approval. Reopen
 the discussion if implementation requires a materially different design.
@@ -571,7 +573,7 @@ switching modes. See [guidance modes](../../CONFIG.MD#architecture-guidance-mode
 Set `build.espalierGuidance: false` to omit the canned operational and mode
 sections, including the nested governance boundary. The setting does not
 suppress provenance, structural maps, exclusions, rule bodies, or authored
-`ESPALIER.MD` guidance.
+`ESPALIER.mjs` guidance.
 
 ## Example
 
@@ -579,11 +581,11 @@ Given:
 
 ```text
 espalier
-├─ ESPALIER.MD
+├─ ESPALIER.mjs
 ├─ main.ts.mjs
 ├─ components/buttons/[button].tsx.mjs
 ├─ src/clients
-│  ├─ ESPALIER.MD
+│  ├─ ESPALIER.mjs
 │  └─ [provider]
 │     ├─ client.ts.mjs
 │     ├─ requestModels.ts.mjs
@@ -644,13 +646,13 @@ Export one interface per endpoint the client calls.
 
 ```
 
-`handlers/` sorts ahead of its file siblings because directories come first, and `handlers/` itself carries no text because no `ESPALIER.MD` describes it — a blank column would say the same nothing at greater length. `no-as-any` is a constraint on `[...path]`, whose longest static prefix is the root, so it renders in the root file and not here.
+`handlers/` sorts ahead of its file siblings because directories come first, and `handlers/` itself carries no text because no `ESPALIER.mjs` describes it — a blank column would say the same nothing at greater length. `no-as-any` is a constraint on `[...path]`, whose longest static prefix is the root, so it renders in the root file and not here.
 
 ## Nested espaliers
 
 A directory holding an `espalier.config.yaml` of its own is a child espalier, and its subtree belongs to it. See [CONFIG.MD](../../CONFIG.MD#nested-espaliers).
 
-The outer run places no document inside a child's subtree and sweeps nothing there — the subtree is not its to describe. Each child is then built as its own run, with its own `build.filename` and `fold` frontmatter, so a monorepo can keep distributed documents at the root and one folded document inside a package that prefers it. Neither run can see the other's output, which is why neither can delete it.
+The outer run places no document inside a child's subtree and sweeps nothing there — the subtree is not its to describe. Each child is then built as its own run, with its own `build.filename` and `fold` exports, so a monorepo can keep distributed documents at the root and one folded document inside a package that prefers it. Neither run can see the other's output, which is why neither can delete it.
 
 Each child renders exactly as if it had been run alone: its `source:` marker,
 governance boundary and complete account are all relative to the child's own
@@ -679,7 +681,7 @@ That one line does three jobs: it tells `build` which files it may delete, it te
 
 - Files bearing the marker are rewritten each run. Any that this run did not produce — because the espalier node was renamed or removed — are deleted, since a document that keeps steering agents after its rule is gone is worse than no document.
 - **The sweep is confined to what the configuration governs.** A marked file that is excluded is never a candidate for deletion. The marker says a file is generated documentation; it does not say it is *this* run's. A repository holding a copy of `espalier`'s output — a golden fixture, a vendored copy of another repository — would otherwise lose it on the first build, with nothing to warn it.
-- A documentation file **without** the marker halts the build. Move its content into the corresponding `ESPALIER.MD` and run again; `build` will not eat a hand-written file.
+- A documentation file **without** the marker halts the build. Move its content into the corresponding `ESPALIER.mjs` and run again; `build` will not eat a hand-written file.
 - `--force` bypasses that refusal only when the unmarked file occupies a path
   this run plans to generate. It does not make unmarked files eligible for
   orphan deletion. Because it can overwrite a genuinely hand-written document,
@@ -735,32 +737,29 @@ unmarked target is reported as changed. It never deletes an unmarked orphan.
 
 ## Folding subtrees
 
-Set `fold: true` in a directory's `ESPALIER.MD` frontmatter to fold that
+Export `fold = true` in a directory's `ESPALIER.mjs` exports to fold that
 directory and its entire subtree into the nearest enclosing generated document:
 
-```markdown
----
-description: application source
-fold: true
----
-
-Application source guidance.
+```js
+export const description = "Application source";
+export const fold = true;
+export const guidance = "Application source guidance.";
 ```
 
-Omitted `fold` and `fold: false` retain normal document placement. A true flag
+Omitted `fold` and `fold = false` retain normal document placement. A true flag
 absorbs the whole branch: descendants cannot reopen documentation boundaries,
-even with an explicit `fold: false`. Sibling branches remain independent.
+even with an explicit `fold = false`. Sibling branches remain independent.
 Folding changes only documentation placement; structural ownership, lint
 constraints, and creation behavior keep their original scopes.
 
-At the project root, `fold: true` keeps the root document and folds all other
+At the project root, `fold = true` keeps the root document and folds all other
 placements into it. This serves tools that read only the repository root.
 Separate child espaliers remain independent and choose their own folding.
 
 Dynamic directories already contribute to their longest static ancestor;
 folding below a dynamic segment introduces no per-instance documents and does
 not fold that static ancestor or its siblings. Flags on directories containing
-only constraints still apply. Every `fold` value must be a YAML boolean,
+only constraints still apply. Every `fold` value must be a boolean,
 including flags below an already folded ancestor.
 
 Each folded placement contributes its prose and rule sections under a directory
@@ -784,6 +783,16 @@ and an unmarked file at a restored output path still requires `--force`.
 ## Configuration
 
 The output filename is configured under `build` in `espalier.config.yaml`.
-Document folding is authored in `ESPALIER.MD`. See [CONFIG.MD](../../CONFIG.MD).
+Document folding is authored in `ESPALIER.mjs`. See [CONFIG.MD](../../CONFIG.MD).
 
 Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).
+
+## Named instances
+
+A directory declaring `instanceOf` has inherited structure and locally authored
+domain guidance. Its concrete layout includes inherited files, while inherited
+rule prose stays at the shared contract. The local document names its contract.
+Local file specializations document their additional obligations and identify
+the inherited rule. `fold` still controls placement. Optional named directory instances receive their local generated documents
+only once their source directory exists. Building guidance does not create an
+absent optional instance. The ancestor map still describes its declaration.

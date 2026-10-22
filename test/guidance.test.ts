@@ -101,7 +101,7 @@ test("migration preserves a fixed mode through legacy folding and is idempotent"
     const next = readFileSync(path.join(root, "espalier.config.yaml"), "utf8");
     assert.match(next, /guidanceMode: fixed # keep this decision/);
     assert.doesNotMatch(next, /inline:/);
-    assert.match(readFileSync(path.join(root, "espalier/ESPALIER.MD"), "utf8"), /fold: true/);
+    assert.match(readFileSync(path.join(root, "espalier/ESPALIER.mjs"), "utf8"), /fold = true/);
     assert.equal(run(root, ["migrate"]).status, 0);
     assert.equal(readFileSync(path.join(root, "espalier.config.yaml"), "utf8"), next);
     assert.equal(run(root, ["build"]).status, 0);

@@ -1,0 +1,17 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "code": "missing_required_directory",
+      "path": "flights"
+    },
+    {
+      "code": "missing_required_file",
+      "path": "flights/search.ts"
+    },
+    {
+      "code": "missing_required_match",
+      "path": "flights"
+    }
+  ]
+}

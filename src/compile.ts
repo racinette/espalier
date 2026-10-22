@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parse as parseYaml } from "yaml";
+import type { Config } from "./config.js";
 import { fail } from "./errors.js";
 import { inspect, readEntries } from "./files.js";
 import { compileIgnore, ignores, type IgnoreRule } from "./ignore.js";
@@ -15,6 +16,8 @@ import {
   type TemplateDefinition,
 } from "./template.js";
 import {
+  matchSegment,
+  resolveSegment,
   backrefNames,
   captureNames,
   intersectSegments,
@@ -25,7 +28,8 @@ import {
   type Segment,
 } from "./pattern.js";
 
-export const NODE_DESCRIPTION = "ESPALIER.MD";
+export const NODE_DESCRIPTION = "ESPALIER.mjs";
+export const LEGACY_NODE_DESCRIPTION = "ESPALIER.MD";
 
 export interface RuleModule {
   description?: unknown;
@@ -33,6 +37,8 @@ export interface RuleModule {
   lint?: unknown;
   referenceImplementation?: unknown;
   optional?: unknown;
+  minMatches?: unknown;
+  instanceOf?: unknown;
   aggregate?: unknown;
   targets?: unknown;
   template?: unknown;
@@ -43,8 +49,10 @@ export interface LoadedModule {
   rule: string;
   lint: (context: unknown) => unknown;
   referenceImplementation: string | null;
-  /** docs/TYPES.MD "optional". Dynamic leaves default to true; named leaves to false. */
+  /** Named absence policy; on collections, derived from the minimum for rendering. */
   optional: boolean;
+  minMatches?: number;
+  instanceOf?: string;
   /** docs/TYPES.MD "aggregate". Always false for structural rules. */
   aggregate: boolean;
   targets: string[] | null;
@@ -61,6 +69,9 @@ export interface StructuralRule {
   /** Normalized glob, e.g. `clients/*​/client.ts`. */
   pattern: string;
   module: LoadedModule;
+  segments?: Segment[];
+  inherited?: StructuralRule[];
+  templateRule?: StructuralRule;
 }
 
 export interface TrieNode {
@@ -71,6 +82,10 @@ export interface TrieNode {
   children: Map<string, TrieNode>;
   /** Set when this node is a file leaf. */
   rule: StructuralRule | null;
+  directory?: boolean;
+  baseSegment?: Segment;
+  instanceOf?: string;
+  optional?: boolean;
 }
 
 export interface Constraint {
@@ -86,21 +101,25 @@ export interface Constraint {
   module: LoadedModule;
 }
 
-/** An `ESPALIER.MD`: what a directory is, rather than what any file in it is. */
+/** Directory metadata and rendered prose, independently of file rules. */
 export interface NodeDoc {
   /** Fold this directory and its descendants into an enclosing document. */
   fold: boolean;
   /** The one line that appears in the project map. */
   description: string | null;
-  /** The markdown long form. Empty when the file is frontmatter only. */
+  /** The rendered Markdown guidance. */
   body: string;
+  render?: (context: DirectoryGuidanceContext) => unknown;
+  source?: string;
+  instanceOf?: string;
+  optional?: boolean;
 }
 
 export interface Espalier {
   root: TrieNode;
   constraints: Constraint[];
   /**
-   * Espalier-relative directory path to its `ESPALIER.MD`, with `""` for the
+   * Espalier-relative directory path to its directory metadata, with `""` for the
    * root. Kept beside the trie rather than on it: a directory may have prose
    * and no rules, and giving it a trie node would change what `lint` reports as
    * declared at its parent.
@@ -142,7 +161,7 @@ function collectEntries(
     // exclusions still fail; a directory-only exclusion is a subtree boundary.
     if (entry.isSymbolicLink() && ignores(skip, relative, true)) {
       if (ignores(skip, relative) &&
-          (entry.name === NODE_DESCRIPTION || entry.name.endsWith(".mjs"))) {
+          ((entry.name === NODE_DESCRIPTION || entry.name === LEGACY_NODE_DESCRIPTION) || entry.name.endsWith(".mjs"))) {
         fail("skip_hides_grammar", `${relative}: skip hides a rule module or ${NODE_DESCRIPTION}`, { path: relative });
       }
       continue;
@@ -163,7 +182,7 @@ function collectEntries(
       if (ignores(skip, relative)) {
         // Excluded directories were pruned above. Grammar encountered in an
         // inspected directory cannot be individually hidden by a file pattern.
-        if (entry.name === NODE_DESCRIPTION || entry.name.endsWith(".mjs")) {
+        if ((entry.name === NODE_DESCRIPTION || entry.name === LEGACY_NODE_DESCRIPTION) || entry.name.endsWith(".mjs")) {
           fail(
             "skip_hides_grammar",
             `${relative}: skip hides a rule module or ${NODE_DESCRIPTION}`,
@@ -278,6 +297,17 @@ async function loadModule(
       `${modulePath}: \`optional\` has no meaning on a constraint; constraints never require a file`,
     );
   }
+  if (kind === "dynamic" && loaded.optional !== undefined) {
+    fail("module_invalid_export", `${modulePath}: use minMatches on dynamic collections; optional applies only to named members`);
+  }
+  if (loaded.minMatches !== undefined && (kind !== "dynamic" ||
+      !Number.isSafeInteger(loaded.minMatches) || (loaded.minMatches as number) < 0)) {
+    fail("module_invalid_export", `${modulePath}: minMatches must be a nonnegative safe integer on a dynamic leaf`);
+  }
+  if (loaded.instanceOf !== undefined && (kind !== "static" ||
+      typeof loaded.instanceOf !== "string" || loaded.instanceOf.length === 0)) {
+    fail("module_invalid_export", `${modulePath}: instanceOf must name a contract on a static leaf`);
+  }
   if (loaded.aggregate !== undefined && typeof loaded.aggregate !== "boolean") {
     fail("module_invalid_export", `${modulePath}: \`aggregate\` must be a boolean`);
   }
@@ -332,7 +362,9 @@ async function loadModule(
       typeof loaded.referenceImplementation === "string"
         ? loaded.referenceImplementation
         : null,
-    optional: kind === "dynamic" ? loaded.optional !== false : loaded.optional === true,
+    optional: kind === "dynamic" ? (loaded.minMatches ?? 0) === 0 : loaded.optional === true,
+    minMatches: kind === "dynamic" ? loaded.minMatches as number | undefined : undefined,
+    instanceOf: loaded.instanceOf as string | undefined,
     aggregate: loaded.aggregate === true,
     targets:
       loaded.targets === undefined
@@ -346,7 +378,7 @@ async function loadModule(
  * Reads an `ESPALIER.MD`. YAML frontmatter carries `description` and `fold`;
  * the markdown body is the long form. All three fields are optional.
  */
-function readNodeDoc(absolute: string, modulePath: string): NodeDoc {
+export function readLegacyNodeDoc(absolute: string, modulePath: string): NodeDoc {
   const text = readFileSync(absolute, "utf8");
   const framed = /^---[^\S\n]*\r?\n(?:([\s\S]*?)\r?\n)?---[^\S\n]*(?:\r?\n|$)/.exec(text);
 
@@ -457,7 +489,7 @@ function checkSiblings(node: TrieNode, at: string): void {
         const right = peers[j]!;
 
         const bothLeaves = left.rule !== null && right.rule !== null;
-        const bothDirectories = left.children.size > 0 && right.children.size > 0;
+        const bothDirectories = (left.children.size > 0 || left.directory === true) && (right.children.size > 0 || right.directory === true);
         if (!bothLeaves && !bothDirectories) continue;
 
         if (!intersectSegments(left.segment, right.segment)) continue;
@@ -479,19 +511,25 @@ function checkSiblings(node: TrieNode, at: string): void {
   }
 }
 
-export async function compile(root: string, espalierRoot: string, skip: string[] = []): Promise<Espalier> {
+export async function compile(root: string, espalierRoot: string, skip: string[] = [], config?: Config): Promise<Espalier> {
   const absolute = path.join(root, espalierRoot);
   const trie = emptyNode("", parseSegment("", "the espalier root"));
   const constraints: Constraint[] = [];
   const nodes = new Map<string, NodeDoc>();
   const skipRules = compileIgnore(skip, "skip");
 
-  for (const modulePath of listEntries(absolute, skipRules)) {
+  const entries = listEntries(absolute, skipRules);
+  for (const modulePath of entries) {
     const segments = modulePath.split("/");
     const leaf = segments[segments.length - 1]!;
 
-    if (leaf === NODE_DESCRIPTION) {
-      nodes.set(segments.slice(0, -1).join("/"), readNodeDoc(path.join(absolute, modulePath), modulePath));
+    if (leaf === NODE_DESCRIPTION || leaf === LEGACY_NODE_DESCRIPTION) {
+      const at = segments.slice(0, -1).join("/");
+      if (nodes.has(at)) fail("malformed_node_description", `${at}: declare only one directory guidance source`);
+      const doc = leaf === LEGACY_NODE_DESCRIPTION
+        ? readLegacyNodeDoc(path.join(absolute, modulePath), modulePath)
+        : await readDirectoryModule(path.join(absolute, modulePath), modulePath);
+      nodes.set(at, { ...doc, source: leaf });
       continue;
     }
 
@@ -518,19 +556,6 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     // A `{name}` matches what a `[name]` above it captured, so the placeholder
     // has to come first. `[...name]` is excluded deliberately: it captures an
     // array, and there is no text for a back-reference to stand for.
-    const bound = new Set<string>();
-    for (const segment of parsed) {
-      for (const name of backrefNames(segment)) {
-        if (!bound.has(name)) {
-          fail(
-            "unbound_backreference",
-            `${modulePath}: "{${name}}" refers to a capture no earlier segment declares`,
-            { name },
-          );
-        }
-      }
-      if (segment.recursive === null) for (const name of captureNames(segment)) bound.add(name);
-    }
 
     const recursive = parsed.filter((segment) => segment.recursive !== null);
     if (recursive.length > 1) {
@@ -585,12 +610,262 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
 
     insert(trie, parsed, {
       modulePath,
+      segments: parsed,
       pattern: parsed.map((segment) => segment.shape).join("/"),
       module: await loadModule(absoluteModule, modulePath, leafSegment.dynamic ? "dynamic" : "static", root),
     });
   }
 
+  materializeInstances(trie, nodes);
+  validateBindings(trie, new Set());
+  for (const constraint of constraints) validateSegments(constraint.directory, new Set(), constraint.modulePath);
   checkSiblings(trie, "");
 
+  for (const [at, doc] of nodes) {
+    if (!doc.render) {
+      if (doc.instanceOf) doc.body = `Shared contract: \`${path.posix.normalize(path.posix.join(at, doc.instanceOf))}/\`. Read the ancestor guidance for inherited requirements.\n\n${doc.body}`;
+      continue;
+    }
+    let node = trie;
+    const captures: Record<string, string> = {};
+    let concrete = true;
+    for (const part of at.split("/").filter(Boolean)) {
+      const child = [...node.children.values()].find((entry) => entry.display === part);
+      if (child === undefined) { concrete = !/[\[{}]/.test(at); break; }
+      if (child.segment.dynamic || child.segment.resolved) concrete = false;
+      if (child.baseSegment && !child.segment.dynamic && !child.segment.resolved) Object.assign(captures, matchSegment(child.baseSegment, part, captures));
+      node = child;
+    }
+    try {
+      const result = await doc.render({ config: structuredClone(config)!, pattern: at, path: concrete ? at : null, captures });
+      if (typeof result !== "string") fail("malformed_node_description", `${at}/${NODE_DESCRIPTION}: guidance must return a string`);
+      doc.body = doc.instanceOf ? `Shared contract: \`${path.posix.normalize(path.posix.join(at, doc.instanceOf))}/\`. Read the ancestor guidance for inherited requirements.\n\n${result}` : result;
+    } catch (cause) {
+      fail("malformed_node_description", `${at}/${NODE_DESCRIPTION}: guidance failed: ${(cause as Error).message}`);
+    }
+  }
   return { root: trie, constraints, nodes };
+}
+
+export interface DirectoryGuidanceContext {
+  config: Readonly<Config>;
+  pattern: string;
+  path: string | null;
+  captures: Readonly<Record<string, string>>;
+}
+
+async function readDirectoryModule(
+  absolute: string, source: string,
+): Promise<NodeDoc> {
+  let module: Record<string, unknown>;
+  try { module = await import(pathToFileURL(absolute).href); }
+  catch (cause) { fail("module_import_failed", `${source} could not be imported: ${(cause as Error).message}`); }
+  if (["rule", "lint", "template", "minMatches"].some((key) => key in module)) {
+    fail("malformed_node_description", `${source}: ESPALIER.mjs is reserved for directory metadata; move structural rule exports to their governed filename`);
+  }
+  for (const key of ["description", "instanceOf"] as const) {
+    if (module[key] !== undefined && (typeof module[key] !== "string" || (key === "instanceOf" && !module[key]))) {
+      fail("malformed_node_description", `${source}: ${key} must be a nonempty string`);
+    }
+  }
+  for (const key of ["fold", "optional"] as const) {
+    if (module[key] !== undefined && typeof module[key] !== "boolean") {
+      fail("malformed_node_description", `${source}: ${key} must be a boolean`);
+    }
+  }
+  if (module.optional !== undefined && module.instanceOf === undefined) {
+    fail("malformed_node_description", `${source}: optional applies only to a named directory instance`);
+  }
+  if (module.guidance !== undefined && typeof module.guidance !== "string" && typeof module.guidance !== "function") {
+    fail("malformed_node_description", `${source}: guidance must be a string or function`);
+  }
+  return {
+    description: (module.description as string | undefined) ?? null,
+    fold: module.fold === true, body: typeof module.guidance === "string" ? module.guidance : "",
+    instanceOf: module.instanceOf as string | undefined, optional: module.optional === true,
+    ...(typeof module.guidance === "function" ? { render: module.guidance as (context: DirectoryGuidanceContext) => unknown } : {}),
+  };
+}
+
+function validateSegments(segments: Segment[], known: Set<string>, source: string): Set<string> {
+  const bound = new Set(known);
+  for (const segment of segments) {
+    for (const name of backrefNames(segment)) {
+      if (!bound.has(name)) fail("unbound_backreference", `${source}: "{${name}}" refers to a capture no earlier segment declares`, { name });
+    }
+    for (const name of captureNames(segment)) {
+      if (bound.has(name)) fail("duplicate_placeholder_name", `${source}: "[${name}]" appears twice; placeholder names must be unique within a path`);
+      bound.add(name);
+    }
+  }
+  return bound;
+}
+
+function validateBindings(node: TrieNode, bound: Set<string>): void {
+  for (const child of node.children.values()) {
+    const next = validateSegments([child.baseSegment ?? child.segment], bound, child.rule?.modulePath ?? child.display);
+    validateBindings(child, next);
+  }
+}
+
+/** Compile named instances into one effective tree, keeping source rule identity. */
+function materializeInstances(root: TrieNode, docs: Map<string, NodeDoc>): void {
+  // Directory metadata ordinarily does not declare structure. An instance does.
+  for (const [at, doc] of docs) {
+    if (!doc.instanceOf) continue;
+    let node = root;
+    for (const part of at.split("/")) {
+      if (!part) fail("invalid_instance", "the project root cannot be an instance");
+      const segment = parseSegment(part, at);
+      if (segment.recursive !== null) fail("invalid_instance", `${at}: named instances cannot be declared under a recursive constraint path`);
+      const key = trieKey(segment);
+      let child = node.children.get(key);
+      if (!child) { child = emptyNode(part, segment); node.children.set(key, child); }
+      child.directory = true;
+
+      node = child;
+    }
+    if (node.segment.dynamic || node.segment.resolved) fail("invalid_instance", `${at}: only a static directory can declare instanceOf`);
+    node.instanceOf = doc.instanceOf;
+    const reference = path.posix.normalize(path.posix.join(at, doc.instanceOf));
+    if (docs.has(reference)) {
+      let base = root;
+      for (const part of reference.split("/")) {
+        const segment = parseSegment(part, reference);
+        const key = trieKey(segment);
+        let child = base.children.get(key);
+        if (!child) { child = emptyNode(part, segment); base.children.set(key, child); }
+        child.directory = true;
+        base = child;
+      }
+    }
+    node.optional = doc.optional;
+  }
+  const completed = new Set<TrieNode>();
+  const active = new Set<TrieNode>();
+  const clone = (node: TrieNode): TrieNode => ({ ...node, children: new Map([...node.children].map(([key, child]) => [key, clone(child)])) });
+  const referenceName = (reference: string, directory: boolean): string => {
+    const name = directory ? reference.replace(/^\.\.\//, "") : reference.replace(/^\.\//, "").replace(/\.mjs$/, "");
+    if (!name || name.includes("/") || name === "." || name === "..") fail("invalid_instance", `${reference}: instanceOf must name a sibling contract`);
+    return name;
+  };
+  const choose = (parent: TrieNode, child: TrieNode, captures: Record<string, string>): TrieNode | undefined => {
+    const directory = child.rule === null;
+    const usable = (node: TrieNode) => directory ? node.rule === null : node.rule !== null;
+    const exact = [...parent.children.values()].find((node) => usable(node) && !node.segment.dynamic &&
+      (node.segment.resolved ? resolveSegment(node.segment, captures) === child.display : node.display === child.display));
+    if (exact) return exact;
+    const unresolved = [...parent.children.values()].find((node) => usable(node) && node.segment.resolved &&
+      resolveSegment(node.segment, captures) === null && intersectSegments(node.segment, child.segment));
+    if (unresolved) fail("invalid_instance", `${child.display}: may shadow inherited back-reference ${unresolved.display}; specialize only where its binding is known`);
+    if (child.segment.dynamic || child.segment.resolved) return undefined;
+    return [...parent.children.values()].filter((node) => usable(node) && node.segment.dynamic && matchSegment(node.segment, child.display, captures) !== null)
+      .sort((a, b) => isStrictSubset(a.segment, b.segment) ? -1 : isStrictSubset(b.segment, a.segment) ? 1 : 0)[0];
+  };
+  const compose = (local: TrieNode, base: TrieNode, at: string, captures: Record<string, string>): void => {
+    if (local.rule !== null) {
+      if (base.rule === null) fail("invalid_instance", `${at}: a file must specialize a file`);
+      if (!base.segment.dynamic && !base.rule.module.optional && local.rule.module.optional) {
+        fail("invalid_instance", `${at}: a required inherited file cannot become optional`);
+      }
+      local.rule = { ...local.rule,
+        inherited: [...(base.rule.inherited ?? []), base.rule],
+        module: { ...local.rule.module, template: local.rule.module.template ?? base.rule.module.template,
+          ...(local.segment.dynamic ? { minMatches: local.rule.module.minMatches ?? base.rule.module.minMatches,
+            optional: (local.rule.module.minMatches ?? base.rule.module.minMatches ?? 0) === 0 } : {}),
+        },
+        templateRule: local.rule.module.template !== null ? local.rule : base.rule.templateRule ?? base.rule,
+      };
+      local.baseSegment = base.baseSegment ?? base.segment;
+      return;
+    }
+    if (base.rule !== null) fail("invalid_instance", `${at}: a directory must specialize a directory`);
+    const namedCaptures = local.segment.dynamic ? {} : matchSegment(base.baseSegment ?? base.segment, local.display, captures);
+    const bound = { ...captures, ...namedCaptures };
+    local.baseSegment = base.baseSegment ?? base.segment;
+    local.directory = true;
+    const children = new Map([...base.children].map(([key, child]) => [key, clone(child)]));
+    for (const [key, child] of local.children) {
+      const target = `${at}/${child.display}`;
+      const same = base.children.get(key);
+      const matched = same ?? choose(base, child, bound);
+      if (!matched) fail("invalid_instance", `${target}: no child in the inherited contract admits this path`);
+      const ref = child.rule?.module.instanceOf ?? docs.get(target)?.instanceOf;
+      if (ref !== undefined && referenceName(ref, child.rule === null) !== matched.display) {
+        fail("invalid_instance", `${target}: instanceOf must name its owning inherited contract ${matched.display}`);
+      }
+      if (matched.segment.dynamic && !child.segment.dynamic && ref === undefined) {
+        fail("invalid_instance", `${target}: naming a dynamic member requires instanceOf`);
+      }
+      if (child.segment.dynamic && child.display !== matched.display) fail("invalid_instance", `${target}: inherited collections cannot be replaced`);
+      if (child.rule !== null && child.segment.dynamic) {
+        if ((child.rule.module.minMatches ?? matched.rule?.module.minMatches ?? 0) < (matched.rule?.module.minMatches ?? 0)) fail("invalid_instance", `${target}: minMatches cannot weaken the inherited minimum`);
+      }
+      compose(child, matched, target, bound);
+      children.set(key, child);
+    }
+    local.children = children;
+  };
+  const expand = (node: TrieNode, at: string, parent?: TrieNode): void => {
+    if (completed.has(node)) return;
+    if (active.has(node)) fail("invalid_instance", `${at}: cyclic instanceOf reference`);
+    active.add(node);
+    const ref = node.rule?.module.instanceOf ?? node.instanceOf;
+    if (ref !== undefined) {
+      if (node.segment.dynamic || node.segment.resolved) fail("invalid_instance", `${at}: instanceOf requires a static name`);
+      const name = referenceName(ref, node.rule === null);
+      const base = parent && [...parent.children.values()].find((candidate) => candidate.display === name);
+      if (!base || !base.segment.dynamic || base.segment.recursive !== null || base === node) fail("invalid_instance", `${at}: instanceOf must name a matching sibling dynamic contract`);
+      expand(base, at.split("/").slice(0, -1).concat(base.display).join("/"), parent);
+      const winner = parent && choose({ ...parent, children: new Map([...parent.children].filter(([, child]) => child !== node)) }, node, {});
+      if (winner !== base) fail("invalid_instance", `${at}: the named contract would not own this instance`);
+      compose(node, base, at, {});
+    } else {
+      for (const child of node.children.values()) expand(child, at ? `${at}/${child.display}` : child.display, node);
+    }
+    active.delete(node);
+    completed.add(node);
+  };
+  expand(root, "");
+}
+
+/** Mask comments and strings so migration cannot rewrite prose containing JS. */
+export function sourceCode(source: string): string {
+  const masked = source.split("");
+  const blank = (start: number, end: number): void => {
+    for (let i = start; i < end; i++) if (masked[i] !== "\n" && masked[i] !== "\r") masked[i] = " ";
+  };
+  const quoted = (start: number): number => {
+    const quote = source[start];
+    let i = start + 1;
+    while (i < source.length) {
+      if (source[i] === "\\") { i += 2; continue; }
+      if (source[i] === quote) return i + 1;
+      if (quote === "`" && source.slice(i, i + 2) === "${") { i = expression(i + 2); continue; }
+      i++;
+    }
+    return i;
+  };
+  const comment = (start: number): number => source[start + 1] === "/"
+    ? (source.indexOf("\n", start) === -1 ? source.length : source.indexOf("\n", start))
+    : (source.indexOf("*/", start + 2) === -1 ? source.length : source.indexOf("*/", start + 2) + 2);
+  const expression = (start: number): number => {
+    let depth = 1;
+    for (let i = start; i < source.length;) {
+      if (["'", '"', "`"].includes(source[i]!)) { i = quoted(i); continue; }
+      if (source[i] === "/" && ["/", "*"].includes(source[i + 1]!)) { i = comment(i); continue; }
+      if (source[i] === "{") depth++;
+      if (source[i] === "}" && --depth === 0) return i + 1;
+      i++;
+    }
+    return source.length;
+  };
+  for (let i = 0; i < source.length;) {
+    if (["'", '"', "`"].includes(source[i]!)) {
+      const end = quoted(i); blank(i, end); i = end;
+    } else if (source[i] === "/" && ["/", "*"].includes(source[i + 1]!)) {
+      const end = comment(i); blank(i, end); i = end;
+    } else i++;
+  }
+  return masked.join("");
 }

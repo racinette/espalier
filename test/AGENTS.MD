@@ -2,6 +2,7 @@
 
 # espalier — `test/`
 
+
 Two kinds of test, and the division is not stylistic.
 
 `fixtures.test.ts` runs the conformance suite: every directory under
@@ -18,6 +19,7 @@ to reach past it. If a case can be a fixture, it should be.
 A test that passes is not the same as a test that guards. Break the code and
 watch the new test fail before believing it — this suite has shipped cases that
 passed with the fix reverted.
+
 
 ## Project layout
 
@@ -37,7 +39,7 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](../espalier/test/ESPALIER.MD) to change this document's persistent guidance. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](../espalier/test/ESPALIER.mjs) to change this document's persistent guidance. |
 
 Every path under test/ must fit the project layout or a documented
 repository-specific purpose.

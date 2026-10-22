@@ -4,7 +4,7 @@
 // the destination, independently. Everything such a run has to say goes
 // through both: issues, the partial-run warning, an operational failure. There
 // is no second channel. `create` fixes these to human/stdout so its argument
-// namespace belongs entirely to the template.
+// arguments after -- belong entirely to the template.
 
 import { closeSync, openSync, writeSync } from "node:fs";
 import path from "node:path";

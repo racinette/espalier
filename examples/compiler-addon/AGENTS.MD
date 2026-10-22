@@ -2,9 +2,11 @@
 
 # compiler-addon
 
+
 Each feature has a model.ts with cohesive operations. Shared types form a
 dynamic collection. Compiler settings and sources are governed inputs;
 analysis services own reusable compiler state for one check.
+
 
 ## Project layout
 
@@ -34,7 +36,7 @@ These paths are part of the repository but serve specific purposes outside the p
 | `package.json`<br>`tests/`<br>`repository.ignore` | Package management and the example's executable test recipes. |
 | `analysis/` | Implementation modules imported by the rules, rather than lint data. |
 | `.espalierignore`<br>`espalier`<br>`espalier.config.yaml`<br>`repository.ignore` | Sources used to generate and check this repository guidance. |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](espalier/ESPALIER.mjs) to change this document's persistent guidance. |
 
 Every path in this directory must fit the project layout or a documented
 repository-specific purpose.
@@ -42,7 +44,7 @@ repository-specific purpose.
 ## Working with Espalier
 
 Espalier is the architecture compiler for this repository. It turns structural
-rules and `ESPALIER.MD` guidance into this generated document, then checks the
+rules and `ESPALIER.mjs` guidance into this generated document, then checks the
 working tree against them. Use it to place new code, discover the constraints on
 a path, and catch architectural drift while a change is still small.
 
@@ -98,7 +100,7 @@ discussion. Explain which files become permitted, required, checked, or
 excluded, and identify any guarantees the proposal removes. Moving a file
 outside a check's scope changes enforcement even if the check stays intact.
 
-Once an approach is agreed, update the corresponding `ESPALIER.MD` for guidance
+Once an approach is agreed, update the corresponding `ESPALIER.mjs` for guidance
 and the structural rule modules for structure, then run `espalier build`.
 Implement the agreed design without repeatedly requesting approval. Reopen
 the discussion if implementation requires a materially different design.

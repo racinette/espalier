@@ -58,7 +58,7 @@ const USAGE = `espalier <command> [options]
 
   adopt only:
   --dry-run             print what would be written, write nothing
-  --force               migrate conflicting generated-output files into ESPALIER.MD
+  --force               migrate conflicting generated-output files into ESPALIER.mjs
 
   lint only:
   --rule <module>       run one rule module only

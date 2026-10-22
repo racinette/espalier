@@ -341,7 +341,7 @@ test("directory help unions required file schemas under lossless path prefixes",
 
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(result.stdout, /^Usage:\n  espalier create clients\/stripe help/);
-    assert.match(result.stdout, /espalier create clients\/stripe preview \[template options\]/);
+    assert.match(result.stdout, /espalier create clients\/stripe preview -- \[template options\]/);
     assert.match(result.stdout, /Creates clients\/stripe\/ and its required files\./);
     assert.match(
       result.stdout,
@@ -358,7 +358,7 @@ test("directory help unions required file schemas under lossless path prefixes",
     assert.doesNotMatch(result.stdout, /plugins\/\[plugin\]/);
     assert.match(
       result.stdout,
-      /Example:\n  espalier create clients\/stripe --client\.ts:transport fetch --models\/error\.ts:withDocs --requestModels\.ts:format zod --requestModels\.ts:tag public --requestModels\.ts:tag stable/,
+      /Example:\n  espalier create clients\/stripe -- --client\.ts:transport fetch --models\/error\.ts:withDocs --requestModels\.ts:format zod --requestModels\.ts:tag public --requestModels\.ts:tag stable/,
     );
     assert.match(
       result.stdout,
@@ -410,7 +410,7 @@ export const template = createTemplate({
     assert.equal(existsSync(path.join(root, "groups/new/notes.md")), false);
     assert.equal(existsSync(path.join(root, "rendered")), false);
 
-    const file = run(root, ["create", "groups/new/notes.md", "--title", "New group"]);
+    const file = run(root, ["create", "groups/new/notes.md", "--", "--title", "New group"]);
     assert.equal(file.status, 0, file.stdout);
     assert.equal(readFileSync(path.join(root, "groups/new/notes.md"), "utf8"), "New group");
     assert.equal(readFileSync(path.join(root, "rendered"), "utf8"), "yes");
@@ -423,7 +423,7 @@ test("create directory renders every required file with its own local arguments"
     const result = run(root, [
       "create",
       "clients/stripe",
-      "--client.ts:transport",
+      "--", "--client.ts:transport",
       "axios",
       "--requestModels.ts:format",
       "zod",
@@ -486,7 +486,7 @@ test("directory arguments report their qualified names and never leak across fil
     const unqualified = run(root, [
       "create",
       "clients/stripe",
-      "--transport",
+      "--", "--transport",
       "fetch",
     ]);
     assert.equal(unqualified.status, 2);
@@ -504,7 +504,7 @@ test("directory creation refuses an existing target before rendering", () => {
     const result = run(root, [
       "create",
       "clients/stripe",
-      "--client.ts:transport",
+      "--", "--client.ts:transport",
       "fetch",
     ]);
 
@@ -533,7 +533,7 @@ export const template = createTemplate(() => { throw new Error("cannot render re
     const result = run(root, [
       "create",
       "clients/stripe",
-      "--client.ts:transport",
+      "--", "--client.ts:transport",
       "fetch",
       "--models/error.ts:withDocs",
     ]);
@@ -553,7 +553,7 @@ test("directory creation refuses an excluded required descendant", () => {
     const result = run(root, [
       "create",
       "clients/stripe",
-      "--client.ts:transport",
+      "--", "--client.ts:transport",
       "fetch",
     ]);
 
@@ -716,18 +716,18 @@ export const template = createTemplate(() => "directory\\n");
 test("directory help lists nonempty collections while create leaves their filenames to the author", () => {
   const root = repository(`export const description = "a member";
 export const rule = "Each group has at least one member.";
-export const optional = false;
+export const minMatches = 1;
 export function lint() {}
 `, "groups/[group]/[member].js.mjs");
   try {
     const rule = `export const description = "a test";
 export const rule = "Each group has a test.";
-export const optional = false;
+export const minMatches = 1;
 export function lint() {}
 `;
     write(root, "espalier/groups/[group]/tests/[test].ts.mjs", rule);
     write(root, "espalier/groups/[group]/future/[instance]/[test].ts.mjs", rule);
-    write(root, "espalier/groups/[group]/notes.md.mjs", rule);
+    write(root, "espalier/groups/[group]/notes.md.mjs", rule.replace("export const minMatches = 1;", "export const optional = false;"));
     const help = run(root, ["create", "groups/new", "help"]);
     assert.equal(help.status, 0, help.stdout + help.stderr);
     assert.match(help.stdout, /Required collections \(choose a filename and create separately\):/);
@@ -799,7 +799,7 @@ test("create maps literal schema keys, defaults, and repeated values into the re
     const result = run(root, [
       "create",
       "src/answer.ts",
-      "--varname",
+      "--", "--varname",
       "answer",
       "--with-export",
       "--tag",
@@ -825,7 +825,7 @@ test("a concrete dynamic path selects its structural owner's template", () => {
     const result = run(root, [
       "create",
       "src/deeply-named.ts",
-      "--varname",
+      "--", "--varname",
       "inside",
       "--declaration",
       "let",
@@ -845,15 +845,15 @@ test("creation help preserves authored flag spelling and writes nothing", () => 
 
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(result.stdout, /^Usage:\n  espalier create src\/answer\.ts help/);
-    assert.match(result.stdout, /espalier create src\/answer\.ts preview \[template options\]/);
-    assert.match(result.stdout, /espalier create src\/answer\.ts \[template options\]/);
+    assert.match(result.stdout, /espalier create src\/answer\.ts preview -- \[template options\]/);
+    assert.match(result.stdout, /espalier create src\/answer\.ts -- \[template options\]/);
     assert.match(
       result.stdout,
       /Creates src\/answer\.ts\.\n\nOwned by:\n  src\/\[name\]\.ts — a generated source module/,
     );
     assert.match(
       result.stdout,
-      /Example:\n  espalier create src\/answer\.ts --varname answer --with-export --declaration let --tag public --tag stable --label "public API"/,
+      /Example:\n  espalier create src\/answer\.ts -- --varname answer --with-export --declaration let --tag public --tag stable --label "public API"/,
     );
     assert.match(result.stdout, /--varname <identifier>\s+Variable name to declare \(required, examples: answer, result\)/);
     assert.match(result.stdout, /--with-export\s+Export the declaration$/m);
@@ -898,14 +898,14 @@ export const template = createTemplate({
     assert.equal(help.status, 0, help.stdout + help.stderr);
     assert.match(
       help.stdout,
-      /Example:\n  espalier create src\/example\.ts --config <value> --format <value> --out <value>/,
+      /Example:\n  espalier create src\/example\.ts -- --config <value> --format <value> --out <value>/,
     );
     assert.doesNotMatch(help.stdout, /Example:\n[^\n]*--help/);
 
     const result = run(root, [
       "create",
       "src/answer.ts",
-      "--config",
+      "--", "--config",
       "local",
       "--format",
       "esm",
@@ -929,7 +929,7 @@ test("template arguments reject values outside their declared choices", () => {
     const result = run(root, [
       "create",
       "src/answer.ts",
-      "--varname",
+      "--", "--varname",
       "answer",
       "--declaration",
       "var",
@@ -1044,7 +1044,7 @@ test("create delegates a target to its nearest child espalier", () => {
     const result = run(root, [
       "create",
       "packages/web/src/child.ts",
-      "--varname",
+      "--", "--varname",
       "child",
     ]);
 
@@ -1075,7 +1075,7 @@ test("create refuses a declared path excluded by repository policy", () => {
     const result = run(root, [
       "create",
       "src/hidden.ts",
-      "--varname",
+      "--", "--varname",
       "hidden",
     ]);
 
@@ -1088,7 +1088,7 @@ test("create refuses a declared path excluded by repository policy", () => {
 test("file preview renders creation arguments without creating its parent", () => {
   scratch(SCHEMA_TEMPLATE, (root) => {
     const args = ["--varname", "answer", "--with-export", "--tag", "public", "--tag", "stable"];
-    const result = run(root, ["create", "src/answer.ts", "preview", ...args]);
+    const result = run(root, ["create", "src/answer.ts", "preview", "--", ...args]);
     const contents = JSON.stringify({
       varname: "answer", "with-export": true, camelCase: false,
       declaration: "const", tag: ["public", "stable"],
@@ -1097,7 +1097,7 @@ test("file preview renders creation arguments without creating its parent", () =
     assert.equal(result.stdout, 'Preview: "src/answer.ts"\n```text\n' + contents + "```\n\n1 file previewed.\n");
     assert.equal(existsSync(path.join(root, "src")), false);
 
-    const created = run(root, ["create", "src/answer.ts", ...args]);
+    const created = run(root, ["create", "src/answer.ts", "--", ...args]);
     assert.equal(created.status, 0, created.stdout + created.stderr);
     assert.equal(readFileSync(path.join(root, "src/answer.ts"), "utf8"), contents);
   });
@@ -1108,7 +1108,7 @@ test("directory preview matches every created source and omits optional collecti
   try {
     const args = ["--client.ts:transport", "axios", "--requestModels.ts:tag", "public",
       "--requestModels.ts:tag", "stable", "--models/error.ts:withDocs"];
-    const result = run(root, ["create", "clients/stripe", "preview", ...args]);
+    const result = run(root, ["create", "clients/stripe", "preview", "--", ...args]);
     assert.equal(result.status, 0, result.stdout + result.stderr);
     const headers = [...result.stdout.matchAll(/^Preview: (.+)$/gm)].map((match) => JSON.parse(match[1]!));
     assert.deepEqual(headers, [
@@ -1119,7 +1119,7 @@ test("directory preview matches every created source and omits optional collecti
     assert.match(result.stdout, /\n\n5 files previewed\.\n$/);
     assert.equal(existsSync(path.join(root, "clients")), false);
 
-    const created = run(root, ["create", "clients/stripe", ...args]);
+    const created = run(root, ["create", "clients/stripe", "--", ...args]);
     assert.equal(created.status, 0, created.stdout + created.stderr);
     const blocks = [...result.stdout.matchAll(/^Preview: (.+)\n```text\n([\s\S]*?)\n```$/gm)];
     assert.equal(blocks.length, 4);
@@ -1184,13 +1184,13 @@ export const template = createTemplate({
 }, (args) => JSON.stringify(args) + "\\n");
 `, (root) => {
     const args = ["--preview", "--help", "--format", "jsonl", "--out", "preview"];
-    const result = run(root, ["create", "src/options.ts", "preview", ...args]);
+    const result = run(root, ["create", "src/options.ts", "preview", "--", ...args]);
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(result.stdout, /^Preview: "src\/options.ts"\n```text\n/);
     assert.match(result.stdout, /"preview":true,"help":true,"format":"jsonl","out":"preview"/);
     assert.equal(existsSync(path.join(root, "src")), false);
     assert.equal(existsSync(path.join(root, "preview")), false);
-    const created = run(root, ["create", "src/options.ts", ...args]);
+    const created = run(root, ["create", "src/options.ts", "--", ...args]);
     assert.equal(created.status, 0, created.stdout + created.stderr);
     assert.ok(result.stdout.includes(readFileSync(path.join(root, "src/options.ts"), "utf8")));
   });
@@ -1199,7 +1199,7 @@ export const template = createTemplate({
 test("preview argument failures produce neither partial source nor target directories", () => {
   scratch(SCHEMA_TEMPLATE, (root) => {
     for (const args of [[], ["--varname", "answer", "--declaration", "var"], ["--unknown"]]) {
-      const result = run(root, ["create", "src/answer.ts", "preview", ...args]);
+      const result = run(root, ["create", "src/answer.ts", "preview", "--", ...args]);
       assert.equal(result.status, 2, result.stdout + result.stderr);
       assert.match(result.stdout, /\(invalid_template_arguments\)/);
       assert.doesNotMatch(result.stdout, /Preview:|files? previewed\./);
@@ -1209,7 +1209,7 @@ test("preview argument failures produce neither partial source nor target direct
   const root = directoryRepository();
   try {
     const result = run(root, ["create", "clients/stripe", "preview",
-      "--client.ts:transport", "fetch", "--requestModels.ts:format", "invalid"]);
+      "--", "--client.ts:transport", "fetch", "--requestModels.ts:format", "invalid"]);
     assert.equal(result.status, 2, result.stdout + result.stderr);
     assert.match(result.stdout, /\(invalid_template_arguments\)/);
     assert.doesNotMatch(result.stdout, /Preview:|files? previewed\./);
@@ -1237,7 +1237,7 @@ export const template = createTemplate(() => { ${body} });
     const root = directoryRepository();
     try {
       write(root, "espalier/clients/[provider]/requestModels.ts.mjs", rule);
-      const result = run(root, ["create", "clients/stripe", "preview", "--client.ts:transport", "fetch"]);
+      const result = run(root, ["create", "clients/stripe", "preview", "--", "--client.ts:transport", "fetch"]);
       assert.equal(result.status, 2, result.stdout + result.stderr);
       assert.match(result.stdout, /render failed|must return a string/);
       assert.doesNotMatch(result.stdout, /Preview:|files? previewed\./);

@@ -1,6 +1,7 @@
 // Everything both `lint` and `explain` need: the config, the compiled espalier,
 // and the set of files espalier can see.
 
+import { startImplementations } from "./implementation.js";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { findChildren } from "./children.js";
@@ -103,7 +104,7 @@ function validateReferenceImplementations(
 
     if (rule.structural !== null) {
       const owner = resolve(espalier, reference);
-      if (!isOwnership(owner) || owner.rule.modulePath !== modulePath) {
+      if (!isOwnership(owner) || ![...(owner.rule.inherited ?? []), owner.rule].some((rule) => rule.modulePath === modulePath)) {
         fail(
           "invalid_reference_implementation",
           `${modulePath}: reference implementation "${reference}" is not owned by this rule`,
@@ -151,7 +152,10 @@ function readNestedIgnoreFile(root: string, entry: string): string[] {
 }
 
 export async function openConfig(config: Config): Promise<Repository> {
-  const espalier = await compile(config.root, config.espalierRoot, config.skip);
+  const session = startImplementations(config.root, config.espalierRoot, config.addons);
+  let espalier: Espalier;
+  try { espalier = await compile(config.root, config.espalierRoot, config.skip, config); }
+  finally { session.close(); }
 
   // External ignore files define the repository presented to Espalier.
   // `.espalierignore` is a separate, subsequent governance decision and alone

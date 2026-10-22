@@ -23,7 +23,7 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](../../../espalier/docs/cli/lint/ESPALIER.MD) to change this document's persistent guidance. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](../../../espalier/docs/cli/lint/ESPALIER.mjs) to change this document's persistent guidance. |
 
 Every path under docs/cli/lint/ must fit the project layout or a documented
 repository-specific purpose.

@@ -4,7 +4,7 @@
 // `loadConfig` on a pin mismatch; this one is allowed to see the old file,
 // edit it as text, and visit children the way `lint` and `build` do.
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { isMap, parseDocument } from "yaml";
 import { findChildren } from "./children.js";
@@ -16,6 +16,8 @@ import {
   parseGuidanceMode,
   readConfigFile,
 } from "./config.js";
+import { listEntries, readLegacyNodeDoc, sourceCode } from "./compile.js";
+import { parseStructuralLeaf } from "./pattern.js";
 import { vendorAuthoring } from "./init.js";
 import { fail } from "./errors.js";
 import { collectCandidates } from "./files.js";
@@ -242,18 +244,15 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
     }
     reviewDotEntries(path.join(root, espalierRoot), espalierRoot, skip, reporter);
   }
-  const source = `${espalierRoot}/ESPALIER.MD`;
-  const absoluteSource = path.join(root, source);
-  if (inline === true) {
-    const existing = existsSync(absoluteSource) ? readFileSync(absoluteSource, "utf8") : "";
-    const folded = foldRoot(existing, source);
-    if (folded !== existing) {
-      if (!options.dryRun) {
-        mkdirSync(path.dirname(absoluteSource), { recursive: true });
-        writeFileSync(absoluteSource, folded, "utf8");
-      }
-      reporter.record({ kind: "written", path: source });
+  const changes = planGrammarMigration(root, espalierRoot, skip, inline === true);
+  for (const change of changes) {
+    if (!options.dryRun) {
+      mkdirSync(path.dirname(change.path), { recursive: true });
+      writeFileSync(change.path, change.contents, "utf8");
+      if (change.remove) unlinkSync(change.remove);
     }
+    reporter.record({ kind: "written", path: path.relative(root, change.path).split(path.sep).join("/") });
+    if (change.remove) reporter.record({ kind: "deleted", path: path.relative(root, change.remove).split(path.sep).join("/") });
   }
   const reported = path.relative(root, configPath).split(path.sep).join("/") || CONFIG_FILENAME;
   if (wanted === text) {
@@ -336,4 +335,63 @@ export async function migrate(options: MigrateOptions, reporter: Reporter): Prom
   return await eachChild(root, children, reporter, (childRoot, childReporter) =>
     migrate({ ...options, cwd: childRoot, config: undefined }, childReporter),
   );
+}
+
+/** Plan all syntax conversions before changing configuration or authored inputs. */
+function planGrammarMigration(root: string, rules: string, skip: string[], fold: boolean): Array<{ path: string; contents: string; remove?: string }> {
+  const directory = path.join(root, rules);
+  const entries = existsSync(directory) ? listEntries(directory, compileIgnore(skip, "skip")) : [];
+  const changes: Array<{ path: string; contents: string; remove?: string }> = [];
+  for (const entry of entries) {
+    const absolute = path.join(directory, entry);
+    if (path.basename(entry) === "ESPALIER.MD") {
+      const destination = absolute.slice(0, -"ESPALIER.MD".length) + "ESPALIER.mjs";
+      if (existsSync(destination)) fail("malformed_node_description", `${entry}: both directory formats exist; resolve the conflict before migrating`);
+      const original = readFileSync(absolute, "utf8");
+      // Validate the complete frontmatter before generating executable source.
+      foldRoot(original, entry);
+      const doc = readLegacyNodeDoc(absolute, entry);
+      const framed = /^---[^\S\n]*\r?\n(?:([\s\S]*?)\r?\n)?---[^\S\n]*(?:\r?\n|$)/.exec(original);
+      const comment = framed ? framed[0].trimEnd().split(/\r?\n/).map((line) => `// ${line}`).join("\n") + "\n" : "";
+      const body = framed ? original.slice(framed[0].length) : original;
+      changes.push({ path: destination, remove: absolute, contents: `${comment}${doc.description === null ? "" : `export const description = ${JSON.stringify(doc.description)};\n`}export const fold = ${doc.fold || (fold && entry === "ESPALIER.MD")};\nexport const guidance = ${JSON.stringify(body)};\n` });
+      continue;
+    }
+    if (!entry.endsWith(".mjs") || path.basename(entry) === "ESPALIER.mjs" || entry.includes("[...")) continue;
+    const leaf = parseStructuralLeaf(path.basename(entry).slice(0, -4), entry);
+    if (!leaf.dynamic) continue;
+    const source = readFileSync(absolute, "utf8");
+    // Only a direct literal declaration has a source-only, unambiguous rewrite.
+    const declaration = /(^|\n)([ \t]*)export\s+const\s+optional\s*=\s*(true|false)\s*;/g;
+    const code = sourceCode(source);
+    const found = [...code.matchAll(declaration)];
+    if (found.length === 1 && !/\bminMatches\b/.test(code)) {
+      const match = found[0]!;
+      const start = match.index!;
+      const original = source.slice(start, start + match[0].length);
+      const nameAt = match[0].indexOf("optional");
+      const valueAt = match[0].lastIndexOf(match[3]!);
+      const replacement = original.slice(0, nameAt) + "minMatches" + original.slice(nameAt + "optional".length, valueAt) +
+        (match[3] === "false" ? "1" : "0") + original.slice(valueAt + match[3]!.length);
+      changes.push({ path: absolute, contents: source.slice(0, start) + replacement + source.slice(start + match[0].length) });
+    } else if (/export[^;]*\boptional\b/.test(code)) {
+      fail("module_invalid_export", `${entry}: convert the computed or re-exported optional value to minMatches before migrating (false becomes 1; true becomes 0)`);
+    }
+  }
+  if (fold && !entries.includes("ESPALIER.MD")) {
+    const target = path.join(directory, "ESPALIER.mjs");
+    if (existsSync(target)) {
+      const source = readFileSync(target, "utf8");
+      const code = sourceCode(source);
+      if (/export\s+const\s+fold\s*=\s*true\s*;/.test(code)) return changes;
+      const declaration = /export\s+const\s+fold\s*=\s*(false)\s*;/.exec(code);
+      if (declaration) {
+        const at = declaration.index + declaration[0].lastIndexOf("false");
+        changes.push({ path: target, contents: source.slice(0, at) + "true" + source.slice(at + 5) });
+      }
+      else if (/\bfold\b/.test(code)) fail("malformed_node_description", "set fold = true in the directory module before migrating inline placement");
+      else changes.push({ path: target, contents: `${source}\nexport const fold = true;\n` });
+    } else changes.push({ path: target, contents: "export const fold = true;\n" });
+  }
+  return changes;
 }

@@ -1,9 +1,10 @@
 # required-dynamic-leaf
 
-Pins [optional](../../docs/TYPES.MD#optional) and
+Pins [collection minimums](../../docs/TYPES.MD#minmatches) and
 [requiredness](../../docs/MATCHING.MD#what-must-exist).
 
-A shared factory supplies `optional: true` to a static and a dynamic leaf.
+A shared factory supplies `optional: true` to a static leaf. The dynamic leaf imports the shared checks
+without re-exporting `optional`.
 Omitted and true dynamic exports allow empty collections. Explicit false
 requires a file owned by that rule. Root and missing static-directory
 collections report against their directory. Ignored files and more-specific

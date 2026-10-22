@@ -309,7 +309,7 @@ reachable without inventing dynamic directory instances. It is false for
 optional named files, collections that may be empty, and declarations beneath
 uninstantiated dynamic directories. For a required dynamic leaf, absence means
 no owned matches, rather than a missing literal filename. `description` and
-`body` come from the directory's `ESPALIER.MD`.
+`body` come from the directory's `ESPALIER.mjs`.
 
 It is called `rules` rather than `declared` because `declared` already means something narrower and is already in the output above: the names of a node's immediate children, which is what `lint` attaches to `unexpected_path`. One key, one shape.
 
@@ -333,3 +333,13 @@ A constraint is listed under a prefix when its static prefix and the queried pre
 A path espalier does not govern exits `1`. Ignored is not declared — the espalier says nothing about it, which is the same answer as for a path it never described, arrived at by a different route. The route is in `ignoredBy`, for anyone who needs to tell the two apart.
 
 Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).
+
+## Inherited contracts
+
+A named specialization remains the concrete owner. File explanations also
+include an `inherited` list, in base-first execution order, with each source
+rule, pattern, captures, description, and rule text. Directory rule summaries
+include the inherited sources and prose without inventing captures for
+uninstantiated members. Human file output names the inherited rules; concise
+output keeps their identities and omits long prose. `minMatches` greater than
+one appears on collection map entries and in the rendered count.

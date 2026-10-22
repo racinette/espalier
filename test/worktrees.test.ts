@@ -111,7 +111,7 @@ test("authored paths cannot require or generate files inside a linked worktree",
     const before = readFileSync(path.join(worktree, "AGENTS.MD"), "utf8");
     // The outer architecture must not claim authority over this checkout.
     write(root, "espalier/copies/probe/absent.ts.mjs", rule);
-    write(root, "espalier/copies/probe/[member].ts.mjs", `${rule}\nexport const optional = false;\n`);
+    write(root, "espalier/copies/probe/[member].ts.mjs", `${rule}\nexport const minMatches = 1;\n`);
     const lint = run(root, "lint", "--format", "jsonl");
     assert.equal(lint.status, 0, lint.stdout);
     assert.equal(run(root, "build").status, 0);

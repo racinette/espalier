@@ -5,7 +5,7 @@ directory together with every file required beneath it. A rule template
 renders source; a required rule without one contributes an empty file.
 
 ```bash
-espalier create src/constants.ts --varname answer
+espalier create src/constants.ts -- --varname answer
 ```
 
 The argument is a concrete repository path, not a template name. Espalier
@@ -18,8 +18,8 @@ architecture that declares the path.
 
 ```text
 espalier create <path> help
-espalier create <path> preview [template options]
-espalier create <path> [template options]
+espalier create <path> preview -- [template options]
+espalier create <path> -- [template options]
 ```
 
 The path immediately follows `create`. The positional word `help` resolves the
@@ -42,7 +42,7 @@ owning template's schema. Schema keys become long flags exactly as authored: `va
 becomes `--varname`, `withExport` becomes `--withExport`, and `"with-export"`
 becomes `--with-export`. Espalier does not silently translate among naming
 conventions.
-There are no framework flags in this position: `--help`, `--config`,
+After the `--` separator, all flags belong to the template: `--help`, `--config`,
 `--format`, and `--out` are available to a template like any other schema key.
 Configuration is always discovered upward from the working directory, and
 creation reports in its one human format to standard output.
@@ -58,8 +58,8 @@ For example, a component template may produce:
 ```text
 Usage:
   espalier create components/AccountCard.tsx help
-  espalier create components/AccountCard.tsx preview [template options]
-  espalier create components/AccountCard.tsx [template options]
+  espalier create components/AccountCard.tsx preview -- [template options]
+  espalier create components/AccountCard.tsx -- [template options]
 
 Creates components/AccountCard.tsx.
 
@@ -67,7 +67,7 @@ Owned by:
   components/[name].tsx — a React component
 
 Example:
-  espalier create components/AccountCard.tsx --style module --with-story --tag accessible --tag interactive
+  espalier create components/AccountCard.tsx -- --style module --with-story --tag accessible --tag interactive
 
 Template options:
   --style <css|module|none>  Styling strategy (default: module, examples: module, css)
@@ -88,10 +88,11 @@ implementation detail as a configurable default.
 A concrete directory selects the structural directory node that declares its
 contents. Espalier recursively creates every required static or resolved leaf
 beneath that node. A broader sibling contributes no required files or template
-options to the winning branch. A dynamic directory below it is an uninstantiated
+options to an independent winning branch. An `instanceOf` branch inherits
+its base files and templates. A dynamic directory below it is an uninstantiated
 collection, so creation does not invent a name for it or create anything under
 it. Dynamic file collections and leaves marked `optional = true` are likewise
-absent. A collection with `optional = false` still needs a member after
+absent. A collection with `minMatches = 1` still needs a member after
 creation: Espalier cannot invent its filename. Directory help lists these
 required collections, including those below static subdirectories, and asks
 the author to choose a concrete path and create a member separately. Preview
@@ -102,7 +103,7 @@ command's arguments, always namespaced as
 `--<relative-file>:<declared-option>`. Both halves are literal:
 
 ```bash
-espalier create clients/stripe \
+espalier create clients/stripe -- \
   --client.ts:transport fetch \
   --requestModels.ts:format zod \
   --models/error.ts:withDocs
@@ -113,8 +114,8 @@ Its help is composed from the directory and the required file rules:
 ```text
 Usage:
   espalier create clients/stripe help
-  espalier create clients/stripe preview [template options]
-  espalier create clients/stripe [template options]
+  espalier create clients/stripe preview -- [template options]
+  espalier create clients/stripe -- [template options]
 
 Creates clients/stripe/ and its required files.
 
@@ -127,7 +128,7 @@ Required files:
   requestModels.ts — request payload types
 
 Example:
-  espalier create clients/stripe --client.ts:transport fetch --models/error.ts:withDocs --requestModels.ts:format zod
+  espalier create clients/stripe -- --client.ts:transport fetch --models/error.ts:withDocs --requestModels.ts:format zod
 
 Template options:
 
@@ -209,8 +210,8 @@ nearest ancestor guidance as described in [build](../build/README.MD#where-files
 ## Previewing source
 
 ```bash
-espalier create src/constants.ts preview --varname answer
-espalier create clients/stripe preview --client.ts:transport fetch
+espalier create src/constants.ts preview -- --varname answer
+espalier create clients/stripe preview -- --client.ts:transport fetch
 ```
 
 Preview uses the same structural owner, template options, defaults, captures,
@@ -276,3 +277,18 @@ each required file after the whole directory is committed; an empty directory
 reports the directory itself. The command does not run linters afterwards;
 generation and validation remain the two separate halves of the development
 loop, and `espalier lint <path>` supplies the latter.
+
+## Argument boundary
+
+Espalier options precede `--`; template options follow it. For example:
+
+```sh
+espalier create clients/stripe -- --client.ts:transport fetch
+espalier create src/client.ts preview -- --transport fetch
+```
+
+The separator is optional when there are no template arguments. Template flags
+before the separator are rejected with an explanation of the boundary. Help
+and example invocations include the separator. A specialization creates the
+same inherited required structure and uses inherited templates unless it
+supplies its own template.

@@ -268,11 +268,11 @@ for (const build of [
       const result = run(root, ['migrate', '--format', 'jsonl']);
       assert.equal(result.status, 0, result.stdout + result.stderr);
       assert.equal(result.stdout, simulatedOutput(dry.stdout, "jsonl"));
-      const migrated = readFileSync(path.join(root, 'rules', 'ESPALIER.MD'), 'utf8');
-      assert.match(migrated, /fold: true/);
+      const migrated = readFileSync(path.join(root, 'rules', 'ESPALIER.mjs'), 'utf8');
+      assert.match(migrated, /fold = true/);
       assert.match(migrated, /# local policy/);
       assert.match(migrated, /custom: keep/);
-      assert.ok(migrated.endsWith('\n\n# Authored prose\n\nKeep  spacing.\r\n'));
+      assert.ok(migrated.includes(JSON.stringify('\n# Authored prose\n\nKeep  spacing.\r\n')));
       const configured = readFileSync(path.join(root, 'espalier.config.yaml'), 'utf8');
       assert.doesNotMatch(configured, /inline:/);
       assert.match(configured, /# placement/);
@@ -281,7 +281,7 @@ for (const build of [
       assert.equal(run(root, ['build']).status, 0);
       assert.ok(existsSync(path.join(root, 'GUIDE.MD')));
       assert.equal(run(root, ['migrate']).status, 0);
-      assert.equal(readFileSync(path.join(root, 'rules', 'ESPALIER.MD'), 'utf8'), migrated);
+      assert.equal(readFileSync(path.join(root, 'rules', 'ESPALIER.mjs'), 'utf8'), migrated);
       assert.equal(readFileSync(path.join(root, 'espalier.config.yaml'), 'utf8'), configured);
     });
   });
@@ -301,8 +301,8 @@ test('migrate creates root folding frontmatter and visits an inline child indepe
     const result = run(root, ['migrate']);
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.equal(result.stdout, simulatedOutput(dry.stdout, "human"));
-    assert.equal(readFileSync(path.join(root, 'espalier', 'ESPALIER.MD'), 'utf8'), '---\nfold: true\n---\n');
-    assert.equal(readFileSync(path.join(root, 'child', 'espalier', 'ESPALIER.MD'), 'utf8'), '---\nfold: true\n---\nChild prose.\n');
+    assert.equal(readFileSync(path.join(root, 'espalier', 'ESPALIER.mjs'), 'utf8'), 'export const fold = true;\n');
+    assert.match(readFileSync(path.join(root, 'child', 'espalier', 'ESPALIER.mjs'), 'utf8'), /export const fold = true;/);
     assert.equal(run(root, ['build']).status, 0);
     assert.ok(existsSync(path.join(root, 'child', 'AGENTS.MD')));
   });
@@ -316,8 +316,8 @@ test('migrate removes inline false without changing or creating folding frontmat
       if (source !== undefined) writeFileSync(filename, source);
       const result = run(root, ['migrate']);
       assert.equal(result.status, 0, result.stdout + result.stderr);
-      assert.equal(existsSync(filename), source !== undefined);
-      if (source !== undefined) assert.equal(readFileSync(filename, 'utf8'), source);
+      assert.equal(existsSync(filename), false);
+      assert.equal(existsSync(filename.replace('ESPALIER.MD', 'ESPALIER.mjs')), source !== undefined);
       assert.equal(run(root, ['build']).status, 0);
     });
   }
@@ -331,7 +331,11 @@ test('migrate accepts empty frontmatter and leaves an existing true fold byte-id
       writeFileSync(filename, source);
       const result = run(root, ['migrate']);
       assert.equal(result.status, 0, result.stdout + result.stderr);
-      assert.equal(readFileSync(filename, 'utf8'), source.includes('fold:') ? source : '---\nfold: true\n---\nBody.\n');
+      assert.equal(existsSync(filename), false);
+      const module = readFileSync(filename.replace('ESPALIER.MD', 'ESPALIER.mjs'), 'utf8');
+      assert.match(module, /export const fold = true/);
+      assert.match(module, /export const guidance =/);
+      if (source.includes('# keep')) assert.match(module, /# keep/);
       assert.equal(run(root, ['build']).status, 0);
     });
   }

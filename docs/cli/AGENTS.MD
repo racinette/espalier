@@ -2,6 +2,7 @@
 
 # espalier — `docs/cli/`
 
+
 One directory per command, named for the command, and `src/<command>.ts`
 implements it. The set is enumerated here rather than matched by a pattern:
 adding a command is a decision about what the tool is, so it is made in the
@@ -19,6 +20,7 @@ Every page carries the same shape — the invocation as its heading, a `## Usage
 block listing every flag, then the reasoning. The flag list is the one part
 duplicated from `src/cli.ts`, and it is duplicated on purpose: a reader looking
 up a command should not have to read the parser.
+
 
 ## Project layout
 
@@ -47,7 +49,7 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](../../espalier/docs/cli/ESPALIER.MD) to change this document's persistent guidance. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](../../espalier/docs/cli/ESPALIER.mjs) to change this document's persistent guidance. |
 
 Every path under docs/cli/ must fit the project layout or a documented
 repository-specific purpose.

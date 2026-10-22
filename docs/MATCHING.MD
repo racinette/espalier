@@ -28,35 +28,24 @@ src/[...path]/message-registry.json.mjs selects  files with complete extension .
 src/[...path]/message-registry.mjs      selects  the module's `targets` under src/
 ```
 
-**Node descriptions** are files named `ESPALIER.MD`. They describe the directory they sit in rather than any file in the repository:
+**Directory modules** are named `ESPALIER.mjs`. They describe their containing
+directory, rather than a governed file:
 
-```text
-espalier/ESPALIER.MD                  the project itself
-espalier/src/clients/ESPALIER.MD      what src/clients/ is
+```js
+export const description = "Outbound API integrations";
+export const guidance = `Every upstream provider gets its own directory.
+Nothing outside src/clients/ performs HTTP requests directly.`;
+export const fold = false;
 ```
 
-YAML frontmatter carries a `description`: a brief description of what the
-directory is for. The Markdown body provides guidance for working in that
-directory. Both parts are optional, and a directory with nothing to say needs
-no file.
+All three exports are optional. `guidance` may instead be an async function
+of the build context. `fold = true` folds this directory and its entire subtree
+into the nearest enclosing generated document. It changes placement only.
+See [Named instances](#named-instances) for context and inheritance.
 
-```markdown
----
-description: outbound API integrations
----
-
-Every upstream provider gets its own directory. Nothing outside
-`src/clients/` performs HTTP requests directly.
-```
-
-The optional `fold` frontmatter field must be a boolean. `fold: true` folds
-this directory and its entire subtree into the nearest enclosing generated
-document; at the project root it consolidates all guidance into that document.
-Omitted or false values preserve normal placement unless an ancestor folds the
-branch. It changes documentation placement only. See
-[cli/build/README.MD](cli/build/README.MD#folding-subtrees).
-
-The name is reserved: `espalier/src/clients/ESPALIER.MD` describes the directory, while `espalier/src/clients/ESPALIER.MD.mjs` would be the rule governing a real `src/clients/ESPALIER.MD` file in the repository. Any other non-`.mjs` file in the espalier is an error, unless it is skipped.
+`ESPALIER.mjs` is reserved. `ESPALIER.mjs.mjs` governs a repository file
+named `ESPALIER.mjs`. Legacy `ESPALIER.MD` remains accepted as migration input;
+both directory formats in the same directory are rejected.
 
 **Dot-prefixed paths are ordinary paths.** `.env.mjs` declares `.env`, and
 `.github/workflows/[workflow].yml.mjs` declares workflow files. The same rules
@@ -64,9 +53,9 @@ apply to matching, constraints, creation, documentation, and adoption.
 
 **`skip` excludes rule-tree entries.** Patterns are relative to the espalier
 root. Matching directories are pruned before reading their contents, including
-any `.mjs` or `ESPALIER.MD` inside. In directories that are inspected, matching
+any `.mjs` or `ESPALIER.mjs` inside. In directories that are inspected, matching
 non-grammar files are skipped; individually skipping a `.mjs` module or
-`ESPALIER.MD` is `skip_hides_grammar`. Exclude a tooling directory as a whole,
+`ESPALIER.mjs` is `skip_hides_grammar`. Exclude a tooling directory as a whole,
 for example `.claude/`, rather than hiding individual rule files. Bare names
 match at any depth. Dot-prefixed names have no implicit exclusion.
 The root `.cache/` directory is reserved for Espalier's bookkeeping and is
@@ -329,7 +318,9 @@ remaining directories. This applies to file leaves too: `test-[name].ts`
 owns `test-a.ts` beside `[file].ts`. The comparison uses the names the
 patterns can match, not their lengths, capture names, or declaration order.
 The winning directory alone declares its contents; a failed match inside it
-does not fall back to a broader sibling.
+does not fall back to a broader sibling. A branch declaring `instanceOf`
+instead inherits that contract explicitly; its local declarations may only
+specialize the inherited structure.
 
 Given:
 
@@ -342,7 +333,9 @@ clients
 
 `clients/stripe/requestModels.ts` is owned by the static rule, not by `[implementation].ts`, even though both patterns match it. This is how a broad family gets a named exception without two rules running on the same file.
 
-Only the winning structural rule's `lint` runs.
+The winning structural rule's `lint` runs, together with every contract it
+explicitly inherits. Unrelated matching siblings do not run. See
+[Named instances](#named-instances).
 
 Constraints work differently. They do not participate in ownership and they do not compete. **Every** constraint whose directory pattern and selector admit a file runs against it, in addition to that file's structural owner.
 
@@ -458,10 +451,11 @@ Only files are validated. Directories are not checked for their own sake — a d
 **Resolved leaves are required per instance.** `[provider]/{provider}.ts.mjs` means each provider directory must contain a file named after itself. It behaves as a static leaf does, one instance at a time: `clients/stripe/` without `stripe.ts` reports `missing_required_file`, and `optional` relaxes it the same way. A back-reference cannot occur above the placeholder it refers to, so there is no such thing as an unconditionally required resolved leaf.
 
 **Dynamic leaves are collections.** `[util].ts.mjs` allows zero or more owned
-files when `optional` is omitted or `true`. Explicit `optional = false`
-requires at least one owned file in the containing directory. Each owned file
+files by default. `minMatches = N` requires at least N owned files in the
+containing directory. `optional` is invalid on dynamic leaves. Each owned file
 follows its rule; a matching file claimed by a more specific sibling follows
-that sibling's rule instead and does not count toward the collection.
+that sibling's rule instead and does not count toward the collection, unless
+the sibling specializes this collection through `instanceOf`.
 
 A required collection on the static spine must have a member even if its
 containing directory is absent. Beneath a dynamic directory, each instantiated
@@ -491,16 +485,19 @@ An empty `clients/` is valid. Once `clients/stripe/client.ts` exists, `clients/s
 
 Any governed file under the instance instantiates it, whether or not a structural rule owns that file. `clients/stripe/notes.md` alone is enough: something is there, so the directory exists, and a `clients/stripe/` that exists without a client is exactly the drift this reports. Ungoverned files do not count.
 
-**A directory a more specific sibling describes is not an instance.** Requiredness uses the same specificity as ownership: static, then resolved, then the narrowest matching dynamic pattern. Thus `clients/` beside `[area]/` is `clients/`, and nothing under it is asked to satisfy `[area]/`. Likewise `[name]-checksonly/` beside `[world]/` requires only the checksonly branch's descendants in matching directories. Otherwise a broad pattern would demand files inside a directory a different rule describes. The two questions — who owns this file, and what must exist — are answered from one tree and must be answered the same way.
+**An independent directory a more specific sibling describes is not an instance.** Requiredness uses the same specificity as ownership: static, then resolved, then the narrowest matching dynamic pattern. Thus `clients/` beside `[area]/` is `clients/`, and nothing under it is asked to satisfy `[area]/`. A directory declaring `instanceOf` retains its inherited requirements. Likewise `[name]-checksonly/` beside `[world]/` requires only the checksonly branch's descendants in matching directories. Otherwise a broad pattern would demand files inside a directory a different rule describes. The two questions — who owns this file, and what must exist — are answered from one tree and must be answered the same way.
 
 **Optional descendants stay optional per instance.** `clients/[provider]/webhook.ts.mjs` marked optional means any provider may have a webhook and none has to. This is the case the espalier could not state before: the shared files stay required for every instance, and the one that only some instances carry is declared with its rule rather than left undeclared.
 
-**A directory is optional when everything it declares is.** Directories are never required for their own sake, so nothing needs to be marked at the directory level — a subtree becomes optional by marking its leaves, and stops being optional the moment one of them is required.
+**Ordinary directories derive requiredness from their contents.** Named directory
+instances are required themselves, even when their inherited contents are optional.
+An instance with `optional = true` may be absent; its required contents apply
+when it exists.
 
 **Constraints require nothing.** They describe how matching files are written. They never make a file mandatory.
 
 Use a static leaf when a particular file is mandatory, and a dynamic leaf with
-`optional = false` when a collection must be nonempty.
+`minMatches = 1` when a collection must be nonempty.
 
 ## Files espalier does not see
 
@@ -548,7 +545,7 @@ Three issue codes come from matching rather than from a rule module. Their `rule
 `missing_required_file` — a required static or resolved leaf has no corresponding
 file. A leaf marked `optional = true` never reports it.
 
-`missing_required_match` — a dynamic leaf marked `optional = false` owns no
+`missing_required_match` — a dynamic leaf with a positive `minMatches` owns too few
 files in an owning directory.
 
 Everything that makes the espalier itself invalid — ambiguous siblings, inconsistent capture names, more than one recursive placeholder in a path, a duplicate placeholder name, a contradiction between an exclusion and a required leaf — is an operational failure, not an issue. It exits `2` and no files are linted. Every code is listed in [ERRORS.MD](ERRORS.MD).
@@ -557,7 +554,7 @@ Everything that makes the espalier itself invalid — ambiguous siblings, incons
 
 ```text
 espalier
-├─ ESPALIER.MD
+├─ ESPALIER.mjs
 ├─ main.ts.mjs
 ├─ components
 │  └─ buttons
@@ -596,3 +593,50 @@ components/Modal.tsx
 The last two files sit outside the espalier's reach. Both match constraint patterns — `no-as-any` covers `**/*.ts` and `**/*.tsx`, `no-fetch` covers `backend/**/*.ts` — but neither has a structural owner, so neither is constrained. Each produces exactly one issue.
 
 Declaring the shape of `backend/` is a separate, structural job. The constraint at `backend/[...path]/no-fetch.ts` says how backend TypeScript is written; it never declares that backend TypeScript should exist.
+
+## Named instances
+
+A static directory may export `instanceOf = "../[group]"` from its
+`ESPALIER.mjs`. The reference names one matching sibling dynamic directory.
+A static file may export `instanceOf = "[module].ts.mjs"`, naming a matching
+sibling dynamic leaf in the effective inherited directory. References are
+contract names, not JavaScript imports. A directory inherits its base's entire
+structure. Local declarations may specialize admitted children but cannot add
+paths absent from the base. Same-name inherited static children are refined
+implicitly; naming a dynamic member requires an explicit `instanceOf`.
+
+Inherited checks always execute, followed by local checks. Each check retains
+its source module, pattern, and captures. Named members still count toward
+inherited collections. Ordinary static nodes without `instanceOf` retain
+independent ownership outside an inherited subtree. A named specialization
+must use the contract that would own its path if the specialization were
+removed; it cannot select a broader fallback to bypass a narrower rule.
+
+A named file is required by default. `optional = true` permits absence unless
+the inherited named file is required. A named directory is required by default;
+`optional = true` permits the entire instance to be absent, but an existing
+instance must satisfy all inherited requirements. Dynamic ancestors are not
+invented: requirements beneath them apply per existing instance. A dynamic
+file collection uses `minMatches`, a nonnegative safe integer defaulting to
+zero; `optional` is not valid on a dynamic leaf. Collection minimums are
+independent of whether any particular named member is optional.
+
+Removing a specialization from a passing project's declarations must leave
+the same source valid under the base contract. Specialization can add
+requirements, never remove inherited requirements. Constraints retain their
+ordinary scope and complete aggregate membership.
+
+Directory guidance lives in `ESPALIER.mjs`, which exports optional
+`description` (string), `fold` (boolean), and `guidance` (string or async
+function). A guidance function receives `{ config, pattern, path, captures }`:
+`pattern` is the authored directory path, `path` is its concrete path when
+fully bound (otherwise null), and `captures` contains known bindings. The
+configuration is an isolated copy. Guidance must return a string and should
+be deterministic for the same inputs. Directory metadata is evaluated during
+compilation, independently of prose rendering. Legacy `ESPALIER.MD` is accepted
+for migration; declaring both formats in one directory is an error.
+
+Inherited prose is documented at the shared contract. A named instance's
+output identifies that contract and presents its own domain guidance and
+concrete layout without repeating inherited rule prose. Folding continues to
+control placement. `explain` exposes the full inherited rule chain.

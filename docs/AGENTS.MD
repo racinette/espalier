@@ -2,6 +2,7 @@
 
 # espalier — `docs/`
 
+
 These are not notes about the implementation. They are the specification, and
 where the code and one of them disagree the document is right — so a behaviour
 change is a change here first, and a document that is ambiguous or
@@ -24,6 +25,7 @@ The reasoning is not the history. "One walk, in one language, is what a linter
 can explain" is an argument and belongs here. "Earlier releases shelled out to
 git" is a changelog and does not. When cutting a passage of the second kind,
 keep the first kind that was buried in it.
+
 
 ## Project layout
 
@@ -95,7 +97,7 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](../espalier/docs/ESPALIER.MD) to change this document's persistent guidance. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](../espalier/docs/ESPALIER.mjs) to change this document's persistent guidance. |
 
 Every path under docs/ must fit the project layout or a documented
 repository-specific purpose.

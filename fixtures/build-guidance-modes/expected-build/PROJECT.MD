@@ -40,7 +40,7 @@ repository-specific purpose.
 ## Working with Espalier
 
 Espalier is the architecture compiler for this repository. It turns structural
-rules and `ESPALIER.MD` guidance into this generated document, then checks the
+rules and `ESPALIER.mjs` guidance into this generated document, then checks the
 working tree against them. Use it to place new code, discover the constraints on
 a path, and catch architectural drift while a change is still small.
 
@@ -91,7 +91,7 @@ any unsettled design, its options and tradeoffs, and get agreement before
 implementation. Identify changes to placement, requiredness, checks and
 exclusions, including guarantees they remove. Preserve existing guarantees
 unless changing them is part of that agreement. Update rules and
-`ESPALIER.MD` together, regenerate guidance, and follow the project's review
+`ESPALIER.mjs` together, regenerate guidance, and follow the project's review
 workflow. Implement the agreed design without repeatedly requesting approval;
 reopen discussion if a materially different design becomes necessary.
 

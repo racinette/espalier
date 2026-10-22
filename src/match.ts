@@ -2,7 +2,7 @@
 // docs/MATCHING.MD "Ownership", "What must exist", "The deepest recognized node".
 
 import type { Constraint, Espalier, StructuralRule, TrieNode } from "./compile.js";
-import { isStrictSubset, matchSegment, matchedFileExtension, resolveSegment, type CaptureValue } from "./pattern.js";
+import { captureNames, isStrictSubset, matchSegment, matchedFileExtension, resolveSegment, type CaptureValue } from "./pattern.js";
 
 // Defined beside the parser, because what a capture can hold is a fact about
 // segments rather than about matching. Re-exported here: every reader of an
@@ -61,14 +61,14 @@ function selectChild(
   directory: boolean,
 ): { node: TrieNode; captures: Record<string, string> } | null {
   const usable = (child: TrieNode): boolean =>
-    directory ? child.children.size > 0 : child.rule !== null;
+    directory ? child.children.size > 0 || child.directory === true : child.rule !== null;
   const exact = node.children.get(name);
   if (exact !== undefined && !exact.segment.dynamic && !exact.segment.resolved && usable(exact)) {
-    return { node: exact, captures: {} };
+    return { node: exact, captures: exact.baseSegment ? matchSegment(exact.baseSegment, name, captures) ?? {} : {} };
   }
   for (const child of node.children.values()) {
     if (child.segment.resolved && usable(child) && resolveSegment(child.segment, captures) === name) {
-      return { node: child, captures: {} };
+      return { node: child, captures: child.baseSegment ? matchSegment(child.baseSegment, name, captures) ?? {} : {} };
     }
   }
   let winner: { node: TrieNode; captures: Record<string, string> } | null = null;
@@ -182,8 +182,10 @@ export function requirements(
   prefix: string,
   captures: Record<string, CaptureValue>,
   visible: ReadonlySet<string> = new Set(),
-): { files: RequiredFile[]; collections: RequiredCollection[] } {
+  directoryExists: (path: string) => boolean = () => false,
+): { files: RequiredFile[]; collections: RequiredCollection[]; directories: string[] } {
   const files: RequiredFile[] = [];
+  const directories: string[] = [];
   const collections: RequiredCollection[] = [];
   const paths = [...visible];
 
@@ -201,13 +203,19 @@ export function requirements(
         if (child.segment.dynamic) {
           collections.push({ path: prefix, declared: at, rule: child.rule, captures: { ...captures } });
         } else {
-          files.push({ path: at, rule: child.rule, captures: { ...captures } });
+          files.push({ path: at, rule: child.rule, captures: { ...captures, ...(child.baseSegment ? matchSegment(child.baseSegment, here, captures) ?? {} : {}) } });
         }
       }
 
+      if (child.instanceOf !== undefined) {
+        const present = directoryExists(at) || paths.some((candidate) => candidate.startsWith(`${at}/`));
+        if (child.optional && !present) continue;
+        if (!child.optional) directories.push(at);
+      }
       if (child.children.size === 0) continue;
       if (!child.segment.dynamic) {
-        descend(child, at, captures);
+        const bound = child.baseSegment ? matchSegment(child.baseSegment, here, captures) ?? {} : {};
+        descend(child, at, { ...captures, ...bound });
         continue;
       }
 
@@ -231,7 +239,7 @@ export function requirements(
   };
 
   descend(node, prefix, captures);
-  return { files, collections };
+  return { files, collections, directories };
 }
 
 /** Required named leaves for creation, without inventing dynamic instances. */
@@ -250,19 +258,7 @@ export function requiredDescendants(
  * configuration choice rather than a contradiction.
  */
 export function unconditionallyRequired(espalier: Espalier): string[] {
-  const found: string[] = [];
-
-  const descend = (node: TrieNode, prefix: string): void => {
-    for (const child of node.children.values()) {
-      if (child.segment.dynamic) continue;
-      const under = prefix === "" ? child.display : `${prefix}/${child.display}`;
-      if (child.rule !== null && !child.rule.module.optional) found.push(under);
-      if (child.children.size > 0) descend(child, under);
-    }
-  };
-
-  descend(espalier.root, "");
-  return found;
+  return requirements(espalier.root, "", {}).files.map((entry) => entry.path);
 }
 
 /**
@@ -312,4 +308,25 @@ export function constraintCaptures(
 
   captures[pattern[at]!.recursive!] = directories.slice(before.length, tail);
   return captures;
+}
+
+/** Every inherited check keeps its authored pattern and capture namespace. */
+export function structuralChecks(rule: StructuralRule, target: string, bindings: Record<string, CaptureValue>): Ownership[] {
+  return [...(rule.inherited ?? []), rule].map((source) => {
+    const captures: Record<string, CaptureValue> = { ...bindings };
+    const parts = target.split("/");
+    for (const [index, segment] of (source.segments ?? []).entries()) {
+      Object.assign(captures, matchSegment(segment, parts[index] ?? "", captures) ?? {});
+    }
+    let effective = source;
+    const leaf = source.segments?.at(-1);
+    if (leaf?.fileExtensions && leaf.fileExtensions.length > 1) {
+      const extension = matchedFileExtension(leaf, parts.at(-1)!, captures)!;
+      effective = { ...source, pattern: source.pattern.replace(/\.\{[^}]+\}$/, `.${extension}`) };
+    }
+    // Base callbacks receive only captures declared by their own source path.
+    const names = new Set((source.segments ?? []).flatMap(captureNames));
+    const own = source === rule ? captures : Object.fromEntries(Object.entries(captures).filter(([name]) => names.has(name)));
+    return { rule: effective, captures: own };
+  });
 }

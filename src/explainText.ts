@@ -28,6 +28,7 @@ export interface ConstraintAnswer {
 }
 
 export interface RuleAnswer {
+  inherited?: Array<Omit<InheritedAnswer, "captures">>;
   path: string;
   pattern: string;
   rule: string;
@@ -54,7 +55,12 @@ export interface PrefixAnswer {
   constraints: ConstraintAnswer[];
 }
 
+export interface InheritedAnswer {
+  rule: string; pattern: string; captures: Record<string, CaptureValue>; ruleText: string; description: string | null;
+}
+
 export interface OwnedAnswer {
+  inherited?: InheritedAnswer[];
   kind: "explanation";
   path: string;
   /** The espalier that answered, or null for the one the command loaded. */
@@ -300,6 +306,10 @@ export function renderExplanation(answer: Explanation, concise = false): string 
   );
   blocks.push(
     ...body(concise ? "" : answer.ruleText, answer.referenceImplementation),
+    ...(answer.inherited ?? []).flatMap((base) => [
+      `  Inherits ${base.rule}`,
+      ...body(concise ? "" : base.ruleText, null),
+    ]),
   );
   blocks.push(...constraintBlocks(answer.constraints, `to ${answer.path}`, concise));
 

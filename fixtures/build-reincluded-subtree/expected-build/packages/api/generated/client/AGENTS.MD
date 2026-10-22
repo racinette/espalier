@@ -15,7 +15,7 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Create [`ESPALIER.MD`](../../../../espalier/packages/api/generated/client/ESPALIER.MD) to add persistent guidance to this document. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Create [`ESPALIER.mjs`](../../../../espalier/packages/api/generated/client/ESPALIER.mjs) to add persistent guidance to this document. |
 
 Every path under packages/api/generated/client/ must fit the project layout or a
 documented repository-specific purpose.

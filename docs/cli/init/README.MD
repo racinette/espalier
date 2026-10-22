@@ -234,7 +234,7 @@ Note that this is not only a bootstrap concern. A repository is never expected t
 
 ## After `init`
 
-1. Write `espalier/ESPALIER.MD` — what this project is and the guidance that applies across it.
+1. Write `espalier/ESPALIER.mjs` — what this project is and the guidance that applies across it.
 2. Bring one area under the espalier with [`espalier adopt`](../adopt/README.MD), or by hand.
 3. Run [`espalier build`](../build/README.MD) to generate the documentation agents read.
 4. Run [`espalier lint`](../lint/README.MD) to check the areas you have described.

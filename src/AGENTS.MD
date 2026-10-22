@@ -2,6 +2,7 @@
 
 # espalier — `src/`
 
+
 One direction of dependency, and it is worth knowing before editing anything.
 `config.ts` finds and validates the configuration, `files.ts` walks the tree,
 `ignore.ts` decides what that walk may enter, and `compile.ts` reads the
@@ -15,6 +16,7 @@ to is a change to think about twice.
 The rest is shared machinery, and what each piece must hold to is written on
 the module itself rather than here — a list of module invariants kept in one
 place is a list that stops matching the modules.
+
 
 ## Project layout
 
@@ -101,7 +103,7 @@ Define generated outputs independently of filesystem application so multiple tar
 Carries each command's grammar, and each one is also written into that
 command's page under `docs/cli/`. The duplication is deliberate: a reader
 looking up a command should not have to read the parser. Create reserves the
-positional `help` and `preview` actions; its long flags belong to the selected template.
+positional `help` and `preview` actions; flags after -- belong to the selected template.
 `help` and `examples` read this package and do not load a repository.
 
 ## `context.ts` — the lint context handed to rules
@@ -210,7 +212,7 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](../espalier/src/ESPALIER.MD) to change this document's persistent guidance. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](../espalier/src/ESPALIER.mjs) to change this document's persistent guidance. |
 
 Every path under src/ must fit the project layout or a documented
 repository-specific purpose.

@@ -10,6 +10,7 @@ import { fail } from "./errors.js";
 import type { ConstraintAnswer, RuleAnswer } from "./explainText.js";
 import {
   isDirectoryOwnership,
+  structuralChecks,
   isOwnership,
   resolveDirectory,
   type Recognition,
@@ -131,6 +132,9 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
       .map((visit) => ({
         path: `${prefix}${visit.at}`,
         pattern: visit.node.rule!.pattern,
+        ...(visit.node.rule!.inherited?.length ? { inherited: visit.node.rule!.inherited!.map((rule) => ({
+          rule: rule.modulePath, pattern: rule.pattern, description: rule.module.description, ruleText: rule.module.rule.trim(),
+        })) } : {}),
         rule: visit.node.rule!.modulePath,
         description: visit.node.rule!.module.description,
         ruleText: visit.node.rule!.module.rule.trim(),
@@ -221,6 +225,9 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     kind: "explanation",
     espalier: null,
     path: target,
+    ...(owner.rule.inherited?.length ? { inherited: structuralChecks(owner.rule, target, owner.captures).slice(0, -1).map(({ rule, captures }) => ({
+      rule: rule.modulePath, pattern: rule.pattern, captures, ruleText: rule.module.rule.trim(), description: rule.module.description,
+    })) } : {}),
     rule: owner.rule.modulePath,
     pattern: owner.rule.pattern,
     captures: owner.captures,

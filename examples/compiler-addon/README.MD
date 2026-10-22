@@ -84,7 +84,7 @@ choose policy, creation templates, and independent tests. Choose your own
 vocabulary, module size, and state boundaries. `model.ts` groups two related
 operations; it does not require all applications to use a model layer. Static
 responsibility names and dynamic collections express different architectural
-choices. Keep reusable requirements in rules and `ESPALIER.MD`, and describe
+choices. Keep reusable requirements in rules and `ESPALIER.mjs`, and describe
 your demonstration product in application documentation.
 
 ## Measuring a real adopter

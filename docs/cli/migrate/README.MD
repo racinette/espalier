@@ -1,6 +1,6 @@
 # `espalier migrate`
 
-Updates repository configuration and documentation-folding frontmatter for the
+Updates repository configuration and directory guidance modules for the
 running CLI.
 
 ```bash
@@ -47,14 +47,22 @@ may be normalized.
 **`version`.** Removed. `pin` is the only version; other commands that load
 repository configuration reject this leftover schema identifier as an unknown key.
 
-**`build.inline`.** Removed. A true value sets `fold: true` in the configured
-espalier root's `ESPALIER.MD`, creating that file when absent. Existing
-frontmatter fields and Markdown body are preserved; an existing false root
-flag becomes true to preserve the configured single-document behavior. A false
-value only removes the config key and leaves authored folding unchanged.
-An empty `build` mapping is valid. Non-boolean inline values and malformed root
-frontmatter fail before either file is written. `--dry-run` reports both writes
-without changing either file. Run `build` afterwards to update generated output.
+**Directory guidance.** Converts each `ESPALIER.MD` to `ESPALIER.mjs`, then
+removes the Markdown source. The prose becomes a string export; `description`
+and `fold` become exports. Original frontmatter is retained as comments.
+Malformed frontmatter and conflicting destination modules fail before any
+planned source or configuration writes. Migration never imports authored code.
+
+**Dynamic collection cardinality.** Rewrites direct literal dynamic-leaf
+`optional = false` to `minMatches = 1`, and true to zero. Computed or re-exported
+values require a manual conversion; migration reports the source and stops
+before writing. Named leaves retain their optional semantics.
+
+**`build.inline`.** Removed. A true value sets the root directory module's
+`fold = true`, creating the module when absent. A false value leaves authored
+folding unchanged. Unsupported computed folding declarations require a manual
+update. `--dry-run` reports writes and removals without changing the files.
+Run `build` afterwards to update generated output.
 
 **`ignoreFiles`.** Inserted as `[]` when the key is absent. That is what omit used to mean: do not read a sitting `.gitignore`. The list is not filled with `.gitignore` — a repository that was not reading one must not start reading one because it upgraded. A key that is already present, empty list included, is left alone.
 
@@ -84,11 +92,11 @@ A config that is already current is reported `skipped` and not written. The auth
 
 **It will not compile the espalier.** An older config may already hold an `AGENTS.MD` the current compiler would reject until `skip` is present. The rewrite is the whole of the command; `lint` and `build` run afterwards.
 
-**It will not rewrite rule modules.** A new CLI version may change how rule
+**Rule changes are limited to the literal cardinality conversion above.** A new CLI version may change how rule
 filenames or selectors are interpreted, and the config alone cannot reveal the
 author's intended match set. Review the rules against [MATCHING.MD](../../MATCHING.MD)
 and [TYPES.MD](../../TYPES.MD) before relying on the new pin. `--dry-run`
-reports configuration, exclusion-list, frontmatter, and authoring-file writes; it does not
+reports configuration, exclusion-list, directory-module, and authoring-file writes and legacy-source removals; it does not
 validate rule behavior.
 
 Unknown keys other than `version` and `build.inline` still fail. Migration only

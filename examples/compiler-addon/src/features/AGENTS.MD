@@ -20,7 +20,7 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Create [`ESPALIER.MD`](../../espalier/src/features/ESPALIER.MD) to add persistent guidance to this document. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Create [`ESPALIER.mjs`](../../espalier/src/features/ESPALIER.mjs) to add persistent guidance to this document. |
 
 Every path under src/features/ must fit the project layout or a documented
 repository-specific purpose.

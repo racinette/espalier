@@ -316,7 +316,7 @@ test("adopt --force migrates conflicting guidance idempotently", () => {
 
     const first = run(root, ["adopt", "area", "--force"]);
     assert.equal(first.status, 0, first.stdout + first.stderr);
-    const source = path.join(root, "espalier", "area", "ESPALIER.MD");
+    const source = path.join(root, "espalier", "area", "ESPALIER.mjs");
     const migrated = readFileSync(source, "utf8");
     assert.match(migrated, /espalier adopt: begin area\/PACKAGE\.MD/);
     assert.match(migrated, /# Legacy guidance/);
