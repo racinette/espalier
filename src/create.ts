@@ -12,7 +12,6 @@ import { OperationalError, fail } from "./errors.js";
 import {
   isDirectoryOwnership,
   isOwnership,
-  requiredDescendants,
   requirements,
   type RequiredCollection,
   resolveDirectory,
@@ -24,7 +23,7 @@ import {
 } from "./match.js";
 import { delegated } from "./nested.js";
 import type { Reporter } from "./output.js";
-import { open } from "./repository.js";
+import { open, type Repository } from "./repository.js";
 import type {
   FlagTemplateOption,
   StringTemplateOption,
@@ -158,6 +157,8 @@ function directoryHelp(
   description: string,
   files: DirectoryFile[],
   collections: RequiredCollection[],
+  optional: DirectoryFile[],
+  selection: string[],
 ): string {
   const schemas = files.filter(
     (file) =>
@@ -165,18 +166,18 @@ function directoryHelp(
   );
   const lines = [
     "Usage:",
-    `  espalier create ${target} help`,
-    `  espalier create ${target} preview${schemas.length === 0 ? "" : " -- [template options]"}`,
+    `  espalier create ${target} help [--with <leaf> | --with-optional]`,
+    `  espalier create ${target} preview [--with <leaf> | --with-optional]${schemas.length === 0 ? "" : " -- [template options]"}`,
     schemas.length === 0
-      ? `  espalier create ${target}`
-      : `  espalier create ${target} -- [template options]`,
+      ? `  espalier create ${target} [--with <leaf> | --with-optional]`
+      : `  espalier create ${target} [--with <leaf> | --with-optional] -- [template options]`,
     "",
-    `Creates ${target}/ and its required files.`,
+    `Creates ${target}/ and its required and selected files.`,
     "",
     "Directory:",
     `  ${owner}/ — ${description}`,
     "",
-    "Required files:",
+    selection.length === 0 ? "Required files:" : "Included files (required and selected):",
   ];
 
   if (files.length === 0) {
@@ -189,6 +190,16 @@ function directoryHelp(
     }
   }
 
+  lines.push("", "Optional files (paths relative to this directory):");
+  if (optional.length === 0) lines.push("  (none)");
+  for (const file of optional) {
+    lines.push(`  ${file.relative} — ${file.rule.module.description ?? "an optional file"}${file.template === null ? " (empty file; no template defined)" : ""}`);
+  }
+  lines.push("", "Directory options:",
+    "  --with <leaf>     include an optional file; repeat for several",
+    "  --with-optional   include all listed optional files",
+    "Selecting a file inside an optional directory also includes that directory's required contents.");
+
   if (collections.length > 0) {
     lines.push("", "Required collections (choose a filename and create separately):");
     for (const collection of collections) {
@@ -196,12 +207,13 @@ function directoryHelp(
     }
   }
 
-  const example = ["espalier", "create", commandValue(target), "--"];
+  const example = ["espalier", "create", commandValue(target), ...selection.map(commandValue), "--"];
+  const exampleStart = example.length;
   for (const file of files) {
     if (file.template?.schema === null || file.template?.schema === undefined) continue;
     example.push(...exampleOptions(file.template.schema, (name) => `${file.relative}:${name}`));
   }
-  if (example.length > 4) lines.push("", "Example:", `  ${example.join(" ")}`);
+  if (example.length > exampleStart) lines.push("", "Example:", `  ${example.join(" ")}`);
 
   if (schemas.length > 0) {
     lines.push("", "Template options:");
@@ -219,11 +231,12 @@ function directoryHelp(
       }
     }
   } else {
-    lines.push("", "No required file template has options.");
+    lines.push("", selection.length === 0 ? "No required file template has options." : "No included file template has options.");
   }
   lines.push(
     "",
-    "Optional files and collections are created separately.",
+    "Select optional files before --; template options follow --.",
+    "Dynamic collections need concrete names and are created separately.",
     `Inspect their declarations with: espalier explain ${commandValue(`${target}/`)} --concise`,
     "Choose a concrete file path, then run: espalier create <file> help",
     "",
@@ -419,8 +432,8 @@ async function createFile(
   return 0;
 }
 
-function directoryFiles(directory: DirectoryOwnership, target: string): DirectoryFile[] {
-  return requiredDescendants(directory.node, target, directory.captures).map((file) => ({
+function directoryFiles(files: RequiredFile[], target: string): DirectoryFile[] {
+  return files.sort((a, b) => a.path.localeCompare(b.path)).map((file) => ({
     ...file,
     relative: target === "" ? file.path : file.path.slice(target.length + 1),
     template: file.rule.module.template,
@@ -435,24 +448,58 @@ async function createDirectory(
   description: string,
   args: string[],
   reporter: Reporter,
+  repository: Repository,
 ): Promise<number> {
-  const files = directoryFiles(directory, target);
   const shownTarget = displayTarget.replace(/[\\/]+$/, "") || ".";
+  const action = args[0] === "help" || args[0] === "preview" ? args[0] : null;
+  const remaining = action === null ? args : args.slice(1);
+  const boundary = remaining.indexOf("--");
+  const framework = boundary === -1 ? remaining : remaining.slice(0, boundary);
+  const templateArgs = boundary === -1 ? [] : remaining.slice(boundary);
+  let chosen: string[];
+  let all: boolean;
+  try {
+    const { values } = parseArgs({ args: framework, allowPositionals: false, strict: true, options: {
+      with: { type: "string", multiple: true }, "with-optional": { type: "boolean" },
+    } });
+    chosen = values.with ?? [];
+    all = values["with-optional"] === true;
+  } catch (cause) {
+    fail("invalid_template_arguments", `${(cause as Error).message}; template arguments must follow --; run \`espalier create ${shownTarget} help\` for usage`);
+  }
+  if (action === "help" && templateArgs.length > 0) {
+    fail("invalid_template_arguments", `\`espalier create ${shownTarget} help\` does not accept template options`);
+  }
+  const base = requirements(directory.node, target, directory.captures);
+  const required = new Set(base.files.map(file => file.path));
+  const candidates = directoryFiles(requirements(directory.node, target, directory.captures, new Set(), () => true, true).files, target);
+  const optional = candidates.filter(file => !required.has(file.path));
+  const selections = new Set(all ? optional.map(file => file.path) : []);
+  for (const relative of chosen) {
+    const file = optional.find(file => file.relative === relative);
+    if (file === undefined) fail("invalid_template_arguments", `${JSON.stringify(relative)} is not a listed optional leaf under ${shownTarget}; run \`espalier create ${shownTarget} help\` for choices`);
+    selections.add(file.path);
+  }
+  const included = requirements(directory.node, target, directory.captures, selections);
+  const planned = new Map(included.files.map(file => [file.path, file]));
+  for (const file of optional) if (selections.has(file.path)) planned.set(file.path, file);
+  const files = directoryFiles([...planned.values()], target);
+  for (const entry of [...files.map(file => ({ path: file.path, directory: false })), ...included.directories.map(path => ({ path, directory: true }))]) {
+    const excluded = repository.ungoverned(entry.path, entry.directory);
+    if (excluded !== null) fail("invalid_create_target", `${entry.path} is excluded by ${excluded}`, { path: entry.path, excludedBy: excluded });
+  }
+  const selection = [...(all ? ["--with-optional"] : []), ...chosen.flatMap(leaf => ["--with", leaf])];
 
-  if (args[0] === "help") {
-    if (args.length > 1) {
-      fail(
-        "invalid_template_arguments",
-        `\`espalier create ${shownTarget} help\` does not accept template options`,
-      );
-    }
+  if (action === "help") {
     reporter.help(
       directoryHelp(
         shownTarget,
         directory.path === "" ? "." : directory.path,
         description,
         files,
-        requirements(directory.node, "", directory.captures).collections,
+        requirements(directory.node, "", directory.captures, new Set([...selections].map(file => target === "" ? file : file.slice(target.length + 1)))).collections,
+        optional,
+        selection,
       ),
     );
     return 0;
@@ -464,9 +511,9 @@ async function createDirectory(
     });
   }
 
-  const preview = args[0] === "preview";
+  const preview = action === "preview";
   const values = parseTemplateOptions(
-    preview ? args.slice(1) : args,
+    templateArgs,
     directoryParserOptions(files),
     shownTarget,
   );
@@ -508,7 +555,7 @@ async function createDirectory(
     mkdirSync(parent, { recursive: true });
     mkdirSync(absolute);
     created = true;
-    for (const directoryPath of requirements(directory.node, target, directory.captures).directories) {
+    for (const directoryPath of included.directories) {
       mkdirSync(path.join(absolute, path.posix.relative(target, directoryPath)), { recursive: true });
     }
     for (const { file, contents } of rendered) {
@@ -588,16 +635,6 @@ export async function create(options: CreateOptions, reporter: Reporter): Promis
         excludedBy: excluded,
       });
     }
-    const files = directoryFiles(directory, target);
-    for (const file of files) {
-      const fileExcluded = repository.ungoverned(file.path);
-      if (fileExcluded !== null) {
-        fail("invalid_create_target", `${file.path} is excluded by ${fileExcluded}`, {
-          path: file.path,
-          excludedBy: fileExcluded,
-        });
-      }
-    }
     const description =
       repository.espalier.nodes.get(directory.path)?.description ??
       "a structurally declared directory";
@@ -609,6 +646,7 @@ export async function create(options: CreateOptions, reporter: Reporter): Promis
       description,
       options.args,
       reporter,
+      repository,
     );
   }
 

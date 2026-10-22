@@ -183,6 +183,7 @@ export function requirements(
   captures: Record<string, CaptureValue>,
   visible: ReadonlySet<string> = new Set(),
   directoryExists: (path: string) => boolean = () => false,
+  includeOptionalFiles = false,
 ): { files: RequiredFile[]; collections: RequiredCollection[]; directories: string[] } {
   const files: RequiredFile[] = [];
   const directories: string[] = [];
@@ -199,9 +200,9 @@ export function requirements(
       if (here === null) continue;
       const at = prefix === "" ? here : `${prefix}/${here}`;
 
-      if (child.rule !== null && !child.rule.module.optional) {
+      if (child.rule !== null && (!child.rule.module.optional || includeOptionalFiles)) {
         if (child.segment.dynamic) {
-          collections.push({ path: prefix, declared: at, rule: child.rule, captures: { ...captures } });
+          if (!child.rule.module.optional) collections.push({ path: prefix, declared: at, rule: child.rule, captures: { ...captures } });
         } else {
           files.push({ path: at, rule: child.rule, captures: { ...captures, ...(child.baseSegment ? matchSegment(child.baseSegment, here, captures) ?? {} : {}) } });
         }

@@ -341,8 +341,8 @@ test("directory help unions required file schemas under lossless path prefixes",
 
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(result.stdout, /^Usage:\n  espalier create clients\/stripe help/);
-    assert.match(result.stdout, /espalier create clients\/stripe preview -- \[template options\]/);
-    assert.match(result.stdout, /Creates clients\/stripe\/ and its required files\./);
+    assert.match(result.stdout, /espalier create clients\/stripe preview .* -- \[template options\]/);
+    assert.match(result.stdout, /Creates clients\/stripe\/ and its required and selected files\./);
     assert.match(
       result.stdout,
       /Directory:\n  clients\/\[provider\]\/ — an API client integration/,
@@ -354,7 +354,7 @@ test("directory help unions required file schemas under lossless path prefixes",
       result.stdout,
       /notes\.txt — integration notes \(empty file; no template defined\)/,
     );
-    assert.doesNotMatch(result.stdout, /README\.md/);
+    assert.match(result.stdout, /README\.md — optional client documentation/);
     assert.doesNotMatch(result.stdout, /plugins\/\[plugin\]/);
     assert.match(
       result.stdout,
@@ -392,7 +392,7 @@ export const template = createTemplate({
     const directoryHelp = run(root, ["create", "groups/new", "help"]);
     assert.equal(directoryHelp.status, 0, directoryHelp.stdout);
     assert.match(directoryHelp.stdout, /No required file template has options\./);
-    assert.match(directoryHelp.stdout, /Optional files and collections are created separately\./);
+    assert.match(directoryHelp.stdout, /Select optional files before --; template options follow --\./);
     const command = /^Inspect their declarations with: espalier (.+)$/m.exec(directoryHelp.stdout);
     assert.ok(command, directoryHelp.stdout);
     const declarations = run(root, command[1]!.split(" "));
@@ -1335,3 +1335,86 @@ export const template = createTemplate({}, (_args, context) => context.path + "\
     }, modulePath);
   });
 }
+
+test("directory optional selection composes schemas, previews, and writes only selected leaves", () => {
+  const root = directoryRepository();
+  try {
+    write(root, "espalier/clients/[provider]/README.md.mjs", `import { createTemplate } from ${JSON.stringify(api)};
+export const description = 'client notes';
+export const optional = true; export const rule = 'Local notes'; export function lint() {}
+export const template = createTemplate({ title: { type: 'string', required: true, description: 'Notes title', examples: ['Stripe'] } }, ({title}, {captures}) => title + ':' + captures.provider);
+`);
+    const help = run(root, ["create", "clients/stripe", "help", "--with", "README.md"]);
+    assert.equal(help.status, 0, help.stdout);
+    assert.match(help.stdout, /--README.md:title/);
+    assert.match(help.stdout, /create clients\/stripe --with README.md -- /);
+    const args = ["--with", "README.md", "--with", "README.md", "--", "--client.ts:transport", "fetch", "--README.md:title", "Stripe"];
+    const preview = run(root, ["create", "clients/stripe", "preview", ...args]);
+    assert.equal(preview.status, 0, preview.stdout);
+    assert.match(preview.stdout, /Stripe:stripe/);
+    assert.equal(existsSync(path.join(root, "clients")), false);
+    const created = run(root, ["create", "clients/stripe", ...args]);
+    assert.equal(created.status, 0, created.stdout);
+    assert.equal(readFileSync(path.join(root, "clients/stripe/README.md"), "utf8"), "Stripe:stripe");
+    assert.equal(existsSync(path.join(root, "clients/stripe/plugins")), false);
+    assert.equal((created.stdout.match(/written\s+clients\/stripe\/README.md/g) ?? []).length, 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("all optional leaves include resolved names but do not invent dynamic members", () => {
+  const root = directoryRepository();
+  try {
+    write(root, "espalier/clients/[provider]/{provider}.notes.md.mjs", "export const description = 'notes'; export const optional = true; export const rule = 'Local notes'; export function lint() {}");
+    const result = run(root, ["create", "clients/stripe", "--with-optional", "--", "--client.ts:transport", "fetch"]);
+    assert.equal(result.status, 0, result.stdout);
+    for (const file of ["README.md", "stripe.notes.md", "client.ts"]) assert.ok(existsSync(path.join(root, "clients/stripe", file)));
+    assert.equal(existsSync(path.join(root, "clients/stripe/plugins")), false);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("optional selection failures leave no partial directory", () => {
+  const root = directoryRepository();
+  try {
+    for (const selected of ["../README.md", "/README.md", "missing.md", "client.ts", "extra.ts", "plugins/new/index.ts"]) {
+      const result = run(root, ["create", "clients/stripe", "--with", selected, "--", "--client.ts:transport", "fetch"]);
+      assert.equal(result.status, 2, selected + result.stdout);
+      assert.match(result.stdout, /not a listed optional leaf/);
+      assert.equal(existsSync(path.join(root, "clients")), false);
+    }
+    write(root, ".espalierignore", "clients/stripe/README.md\n");
+    const excluded = run(root, ["create", "clients/stripe", "--with-optional", "--", "--client.ts:transport", "fetch"]);
+    assert.equal(excluded.status, 2, excluded.stdout);
+    assert.match(excluded.stdout, /README.md is excluded/);
+    assert.equal(existsSync(path.join(root, "clients")), false);
+    write(root, ".espalierignore", "");
+    write(root, "espalier/clients/[provider]/README.md.mjs", `import { createTemplate } from ${JSON.stringify(api)};
+export const optional = true; export const rule = 'Local notes'; export function lint() {}
+export const description = 'notes';
+export const template = createTemplate({ title: { type: 'string', required: true, description: 'Title' } }, () => { throw Error('optional renderer failed'); });`);
+    const missing = run(root, ["create", "clients/stripe", "--with", "README.md", "--", "--client.ts:transport", "fetch"]);
+    assert.equal(missing.status, 2, missing.stdout);
+    assert.match(missing.stdout, /missing required template option.*README.md:title/);
+    const failed = run(root, ["create", "clients/stripe", "--with", "README.md", "--", "--client.ts:transport", "fetch", "--README.md:title", "Notes"]);
+    assert.equal(failed.status, 2, failed.stdout);
+    assert.match(failed.stdout, /optional renderer failed/);
+    assert.equal(existsSync(path.join(root, "clients")), false);
+    const defaultResult = run(root, ["create", "clients/stripe", "--", "--client.ts:transport", "fetch"]);
+    assert.equal(defaultResult.status, 0, defaultResult.stdout);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("selecting a leaf activates optional named directories with inherited requirements", () => {
+  const root = repository("export const description = 'required sibling'; export const rule = 'Required'; export function lint() {}", "groups/[group]/[part]/required.ts.mjs");
+  try {
+    write(root, "espalier/groups/[group]/[part]/notes.md.mjs", "export const description = 'notes'; export const optional = true; export const rule = 'Local notes'; export function lint() {}");
+    write(root, "espalier/groups/[group]/extra/ESPALIER.mjs", "export const instanceOf = '../[part]'; export const optional = true;");
+    const help = run(root, ["create", "groups/new", "help"]);
+    assert.equal(help.status, 0, help.stdout);
+    assert.match(help.stdout, /extra\/notes.md/);
+    const result = run(root, ["create", "groups/new", "--with", "extra/notes.md"]);
+    assert.equal(result.status, 0, result.stdout);
+    assert.ok(existsSync(path.join(root, "groups/new/extra/required.ts")));
+    assert.ok(existsSync(path.join(root, "groups/new/extra/notes.md")));
+    assert.equal(run(root, ["lint", "--jobs", "1"]).status, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

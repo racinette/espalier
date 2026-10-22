@@ -1,7 +1,7 @@
 # `espalier create`
 
 Creates one absent file owned by a structural rule, or one absent declared
-directory together with every file required beneath it. A rule template
+directory together with every file required beneath it and any selected optional files. A rule template
 renders source; a required rule without one contributes an empty file.
 
 ```bash
@@ -17,9 +17,13 @@ architecture that declares the path.
 ## Usage
 
 ```text
-espalier create <path> help
-espalier create <path> preview -- [template options]
-espalier create <path> -- [template options]
+espalier create <path> help [directory options]
+espalier create <path> preview [directory options] -- [template options]
+espalier create <path> [directory options] -- [template options]
+
+Directory options:
+  --with <leaf>      include an optional leaf; repeat for several
+  --with-optional    include all optional leaves with concrete paths
 ```
 
 The path immediately follows `create`. The positional word `help` resolves the
@@ -27,7 +31,7 @@ target and shows how that concrete file or directory will be created without
 rendering or writing it. File help states the target path and then attaches the
 structural description to the authored owning rule, without requiring that
 description to fit grammatically after “Creates.” Directory help names the
-authored directory and enumerates its required files. For custom templates the
+authored directory and enumerates its required and selectable optional files. For custom templates the
 response includes metavars, choices, required flags, defaults, examples, and
 repeatability. When schemas provide examples, help assembles them into one
 invocation. A required file without a custom template is identified as an
@@ -91,14 +95,14 @@ beneath that node. A broader sibling contributes no required files or template
 options to an independent winning branch. An `instanceOf` branch inherits
 its base files and templates. A dynamic directory below it is an uninstantiated
 collection, so creation does not invent a name for it or create anything under
-it. Dynamic file collections and leaves marked `optional = true` are likewise
-absent. A collection with `minMatches = 1` still needs a member after
+it. Dynamic file collections are likewise absent. Optional leaves are absent
+unless selected with `--with` or `--with-optional`. A collection with `minMatches = 1` still needs a member after
 creation: Espalier cannot invent its filename. Directory help lists these
 required collections, including those below static subdirectories, and asks
 the author to choose a concrete path and create a member separately. Preview
-and creation include only the named required files.
+and creation include the named required and selected files.
 
-Each required file keeps its own template. Their schemas form the directory
+Each included file keeps its own template. Their schemas form the directory
 command's arguments, always namespaced as
 `--<relative-file>:<declared-option>`. Both halves are literal:
 
@@ -113,11 +117,11 @@ Its help is composed from the directory and the required file rules:
 
 ```text
 Usage:
-  espalier create clients/stripe help
-  espalier create clients/stripe preview -- [template options]
-  espalier create clients/stripe -- [template options]
+  espalier create clients/stripe help [--with <leaf> | --with-optional]
+  espalier create clients/stripe preview [--with <leaf> | --with-optional] -- [template options]
+  espalier create clients/stripe [--with <leaf> | --with-optional] -- [template options]
 
-Creates clients/stripe/ and its required files.
+Creates clients/stripe/ and its required and selected files.
 
 Directory:
   clients/[provider]/ — an API client integration
@@ -126,6 +130,14 @@ Required files:
   client.ts — the client implementation
   models/error.ts — client error types
   requestModels.ts — request payload types
+
+Optional files (paths relative to this directory):
+  README.md — optional client documentation (empty file; no template defined)
+
+Directory options:
+  --with <leaf>     include an optional file; repeat for several
+  --with-optional   include all listed optional files
+Selecting a file inside an optional directory also includes that directory's required contents.
 
 Example:
   espalier create clients/stripe -- --client.ts:transport fetch --models/error.ts:withDocs --requestModels.ts:format zod
@@ -141,7 +153,8 @@ Template options:
   requestModels.ts:
     --requestModels.ts:format <types|zod>  Model representation (default: types, examples: zod)
 
-Optional files and collections are created separately.
+Select optional files before --; template options follow --.
+Dynamic collections need concrete names and are created separately.
 Inspect their declarations with: espalier explain clients/stripe/ --concise
 Choose a concrete file path, then run: espalier create <file> help
 ```
@@ -153,19 +166,44 @@ conversion. The renderer for `models/error.ts` still receives
 change to the template API. Options with the same name on different files stay
 independent rather than being coupled by an inferred shared value.
 
-Directory help groups these qualified options by required file. Its example
-invocation concatenates each template's examples in required-file order. A
+Directory help groups these qualified options by included file. Its example
+invocation concatenates each template's examples in included-file order. A
 required option with no example remains a qualified metavar. Shell quoting is
 unchanged: quote a value containing spaces, not the option name.
 
-The options above belong only to required files. Directory help also points to
-`espalier explain <directory>/ --concise`, whose tree includes optional declarations and
-collections. Select a concrete file from that tree and use its own creation
-help to see its options. For example, an optional `README.md` under
-`clients/stripe/` has help at `espalier create clients/stripe/README.md help`;
-its flags are passed when creating that file separately, without the directory
-command's filename prefixes. “No required file template has options” says
-nothing about the templates on optional files.
+### Including optional files
+
+`--with <leaf>` selects a listed optional file by its exact path relative to
+the target directory. Repeat it for several files; duplicate selections create
+one file. `--with-optional` selects all listed optional files. These options
+apply to directory creation, preview, and help, and must precede `--`.
+
+```bash
+espalier create clients/stripe help --with README.md
+espalier create clients/stripe preview --with README.md -- --client.ts:transport fetch
+espalier create clients/stripe --with-optional -- --client.ts:transport fetch
+```
+
+Help always lists optional paths and descriptions. Selection adds their
+namespaced template options and examples to help. Only included templates
+accept arguments or require their mandatory options. Selection is identical
+for preview and creation; all templates render before any target is written.
+An unknown selection, missing argument, excluded selected path, or failed
+renderer leaves the target absent. Selecting an already required file is an
+error. `--with` takes a leaf path, not a directory, glob, absolute path, or a
+path containing `..`.
+
+The list includes static and resolved leaves beneath concrete subdirectories,
+including optional named directories. Selecting a leaf inside an optional
+directory activates that directory and includes its required contents too.
+No option invents dynamic names. To create a dynamic member, name its concrete
+path separately, then select optional files beneath that concrete directory.
+An empty optional directory is not selected by these file-selection flags.
+
+A template may itself define `with` or `with-optional`; after `--` these are
+ordinary template keys. Files created individually use their template options
+without filename prefixes. For instance, use
+`espalier create clients/stripe/README.md help` to inspect its own options.
 
 The target directory itself must be absent. `create` is not a repair command
 for adding missing required files to an existing instance. When one structural

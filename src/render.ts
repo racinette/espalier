@@ -31,8 +31,8 @@ Use this loop:
    governed.
 3. Create a declared file or directory with \`espalier create <path>\`.
    Use \`espalier create <path> help\` when you need to inspect template options
-   or the directory's required files. A file without a custom template starts
-   empty; directory creation includes only required files.
+   or the directory's required and optional files. A file without a custom template
+   starts empty; use --with or --with-optional to include optional files.
 4. Review the created source, complete any placeholders, and make the remaining
    change within the structure established for the task.
 5. Run \`espalier lint\` and follow the rule text attached to each finding.

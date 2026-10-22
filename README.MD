@@ -66,7 +66,7 @@ optional construction entry point:
 
 > Given a concrete absent path, Espalier creates either its structurally owned
 > file or its complete declared directory. File templates supply source and CLI
-> flags; a directory composes the templates of all its required files. Creation
+> flags; a directory composes its required files and any optional files selected with `--with` or `--with-optional`. Creation
 > never overwrites an existing path.
 
 Guidance steers and the linter corrects. Both derive from the same rule file, so drift between the two is reviewable. Colocation does not prove the prose and the check are the same obligation.
