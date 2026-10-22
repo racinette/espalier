@@ -37,7 +37,7 @@ function write(root: string, relative: string, contents: string): void {
 
 function repository(rule: string, modulePath = "src/[name].ts.mjs"): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-template-"));
-  write(root, "espalier.config.yaml", "pin: 0.8.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+  write(root, "espalier.config.yaml", "pin: 0.9.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
   write(root, `espalier/${modulePath}`, rule);
   return root;
 }
@@ -99,7 +99,7 @@ export const template = createTemplate({
 
 function directoryRepository(): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-directory-template-"));
-  write(root, "espalier.config.yaml", "pin: 0.8.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+  write(root, "espalier.config.yaml", "pin: 0.9.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
   write(
     root,
     "espalier/clients/[provider]/ESPALIER.MD",
@@ -667,7 +667,7 @@ export const template = createTemplate(({ captures }) => JSON.stringify(captures
 test("a trailing slash selects a directory when the same spelling can be a file", () => {
   const make = (): string => {
     const root = mkdtempSync(path.join(os.tmpdir(), "espalier-create-role-"));
-    write(root, "espalier.config.yaml", "pin: 0.8.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "espalier.config.yaml", "pin: 0.9.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     write(
       root,
       "espalier/widgets/item.mjs",
@@ -768,7 +768,7 @@ export function lint() {}
 test("a declared directory with no required leaves is created empty", () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-create-empty-directory-"));
   try {
-    write(root, "espalier.config.yaml", "pin: 0.8.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write(root, "espalier.config.yaml", "pin: 0.9.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
     write(
       root,
       "espalier/groups/[group]/notes.md.mjs",
@@ -1037,7 +1037,7 @@ test("create delegates a target to its nearest child espalier", () => {
     write(
       root,
       "packages/web/espalier.config.yaml",
-      "pin: 0.8.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
+      "pin: 0.9.0\nroot: espalier\nignoreFiles: []\nskip: []\n",
     );
     write(root, "packages/web/espalier/src/[name].ts.mjs", SCHEMA_TEMPLATE);
 
@@ -1275,7 +1275,7 @@ test("preview delegates nested paths while keeping renderer context child-relati
   const root = repository(SCHEMA_TEMPLATE);
   try {
     for (const child of ["packages/web", "packages/web/tools/worker"]) {
-      write(root, `${child}/espalier.config.yaml`, "pin: 0.8.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+      write(root, `${child}/espalier.config.yaml`, "pin: 0.9.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
       write(root, `${child}/espalier/groups/[group]/index.ts.mjs`, `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "group source";
 export const rule = "Use the group context.";

@@ -1,6 +1,6 @@
 {
   "name": "espalier",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "An architecture compiler for agent-driven development",
   "license": "MIT",
   "author": "Andrei Karavatski",
