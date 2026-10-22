@@ -53,7 +53,10 @@ and non-default `fold` become exports. Guidance uses an editable template litera
 with real line breaks; backticks, interpolation markers, backslashes, and carriage
 returns are escaped to preserve the original text. Converted metadata is not
 duplicated in comments. Authored comments and unrecognized frontmatter fields
-are retained as comments. Default `fold = false` is omitted.
+are retained as comments. Default `fold = false` and an empty guidance body
+are omitted. This formatting applies to converted Markdown; migration does
+not reformat existing `ESPALIER.mjs` prose. The `build.inline` migration below
+can still update an existing module's folding export.
 Malformed frontmatter and conflicting destination modules fail before any
 planned source or configuration writes within that project. Migration never
 imports authored code.

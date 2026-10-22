@@ -31,14 +31,19 @@ Directory options:
 
 The path immediately follows `create`. The positional word `help` resolves the
 target and shows how that concrete file or directory will be created without
-rendering or writing it. File help states the target path and then attaches the
-structural description to the authored owning rule, without requiring that
+rendering templates or writing source. File help states the target path and
+then attaches the structural description to the authored owning rule, without requiring that
 description to fit grammatically after “Creates.” Directory help names the
 authored directory and enumerates its required and selectable optional files. For custom templates the
 response includes metavars, choices, required flags, defaults, examples, and
 repeatability. When schemas provide examples, help assembles them into one
 invocation. A required file without a custom template is identified as an
 empty file.
+
+Creation, help, and preview all compile directory guidance, rule prose, and
+descriptions. Their callbacks receive the authored declaration context, not
+the target file's captures. Template renderers receive the concrete target
+path and its captures; see [callback contexts](../../TYPES.MD#rule).
 
 The positional action `preview`, immediately after the path, renders the
 selected templates without writing target files. Its following arguments use
@@ -99,11 +104,12 @@ options to an independent winning branch. An `instanceOf` branch inherits
 its base files and templates. A dynamic directory below it is an uninstantiated
 collection, so creation does not invent a name for it or create anything under
 it. Dynamic file collections are likewise absent. Optional leaves are absent
-unless selected with `--with` or `--with-optional`. A collection with `minMatches = 1` still needs a member after
-creation: Espalier cannot invent its filename. Directory help lists these
-required collections, including those below static subdirectories, and asks
-the author to choose a concrete path and create a member separately. Preview
-and creation include the named required and selected files.
+unless selected with `--with` or `--with-optional`. Required and selected named
+instances count toward their inherited collections' `minMatches`. If they do
+not satisfy a collection's minimum, create the remaining members separately:
+Espalier cannot invent their filenames. Directory help lists positive minimums,
+including those below static subdirectories. Preview and creation include the
+named required and selected files.
 
 Each included file keeps its own template. Their schemas form the directory
 command's arguments, always namespaced as
@@ -256,10 +262,11 @@ espalier create clients/stripe preview -- --client.ts:transport fetch
 ```
 
 Preview uses the same structural owner, template options, defaults, captures,
-and required-file selection as creation. The target must be absent and
-governed; an existing or excluded target is refused before rendering. Optional
-files and uninstantiated collections are omitted from a directory preview.
-Preview an optional file by naming its concrete path separately.
+and required and optional file selection as creation. The target must be absent
+and governed; an existing or excluded target is refused before template
+rendering. Include optional files with `--with` or `--with-optional`, or preview
+one by naming its concrete path separately. Uninstantiated collections are
+omitted from a directory preview.
 
 Espalier renders every selected template before printing any preview source.
 A missing or invalid argument, a thrown renderer, or a non-string result exits
@@ -308,14 +315,14 @@ directory if a file write fails, so the failed operation leaves no partial
 target behind.
 
 `create` never overwrites. An existing file or directory is refused without
-running a renderer. The final file write and directory creation are exclusive,
-so a target appearing concurrently is also preserved. There is deliberately no
+running a template renderer. The final file write and directory creation are
+exclusive, so a target appearing concurrently is also preserved. There is deliberately no
 `--force`: templates create source; they are not an update or migration
 mechanism.
 
 On success, file creation reports `written <path>`. Directory creation reports
-each required file after the whole directory is committed; an empty directory
-reports the directory itself. The command does not run linters afterwards;
+each required and selected optional file after the whole directory is committed;
+an empty directory reports the directory itself. The command does not run linters afterwards;
 generation and validation remain the two separate halves of the development
 loop, and `espalier lint <path>` supplies the latter.
 

@@ -75,7 +75,7 @@ Guidance steers and the linter corrects. Both derive from the same rule file, so
 directory. A file selects its owning template; a directory creates every
 required descendant plus selected optional leaves, and namespaces each file's
 flags with its relative path. Template arguments follow `--`.
-A rule without a template creates an empty file. Every renderer receives its
+A rule without a template creates an empty file. Every template renderer receives its
 concrete path and the owning rule's placeholder captures.
 `espalier create <path> help` describes either operation without writing. See
 [`espalier create`](docs/cli/create/README.MD).
@@ -328,7 +328,13 @@ The `rule` describes the requirements for the file or selected group. The same
 requirements apply whether files are being created or edited, and the same
 text appears in generated guidance and reported findings.
 
-The context for structural rules and per-file constraints describes one file.
+Rule [`description`](docs/TYPES.MD#description) and [`rule`](docs/TYPES.MD#rule)
+exports can also be sync/async functions. Directory modules accept computed
+[`description` and `guidance`](docs/TYPES.MD#directory-modules). These callbacks
+run once per authored declaration during compilation, using configuration and
+declaration context rather than an individual lint match.
+
+The `lint` context for structural rules and per-file constraints describes one file.
 An aggregate receives the selected files together, with no singular `path`,
 `pattern`, or `captures`; its `read` calls must name a path. See
 [docs/TYPES.MD](docs/TYPES.MD) (`espalier help types`) for the full shapes.

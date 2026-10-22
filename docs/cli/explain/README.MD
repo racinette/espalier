@@ -292,10 +292,10 @@ Carries the owning rule, the normalized pattern that matched, the captures, and 
 ### A path espalier does not govern
 
 `ignoredBy` names what removed it from governance: `.espalierignore`, the external
-ignore file that hid it, `espalier` for tool machinery, `git` for automatically
-excluded Git metadata, or `worktree` for a path in a nested linked worktree.
-The human explanation identifies automatic exclusions and directs worktree
-queries to run inside that checkout:
+ignore file that hid it, `espalier` for tool machinery, or `worktree` for a path
+in a nested linked worktree. Git metadata follows the configured ignore rules.
+The human explanation identifies the exclusion and directs worktree queries
+to run inside that checkout:
 
 ```json
 {"kind":"explanation","path":"package.json","ignoredBy":".espalierignore","rule":null,"pattern":null,"captures":{},"constraints":[]}

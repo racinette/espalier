@@ -131,7 +131,9 @@ An operational failure — an espalier that does not compile, a rule that throws
 
 ## `runRule(module, context)`
 
-Runs one rule module's `lint` against a context you supply. No config, no espalier tree, no repository on disk.
+Runs one rule module's `lint` against a context you supply, without discovering
+configuration or loading a repository. Computed prose and descriptions require
+an explicit guidance context, described below.
 
 ```js
 import { runRule } from "espalier";
@@ -170,7 +172,8 @@ Nothing is inferred from `path`. A rule reading a file it was not given gets `re
 
 For a function-valued `rule` or `description`, supply
 `guidance: { config, pattern, path, captures }` with the declaration context you
-want to test. The helper evaluates each callback once before lint, using an isolated copy of that context. It does not discover
+want to test. The helper evaluates each callback once before lint, using an
+isolated copy of that context. It does not discover
 configuration or infer declaration bindings from the lint match. Omitting
 `guidance` for a function-valued `rule` or `description` fails with `module_invalid_export`.
 Callback failures and invalid results use the same errors as compilation.
@@ -179,7 +182,12 @@ remain usable for lint-only tests.
 
 ### What comes back
 
-The same `Issue` objects `check` returns, with the same fields, so an assertion written against one transfers to the other. `pattern`, `captures` and `rule` echo the context; `ruleText`, `description`, and `referenceImplementation` come off the module.
+The same `Issue` objects `check` returns, with the same fields, so an assertion
+written against one transfers to the other. `pattern`, `captures` and `rule`
+echo the context; `ruleText` and `description` contain the module's rendered
+strings, and `referenceImplementation` comes from its export. The API includes
+the description and reference fields even though
+[JSONL lint issues](cli/lint/README.MD#issues) omit them.
 
 `emit` is the runner's own, with the same validation and per-invocation
 deduplication. A rule emitting an issue with no `code`, an unknown `severity`, or an absolute `path` fails here for the same reason and with the same code it would fail for in production — which is most of the value of testing through this rather than by calling `lint` with a hand-written stub.
@@ -295,6 +303,7 @@ before distributing lint jobs; workers receive the rendered string. Standalone
 `runRule` and `runAggregate` callers supply that context explicitly through
 `guidance`.
 
-`check` resolves and checks complete inheritance chains. `runRule` tests only
-the supplied callback; it does not load or resolve `instanceOf`. Use `check`
+`check` resolves and checks complete inheritance chains. `runRule` renders the
+supplied module's computed text and tests its own `lint` function; it does not
+load or resolve `instanceOf`. Use `check`
 against a fixture to verify inherited structure, requiredness, and base checks.

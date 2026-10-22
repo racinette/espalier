@@ -112,9 +112,11 @@ one `.mjs` file, called a rule file.
 
 **`ESPALIER.mjs` describes the directory.** It exports a short `description`
 and `guidance`; either may be a string or a sync/async function returning a
-string. Each function receives the config, authored
-pattern, concrete path when known, and inherited captures. `fold = true` folds
-the subtree's documents into its ancestor. Keep structural exports stable;
+string. Each function receives its own isolated context with the resolved
+config, authored pattern, concrete path when known, and inherited captures.
+It runs once per declaration during compilation, before lint workers start.
+`fold = true` folds the subtree's documents into its ancestor.
+Keep structural exports stable;
 compute prose from explicit inputs. Leave the module out when it has nothing
 to say and declares no named instance.
 
@@ -274,14 +276,15 @@ create or change the governed files.
 
 `rule` may also be a synchronous or asynchronous function returning Markdown.
 `description` likewise accepts a function returning its short label, with the
-same context and timing. Each callback receives its own isolated context.
-It receives `{ config, pattern, path, captures }`: an isolated config snapshot,
+same context and timing. Each callback receives its own isolated
+`{ config, pattern, path, captures }`: a resolved config snapshot,
 the authored declaration without `.mjs`, a concrete structural path when known
 (null for constraints or unbound dynamic paths), and known named-instance
-captures. Keep it deterministic and free of side effects. Espalier renders it
-once per authored declaration during compilation, then uses the same text for
-build, explain, and findings. It is not a per-file lint callback. Inherited base
-prose keeps its base context; local prose adds requirements in its own context.
+captures. Keep these callbacks deterministic and free of side effects. Espalier
+renders each once per authored declaration during compilation, then uses the
+same text for build, explain, and findings. Per-file lint and template callbacks
+instead receive the concrete target's context. Inherited base prose keeps its
+base context; local prose adds requirements in its own context.
 See `espalier help types` for details and the `RuleGuidanceContext` type.
 
 - Structural: name the file and what it must contain.

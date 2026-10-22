@@ -41,7 +41,7 @@ aggregate form.
 
 | Export | Required | |
 |---|---|---|
-| `description` | structural only | briefly describes the file, or summarizes a constraint's requirement |
+| `description` | structural only | string or sync/async function briefly describing the file or a constraint's requirement |
 | `rule` | yes | Markdown string or function returning the natural-language conventions |
 | `lint` | yes | deterministic validation |
 | `referenceImplementation` | no | a path to a canonical conforming file |
@@ -80,7 +80,10 @@ export const rule = `Props must be a named exported interface \`<Name>Props\`.`;
 export const rule = String.raw`File names must match ^[A-Z][a-zA-Z0-9]*$.`;
 ```
 
-The `rule` is **mode-invariant**: the same text applies whether the file is being created or edited. Exporters render it for each surface; they never rewrite it. It is also what a violation carries back to the agent, so write it as guidance rather than as a description of the check.
+Creation and editing use the same rendered requirements. Exporters format
+them for each surface without rewriting them. A violation carries that text
+back to the agent, so write it as guidance rather than as a description of the
+check.
 
 A structural rule or constraint may instead export a synchronous or asynchronous
 function returning a string:
@@ -96,7 +99,9 @@ export function rule({ config }) {
 
 `RuleGuidanceContext` contains `{ config, pattern, path, captures }`:
 
-- `config` is an isolated snapshot of the loaded configuration.
+- `config` is an isolated snapshot of the resolved configuration, with defaults
+  applied. Its `root` is the absolute repository path; `espalierRoot` is the
+  configured rule-tree path relative to that repository.
 - `pattern` is the authored declaration relative to the rule-tree root, without
   the final `.mjs`. For constraints it includes the rule name and selector; it
   is not an individual admission glob or matched filename.
@@ -402,6 +407,7 @@ structural `rule`, `lint`, or `template`. Its exports are:
 For example, computed guidance can follow the configured architecture mode:
 
 ```js
+/** @param {import("espalier").DirectoryGuidanceContext} context */
 export function description({ config }) {
   return "shared application runtime" + (config.build.guidanceMode === "fixed" ? " (read-only)" : "");
 }
@@ -415,7 +421,8 @@ export function guidance({ config }) {
 ```
 
 Both `description` and `guidance` functions receive `DirectoryGuidanceContext`:
-`{ config, pattern, path, captures }`. `config` is an isolated snapshot of the loaded configuration, including `build` and `lint`
+`{ config, pattern, path, captures }`. `config` has the same resolved shape
+described for [`RuleGuidanceContext`](#rule), including `build` and `lint`
 settings. `pattern` is the authored directory path, relative to the rule-tree
 root. `path` is the concrete repository-relative path when known at compile
 time, otherwise null; both paths are the empty string at the root. `captures`

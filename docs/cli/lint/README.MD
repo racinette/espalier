@@ -107,7 +107,7 @@ The API spelling is `check({ cwd: ".", jobs: N })` or
 The coordinator resolves ownership, captures a governed source snapshot, and
 awaits addon preparation. It starts only the workers needed for the selected
 jobs, with one worker even when there are no jobs so the addon lifecycle remains
-well-defined. All worker setups finish before any rule callback starts.
+well-defined. All worker setups finish before any lint callback starts.
 
 One file and its applicable structural/per-file rules form a job. Each aggregate
 is one job containing its complete selected match set. Free workers take the next
@@ -150,7 +150,8 @@ A directory holding an `espalier.config.yaml` of its own is a child espalier, an
 
 ## Issues
 
-An issue is one finding at one path. Fields come from the `emit` call, plus what the runner knows:
+An issue is one finding at one path. JSONL issue fields come from the `emit`
+call, plus what the runner knows:
 
 | Field | |
 |---|---|
@@ -165,6 +166,11 @@ An issue is one finding at one path. Fields come from the `emit` call, plus what
 | `line`, `column` | 1-based, or `null` |
 | `metadata` | arbitrary structured data from the rule |
 | `ruleText` | the module's `rule` body |
+
+Human output uses the rendered description in rule headings. The JavaScript
+API also exposes `description` and `referenceImplementation` on its `Issue`
+objects; JSONL lint issue records omit those two fields. JSONL `explain`
+records include descriptions.
 
 `rule` is the module's path in the espalier — `clients/[provider]/client.ts.mjs` — because that is the thing you open to change the behaviour. Identity never derives from description prose, which collides and changes.
 
@@ -192,7 +198,7 @@ when the conclusion belongs to the group.
 
 ### Built-in issues
 
-Three codes come from matching rather than from a rule module. Their `rule` is `null` and their severity is fixed at `error`; the "severity is decided by the rule" principle does not apply where no rule exists to decide.
+These codes come from matching rather than from a rule module. Their `rule` is `null` and their severity is fixed at `error`; the "severity is decided by the rule" principle does not apply where no rule exists to decide.
 
 `unexpected_path` — no structural rule owns this file.
 
