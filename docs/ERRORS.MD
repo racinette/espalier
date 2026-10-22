@@ -84,6 +84,7 @@ See [TYPES.MD](TYPES.MD).
 | Code | |
 |---|---|
 | `rule_threw` | a `lint` function threw. A bug in the rule, not a finding about the repository |
+| `rule_guidance_failed` | a function-valued `rule` threw or rejected while rendering declaration guidance |
 | `invalid_issue` | `emit` was called with something that is not a well-formed issue |
 | `invalid_issue_path` | an emitted or read path is not a non-empty relative string, or escapes the repository |
 | `read_failed` | a snapshot file could not be read, an aggregate read omitted its path, or an isolated rule test lacks the requested contents |

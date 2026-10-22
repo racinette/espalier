@@ -10,6 +10,10 @@ espalier explain components/Modal.tsx
 
 `espalier build` writes this same information into the repository as documentation, and `espalier lint` delivers the relevant part of it attached to a violation. `explain` is the direct query: useful while authoring an espalier, and useful to an agent that wants the rules for an area before writing anything.
 
+Compilation evaluates function-valued rule and directory prose. A file query
+uses the declaration's rendered text; it does not rerun the prose callback with
+that file's lint captures. See [computed rule prose](../../TYPES.MD#rule).
+
 ## Usage
 
 ```text

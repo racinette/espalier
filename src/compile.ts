@@ -47,6 +47,7 @@ export interface RuleModule {
 export interface LoadedModule {
   description: string | null;
   rule: string;
+  ruleRenderer?: (context: RuleGuidanceContext) => unknown;
   lint: (context: unknown) => unknown;
   referenceImplementation: string | null;
   /** Named absence policy; on collections, derived from the minimum for rendering. */
@@ -261,8 +262,8 @@ async function loadModule(
   }
 
   if ("unobservedImplementationDependencies" in loaded) fail("module_invalid_export", `${modulePath}: unobservedImplementationDependencies is not supported`);
-  if (typeof loaded.rule !== "string") {
-    fail("module_missing_export", `${modulePath} must export a string \`rule\``);
+  if (typeof loaded.rule !== "string" && typeof loaded.rule !== "function") {
+    fail("module_missing_export", `${modulePath} must export a string or function \`rule\``);
   }
   if (typeof loaded.lint !== "function") {
     fail("module_missing_export", `${modulePath} must export a \`lint\` function`);
@@ -356,7 +357,9 @@ async function loadModule(
 
   return {
     description: typeof loaded.description === "string" ? loaded.description : null,
-    rule: loaded.rule,
+    rule: typeof loaded.rule === "string" ? loaded.rule : "",
+    ...(typeof loaded.rule === "function"
+      ? { ruleRenderer: loaded.rule as (context: RuleGuidanceContext) => unknown } : {}),
     lint: loaded.lint as (context: unknown) => unknown,
     referenceImplementation:
       typeof loaded.referenceImplementation === "string"
@@ -511,7 +514,7 @@ function checkSiblings(node: TrieNode, at: string): void {
   }
 }
 
-export async function compile(root: string, espalierRoot: string, skip: string[] = [], config?: Config): Promise<Espalier> {
+export async function compile(root: string, espalierRoot: string, skip: string[], config: Config): Promise<Espalier> {
   const absolute = path.join(root, espalierRoot);
   const trie = emptyNode("", parseSegment("", "the espalier root"));
   const constraints: Constraint[] = [];
@@ -621,6 +624,32 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
   for (const constraint of constraints) validateSegments(constraint.directory, new Set(), constraint.modulePath);
   checkSiblings(trie, "");
 
+  // Cloned inherited rules share their declaration's prose, not the context of
+  // whichever concrete instance happens to be visited first.
+  const renderedRules = new Map<string, string>();
+  const renderModule = async (modulePath: string, module: LoadedModule, constraint = false): Promise<void> => {
+    if (!module.ruleRenderer) return;
+    if (!renderedRules.has(modulePath)) {
+      const pattern = modulePath.slice(0, -".mjs".length);
+      const context = ruleGuidanceContext(trie, config, pattern, constraint);
+      renderedRules.set(modulePath, (await renderRuleText(module.ruleRenderer, context, modulePath))!);
+    }
+    module.rule = renderedRules.get(modulePath)!;
+  };
+  const visitedRules = new Set<StructuralRule>();
+  const renderStructural = async (rule: StructuralRule): Promise<void> => {
+    if (visitedRules.has(rule)) return;
+    visitedRules.add(rule);
+    for (const base of rule.inherited ?? []) await renderStructural(base);
+    await renderModule(rule.modulePath, rule.module);
+  };
+  const renderTree = async (node: TrieNode): Promise<void> => {
+    if (node.rule) await renderStructural(node.rule);
+    for (const child of node.children.values()) await renderTree(child);
+  };
+  await renderTree(trie);
+  for (const constraint of constraints) await renderModule(constraint.modulePath, constraint.module, true);
+
   for (const [at, doc] of nodes) {
     if (!doc.render) {
       if (doc.instanceOf) doc.body = `Shared contract: \`${path.posix.normalize(path.posix.join(at, doc.instanceOf))}/\`. Read the ancestor guidance for inherited requirements.\n\n${doc.body}`;
@@ -652,6 +681,49 @@ export interface DirectoryGuidanceContext {
   pattern: string;
   path: string | null;
   captures: Readonly<Record<string, string>>;
+}
+
+/** Compile-time declaration context, independent of individual lint matches. */
+export interface RuleGuidanceContext {
+  config: Readonly<Config>;
+  /** Authored rule path without its final .mjs, including constraint names. */
+  pattern: string;
+  /** Concrete structural path when known; always null for constraints. */
+  path: string | null;
+  captures: Readonly<Record<string, string>>;
+}
+
+function ruleGuidanceContext(root: TrieNode, config: Config, pattern: string, constraint: boolean): RuleGuidanceContext {
+  let node = root;
+  let concrete = !constraint;
+  const captures: Record<string, string> = {};
+  const resolved: string[] = [];
+  for (const part of pattern.split("/")) {
+    const child = [...node.children.values()].find((entry) => entry.display === part);
+    if (!child) { concrete = false; break; }
+    const name = child.segment.dynamic ? null
+      : child.segment.resolved ? resolveSegment(child.segment, captures) : part;
+    if (name === null) concrete = false;
+    else {
+      resolved.push(name);
+      if (child.baseSegment) Object.assign(captures, matchSegment(child.baseSegment, name, captures));
+    }
+    node = child;
+  }
+  return { config, pattern, path: concrete ? resolved.join("/") : null, captures };
+}
+
+/** Shared by compilation and standalone rule tests; neither guesses a context. */
+export async function renderRuleText(value: unknown, context: RuleGuidanceContext | undefined, source: string): Promise<string | null> {
+  if (typeof value !== "function") return typeof value === "string" ? value : null;
+  if (!context) fail("module_invalid_export", `${source}: a function-valued rule requires a guidance context`);
+  let result: unknown;
+  try { result = await value(structuredClone(context)); }
+  catch (cause) {
+    fail("rule_guidance_failed", `${source}: rule guidance failed: ${cause instanceof Error ? cause.message : String(cause)}`, { path: source });
+  }
+  if (typeof result !== "string") fail("module_invalid_export", `${source}: rule guidance must return a string`, { path: source });
+  return result;
 }
 
 async function readDirectoryModule(

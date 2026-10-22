@@ -271,6 +271,16 @@ export async function lint({ read, emit }) {
 guidance, `explain`, and reported issues. Write it for someone about to
 create or change the governed files.
 
+`rule` may also be a synchronous or asynchronous function returning Markdown.
+It receives `{ config, pattern, path, captures }`: an isolated config snapshot,
+the authored declaration without `.mjs`, a concrete structural path when known
+(null for constraints or unbound dynamic paths), and known named-instance
+captures. Keep it deterministic and free of side effects. Espalier renders it
+once per authored declaration during compilation, then uses the same text for
+build, explain, and findings. It is not a per-file lint callback. Inherited base
+prose keeps its base context; local prose adds requirements in its own context.
+See `espalier help types` for details and the `RuleGuidanceContext` type.
+
 - Structural: name the file and what it must contain.
 - Per-file: name the kind of file and what each must or must not contain.
 - Aggregate: name the group and the conditions it must satisfy.

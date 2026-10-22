@@ -42,7 +42,7 @@ aggregate form.
 | Export | Required | |
 |---|---|---|
 | `description` | structural only | briefly describes the file, or summarizes a constraint's requirement |
-| `rule` | yes | the natural-language conventions, in markdown |
+| `rule` | yes | Markdown string or function returning the natural-language conventions |
 | `lint` | yes | deterministic validation |
 | `referenceImplementation` | no | a path to a canonical conforming file |
 | `optional` | no | whether a named file may be absent |
@@ -73,6 +73,40 @@ export const rule = String.raw`File names must match ^[A-Z][a-zA-Z0-9]*$.`;
 ```
 
 The `rule` is **mode-invariant**: the same text applies whether the file is being created or edited. Exporters render it for each surface; they never rewrite it. It is also what a violation carries back to the agent, so write it as guidance rather than as a description of the check.
+
+A structural rule or constraint may instead export a synchronous or asynchronous
+function returning a string:
+
+```js
+/** @param {import("espalier").RuleGuidanceContext} context */
+export function rule({ config }) {
+  return config.build.guidanceMode === "fixed"
+    ? "Changes to this file's responsibilities require architecture authorization."
+    : "Discuss changes to this file's responsibilities before implementing them.";
+}
+```
+
+`RuleGuidanceContext` contains `{ config, pattern, path, captures }`:
+
+- `config` is an isolated snapshot of the loaded configuration.
+- `pattern` is the authored declaration relative to the rule-tree root, without
+  the final `.mjs`. For constraints it includes the rule name and selector; it
+  is not an individual admission glob or matched filename.
+- `path` is the concrete structural file path when fully known from the
+  declaration, otherwise null. Constraints always receive null.
+- `captures` contains bindings known from named specializations along the
+  authored path, including a named file's inherited capture. Unbound dynamic
+  and recursive placeholders are absent.
+
+Each authored declaration's function runs once during repository compilation,
+before lint workers start, including when no source file matches it. Inherited
+base prose keeps its base declaration context; local prose uses the local
+declaration context. The result is shared by build, explain, and lint findings.
+It is not recomputed for each discovered file, inherited copy, extension selector,
+or worker. Functions must be deterministic and free of side effects. They have
+no lint inputs or addon state. `build --check` detects stale rendered prose.
+A thrown or rejected callback is `rule_guidance_failed`; a non-string result is
+`module_invalid_export`.
 
 ### `referenceImplementation`
 

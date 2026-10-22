@@ -25,7 +25,7 @@ espalier lint [paths...]
 
 ## What it does
 
-1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, and build the matcher. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `rule` export — stops the run before repository linting begins.
+1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, build the matcher, and render computed rule and directory prose. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `rule` export, a guidance callback that fails — stops the run before repository linting begins. Workers receive rendered rule text; they do not evaluate prose callbacks. `--no-rule-text` suppresses output, not compilation or callback validation.
 2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and a traversal failure stops the run. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
 3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required named leaves with no file report `missing_required_file`; absent required named directory instances report `missing_required_directory`; collections below their minimum report `missing_required_match`. See [MATCHING.MD](../../MATCHING.MD).
 4. **Prepare execution.** Capture governed source contents, await addon preparation, and initialize all participating workers.

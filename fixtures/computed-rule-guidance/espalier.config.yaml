@@ -1,0 +1,6 @@
+pin: 0.9.0
+ignoreFiles: []
+skip: []
+build:
+  espalierGuidance: false
+  guidanceMode: fixed

@@ -5,7 +5,7 @@
 // testable without espalier owning a test framework.
 
 import path from "node:path";
-import type { RuleModule } from "./compile.js";
+import { renderRuleText, type RuleGuidanceContext, type RuleModule } from "./compile.js";
 import { createEmit } from "./context.js";
 import { fail, OperationalError } from "./errors.js";
 import { matchGlob } from "./files.js";
@@ -13,7 +13,7 @@ import { lint as runLint } from "./lint.js";
 import type { CaptureValue } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
 import type { Jobs } from "./workers.js";
-export type { DirectoryGuidanceContext } from "./compile.js";
+export type { DirectoryGuidanceContext, RuleGuidanceContext } from "./compile.js";
 export type { Jobs } from "./workers.js";
 export type { PrepareContext } from "./execution.js";
 import { templateDefinitionProblem } from "./template.js";
@@ -106,6 +106,8 @@ export async function check(options: CheckOptions): Promise<Issue[]> {
 }
 
 export interface RuleContext {
+  /** Required for function-valued rule prose; separate from the lint match. */
+  guidance?: RuleGuidanceContext;
   /** The file being linted. */
   path: string;
   /** The glob that matched it. Defaults to `path`. */
@@ -126,6 +128,8 @@ export interface AggregateMatch {
 }
 
 export interface AggregateRuleContext {
+  /** Required for function-valued rule prose; no match represents the group. */
+  guidance?: RuleGuidanceContext;
   matches: AggregateMatch[];
   /** Admission globs. Defaults to the recursive all-files glob. */
   patterns?: string[];
@@ -220,7 +224,7 @@ export async function runRule(module: RuleModule, context: RuleContext): Promise
     pattern: context.pattern ?? context.path,
     path: context.path,
     captures: context.captures ?? {},
-    ruleText: typeof module.rule === "string" ? module.rule : null,
+    ruleText: await renderRuleText(module.rule, context.guidance, whose),
     description: typeof module.description === "string" ? module.description : null,
     referenceImplementation:
       typeof module.referenceImplementation === "string"
@@ -304,7 +308,7 @@ export async function runAggregate(
     pattern,
     path: at,
     captures: {},
-    ruleText: typeof module.rule === "string" ? module.rule : null,
+    ruleText: await renderRuleText(module.rule, context.guidance, whose),
     description: typeof module.description === "string" ? module.description : null,
     referenceImplementation:
       typeof module.referenceImplementation === "string"

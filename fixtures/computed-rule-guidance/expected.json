@@ -1,0 +1,71 @@
+{
+  "exit": 1,
+  "issues": [
+    {
+      "path": "flights/search.ts",
+      "code": "shared",
+      "ruleText": "Base [group]/[module].ts; path=null; captures={}; fixed."
+    },
+    {
+      "path": "hotels/list.ts",
+      "code": "shared",
+      "ruleText": "Base [group]/[module].ts; path=null; captures={}; fixed."
+    },
+    {
+      "path": "flights/search.ts",
+      "code": "local",
+      "ruleText": "Local flights/search.ts; path=flights/search.ts; captures={\"group\":\"flights\",\"module\":\"search\"}; fixed."
+    },
+    {
+      "path": "flights/flights.json",
+      "code": "resolved",
+      "ruleText": "Resolved flights/{group}.json; path=flights/flights.json; captures={\"group\":\"flights\"}."
+    },
+    {
+      "code": "collection",
+      "ruleText": "Collection [...files]/collection.{ts,json}; path=null; captures={}; fixed."
+    },
+    {
+      "path": "flights/search.ts",
+      "code": "policy",
+      "ruleText": "Policy flights/[...files]/policy.ts; path=null; captures={\"group\":\"flights\"}; fixed."
+    }
+  ],
+  "explain": {
+    "flights/search.ts": {
+      "exit": 0,
+      "object": {
+        "ruleText": "Local flights/search.ts; path=flights/search.ts; captures={\"group\":\"flights\",\"module\":\"search\"}; fixed.",
+        "inherited": [
+          {
+            "rule": "[group]/[module].ts.mjs",
+            "ruleText": "Base [group]/[module].ts; path=null; captures={}; fixed."
+          }
+        ],
+        "constraints": [
+          {
+            "rule": "[...files]/collection.{ts,json}.mjs",
+            "ruleText": "Collection [...files]/collection.{ts,json}; path=null; captures={}; fixed."
+          },
+          {
+            "rule": "flights/[...files]/policy.ts.mjs",
+            "ruleText": "Policy flights/[...files]/policy.ts; path=null; captures={\"group\":\"flights\"}; fixed."
+          }
+        ]
+      }
+    }
+  },
+  "build": {
+    "exit": 0,
+    "report": [
+      {
+        "kind": "written",
+        "path": "AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "flights/AGENTS.MD"
+      }
+    ]
+  }
+}

@@ -251,6 +251,27 @@ const cases: Case[] = [
   // them, and an inverted predicate in any one would accept a module that then
   // misbehaves at run time rather than at load time.
   {
+    what: "a rule guidance callback that throws before any source exists",
+    code: "rule_guidance_failed",
+    espalier: {
+      "src/[name].ts.mjs": 'export const description = "file"; export function rule() { throw new Error("bad prose"); } export function lint() {}',
+    },
+  },
+  {
+    what: "a constraint guidance callback that rejects before any source exists",
+    code: "rule_guidance_failed",
+    espalier: {
+      "[...files]/check.ts.mjs": 'export async function rule() { throw new Error("bad prose"); } export function lint() {}',
+    },
+  },
+  {
+    what: "a rule guidance callback that returns a non-string",
+    code: "module_invalid_export",
+    espalier: {
+      "src/[name].ts.mjs": 'export const description = "file"; export async function rule() { return 42; } export function lint() {}',
+    },
+  },
+  {
     what: "a module with no `rule`",
     code: "module_missing_export",
     espalier: {
