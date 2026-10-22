@@ -69,8 +69,9 @@ without a document remain expanded, so every structural node appears somewhere.
 **Rule bodies** — for rules placed here and sections explicitly folded here.
 Other descendant documents retain their own rule detail.
 Function-valued `rule` exports are rendered during compilation using their
-declaration context, just as directory guidance is. `build --check` compares
-the resulting text. See [computed rule prose](../../TYPES.MD#rule).
+declaration context, just as directory guidance and function-valued
+`description` exports are. `build --check` detects changes to both prose and
+map labels. See [computed rule prose](../../TYPES.MD#rule).
 
 **Cardinality and the complete account** — which files are required, which may
 appear zero or more times, and the final statement that every path belongs to

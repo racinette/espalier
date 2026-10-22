@@ -51,7 +51,8 @@
             "rule": "flights/[...files]/policy.ts.mjs",
             "ruleText": "Policy flights/[...files]/policy.ts; path=null; captures={\"group\":\"flights\"}; fixed."
           }
-        ]
+        ],
+        "description": "flight search (fixed)"
       }
     }
   },

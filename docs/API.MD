@@ -162,20 +162,20 @@ The first argument is the module — whatever `import` gave you. It is not looke
 | `files` | derived from `tree` | override for an exotic lister |
 | `addons` | `{}` | whatever the rule expects to find there |
 | `rule` | `null` | the module path to record on emitted issues |
-| `guidance` | absent | explicit `RuleGuidanceContext`, required when the module's `rule` is a function |
+| `guidance` | absent | explicit `RuleGuidanceContext`, required when the module's `rule` or `description` is a function |
 
 `tree` is the common case and backs both `read` and `files`. Reading a path it does not hold fails with `read_failed`; a real run instead uses `read_ungoverned` for a path absent from its governed snapshot. Globbing matches its keys with the same matcher `context.files` uses, and returns them sorted. Supply `read` or `files` directly when a test needs something a map cannot express — a reader that counts its calls, a lister that returns thousands of paths without holding their contents.
 
 Nothing is inferred from `path`. A rule reading a file it was not given gets `read_failed` rather than an empty string, because a test that silently linted nothing is the failure mode this exists to prevent.
 
-For function-valued prose, supply `guidance: { config, pattern, path, captures }`
-with the declaration context you want to test. The helper evaluates the callback
-once before lint, using an isolated copy of that context. It does not discover
+For a function-valued `rule` or `description`, supply
+`guidance: { config, pattern, path, captures }` with the declaration context you
+want to test. The helper evaluates each callback once before lint, using an isolated copy of that context. It does not discover
 configuration or infer declaration bindings from the lint match. Omitting
-`guidance` for a function-valued `rule` fails with `module_invalid_export`.
+`guidance` for a function-valued `rule` or `description` fails with `module_invalid_export`.
 Callback failures and invalid results use the same errors as compilation.
-String prose needs no guidance context. Modules with no prose remain usable
-for lint-only tests.
+String prose and descriptions need no guidance context. Modules with no prose
+remain usable for lint-only tests.
 
 ### What comes back
 
@@ -261,7 +261,7 @@ const issues = await runAggregate(rule, {
 | `files` | derived from `tree` | additional visible-file queries |
 | `addons` | `{}` | shared resources expected by the rule |
 | `rule` | `null` | module path recorded on issues |
-| `guidance` | absent | explicit `RuleGuidanceContext` for function-valued prose; use `path: null` for a constraint |
+| `guidance` | absent | explicit `RuleGuidanceContext` for function-valued prose or descriptions; use `path: null` for a constraint |
 
 The module must export `aggregate = true`. Emitted issues have empty top-level
 `captures`, because no one match represents the group; a rule that needs to
@@ -281,15 +281,15 @@ inputs; there are no persistent dependency declarations.
 
 ## Computed guidance and inheritance
 
-`DirectoryGuidanceContext` types a directory module's guidance function. It
-contains an isolated `config` snapshot, the authored directory `pattern`, a
-concrete `path` when known (otherwise null), and known `captures`. Guidance may
+`DirectoryGuidanceContext` types a directory module's `guidance` and
+`description` functions. It contains an isolated `config` snapshot, the authored directory `pattern`, a
+concrete `path` when known (otherwise null), and known `captures`. Both functions may
 return a string or a promise of one. See the
 [directory module contract](TYPES.MD#directory-modules) for an executable
 example, evaluation timing, and path semantics.
 
-`RuleGuidanceContext` types a file rule or constraint's `rule` function. It has
-the same four fields, with declaration-specific semantics described in
+`RuleGuidanceContext` types a file rule or constraint's `rule` and `description`
+functions. It has the same four fields, with declaration-specific semantics described in
 [rule prose](TYPES.MD#rule). Repository commands render each declaration once
 before distributing lint jobs; workers receive the rendered string. Standalone
 `runRule` and `runAggregate` callers supply that context explicitly through

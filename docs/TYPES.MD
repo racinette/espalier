@@ -61,6 +61,14 @@ For a constraint, `description` is optional: briefly summarize the requirement,
 such as "checkout message IDs agree across locales." Put the full requirements
 in `rule`.
 
+The export accepts a string or a synchronous or asynchronous function returning
+a string. Functions receive `RuleGuidanceContext`, with the same declaration
+context and evaluation timing as [`rule`](#rule). Each callback gets its own
+isolated context. Descriptions are rendered once per declaration before lint
+workers start, including when no files match; maps, creation help, explain, and
+findings use that rendered string. A thrown or rejected callback is
+`rule_guidance_failed`; a non-string result is `module_invalid_export`.
+
 ### `rule`
 
 The conventions the file must follow, in natural language. Markdown is supported.
@@ -385,7 +393,7 @@ structural `rule`, `lint`, or `template`. Its exports are:
 
 | Export | Default | Meaning |
 |---|---|---|
-| `description` | absent | a string describing the directory in maps |
+| `description` | absent | string or sync/async function returning the directory description for maps |
 | `guidance` | empty | Markdown string or function returning a string, synchronously or asynchronously |
 | `fold` | `false` | fold this subtree's generated documents into its enclosing document |
 | `instanceOf` | absent | a matching sibling dynamic directory contract, such as `"../[feature]"` |
@@ -394,7 +402,9 @@ structural `rule`, `lint`, or `template`. Its exports are:
 For example, computed guidance can follow the configured architecture mode:
 
 ```js
-export const description = "shared application runtime";
+export function description({ config }) {
+  return "shared application runtime" + (config.build.guidanceMode === "fixed" ? " (read-only)" : "");
+}
 
 /** @param {import("espalier").DirectoryGuidanceContext} context */
 export function guidance({ config }) {
@@ -404,15 +414,16 @@ export function guidance({ config }) {
 }
 ```
 
-The function receives `{ config, pattern, path, captures }`. `config` is an
-isolated snapshot of the loaded configuration, including `build` and `lint`
+Both `description` and `guidance` functions receive `DirectoryGuidanceContext`:
+`{ config, pattern, path, captures }`. `config` is an isolated snapshot of the loaded configuration, including `build` and `lint`
 settings. `pattern` is the authored directory path, relative to the rule-tree
 root. `path` is the concrete repository-relative path when known at compile
 time, otherwise null; both paths are the empty string at the root. `captures`
 contains known inherited bindings. An ordinary `[feature]` declaration does
 not acquire a different context for each directory discovered on disk.
 
-Guidance functions run during repository compilation, including commands that
+Each description or guidance function runs once per authored declaration during
+repository compilation, with its own isolated context, including commands that
 only inspect or lint the tree. Keep them deterministic and free of side
 effects; return prose from their explicit inputs. A thrown error or a
 non-string result is `malformed_node_description`. `build --check` compares

@@ -272,6 +272,36 @@ const cases: Case[] = [
     },
   },
   {
+    what: "a file description callback that rejects before any source exists",
+    code: "rule_guidance_failed",
+    espalier: { "src/[name].ts.mjs": "export async function description() { throw new Error(\"bad label\"); } export const rule = \"Text\"; export function lint() {}" },
+  },
+  {
+    what: "a file description callback that returns a non-string before any source exists",
+    code: "module_invalid_export",
+    espalier: { "src/[name].ts.mjs": "export async function description() { return 42; } export const rule = \"Text\"; export function lint() {}" },
+  },
+  {
+    what: "a constraint description callback that rejects before any source exists",
+    code: "rule_guidance_failed",
+    espalier: { "[...files]/check.ts.mjs": "export async function description() { throw new Error(\"bad label\"); } export const rule = \"Text\"; export function lint() {}" },
+  },
+  {
+    what: "a constraint description callback that returns a non-string before any source exists",
+    code: "module_invalid_export",
+    espalier: { "[...files]/check.ts.mjs": "export async function description() { return 42; } export const rule = \"Text\"; export function lint() {}" },
+  },
+  {
+    what: "a directory description callback that rejects before any source exists",
+    code: "malformed_node_description",
+    espalier: { "src/ESPALIER.mjs": "export async function description() { throw new Error(\"bad label\"); }" },
+  },
+  {
+    what: "a directory description callback that returns a non-string before any source exists",
+    code: "malformed_node_description",
+    espalier: { "src/ESPALIER.mjs": "export async function description() { return 42; }" },
+  },
+  {
     what: "a module with no `rule`",
     code: "module_missing_export",
     espalier: {

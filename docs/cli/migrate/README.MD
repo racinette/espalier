@@ -49,7 +49,11 @@ repository configuration reject this leftover schema identifier as an unknown ke
 
 **Directory guidance.** Converts each `ESPALIER.MD` to `ESPALIER.mjs`, then
 removes the Markdown source. The prose becomes a string export; `description`
-and `fold` become exports. Original frontmatter is retained as comments.
+and non-default `fold` become exports. Guidance uses an editable template literal
+with real line breaks; backticks, interpolation markers, backslashes, and carriage
+returns are escaped to preserve the original text. Converted metadata is not
+duplicated in comments. Authored comments and unrecognized frontmatter fields
+are retained as comments. Default `fold = false` is omitted.
 Malformed frontmatter and conflicting destination modules fail before any
 planned source or configuration writes within that project. Migration never
 imports authored code.

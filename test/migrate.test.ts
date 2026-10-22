@@ -272,7 +272,8 @@ for (const build of [
       assert.match(migrated, /fold = true/);
       assert.match(migrated, /# local policy/);
       assert.match(migrated, /custom: keep/);
-      assert.ok(migrated.includes(JSON.stringify('\n# Authored prose\n\nKeep  spacing.\r\n')));
+      assert.ok(migrated.includes('export const guidance = `\n# Authored prose\n\nKeep  spacing.\\x0d\n`;'));
+      assert.doesNotMatch(migrated, /\/\/ (?:---|description:|fold:)/);
       const configured = readFileSync(path.join(root, 'espalier.config.yaml'), 'utf8');
       assert.doesNotMatch(configured, /inline:/);
       assert.match(configured, /# placement/);
@@ -415,5 +416,29 @@ test("migration preserves configured jobs and rejects malformed settings before 
     assert.equal(readFileSync(path.join(root, "espalier.config.yaml"), "utf8"), malformed);
     assert.ok(existsSync(path.join(root, "espalier/ESPALIER.MD")));
     assert.equal(existsSync(path.join(root, "espalier/ESPALIER.mjs")), false);
+  });
+});
+
+test("migration emits editable prose without evaluating it or duplicating defaults", () => {
+  scratch((root) => {
+    writeFileSync(path.join(root, "espalier.config.yaml"), `pin: ${VERSION}\nignoreFiles: []\nskip: []\n`);
+    const body = '\n# Notes\n\nUse `code`, ${throwIfEvaluated()}, and \\paths.\r\nKeep \\${literal} and trailing spaces.  \n';
+    const source = path.join(root, "espalier/ESPALIER.MD");
+    const target = path.join(root, "espalier/ESPALIER.mjs");
+    writeFileSync(source, '---\ndescription: Local notes\nfold: false\n---\n' + body);
+    assert.equal(run(root, ["migrate", "--dry-run"]).status, 0);
+    assert.equal(existsSync(target), false);
+    const migrated = run(root, ["migrate"]);
+    assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
+    const text = readFileSync(target, "utf8");
+    assert.ok(text.startsWith('export const description = "Local notes";\nexport const guidance = `\n# Notes\n\n'));
+    assert.doesNotMatch(text, /\/\/|export const fold/);
+    const evaluated = spawnSync(process.execPath, ["--input-type=module", "-e",
+      'import * as doc from "./espalier/ESPALIER.mjs"; console.log(JSON.stringify(doc));',
+    ], {cwd: root, encoding: "utf8"});
+    assert.equal(evaluated.status, 0, evaluated.stderr);
+    assert.deepEqual(JSON.parse(evaluated.stdout), {description: "Local notes", guidance: body});
+    assert.equal(run(root, ["migrate"]).status, 0);
+    assert.equal(readFileSync(target, "utf8"), text);
   });
 });

@@ -106,7 +106,7 @@ export async function check(options: CheckOptions): Promise<Issue[]> {
 }
 
 export interface RuleContext {
-  /** Required for function-valued rule prose; separate from the lint match. */
+  /** Required for function-valued rule prose or descriptions; separate from the lint match. */
   guidance?: RuleGuidanceContext;
   /** The file being linted. */
   path: string;
@@ -128,7 +128,7 @@ export interface AggregateMatch {
 }
 
 export interface AggregateRuleContext {
-  /** Required for function-valued rule prose; no match represents the group. */
+  /** Required for function-valued rule prose or descriptions; no match represents the group. */
   guidance?: RuleGuidanceContext;
   matches: AggregateMatch[];
   /** Admission globs. Defaults to the recursive all-files glob. */
@@ -225,7 +225,7 @@ export async function runRule(module: RuleModule, context: RuleContext): Promise
     path: context.path,
     captures: context.captures ?? {},
     ruleText: await renderRuleText(module.rule, context.guidance, whose),
-    description: typeof module.description === "string" ? module.description : null,
+    description: await renderRuleText(module.description, context.guidance, whose, "description"),
     referenceImplementation:
       typeof module.referenceImplementation === "string"
         ? module.referenceImplementation
@@ -309,7 +309,7 @@ export async function runAggregate(
     path: at,
     captures: {},
     ruleText: await renderRuleText(module.rule, context.guidance, whose),
-    description: typeof module.description === "string" ? module.description : null,
+    description: await renderRuleText(module.description, context.guidance, whose, "description"),
     referenceImplementation:
       typeof module.referenceImplementation === "string"
         ? module.referenceImplementation

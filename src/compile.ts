@@ -46,6 +46,7 @@ export interface RuleModule {
 
 export interface LoadedModule {
   description: string | null;
+  descriptionRenderer?: (context: RuleGuidanceContext) => unknown;
   rule: string;
   ruleRenderer?: (context: RuleGuidanceContext) => unknown;
   lint: (context: unknown) => unknown;
@@ -108,6 +109,7 @@ export interface NodeDoc {
   fold: boolean;
   /** The one line that appears in the project map. */
   description: string | null;
+  renderDescription?: (context: DirectoryGuidanceContext) => unknown;
   /** The rendered Markdown guidance. */
   body: string;
   render?: (context: DirectoryGuidanceContext) => unknown;
@@ -268,11 +270,11 @@ async function loadModule(
   if (typeof loaded.lint !== "function") {
     fail("module_missing_export", `${modulePath} must export a \`lint\` function`);
   }
-  if (structural && typeof loaded.description !== "string") {
-    fail("module_missing_export", `${modulePath} must export a string \`description\``);
+  if (structural && typeof loaded.description !== "string" && typeof loaded.description !== "function") {
+    fail("module_missing_export", `${modulePath} must export a string or function \`description\``);
   }
-  if (loaded.description !== undefined && typeof loaded.description !== "string") {
-    fail("module_invalid_export", `${modulePath}: \`description\` must be a string`);
+  if (loaded.description !== undefined && typeof loaded.description !== "string" && typeof loaded.description !== "function") {
+    fail("module_invalid_export", `${modulePath}: \`description\` must be a string or function`);
   }
   if ("example" in loaded) {
     fail(
@@ -357,6 +359,8 @@ async function loadModule(
 
   return {
     description: typeof loaded.description === "string" ? loaded.description : null,
+    ...(typeof loaded.description === "function"
+      ? { descriptionRenderer: loaded.description as (context: RuleGuidanceContext) => unknown } : {}),
     rule: typeof loaded.rule === "string" ? loaded.rule : "",
     ...(typeof loaded.rule === "function"
       ? { ruleRenderer: loaded.rule as (context: RuleGuidanceContext) => unknown } : {}),
@@ -626,15 +630,18 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
 
   // Cloned inherited rules share their declaration's prose, not the context of
   // whichever concrete instance happens to be visited first.
-  const renderedRules = new Map<string, string>();
+  const renderedRules = new Map<string, { rule: string; description: string | null }>();
   const renderModule = async (modulePath: string, module: LoadedModule, constraint = false): Promise<void> => {
-    if (!module.ruleRenderer) return;
+    if (!module.ruleRenderer && !module.descriptionRenderer) return;
     if (!renderedRules.has(modulePath)) {
       const pattern = modulePath.slice(0, -".mjs".length);
       const context = ruleGuidanceContext(trie, config, pattern, constraint);
-      renderedRules.set(modulePath, (await renderRuleText(module.ruleRenderer, context, modulePath))!);
+      renderedRules.set(modulePath, {
+        rule: (await renderRuleText(module.ruleRenderer ?? module.rule, context, modulePath))!,
+        description: await renderRuleText(module.descriptionRenderer ?? module.description, context, modulePath, "description"),
+      });
     }
-    module.rule = renderedRules.get(modulePath)!;
+    Object.assign(module, renderedRules.get(modulePath)!);
   };
   const visitedRules = new Set<StructuralRule>();
   const renderStructural = async (rule: StructuralRule): Promise<void> => {
@@ -651,7 +658,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
   for (const constraint of constraints) await renderModule(constraint.modulePath, constraint.module, true);
 
   for (const [at, doc] of nodes) {
-    if (!doc.render) {
+    if (!doc.render && !doc.renderDescription) {
       if (doc.instanceOf) doc.body = `Shared contract: \`${path.posix.normalize(path.posix.join(at, doc.instanceOf))}/\`. Read the ancestor guidance for inherited requirements.\n\n${doc.body}`;
       continue;
     }
@@ -665,13 +672,19 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
       if (child.baseSegment && !child.segment.dynamic && !child.segment.resolved) Object.assign(captures, matchSegment(child.baseSegment, part, captures));
       node = child;
     }
-    try {
-      const result = await doc.render({ config: structuredClone(config)!, pattern: at, path: concrete ? at : null, captures });
-      if (typeof result !== "string") fail("malformed_node_description", `${at}/${NODE_DESCRIPTION}: guidance must return a string`);
-      doc.body = doc.instanceOf ? `Shared contract: \`${path.posix.normalize(path.posix.join(at, doc.instanceOf))}/\`. Read the ancestor guidance for inherited requirements.\n\n${result}` : result;
-    } catch (cause) {
-      fail("malformed_node_description", `${at}/${NODE_DESCRIPTION}: guidance failed: ${(cause as Error).message}`);
+    const context: DirectoryGuidanceContext = { config, pattern: at, path: concrete ? at : null, captures };
+    for (const [field, renderer] of [["description", doc.renderDescription], ["guidance", doc.render]] as const) {
+      if (!renderer) continue;
+      let result: unknown;
+      try { result = await renderer(structuredClone(context)); }
+      catch (cause) {
+        fail("malformed_node_description", `${at}/${NODE_DESCRIPTION}: ${field} failed: ${cause instanceof Error ? cause.message : String(cause)}`);
+      }
+      if (typeof result !== "string") fail("malformed_node_description", `${at}/${NODE_DESCRIPTION}: ${field} must return a string`);
+      if (field === "description") doc.description = result;
+      else doc.body = result;
     }
+    if (doc.instanceOf) doc.body = `Shared contract: \`${path.posix.normalize(path.posix.join(at, doc.instanceOf))}/\`. Read the ancestor guidance for inherited requirements.\n\n${doc.body}`;
   }
   return { root: trie, constraints, nodes };
 }
@@ -714,15 +727,15 @@ function ruleGuidanceContext(root: TrieNode, config: Config, pattern: string, co
 }
 
 /** Shared by compilation and standalone rule tests; neither guesses a context. */
-export async function renderRuleText(value: unknown, context: RuleGuidanceContext | undefined, source: string): Promise<string | null> {
+export async function renderRuleText(value: unknown, context: RuleGuidanceContext | undefined, source: string, field: "rule" | "description" = "rule"): Promise<string | null> {
   if (typeof value !== "function") return typeof value === "string" ? value : null;
-  if (!context) fail("module_invalid_export", `${source}: a function-valued rule requires a guidance context`);
+  if (!context) fail("module_invalid_export", `${source}: a function-valued ${field} requires a guidance context`);
   let result: unknown;
   try { result = await value(structuredClone(context)); }
   catch (cause) {
-    fail("rule_guidance_failed", `${source}: rule guidance failed: ${cause instanceof Error ? cause.message : String(cause)}`, { path: source });
+    fail("rule_guidance_failed", `${source}: ${field} guidance failed: ${cause instanceof Error ? cause.message : String(cause)}`, { path: source });
   }
-  if (typeof result !== "string") fail("module_invalid_export", `${source}: rule guidance must return a string`, { path: source });
+  if (typeof result !== "string") fail("module_invalid_export", `${source}: ${field} guidance must return a string`, { path: source });
   return result;
 }
 
@@ -735,10 +748,8 @@ async function readDirectoryModule(
   if (["rule", "lint", "template", "minMatches"].some((key) => key in module)) {
     fail("malformed_node_description", `${source}: ESPALIER.mjs is reserved for directory metadata; move structural rule exports to their governed filename`);
   }
-  for (const key of ["description", "instanceOf"] as const) {
-    if (module[key] !== undefined && (typeof module[key] !== "string" || (key === "instanceOf" && !module[key]))) {
-      fail("malformed_node_description", `${source}: ${key} must be a nonempty string`);
-    }
+  if (module.instanceOf !== undefined && (typeof module.instanceOf !== "string" || !module.instanceOf)) {
+    fail("malformed_node_description", `${source}: instanceOf must be a nonempty string`);
   }
   for (const key of ["fold", "optional"] as const) {
     if (module[key] !== undefined && typeof module[key] !== "boolean") {
@@ -748,14 +759,17 @@ async function readDirectoryModule(
   if (module.optional !== undefined && module.instanceOf === undefined) {
     fail("malformed_node_description", `${source}: optional applies only to a named directory instance`);
   }
-  if (module.guidance !== undefined && typeof module.guidance !== "string" && typeof module.guidance !== "function") {
-    fail("malformed_node_description", `${source}: guidance must be a string or function`);
+  for (const key of ["description", "guidance"] as const) {
+    if (module[key] !== undefined && typeof module[key] !== "string" && typeof module[key] !== "function") {
+      fail("malformed_node_description", `${source}: ${key} must be a string or function`);
+    }
   }
   return {
-    description: (module.description as string | undefined) ?? null,
+    description: typeof module.description === "string" ? module.description : null,
     fold: module.fold === true, body: typeof module.guidance === "string" ? module.guidance : "",
     instanceOf: module.instanceOf as string | undefined, optional: module.optional === true,
     ...(typeof module.guidance === "function" ? { render: module.guidance as (context: DirectoryGuidanceContext) => unknown } : {}),
+    ...(typeof module.description === "function" ? { renderDescription: module.description as (context: DirectoryGuidanceContext) => unknown } : {}),
   };
 }
 

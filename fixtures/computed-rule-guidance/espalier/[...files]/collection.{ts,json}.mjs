@@ -8,3 +8,10 @@ export async function rule({ config, pattern, path, captures }) {
 export function lint({ emit }) {
   emit({ code: "collection", message: "Collection obligation." });
 }
+
+let descriptions = 0;
+export function description({ config, pattern, path, captures }) {
+  if (!isMainThread || ++descriptions !== 1) throw new Error("describe once across selectors");
+  if (pattern !== "[...files]/collection.{ts,json}" || path !== null || Object.keys(captures).length) throw new Error("constraint context");
+  return `collection (${config.build.guidanceMode})`;
+}

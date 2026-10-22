@@ -111,7 +111,8 @@ The espalier tree mirrors the repository’s directories: rules in
 one `.mjs` file, called a rule file.
 
 **`ESPALIER.mjs` describes the directory.** It exports a short `description`
-and a `guidance` string or function. A function receives the config, authored
+and `guidance`; either may be a string or a sync/async function returning a
+string. Each function receives the config, authored
 pattern, concrete path when known, and inherited captures. `fold = true` folds
 the subtree's documents into its ancestor. Keep structural exports stable;
 compute prose from explicit inputs. Leave the module out when it has nothing
@@ -272,6 +273,8 @@ guidance, `explain`, and reported issues. Write it for someone about to
 create or change the governed files.
 
 `rule` may also be a synchronous or asynchronous function returning Markdown.
+`description` likewise accepts a function returning its short label, with the
+same context and timing. Each callback receives its own isolated context.
 It receives `{ config, pattern, path, captures }`: an isolated config snapshot,
 the authored declaration without `.mjs`, a concrete structural path when known
 (null for constraints or unbound dynamic paths), and known named-instance
@@ -342,8 +345,8 @@ export async function lint({ read, emit }) {
 }
 ```
 
-Use `espalier create src/features/Flights/AGENTS.md` for an existing feature,
-or `espalier create src/features/Flights --with AGENTS.md` when creating it.
+Use `espalier create src/features/example-feature/AGENTS.md` for an existing feature,
+or `espalier create src/features/example-feature --with AGENTS.md` when creating it.
 The generated shared document lists the optional leaf and renders its rule,
 so readers can discover the notes. `explain` names their structural owner;
 `lint` checks them like other governed source.

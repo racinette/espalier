@@ -6,7 +6,7 @@
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { isMap, parseDocument } from "yaml";
+import { isMap, isNode, parseDocument } from "yaml";
 import { findChildren } from "./children.js";
 import {
   CONFIG_FILENAME,
@@ -340,6 +340,44 @@ export async function migrate(options: MigrateOptions, reporter: Reporter): Prom
   );
 }
 
+/** Keep authored annotations and unknown metadata without echoing converted fields. */
+function remainingFrontmatter(source: string): string {
+  const document = parseDocument(source);
+  const comments: string[] = [];
+  const retainComment = (text: string | null | undefined): void => {
+    if (text) comments.push(...text.split("\n").map((line) => `#${line}`));
+  };
+  if (isMap(document.contents)) {
+    for (const key of ["description", "fold"]) {
+      const pair = document.contents.items.find((item) => isNode(item.key) && item.key.toJSON() === key);
+      if (!pair) continue;
+      for (const node of [pair.key, pair.value]) {
+        if (isNode(node)) { retainComment(node.commentBefore); retainComment(node.comment); }
+      }
+      document.delete(key);
+    }
+    if (document.contents.items.length > 0) {
+      comments.push(document.toString({ verifyAliasOrder: false }).trimEnd());
+    } else {
+      retainComment(document.commentBefore);
+      retainComment(document.contents.commentBefore);
+      retainComment(document.contents.comment);
+      retainComment(document.comment);
+    }
+  } else {
+    retainComment(document.commentBefore);
+    retainComment(document.comment);
+  }
+  return comments.flatMap((text) => text.split("\n")).map((line) => `// ${line}\n`).join("");
+}
+
+/** Ordinary template literals retain readable line breaks without evaluating Markdown. */
+function proseLiteral(body: string): string {
+  const escaped = body.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/g, "\\${")
+    .replace(/[\u0000-\u0008\u000b-\u001f]/g, (char) => `\\x${char.charCodeAt(0).toString(16).padStart(2, "0")}`);
+  return `\`${escaped}\``;
+}
+
 /** Plan all syntax conversions before changing configuration or authored inputs. */
 function planGrammarMigration(root: string, rules: string, skip: string[], fold: boolean): Array<{ path: string; contents: string; remove?: string }> {
   const directory = path.join(root, rules);
@@ -355,9 +393,14 @@ function planGrammarMigration(root: string, rules: string, skip: string[], fold:
       foldRoot(original, entry);
       const doc = readLegacyNodeDoc(absolute, entry);
       const framed = /^---[^\S\n]*\r?\n(?:([\s\S]*?)\r?\n)?---[^\S\n]*(?:\r?\n|$)/.exec(original);
-      const comment = framed ? framed[0].trimEnd().split(/\r?\n/).map((line) => `// ${line}`).join("\n") + "\n" : "";
+      const comment = framed ? remainingFrontmatter(framed[1] ?? "") : "";
       const body = framed ? original.slice(framed[0].length) : original;
-      changes.push({ path: destination, remove: absolute, contents: `${comment}${doc.description === null ? "" : `export const description = ${JSON.stringify(doc.description)};\n`}export const fold = ${doc.fold || (fold && entry === "ESPALIER.MD")};\nexport const guidance = ${JSON.stringify(body)};\n` });
+      const exports = [
+        ...(doc.description === null ? [] : [`export const description = ${JSON.stringify(doc.description)};`]),
+        ...(doc.fold || (fold && entry === "ESPALIER.MD") ? ["export const fold = true;"] : []),
+        ...(body === "" ? [] : [`export const guidance = ${proseLiteral(body)};`]),
+      ];
+      changes.push({ path: destination, remove: absolute, contents: comment + exports.join("\n") + (exports.length ? "\n" : "") });
       continue;
     }
     if (!entry.endsWith(".mjs") || path.basename(entry) === "ESPALIER.mjs" || entry.includes("[...")) continue;

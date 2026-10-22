@@ -3,24 +3,26 @@
 ## Project layout
 
     ./
-    ├─ flights/         flight operations (required, instance of [group]/)
+    ├─ flights/         flight operations (fixed) (required, instance of
+    │                   [group]/)
     │
-    └─ [group]/         (zero or more matching directories)
+    └─ [group]/         operation group (fixed) (zero or more matching
+                        directories)
        │
        ├─ {group}.json  group manifest (required, {group} repeats what [group]
        │                matched)
        │
-       └─ [module].ts   shared operation (zero or more matching files)
+       └─ [module].ts   shared operation (fixed) (zero or more matching files)
 
 ## `[group]/{group}.json` — group manifest
 
 Manifest [group]/{group}.json; path=null; captures={}.
 
-## `[group]/[module].ts` — shared operation
+## `[group]/[module].ts` — shared operation (fixed)
 
 Base [group]/[module].ts; path=null; captures={}; fixed.
 
-## collection
+## collection — collection (fixed)
 
 Together, files with exactly `.ts` or `.json` as their extension in this project
 must follow this rule.

@@ -2,18 +2,18 @@
 
 Shared contract: `[group]/`. Read the ancestor guidance for inherited requirements.
 
-
+Local directory guidance (fixed).
 
 ## Project layout
 
     flights/
-    ├─ search.ts     flight search (required, instance of [module].ts)
+    ├─ search.ts     flight search (fixed) (required, instance of [module].ts)
     │
     ├─ flights.json  flight manifest (required)
     │
-    └─ [module].ts   shared operation (zero or more matching files)
+    └─ [module].ts   shared operation (fixed) (zero or more matching files)
 
-## `search.ts` — flight search
+## `search.ts` — flight search (fixed)
 
 Shared contract: `[group]/[module].ts`. Inherited requirements still apply.
 

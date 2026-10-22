@@ -636,12 +636,12 @@ requirements, never remove inherited requirements. Constraints retain their
 ordinary scope and complete aggregate membership.
 
 Directory guidance lives in `ESPALIER.mjs`, which exports optional
-`description` (string), `fold` (boolean), and `guidance` (string or async
-function). A guidance function receives `{ config, pattern, path, captures }`:
+`description` and `guidance` (strings or sync/async functions), plus `fold`
+(boolean). Each function receives `{ config, pattern, path, captures }`:
 `pattern` is the authored directory path, `path` is its concrete path when
 fully bound (otherwise null), and `captures` contains known bindings. The
-configuration is an isolated copy. Guidance must return a string and should
-be deterministic for the same inputs. Directory metadata is evaluated during
+context is an isolated copy for each callback. Both exports must return strings
+and should be deterministic for the same inputs. Directory metadata is evaluated during
 compilation, independently of prose rendering. Legacy `ESPALIER.MD` is accepted
 for migration; declaring both formats in one directory is an error.
 

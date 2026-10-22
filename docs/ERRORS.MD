@@ -53,7 +53,7 @@ repository linting begins.
 | `invalid_espalier_entry` | a file that is neither a `.mjs` module nor an `ESPALIER.mjs`, and is not skipped |
 | `malformed_placeholder` | an unclosed `[` or `{`, an unmatched `]`, or a name that is not an identifier |
 | `malformed_constraint_leaf` | a constraint missing both selection forms, or a malformed filename extension selector |
-| `malformed_node_description` | invalid directory metadata, conflicting guidance formats, or a guidance function that throws or returns a non-string |
+| `malformed_node_description` | invalid directory metadata, conflicting guidance formats, or a description/guidance function that throws or returns a non-string |
 | `multiple_recursive_placeholders` | more than one `[...name]` in one path |
 | `duplicate_placeholder_name` | the same capture name twice in one path |
 | `unbound_backreference` | a `{name}` with no `[name]` earlier in the same path |
@@ -84,7 +84,7 @@ See [TYPES.MD](TYPES.MD).
 | Code | |
 |---|---|
 | `rule_threw` | a `lint` function threw. A bug in the rule, not a finding about the repository |
-| `rule_guidance_failed` | a function-valued `rule` threw or rejected while rendering declaration guidance |
+| `rule_guidance_failed` | a function-valued `rule` or `description` threw or rejected while rendering declaration guidance |
 | `invalid_issue` | `emit` was called with something that is not a well-formed issue |
 | `invalid_issue_path` | an emitted or read path is not a non-empty relative string, or escapes the repository |
 | `read_failed` | a snapshot file could not be read, an aggregate read omitted its path, or an isolated rule test lacks the requested contents |
