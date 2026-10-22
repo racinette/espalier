@@ -681,7 +681,7 @@ That one line does three jobs: it tells `build` which files it may delete, it te
 
 - Files bearing the marker are rewritten each run. Any that this run did not produce — because the espalier node was renamed or removed — are deleted, since a document that keeps steering agents after its rule is gone is worse than no document.
 - **The sweep is confined to what the configuration governs.** A marked file that is excluded is never a candidate for deletion. The marker says a file is generated documentation; it does not say it is *this* run's. A repository holding a copy of `espalier`'s output — a golden fixture, a vendored copy of another repository — would otherwise lose it on the first build, with nothing to warn it.
-- A documentation file **without** the marker halts the build. Move its content into the corresponding `ESPALIER.mjs` and run again; `build` will not eat a hand-written file.
+- A file **without** the marker at a planned generated output path halts the build. Move its content into the corresponding `ESPALIER.mjs` and run again; `build` will not eat a hand-written file.
 - `--force` bypasses that refusal only when the unmarked file occupies a path
   this run plans to generate. It does not make unmarked files eligible for
   orphan deletion. Because it can overwrite a genuinely hand-written document,
@@ -691,6 +691,31 @@ That one line does three jobs: it tells `build` which files it may delete, it te
 Only files are deleted. A directory left empty by an orphan deletion stays, because git does not track it and because a tool that removes directories it did not create is one bad path away from removing something it should not have.
 
 No record of past runs is kept. Finding orphans is a scan of the candidate files, less anything excluded, for those matching the configured filename and carrying the marker — a manifest would be a second source of truth with nothing to add.
+
+## Handwritten notes inside dynamic instances
+
+For domain-local notes in an ordinary dynamic instance, declare an optional
+static leaf such as `src/features/[feature]/AGENTS.md.mjs`. Give it a description,
+rule, lint function, and a template for its initial heading. The
+[authoring recipe](../../../authoring/AGENTS.MD#handwritten-guidance-in-dynamic-instances)
+contains a complete module and creation commands.
+
+The shared generated document lists this optional leaf and renders its rule.
+Use that rule to tell readers what the local notes cover and when to read them.
+`create <instance>/AGENTS.md` creates the notes; directory creation can include
+them with `--with AGENTS.md`. They remain governed source: `explain` identifies
+their rule and `lint` checks their contents.
+
+`AGENTS.md.mjs` has no special compiler behavior. `skip` applies to the rule
+tree, not project source. An unmarked handwritten file outside planned output
+paths is neither rewritten nor compared by `build --check`, and its absence is
+permitted by `optional = true`. Never add the generated provenance marker to it.
+
+If `instanceOf` specialization or another placement change plans a generated
+document at the notes' path, build fails on the unmarked file. Move its content
+into the specialization's `ESPALIER.mjs` and remove the handwritten output, or
+use a separate declared notes filename. Keep the two sources distinct; `--force`
+overwrites a file and does not merge handwritten notes with generated guidance.
 
 ## Output
 

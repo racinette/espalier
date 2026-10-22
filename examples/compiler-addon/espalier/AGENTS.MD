@@ -305,6 +305,51 @@ the file format, and say what the user needs to replace. Espalier writes the
 rendered string verbatim; the template supplies those markers. Test templates
 that depend on sibling files together, using the project's own checks.
 
+## Handwritten guidance in dynamic instances
+
+An instance can carry notes about its domain, decisions, and maintenance
+without specializing the shared architecture. Declare that file as an ordinary
+optional leaf. For example, `espalier/src/features/[feature]/AGENTS.md.mjs`:
+
+```js
+import { createTemplate } from "espalier";
+
+export const description = "local feature notes";
+export const optional = true;
+export const rule = `Start with a level-one heading. Describe this feature's
+purpose, domain decisions, and maintenance considerations. Read these notes
+when working in this feature. They supplement the shared feature contract;
+they do not authorize changing or weakening it.`;
+
+export const template = createTemplate(({ captures }) =>
+  `# ${captures.feature}\n\nTODO: Describe this feature and its local decisions.\n`
+);
+
+export async function lint({ read, emit }) {
+  if (!(await read()).startsWith("# ")) {
+    emit({ code: "notes_heading", message: "Start feature notes with a level-one heading." });
+  }
+}
+```
+
+Use `espalier create src/features/Flights/AGENTS.md` for an existing feature,
+or `espalier create src/features/Flights --with AGENTS.md` when creating it.
+The generated shared document lists the optional leaf and renders its rule,
+so readers can discover the notes. `explain` names their structural owner;
+`lint` checks them like other governed source.
+
+The filename has no reserved meaning in Espalier. Match the instruction
+filename and casing used by the consuming agent. `skip` concerns the rule
+tree, so it does not admit notes beside project source. Keep handwritten notes
+free of Espalier's generated provenance marker. `build` and `build --check`
+leave them alone while they occupy no planned generated output path.
+
+If a named specialization would generate guidance at that same path, move the
+notes into its `ESPALIER.mjs` guidance and remove the handwritten output before
+building. Otherwise, choose a distinct declared notes filename. An unmarked
+file at a planned generated output path causes a build failure; `--force` is
+not a way to maintain handwritten and generated content in one file.
+
 ## The decision stays in the rule file
 
 Keep the decisions about what is permitted, required, and reported in the
