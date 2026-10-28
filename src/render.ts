@@ -968,6 +968,16 @@ function heading(name: string | null, at: string): string[] {
   return [at === "" ? `# ${name}` : `# ${name} — ${codeSpan(`${at}/`)}`];
 }
 
+/**
+ * A masked placeholder means nothing to a reader who has not seen the mask
+ * vocabulary, so a map that shows one is followed by the vocabulary, once.
+ * docs/MATCHING.MD "Masks"; docs/cli/build/README.MD "The map".
+ */
+function maskLegend(entries: MapEntry[]): string | null {
+  if (!entries.some((entry) => /\[[A-Za-z_][A-Za-z0-9_]*=/.test(entry.path))) return null;
+  return `In a placeholder, \`=\` is followed by a mask or a list of names. Mask characters each match one character: \`0\` a digit, \`#\` an optional digit, \`A\` a letter, \`a\` a lowercase letter, \`X\` a letter or digit, \`x\` a lowercase letter or digit, and \`-\` or \`_\` itself. \`+\` repeats the element before it one or more times and \`(n)\` exactly n times. \`{a,b}\` accepts exactly the listed names. Use \`espalier help matching\` for the full grammar.`;
+}
+
 /** The body every document shares: prose, project layout, sections and other paths. */
 function core(
   espalier: Espalier,
@@ -996,6 +1006,8 @@ ${architectureGuidance(guidanceMode)}`);
 
   if (map !== null) {
     blocks.push(`${"#".repeat(level)} Project layout`, map);
+    const legend = maskLegend(mapEntries(espalier, point.node!, point.at, stopAt));
+    if (legend !== null) blocks.push(legend);
   }
 
   blocks.push(...renderChildren(point.at, named, level));

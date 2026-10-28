@@ -18,6 +18,7 @@ import {
 import {
   matchSegment,
   resolveSegment,
+  ambiguousSplit,
   backrefNames,
   captureNames,
   intersectSegments,
@@ -569,6 +570,17 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
       fail(
         "multiple_recursive_placeholders",
         `${modulePath}: a path may contain at most one recursive placeholder`,
+      );
+    }
+
+    for (const segment of parsed) {
+      const split = ambiguousSplit(segment);
+      if (split === null) continue;
+      const shown = split.parses.map((parse) => Object.entries(parse).map(([name, value]) => `${name} = "${value}"`).join(", ")).join("  or  ");
+      fail(
+        "ambiguous_captures",
+        `${modulePath}: "${segment.source}" would split "${split.text}" two ways: ${shown}; constrain a capture so the name has one reading`,
+        { segment: segment.source, name: split.text, parses: split.parses },
       );
     }
 

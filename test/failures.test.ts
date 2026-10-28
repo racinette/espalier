@@ -180,6 +180,16 @@ const cases: Case[] = [
     espalier: { "src/[name.ts.mjs": INERT },
   },
   {
+    what: "a mask character outside the vocabulary",
+    code: "malformed_placeholder",
+    espalier: { "src/[seq=9+].ts.mjs": INERT },
+  },
+  {
+    what: "two captures that could split a name two ways",
+    code: "ambiguous_captures",
+    espalier: { "src/[a]_[b].ts.mjs": INERT },
+  },
+  {
     what: "two recursive placeholders in one path",
     code: "multiple_recursive_placeholders",
     espalier: { "src/[...a]/[...b]/no-fetch.ts.mjs": INERT },

@@ -4,7 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { intersects, intersectSegments, isStrictSubset, matchSegment, parseSegment, parseStructuralLeaf, resolveSegment } from "../src/pattern.js";
+import { ambiguousSplit, intersects, intersectSegments, isStrictSubset, matchSegment, parseSegment, parseStructuralLeaf, resolveSegment, trieKey } from "../src/pattern.js";
 
 const shapeOf = (source: string): string => parseSegment(source, "test").shape;
 
@@ -26,7 +26,7 @@ test("dynamic specificity proves strict containment rather than counting literal
     ["[name]-checksonly", "[world]"],
     ["prefix-special-[name]", "prefix-[name]"],
     ["[name]-special-checksonly", "[name]-checksonly"],
-    ["[a][b]", "[name]"],
+    ["[a=0+][b=a+]", "[name]"],
     ["prefix-[name]-suffix", "prefix-[name]"],
   ]) {
     const a = parseSegment(narrow!, "test");
@@ -212,7 +212,7 @@ test("captures are text, arrays, or nothing at all", () => {
   // `[name]` produces a string, `[...name]` an array possibly empty, and a
   // segment with no placeholders an empty object rather than null — "matched,
   // captured nothing" is not the same answer as "did not match".
-  assert.deepEqual(matchSegment(parseSegment("[a]-[b].ts", "test"), "x-y.ts"), { a: "x", b: "y" });
+  assert.deepEqual(matchSegment(parseSegment("[a=a+]-[b].ts", "test"), "x-y.ts"), { a: "x", b: "y" });
   assert.deepEqual(matchSegment(parseSegment("client.ts", "test"), "client.ts"), {});
   assert.equal(matchSegment(parseSegment("client.ts", "test"), "Client.ts"), null, "case matters");
   // A static segment is compared as a string, so its case-sensitivity is
@@ -222,4 +222,82 @@ test("captures are text, arrays, or nothing at all", () => {
   assert.deepEqual(matchSegment(parseSegment("Guide-[topic].md", "test"), "Guide-intro.md"), {
     topic: "intro",
   });
+});
+
+// docs/MATCHING.MD "Masks" and "Captures must be unambiguous".
+
+const leaf = (source: string) => parseStructuralLeaf(source, "test");
+
+test("a mask constrains what a capture accepts, and a list names the alternatives", () => {
+  const padded = leaf("[seq=0(6)]_[name=x+].tables.sql");
+  assert.deepEqual(matchSegment(padded, "000100_init.tables.sql"), { seq: "000100", name: "init" });
+  assert.equal(matchSegment(padded, "abc_init.tables.sql"), null, "letters are not digits");
+  assert.equal(matchSegment(padded, "0001000_init.tables.sql"), null, "the width is exact");
+  assert.equal(matchSegment(padded, "000100_Init.tables.sql"), null, "x is lowercase");
+  assert.deepEqual(matchSegment(leaf("[seq=0+]_[name].tables.sql"), "7_init.tables.sql"), { seq: "7", name: "init" });
+  assert.deepEqual(matchSegment(parseSegment("[n=0(4)#(2)]", "test"), "12345"), { n: "12345" }, "# is an optional digit");
+  assert.equal(matchSegment(parseSegment("[n=0(4)#(2)]", "test"), "1234567"), null);
+  assert.deepEqual(matchSegment(parseSegment("[n=0000##]", "test"), "1234"), { n: "1234" }, "written out means the same");
+  assert.deepEqual(matchSegment(parseSegment("[code=AAA]-[n=00]", "test"), "ABC-42"), { code: "ABC", n: "42" });
+  assert.deepEqual(matchSegment(leaf("[day=0(4)-0(2)-0(2)]_[t].md"), "2024-01-31_launch.md"), { day: "2024-01-31", t: "launch" }, "literals belong to the value");
+  assert.deepEqual(matchSegment(leaf("[kind={tables,views}].sql"), "views.sql"), { kind: "views" });
+  assert.equal(matchSegment(leaf("[kind={tables,views}].sql"), "other.sql"), null);
+  assert.equal(matchSegment(leaf("[kind={tables,views}].sql"), "Views.sql"), null, "alternatives are case-sensitive");
+});
+
+test("masks are rejected when they are not in the vocabulary", () => {
+  for (const [bad, reason] of [
+    ["[a=]", /cannot be empty/],
+    ["[a=9]", /"9" is not a mask character/],
+    ["[a=+0]", /nothing precedes it/],
+    ["[a=0(x)]", /count/],
+    ["[a=0(0)]", /count/],
+    ["[a=0++]", /cannot follow another repetition/],
+    ["[a=0.0]", /"\." is not a mask character/],
+    ["[a=#]", /must require at least one character/],
+    ["[a=#+]", /must require at least one character/],
+    ["[a={x}]", /at least two alternatives/],
+    ["[a={x,}]", /cannot be empty/],
+    ["[a={x,x}]", /repeats an alternative/],
+    ["[a={x,y]", /unclosed/],
+    ["[a={x,y.z}]", /not a plain name/],
+    ["{a=0}", /back-reference/],
+  ] as const) {
+    assert.throws(() => parseSegment(bad, "test"), { code: "malformed_placeholder", message: reason }, bad);
+  }
+});
+
+test("a mask narrows a capture for containment, and the trie keys on it", () => {
+  const exact = leaf("[seq=0(6)]_[name].sql");
+  const digits = leaf("[seq=0+]_[name].sql");
+  const stem = leaf("[stem].sql");
+  assert.equal(isStrictSubset(exact, digits), true);
+  assert.equal(isStrictSubset(digits, stem), true);
+  assert.equal(isStrictSubset(exact, stem), true);
+  assert.equal(isStrictSubset(stem, digits), false);
+  assert.equal(isStrictSubset(digits, exact), false);
+  assert.equal(isStrictSubset(leaf("[k={tables,views}].sql"), leaf("[k=a+].sql")), true, "a list is a finite language");
+  assert.equal(isStrictSubset(leaf("[s=a+].sql"), leaf("[s=X+].sql")), true, "lowercase letters are letters or digits");
+  assert.equal(intersectSegments(leaf("[s=0+].sql"), leaf("[s=a+].sql")), false, "digits and letters are disjoint");
+  assert.equal(intersectSegments(leaf("[s=X+].sql"), leaf("[s=a+].sql")), true);
+  assert.equal(trieKey(leaf("[seq=0(6)]_[name].sql")), trieKey(leaf("[n=0(6)]_[x].sql")), "names do not key");
+  assert.notEqual(trieKey(leaf("[seq=0(6)]_[name].sql")), trieKey(leaf("[seq]_[name].sql")), "masks do");
+});
+
+test("a segment whose captures could split a name two ways is reported with the name", () => {
+  const split = (source: string) => ambiguousSplit(source.includes(".") ? leaf(source) : parseSegment(source, "test"));
+  assert.equal(split("[a=0+]_[b].sql"), null);
+  assert.equal(split("[a]_[b=0+].sql"), null, "the underscore has to follow a");
+  assert.equal(split("[a=0(6)]_[b].sql"), null);
+  assert.equal(split("[a=x+]-[b=x+].sql"), null);
+  assert.equal(split("[a]-{b}"), null, "a back-reference is opaque text");
+  assert.equal(split("[name].ts"), null);
+  assert.deepEqual(split("[a][b].sql"), { text: "aaa.sql", parses: [{ a: "a", b: "aa" }, { a: "aa", b: "a" }] });
+  const underscore = split("[a]_[b].sql");
+  assert.ok(underscore !== null && underscore.parses.length === 2);
+  assert.deepEqual(underscore.parses.map((parse) => `${parse.a}_${parse.b}`), [underscore.text.slice(0, -4), underscore.text.slice(0, -4)]);
+  assert.ok(split("[a]_[b=0+]_[c].sql") !== null, "b can take either digit run");
+  assert.ok(split("[a=0#][b=0+]") !== null, "an optional digit can go either way");
+  assert.ok(split("[k={ab,abc}][x=a+]") !== null, "a list alternative that prefixes another");
+  assert.equal(split("[k={ab,cd}][x=0+]"), null);
 });

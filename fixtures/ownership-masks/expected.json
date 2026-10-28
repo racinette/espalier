@@ -1,0 +1,78 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
+      { "kind": "written", "path": "migrations/AGENTS.MD" },
+      { "kind": "written", "path": "notes/AGENTS.MD" },
+      { "kind": "written", "path": "views/AGENTS.MD" }
+    ]
+  },
+  "exit": 1,
+  "issues": [
+    {
+      "path": "notes/launch.md",
+      "code": "unexpected_path",
+      "severity": "error",
+      "metadata": { "declared": ["[day=0(4)-0(2)-0(2)]_[title].md"] }
+    },
+    {
+      "path": "migrations/000100_init.tables.sql",
+      "code": "padded_migration",
+      "severity": "info",
+      "metadata": { "seq": "000100", "name": "init" }
+    },
+    {
+      "path": "migrations/7_hotfix.tables.sql",
+      "code": "unpadded_migration",
+      "severity": "info",
+      "metadata": { "seq": "7", "name": "hotfix" }
+    },
+    {
+      "path": "migrations/000200_Add_Users.tables.sql",
+      "code": "unpadded_migration",
+      "severity": "info",
+      "metadata": { "seq": "000200", "name": "Add_Users" }
+    },
+    {
+      "path": "notes/2024-01-31_launch.md",
+      "code": "dated_note",
+      "severity": "info",
+      "metadata": { "day": "2024-01-31", "title": "launch" }
+    }
+  ],
+  "ownership": {
+    "migrations/000100_init.tables.sql": "migrations/[seq=0(6)]_[name=x+].tables.sql.mjs",
+    "migrations/7_hotfix.tables.sql": "migrations/[seq=0+]_[name].tables.sql.mjs",
+    "migrations/000200_Add_Users.tables.sql": "migrations/[seq=0+]_[name].tables.sql.mjs",
+    "migrations/abc_init.tables.sql": "migrations/[stem].tables.sql.mjs",
+    "views/tables.sql": "views/[kind={tables,views}].sql.mjs",
+    "views/other.sql": "views/[name].sql.mjs",
+    "notes/2024-01-31_launch.md": "notes/[day=0(4)-0(2)-0(2)]_[title].md.mjs",
+    "notes/launch.md": null
+  },
+  "explain": {
+    "migrations/000100_init.tables.sql": {
+      "exit": 0,
+      "object": {
+        "rule": "migrations/[seq=0(6)]_[name=x+].tables.sql.mjs",
+        "pattern": "migrations/*_*.tables.sql",
+        "captures": { "seq": "000100", "name": "init" }
+      }
+    },
+    "migrations/abc_init.tables.sql": {
+      "exit": 0,
+      "object": {
+        "rule": "migrations/[stem].tables.sql.mjs",
+        "captures": { "stem": "abc_init" }
+      }
+    },
+    "notes/2024-01-31_launch.md": {
+      "exit": 0,
+      "object": {
+        "rule": "notes/[day=0(4)-0(2)-0(2)]_[title].md.mjs",
+        "captures": { "day": "2024-01-31", "title": "launch" }
+      }
+    }
+  }
+}

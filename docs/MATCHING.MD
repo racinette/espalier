@@ -111,14 +111,112 @@ Placeholder names must be unique within a single path. `[provider]/[provider].ts
 
 Two different placeholders never constrain each other. Both `stripe/stripe.ts` and `stripe/client.ts` match `[provider]/[implementation].ts`, because `[implementation]` is a fresh name that captures whatever is there. When two parts of a path must agree, that is what `{name}` is for.
 
+### Masks
+
+A capture may constrain the text it accepts. The constraint follows the name
+after `=` and is a *mask*: a picture of the text, one mask character per
+character of the name.
+
+```text
+[seq=000000]_[name].tables.sql       six digits, an underscore, then anything
+[at=0(14)]_[name].rb                 fourteen digits
+[code=AAA]-[n=00]                    three letters, a dash, two digits
+[slug=a+]                            lowercase letters, one or more
+[day=0(4)-0(2)-0(2)]_[title].md      a date, captured as one value
+```
+
+The mask vocabulary is deliberately small:
+
+| Mask | Matches one |
+|---|---|
+| `0` | ASCII digit |
+| `#` | ASCII digit, or nothing |
+| `A` | ASCII letter |
+| `a` | ASCII lowercase letter |
+| `X` | ASCII letter or digit |
+| `x` | ASCII lowercase letter or digit |
+| `-` `_` | that character, literally |
+
+Two suffixes repeat the element before them: `+` means one or more times, and
+`(n)` means exactly `n` times. `0+` is one or more digits; `0(4)#(2)` is four
+to six; `0000##` says the same thing written out. `#+` is zero or more digits,
+which is legal only beside something required: a mask must require at least
+one character, so a capture never matches the empty string, mask or no mask.
+
+A mask describes the shape of a name, not its meaning. `0(14)` is fourteen
+digits whether or not they form a date; whether they do is a question for the
+rule's `lint`, which receives the capture. There are no named formats for the
+same reason: a timestamp is fourteen digits in one migration tool and ten in
+another, and the mask spells whichever one the repository uses.
+
+Masks never contain a dot, so the dot restriction on structural captures is
+unaffected: every mask class excludes `.`, and a bare `[name]` keeps excluding
+it in an extension-bearing structural filename.
+
+The two literal characters exist for values that are one thing. A date, a
+version or an identifier with internal separators is a single capture when it
+is a single value, and templates, back-references and `create` then see it
+whole. Split it into several captures when the parts are separately meaningful.
+
+A capture may instead list the names it accepts, in braces:
+
+```text
+[kind={tables,views,functions}].sql
+```
+
+The alternatives are literal, case-sensitive, nonempty and distinct, and at
+least two are required: a single alternative is a static name and should be
+written as one. They may contain `-` and `_` and no other punctuation. A mask
+cannot appear inside a list and a list cannot appear inside a mask; a name
+that must accept two shapes is two sibling rules, and ownership decides between
+them. Inside a capture, braces are always a list; a back-reference is `{name}`
+outside one.
+
+A back-reference repeats the bound text and carries no mask of its own:
+`{seq=0+}` is rejected. A name is declared once per path, mask included, so
+`[seq=000000]` and a later `[seq=0+]` are a duplicate, not a refinement.
+
+Anything else after `=` is rejected as `malformed_placeholder`, naming the
+offending character. The vocabulary is built from characters every filesystem
+accepts, which is why the separator is `=` rather than `:`, and why `?` and
+`*` do not appear.
+
+### Captures must be unambiguous
+
+Because captures feed templates, back-references, named instances and
+`create`, a name must determine its captures. A segment is rejected as
+`ambiguous_captures` when some name could be split between its captures in
+more than one way:
+
+```text
+[a][b].sql          rejected — "xyz.sql" is a="x" b="yz" or a="xy" b="z"
+[a]_[b].sql         rejected — "x_y_z.sql" is a="x" b="y_z" or a="x_y" b="z"
+[a=0+]_[b].sql      accepted — a digit run cannot contain the underscore
+[a]_[b=0+].sql      accepted — the underscore must follow a, and b is digits
+[a]_[b=0+]_[c].sql  rejected — "x_1_2_y.sql" is a="x" b="1" c="2_y" or a="x_1" b="2" c="y"
+[a=0(6)]_[b].sql    accepted
+[a=x+]-[b=x+].sql   accepted — neither side can contain the dash
+```
+
+The error names a filename that splits two ways and shows both splits. The
+check is exact: it decides whether any name admits two parses, not whether the
+pattern looks ambiguous. The remedy is a mask that excludes the separator, or
+a separator that no neighbouring capture can contain.
+
+A back-reference inside such a segment is treated as text that no capture can
+absorb, because its value is fixed by the enclosing instance before the
+segment is matched. A name that could be split differently around that bound
+text is matched with the earliest possible split.
+
 ### Normalization
 
 An ordinary path normalizes to a glob:
 
 ```text
-[name]      →  *
-[...name]   →  **
-{name}      →  *
+[name]       →  *
+[name=mask]  →  *
+[...name]    →  **
+{name}       →  *
 ```
 
 ```text
@@ -137,7 +235,7 @@ not. The matcher makes the final decision. Human-facing output — the project
 map, generated documentation, `explain` — keeps the placeholder names, because
 they carry meaning a glob does not.
 
-Normalization is lossy for a back-reference and unavoidably so: no glob can say *the same text as that other part*. `clients/[provider]/{provider}.ts` normalizes to `clients/*/*.ts`, which matches strictly more than the rule does. Nothing that decides ownership uses the glob — the matcher walks segments — so this costs precision only where a glob is being read as documentation, and `context.path` is always exact.
+Normalization is lossy for a mask, which a glob cannot express, and for a back-reference, unavoidably so: no glob can say *the same text as that other part*. `clients/[provider]/{provider}.ts` normalizes to `clients/*/*.ts`, which matches strictly more than the rule does. Nothing that decides ownership uses the glob — the matcher walks segments — so this costs precision only where a glob is being read as documentation, and `context.path` is always exact.
 
 Patterns use `/` as separator on every platform, match case-sensitively even on case-insensitive filesystems, and match dotfiles like any other name. Structural extension unions and constraint filename extension lists are parsed as rule syntax; neither is glob brace expansion.
 
@@ -396,6 +494,15 @@ prefix-[name]/
 ```
 
 Nested strict subsets are allowed, and the narrowest matching pattern wins.
+A mask narrows a capture the same way, so masked and unmasked siblings can
+coexist:
+
+```text
+[seq=0(6)]_[name].sql
+[seq=0+]_[name].sql
+[stem].sql            accepted — each owns what the narrower ones do not
+```
+
 An extension union follows the same rule: `[file].ts` wins its files beside
 `[file].{ts,tsx}`, which owns the remaining `.tsx` files.
 Containment is established from the patterns, independently of repository

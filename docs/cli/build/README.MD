@@ -162,6 +162,11 @@ Every other directory also carries a trailing `/`. Dynamic names retain their
 authored form, such as `[provider]/` or `[button].tsx`. Back-references whose
 bindings are known in a named instance appear as concrete names.
 
+A map that shows a masked or listed placeholder, such as
+`[seq=0(6)]_[name].sql`, is followed by one paragraph giving the mask
+vocabulary, so a reader who has never seen a mask can read the map without
+leaving it. A map without one says nothing about masks.
+
 Structural rule headings are relative to the placement point that contains
 them. A document headed `src/` therefore describes `context.ts`, not
 `src/context.ts`; a folded `src/` section establishes the same scope before its

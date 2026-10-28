@@ -269,6 +269,16 @@ clients
 
 `clients/stripe/stripe.ts` matches. `clients/stripe/client.ts` does not. A back-reference captures nothing and introduces no name — it matches the text a `[name]` earlier in the path already captured, and it makes that file required for every provider directory that exists.
 
+A placeholder can say what shape of text it accepts. After `=`, a mask pictures the text one character at a time, and braces list the names allowed:
+
+```text
+migrations
+├─ [seq=0(6)]_[name=x+].tables.sql.mjs      six digits, an underscore, a lowercase slug
+└─ [kind={tables,views}].sql.mjs            exactly tables.sql and views.sql
+```
+
+`0` is a digit, `#` an optional digit, `A` a letter, `a` a lowercase letter, `X` a letter or digit, `x` a lowercase letter or digit, and `-` or `_` itself; `+` repeats the previous element one or more times and `(n)` exactly n times. A masked placeholder is a strict subset of a bare one, so `[seq=0+]_[name].tables.sql.mjs` and `[stem].tables.sql.mjs` can sit beside it and own what it does not. Two captures in one name must be separated by text neither can absorb; `[a]_[b]` is rejected at compile time with a name that splits two ways.
+
 The alternative is a rule body asking politely and a `lint` function checking afterwards, for a fact the espalier can simply state. Stating it also puts the requirement in the generated documentation, where an agent reads it before writing the file rather than after.
 
 The matcher normalizes `[name]` to `*`, `[...name]` to `**`, and `{name}` to

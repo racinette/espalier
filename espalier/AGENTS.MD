@@ -152,6 +152,26 @@ A literal leaf such as `main.{ts,tsx}.mjs` cannot list alternatives: it would
 not say which file is required. Write separate literal rules if both are
 required.
 
+A placeholder can constrain the text it accepts. `[name=mask]` pictures the
+text one character at a time: `0` is a digit, `#` an optional digit, `A` a
+letter, `a` a lowercase letter, `X` a letter or digit, `x` a lowercase letter
+or digit, and `-` or `_` itself. `+` repeats the element before it one or more
+times and `(n)` exactly n times. `[name={a,b}]` accepts exactly the listed
+names.
+
+```text
+[seq=0(6)]_[name=x+].tables.sql.mjs   000100_init.tables.sql; not abc_init.tables.sql
+[at=0(14)]_[name].rb.mjs              a fourteen-digit timestamp
+[kind={tables,views}].sql.mjs         tables.sql and views.sql only
+```
+
+A mask describes shape, not meaning; whether fourteen digits are a valid date
+is for `lint`. A masked placeholder matches a strict subset of a bare one, so
+`[seq=0+]_[name].tables.sql.mjs` beside the padded rule owns the unpadded
+migrations. Two captures in one name must be separated by text neither can
+absorb: `[a]_[b].ts.mjs` is rejected, because `a_b_c.ts` splits two ways,
+while `[a=0+]_[b].ts.mjs` is accepted.
+
 A literal filename wins over a placeholder in the same directory. Both rule
 files below match `SubmitButton.tsx`, but `SubmitButton.tsx.mjs` owns it:
 
