@@ -109,6 +109,8 @@ for (const [name, files] of Object.entries({
   weaker: {'espalier/[group]/model.ts.mjs':rule,'espalier/flights/ESPALIER.mjs':'export const instanceOf="../[group]";', 'espalier/flights/model.ts.mjs':`${rule}export const optional=true;`},
   bypass: {'espalier/[module].ts.mjs':rule,'espalier/test-[module].ts.mjs':rule,'espalier/test-one.ts.mjs':`${rule}export const instanceOf="[module].ts.mjs";`},
   missing: {'espalier/search.ts.mjs':`${rule}export const instanceOf="[missing].ts.mjs";`},
+  mismatch: {'espalier/[migrations].tables.sql.mjs':rule,'espalier/users.sql.mjs':`${rule}export const instanceOf="[migrations].tables.sql.mjs";`},
+  'mismatch directory': {'espalier/[migrations].tables/schema.sql.mjs':rule,'espalier/users/ESPALIER.mjs':'export const instanceOf="../[migrations].tables";'},
 })) {
   test(`invalid specialization is rejected before source exists: ${name}`, async () => {
     await scratch(async (root,put)=>{

@@ -904,7 +904,8 @@ function materializeInstances(root: TrieNode, docs: Map<string, NodeDoc>): void 
       if (!base || !base.segment.dynamic || base.segment.recursive !== null || base === node) fail("invalid_instance", `${at}: instanceOf must name a matching sibling dynamic contract`);
       expand(base, at.split("/").slice(0, -1).concat(base.display).join("/"), parent);
       const winner = parent && choose({ ...parent, children: new Map([...parent.children].filter(([, child]) => child !== node)) }, node, {});
-      if (winner !== base) fail("invalid_instance", `${at}: the named contract would not own this instance`);
+      if (winner === undefined) fail("invalid_instance", `${at}: the name does not match the named contract ${base.display}`);
+      if (winner !== base) fail("invalid_instance", `${at}: the named contract ${base.display} would not own this instance; ${winner.display} would`);
       compose(node, base, at, {});
     } else {
       for (const child of node.children.values()) expand(child, at ? `${at}/${child.display}` : child.display, node);
