@@ -1,0 +1,74 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
+      { "kind": "written", "path": "app/AGENTS.MD" },
+      { "kind": "written", "path": "app/[slug]/AGENTS.MD" },
+      { "kind": "written", "path": "pages/AGENTS.MD" }
+    ]
+  },
+  "exit": 1,
+  "issues": [
+    {
+      "path": "pages/[id].tsx",
+      "code": "missing_static_paths",
+      "severity": "error",
+      "rule": "pages/[id].tsx.mjs",
+      "pattern": "pages/[id].tsx",
+      "captures": {},
+      "message": "a dynamic page must export getStaticPaths",
+      "metadata": {},
+      "ruleText": "Exports `getStaticPaths` beside the component."
+    }
+  ],
+  "ownership": {
+    "app/[slug]/page.tsx": "app/[route]/page.tsx.mjs",
+    "app/[slug]/loading.tsx": "app/[slug]/loading.tsx.mjs",
+    "app/about/page.tsx": "app/[route]/page.tsx.mjs",
+    "pages/[id].tsx": "pages/[id].tsx.mjs",
+    "pages/index.tsx": "pages/index.tsx.mjs"
+  },
+  "explain": {
+    "app/[slug]/page.tsx": {
+      "exit": 0,
+      "object": {
+        "rule": "app/[route]/page.tsx.mjs",
+        "pattern": "app/[route]/page.tsx",
+        "captures": { "route": "[slug]" }
+      }
+    },
+    "app/[slug]/loading.tsx": {
+      "exit": 0,
+      "object": {
+        "rule": "app/[slug]/loading.tsx.mjs",
+        "pattern": "app/[slug]/loading.tsx",
+        "captures": { "route": "[slug]" },
+        "inherited": [
+          { "rule": "app/[route]/loading.tsx.mjs", "pattern": "app/[route]/loading.tsx" }
+        ]
+      }
+    },
+    "pages/[id].tsx": {
+      "exit": 0,
+      "object": {
+        "rule": "pages/[id].tsx.mjs",
+        "pattern": "pages/[id].tsx",
+        "captures": {}
+      }
+    },
+    "app/": {
+      "exit": 0,
+      "object": {
+        "map": [
+          { "path": "[slug]/", "instanceOf": "[route]/", "literal": true, "required": true },
+          { "path": "[slug]/loading.tsx", "required": true },
+          { "path": "[slug]/page.tsx", "required": true },
+          { "path": "[route]/", "required": null },
+          { "path": "[route]/loading.tsx", "required": false },
+          { "path": "[route]/page.tsx", "required": true }
+        ]
+      }
+    }
+  }
+}

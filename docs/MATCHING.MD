@@ -285,6 +285,43 @@ the provider name; `[provider]/{provider}.ts` requires the names to agree.
 The relationship is part of structural matching rather than a separate lint
 check, and `create` can derive the required filename from the directory.
 
+### Literal names
+
+Some repositories name real paths with brackets. A Next.js app router has a
+directory called `[slug]` and a pages router has a file called `[id].tsx`,
+and the brackets are the name. A rule module cannot escape them, because its
+path is the pattern, so the module says instead that its name is literal:
+
+```js
+// espalier/app/[slug]/ESPALIER.mjs
+export const literalName = true;
+export const instanceOf = "../[route]";
+```
+
+```js
+// espalier/pages/[id].tsx.mjs
+export const literalName = true;
+```
+
+`literalName` applies to the module's own segment only: the directory for a
+directory module, the filename for a rule module. Every rule path through a
+literal directory reads that segment literally, so a deeper literal directory
+needs its own declaration. The segment becomes static. It matches exactly its
+name, it beats a dynamic sibling for the paths it names, its files are
+required by default, and it may declare `instanceOf`, which is how `[slug]`
+above inherits everything a `[route]` must have. It captures nothing: an
+inherited `[route]` rule still sees `route = "[slug]"`, but the literal rule's
+own captures are empty, which is how a consumer tells a literal `[id].tsx`
+from a placeholder of the same spelling.
+
+The flag is rejected on a constraint, whose filename is a selector rather than
+a path, and on a name that holds no bracket or brace, where there is nothing
+to take literally. Masks, lists and extension unions cannot combine with it:
+the whole name is text.
+
+In `targets` and `context.files()`, which use glob syntax, a bracket is a
+character class. Escape it to name a literal path: `"\\[slug\\]/**"`.
+
 ### Multiple extensions
 
 A dynamic structural file leaf may list alternative fixed suffixes; a constraint

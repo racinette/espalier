@@ -249,6 +249,8 @@ Optional instances carry the same relationship with `optional`. Ordinary
 inherited children without their own `instanceOf` declaration do not acquire
 this annotation; they follow the containing directory's contract.
 
+**`literal name`** marks a node whose brackets or braces are its name, declared with `literalName`: a Next.js `[slug]/` route directory reads `(required, literal name, instance of [route]/)`. Without the suffix, a bracketed name on the map is a placeholder.
+
 **`{provider} repeats what [provider] matched`** marks every node whose name holds a back-reference, one clause per placeholder, comma-joined inside the parentheses. It describes what the capture holds rather than what the segment was, which is the only phrasing that survives an affix: under `[provider]-provider/`, a `{provider}Impl.ts` in the directory named `stripe-provider` is `stripeImpl.ts`, and a suffix promising "the same name as the directory" would be wrong three times out of four.
 
 ### The complete account

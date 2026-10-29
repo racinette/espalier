@@ -51,6 +51,11 @@ export interface Segment {
   fileExtensions?: string[];
   /** Captures in an extension-bearing structural filename cannot consume dots. */
   dotlessCaptures?: boolean;
+  /**
+   * The module declared `literalName`: brackets and braces in the name are
+   * the name, as in a Next.js `[slug]` route. docs/MATCHING.MD "Literal names".
+   */
+  literal?: boolean;
 }
 
 const CAPTURE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -141,8 +146,11 @@ function parseCapture(inner: string, context: string): { name: string; constrain
 export function parseSegment(
   source: string,
   context: string,
-  options: { backrefs?: boolean; dotlessCaptures?: boolean } = {},
+  options: { backrefs?: boolean; dotlessCaptures?: boolean; literal?: boolean } = {},
 ): Segment {
+  if (options.literal === true) {
+    return { source, parts: [{ kind: "literal", text: source }], recursive: null, dynamic: false, resolved: false, literal: true };
+  }
   const backrefs = options.backrefs !== false;
   const parts: Part[] = [];
   let recursive: string | null = null;
@@ -240,7 +248,8 @@ export function parseSegment(
 }
 
 /** A dynamic structural filename has an exact full extension after its last placeholder. */
-export function parseStructuralLeaf(source: string, context: string): Segment {
+export function parseStructuralLeaf(source: string, context: string, options: { literal?: boolean } = {}): Segment {
+  if (options.literal === true) return parseSegment(source, context, options);
   const union = /^(.*)\.\{([^{}]*,[^{}]*)\}$/s.exec(source);
   const lastVariable = Math.max(source.lastIndexOf("]"), source.lastIndexOf("}"));
   const dot = union === null ? source.indexOf(".", lastVariable + 1) : union[1]!.length;
@@ -282,10 +291,12 @@ export function backrefNames(segment: Segment): string[] {
  * The key is internal. It is not a glob and nothing matches against it.
  */
 export function trieKey(segment: Segment): string {
-  if (segment.recursive !== null) return "[...]";
+  if (segment.recursive !== null) return "\0...";
   if (segment.parts.some((part) => part.kind === "backref")) return segment.source;
+  // A placeholder keys with a NUL, which no filename can contain, so a
+  // literal name such as `[slug]` can never share a node with a capture.
   const stem = segment.parts
-    .map((part) => part.kind === "literal" ? part.text : part.kind === "capture" && part.constraint ? `[=${part.constraint.source}]` : "[*]")
+    .map((part) => part.kind === "literal" ? part.text : part.kind === "capture" && part.constraint ? `\0=${part.constraint.source}` : "\0*")
     .join("");
   if (segment.fileExtensions === undefined) return stem;
   const { fileExtensions } = segment;

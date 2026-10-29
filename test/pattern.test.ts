@@ -303,3 +303,16 @@ test("a segment whose captures could split a name two ways is reported with the 
   assert.ok(split("[k={ab,abc}][x=a+]") !== null, "a list alternative that prefixes another");
   assert.equal(split("[k={ab,cd}][x=0+]"), null);
 });
+
+test("a literal name keeps its brackets as text and matches nothing else", () => {
+  const slug = parseSegment("[slug]", "test", { literal: true });
+  assert.equal(slug.dynamic, false);
+  assert.equal(slug.literal, true);
+  assert.deepEqual(matchSegment(slug, "[slug]"), {});
+  assert.equal(matchSegment(slug, "post"), null);
+  assert.notEqual(trieKey(slug), trieKey(parseSegment("[route]", "test")), "a literal never shares a node with a placeholder");
+  const page = parseStructuralLeaf("[[...slug]].tsx", "test", { literal: true });
+  assert.deepEqual(matchSegment(page, "[[...slug]].tsx"), {});
+  assert.equal(page.fileExtensions, undefined, "a literal filename has no extension selector");
+  assert.throws(() => parseStructuralLeaf("[[...slug]].tsx", "test"), /capture name/);
+});

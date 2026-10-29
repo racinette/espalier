@@ -48,6 +48,7 @@ aggregate form.
 | `optional` | no | whether a named file may be absent |
 | `instanceOf` | no | matching inherited contract for a named member |
 | `minMatches` | no | minimum membership of a dynamic collection |
+| `literalName` | no | the filename's brackets or braces are the name, not placeholders |
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
 | `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
@@ -314,6 +315,21 @@ creation uses the inherited template and its original captures.
 
 See [Named instances](MATCHING.MD#named-instances) for composition and requiredness.
 
+### `literalName`
+
+```js
+// espalier/pages/[id].tsx.mjs
+export const literalName = true;
+```
+
+The module's filename is a name, not a pattern: `[id].tsx` matches exactly
+the file called `[id].tsx`, as a Next.js pages router names its dynamic page.
+The leaf is static, so it is required by default, accepts `optional` and
+`instanceOf`, and captures nothing. The flag must be a boolean, is rejected on
+a constraint, and is rejected on a filename with no bracket or brace. The same
+export on a directory module makes the directory's name literal.
+See [Literal names](MATCHING.MD#literal-names).
+
 ### `targets`
 
 ```js
@@ -475,6 +491,7 @@ structural `rule`, `lint`, or `template`. Its exports are:
 | `fold` | `false` | fold this subtree's generated documents into its enclosing document |
 | `instanceOf` | absent | a matching sibling dynamic directory contract, such as `"../[feature]"` |
 | `optional` | `false` | permit a named directory instance to be absent; valid only with `instanceOf` |
+| `literalName` | `false` | the directory's brackets or braces are its name, as in a Next.js `[slug]` route; see [Literal names](MATCHING.MD#literal-names) |
 
 For example, computed guidance can follow the configured architecture mode:
 

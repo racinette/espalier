@@ -257,7 +257,7 @@ clients
    └─ [implementation].ts.mjs
 ```
 
-`[name]` matches within one path segment and captures the matched text as a string. `[...name]` matches across zero or more complete path segments, captures them as an array of strings, and marks the rule as a constraint.
+`[name]` matches within one path segment and captures the matched text as a string. `[...name]` matches across zero or more complete path segments, captures them as an array of strings, and marks the rule as a constraint. A path whose real name holds brackets, such as a Next.js `app/[slug]/` route, is declared by a module exporting `literalName = true`.
 
 Two different placeholders never constrain each other. In the example above, both `stripe/stripe.ts` and `stripe/client.ts` match, because the second name captures whatever is there. When two parts of a path must agree, `{name}` says so:
 

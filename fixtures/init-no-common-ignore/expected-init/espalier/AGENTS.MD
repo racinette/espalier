@@ -196,6 +196,12 @@ Distinct prefixes such as `a-[name]/` and `b-[name]/` are disjoint and may
 both sit beside a broad fallback. A directory placeholder and a file
 placeholder may coexist, because they match different kinds of path.
 
+A real path whose name holds brackets, such as a Next.js `app/[slug]/`
+route or `pages/[id].tsx`, is declared by a module at that name exporting
+`literalName = true`: on `ESPALIER.mjs` for the directory, on the rule module
+for the file. The name is then static text, required by default, and may
+declare `instanceOf` to inherit a dynamic sibling's contract.
+
 `{provider}` repeats the text captured by `[provider]` earlier in the same
 path:
 

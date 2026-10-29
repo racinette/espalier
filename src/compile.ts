@@ -44,7 +44,11 @@ export interface RuleModule {
   targets?: unknown;
   template?: unknown;
   groups?: unknown;
+  literalName?: unknown;
 }
+
+/** Brackets or braces, which a path segment otherwise reads as placeholders. */
+export const PLACEHOLDER_SYNTAX = /[\[\]{}]/;
 
 /**
  * One named grouping of a dynamic rule's files, by a subset of its captures.
@@ -143,6 +147,8 @@ export interface NodeDoc {
   source?: string;
   instanceOf?: string;
   optional?: boolean;
+  /** The directory's name is literal, placeholder syntax and all. */
+  literalName?: boolean;
 }
 
 export interface Espalier {
@@ -267,16 +273,10 @@ function syntaxLocation(absolute: string, cause: unknown): { line: number; colum
   }
 }
 
-async function loadModule(
-  absolute: string,
-  modulePath: string,
-  kind: ModuleKind,
-  root: string,
-): Promise<LoadedModule> {
-  const structural = kind !== "constraint";
-  let loaded: RuleModule;
+/** Import a rule module, turning a syntax error into a located failure. */
+async function importRuleModule(absolute: string, modulePath: string, root: string): Promise<RuleModule> {
   try {
-    loaded = (await import(pathToFileURL(absolute).href)) as RuleModule;
+    return (await import(pathToFileURL(absolute).href)) as RuleModule;
   } catch (cause) {
     const location = syntaxLocation(absolute, cause);
     const source = path.relative(root, absolute).split(path.sep).join("/");
@@ -288,6 +288,27 @@ async function loadModule(
       `${label} could not be imported: ${(cause as Error).message}`,
       { path: source, ...location },
     );
+  }
+}
+
+async function loadModule(
+  absolute: string,
+  modulePath: string,
+  kind: ModuleKind,
+  root: string,
+  imported?: RuleModule,
+): Promise<LoadedModule> {
+  const structural = kind !== "constraint";
+  const loaded = imported ?? await importRuleModule(absolute, modulePath, root);
+  const leafName = modulePath.slice(modulePath.lastIndexOf("/") + 1, -".mjs".length);
+  if (loaded.literalName !== undefined && typeof loaded.literalName !== "boolean") {
+    fail("module_invalid_export", `${modulePath}: \`literalName\` must be a boolean`);
+  }
+  if (loaded.literalName !== undefined && !structural) {
+    fail("module_invalid_export", `${modulePath}: \`literalName\` has no meaning on a constraint; a constraint's filename is a selector, not a path`);
+  }
+  if (loaded.literalName === true && !PLACEHOLDER_SYNTAX.test(leafName)) {
+    fail("module_invalid_export", `${modulePath}: \`literalName\` applies to a name containing placeholder syntax; "${leafName}" has none`);
   }
 
   if ("unobservedImplementationDependencies" in loaded) fail("module_invalid_export", `${modulePath}: unobservedImplementationDependencies is not supported`);
@@ -586,19 +607,27 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
   const skipRules = compileIgnore(skip, "skip");
 
   const entries = listEntries(absolute, skipRules);
+  const isDescription = (leaf: string): boolean => leaf === NODE_DESCRIPTION || leaf === LEGACY_NODE_DESCRIPTION;
+
+  // Directory modules first: a directory that declares `literalName` changes
+  // how every rule path through it is read.
   for (const modulePath of entries) {
     const segments = modulePath.split("/");
     const leaf = segments[segments.length - 1]!;
+    if (!isDescription(leaf)) continue;
+    const at = segments.slice(0, -1).join("/");
+    if (nodes.has(at)) fail("malformed_node_description", `${at}: declare only one directory guidance source`);
+    const doc = leaf === LEGACY_NODE_DESCRIPTION
+      ? readLegacyNodeDoc(path.join(absolute, modulePath), modulePath)
+      : await readDirectoryModule(path.join(absolute, modulePath), modulePath);
+    nodes.set(at, { ...doc, source: leaf });
+  }
+  const literalDirectory = (parts: string[], depth: number): boolean => nodes.get(parts.slice(0, depth + 1).join("/"))?.literalName === true;
 
-    if (leaf === NODE_DESCRIPTION || leaf === LEGACY_NODE_DESCRIPTION) {
-      const at = segments.slice(0, -1).join("/");
-      if (nodes.has(at)) fail("malformed_node_description", `${at}: declare only one directory guidance source`);
-      const doc = leaf === LEGACY_NODE_DESCRIPTION
-        ? readLegacyNodeDoc(path.join(absolute, modulePath), modulePath)
-        : await readDirectoryModule(path.join(absolute, modulePath), modulePath);
-      nodes.set(at, { ...doc, source: leaf });
-      continue;
-    }
+  for (const modulePath of entries) {
+    const segments = modulePath.split("/");
+    const leaf = segments[segments.length - 1]!;
+    if (isDescription(leaf)) continue;
 
     if (!leaf.endsWith(".mjs")) {
       fail(
@@ -608,15 +637,23 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     }
 
     const authored = [...segments.slice(0, -1), leaf.slice(0, -".mjs".length)];
+    const absoluteModule = path.join(absolute, modulePath);
+
+    // The module is imported before its path is parsed, because `literalName`
+    // decides whether the filename's brackets are a placeholder or a name.
+    const imported = await importRuleModule(absoluteModule, modulePath, root);
+    const last = authored.length - 1;
+    const isLiteral = (index: number): boolean => index === last ? imported.literalName === true : literalDirectory(authored, index);
 
     // A constraint leaf or dynamic structural leaf can list exact extensions.
     // A brace elsewhere is a back-reference.
     // Constraint-ness is a plain string test, decidable before any parsing.
-    const constraintPath = authored.some((segment) => segment.includes("[..."));
+    const constraintPath = authored.some((segment, index) => !isLiteral(index) && segment.includes("[..."));
     const parsed = authored.map((segment, index) => {
-      if (index === authored.length - 1 && !constraintPath) return parseStructuralLeaf(segment, modulePath);
+      if (index === last && !constraintPath) return parseStructuralLeaf(segment, modulePath, { literal: isLiteral(index) });
       return parseSegment(segment, modulePath, {
-        backrefs: !(constraintPath && index === authored.length - 1),
+        backrefs: !(constraintPath && index === last),
+        literal: isLiteral(index),
       });
     });
 
@@ -652,14 +689,12 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
       );
     }
 
-    const absoluteModule = path.join(absolute, modulePath);
-
     // A path containing `[...name]` is a constraint. Its selector comes from
     // the filename or `targets`; `aggregate` changes only the invocation.
     if (recursive.length === 1) {
       const directory = parsed.slice(0, -1);
       const leaf = authored[authored.length - 1]!;
-      const module = await loadModule(absoluteModule, modulePath, "constraint", root);
+      const module = await loadModule(absoluteModule, modulePath, "constraint", root, imported);
 
       const { name, extensions } = splitConstraintLeaf(leaf, modulePath);
       if (extensions === null && module.targets === null) {
@@ -685,7 +720,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     // literal leaf still rejects a list: its requiredness would be ambiguous.
     const leafSegment = parsed[parsed.length - 1]!;
 
-    const module = await loadModule(absoluteModule, modulePath, leafSegment.dynamic ? "dynamic" : "static", root);
+    const module = await loadModule(absoluteModule, modulePath, leafSegment.dynamic ? "dynamic" : "static", root, imported);
     for (const grouping of module.groups) {
       const unknown = grouping.by.find((name) => !names.includes(name));
       if (unknown !== undefined) {
@@ -831,9 +866,17 @@ async function readDirectoryModule(
   if (module.instanceOf !== undefined && (typeof module.instanceOf !== "string" || !module.instanceOf)) {
     fail("malformed_node_description", `${source}: instanceOf must be a nonempty string`);
   }
-  for (const key of ["fold", "optional"] as const) {
+  for (const key of ["fold", "optional", "literalName"] as const) {
     if (module[key] !== undefined && typeof module[key] !== "boolean") {
       fail("malformed_node_description", `${source}: ${key} must be a boolean`);
+    }
+  }
+  if (module.literalName === true) {
+    const parts = source.split("/");
+    const name = parts.length > 1 ? parts[parts.length - 2]! : null;
+    if (name === null) fail("malformed_node_description", `${source}: the espalier root has no name for literalName to apply to`);
+    if (!PLACEHOLDER_SYNTAX.test(name)) {
+      fail("malformed_node_description", `${source}: literalName applies to a name containing placeholder syntax; "${name}" has none`);
     }
   }
   if (module.optional !== undefined && module.instanceOf === undefined) {
@@ -848,6 +891,7 @@ async function readDirectoryModule(
     description: typeof module.description === "string" ? module.description : null,
     fold: module.fold === true, body: typeof module.guidance === "string" ? module.guidance : "",
     instanceOf: module.instanceOf as string | undefined, optional: module.optional === true,
+    ...(module.literalName === true ? { literalName: true } : {}),
     ...(typeof module.guidance === "function" ? { render: module.guidance as (context: DirectoryGuidanceContext) => unknown } : {}),
     ...(typeof module.description === "function" ? { renderDescription: module.description as (context: DirectoryGuidanceContext) => unknown } : {}),
   };
@@ -880,9 +924,10 @@ function materializeInstances(root: TrieNode, docs: Map<string, NodeDoc>): void 
   for (const [at, doc] of docs) {
     if (!doc.instanceOf) continue;
     let node = root;
-    for (const part of at.split("/")) {
+    const parts = at.split("/");
+    for (const [depth, part] of parts.entries()) {
       if (!part) fail("invalid_instance", "the project root cannot be an instance");
-      const segment = parseSegment(part, at);
+      const segment = parseSegment(part, at, { literal: docs.get(parts.slice(0, depth + 1).join("/"))?.literalName === true });
       if (segment.recursive !== null) fail("invalid_instance", `${at}: named instances cannot be declared under a recursive constraint path`);
       const key = trieKey(segment);
       let child = node.children.get(key);
@@ -896,8 +941,9 @@ function materializeInstances(root: TrieNode, docs: Map<string, NodeDoc>): void 
     const reference = path.posix.normalize(path.posix.join(at, doc.instanceOf));
     if (docs.has(reference)) {
       let base = root;
-      for (const part of reference.split("/")) {
-        const segment = parseSegment(part, reference);
+      const referenceParts = reference.split("/");
+      for (const [depth, part] of referenceParts.entries()) {
+        const segment = parseSegment(part, reference, { literal: docs.get(referenceParts.slice(0, depth + 1).join("/"))?.literalName === true });
         const key = trieKey(segment);
         let child = base.children.get(key);
         if (!child) { child = emptyNode(part, segment); base.children.set(key, child); }

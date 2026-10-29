@@ -397,6 +397,8 @@ export interface MapEntry {
   minMatches?: number;
   /** Sibling contract name, without the module suffix; directories end in `/`. */
   instanceOf?: string;
+  /** The name's brackets or braces are the name: the module declared `literalName`. */
+  literal?: true;
 }
 
 export function mapEntries(
@@ -445,6 +447,7 @@ export function mapEntries(
         : (visit.node.rule?.module.description ?? null),
       ...(visit.node.segment.dynamic && (visit.node.rule?.module.minMatches ?? 0) > 1 ? { minMatches: visit.node.rule!.module.minMatches } : {}),
       ...(contract === undefined ? {} : { instanceOf: directory ? `${contract}/` : contract.replace(/\.mjs$/, "") }),
+      ...(visit.node.segment.literal === true ? { literal: true } : {}),
       required:
         visit.node.instanceOf !== undefined ? !visit.node.optional : directory || (visit.node.segment.dynamic && visit.node.rule?.module.optional !== false)
           ? null
@@ -466,10 +469,11 @@ function suffixes(entry: MapEntry): string[] {
   const name = entry.path.endsWith("/") ? entry.path.slice(0, -1) : entry.path;
   const leaf = name.slice(name.lastIndexOf("/") + 1);
   const segment = entry.path.endsWith("/")
-    ? parseSegment(leaf, "map")
-    : parseStructuralLeaf(leaf, "map");
+    ? parseSegment(leaf, "map", { literal: entry.literal })
+    : parseStructuralLeaf(leaf, "map", { literal: entry.literal });
 
   if (!segment.dynamic && entry.required !== null) marks.push(entry.required ? "required" : "optional");
+  if (entry.literal === true) marks.push("literal name");
   if (segment.dynamic) marks.push(entry.path.endsWith("/")
     ? "zero or more matching directories"
     : (entry.minMatches ?? 0) > 1 ? `at least ${entry.minMatches} matching files` : entry.required === true ? "one or more matching files" : "zero or more matching files");

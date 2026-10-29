@@ -248,6 +248,31 @@ const cases: Case[] = [
     espalier: { "src/[name].ts.mjs": `${INERT}export const groups = { one: { by: ["name"], description: "one", rule: "", lint() {} } };\n` },
   },
   {
+    what: "literalName that is not a boolean",
+    code: "module_invalid_export",
+    espalier: { "pages/[id].tsx.mjs": `${INERT}export const literalName = "yes";\n` },
+  },
+  {
+    what: "literalName on a filename with nothing to take literally",
+    code: "module_invalid_export",
+    espalier: { "src/main.ts.mjs": `${INERT}export const literalName = true;\n` },
+  },
+  {
+    what: "literalName on a constraint, whose filename is a selector",
+    code: "module_invalid_export",
+    espalier: { "src/[...path]/no-as-any.ts.mjs": `${INERT}export const literalName = true;\n` },
+  },
+  {
+    what: "literalName on a directory with nothing to take literally",
+    code: "malformed_node_description",
+    espalier: { "src/ESPALIER.mjs": "export const literalName = true;\n" },
+  },
+  {
+    what: "literalName on the espalier root, which has no name",
+    code: "malformed_node_description",
+    espalier: { "ESPALIER.mjs": "export const literalName = true;\n" },
+  },
+  {
     what: "two groupings by the same captures",
     code: "module_invalid_export",
     espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { x: { by: ["a"], description: "x", rule: "", lint() {} }, y: { by: ["a"], description: "y", rule: "", lint() {} } };\n` },

@@ -404,9 +404,11 @@ function planGrammarMigration(root: string, rules: string, skip: string[], fold:
       continue;
     }
     if (!entry.endsWith(".mjs") || path.basename(entry) === "ESPALIER.mjs" || entry.includes("[...")) continue;
+    const source = readFileSync(absolute, "utf8");
+    // A literal name only looks dynamic; its `optional` is a named file's.
+    if (/\bexport\s+const\s+literalName\s*=\s*true\b/.test(sourceCode(source))) continue;
     const leaf = parseStructuralLeaf(path.basename(entry).slice(0, -4), entry);
     if (!leaf.dynamic) continue;
-    const source = readFileSync(absolute, "utf8");
     // Only a direct literal declaration has a source-only, unambiguous rewrite.
     const declaration = /(^|\n)([ \t]*)export\s+const\s+optional\s*=\s*(true|false)\s*;/g;
     const code = sourceCode(source);
