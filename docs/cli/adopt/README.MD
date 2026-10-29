@@ -236,8 +236,9 @@ The value is in the prose you add afterwards, and prose is written per area. The
 3. Write `description` for each module using the project's vocabulary, and
    write `guidance` bodies that state the agreed requirements.
 4. Implement checks in the generated `lint` functions where worthwhile. The
-   `lint` export is required; structural enforcement works even when its body
-   is empty. Test implemented checks against valid and violating examples.
+   `lint` export is optional; structure is enforced without it, so delete the
+   stub where there is nothing to check. Test implemented checks against valid
+   and violating examples.
 5. Run [`espalier build`](../build/README.MD), review the generated guidance,
    then run [`espalier lint`](../lint/README.MD) and `espalier build --check`.
 

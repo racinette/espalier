@@ -8,23 +8,26 @@ That is the whole difference, and it is what makes rule modules testable. There 
 import {
   check,
   createAggregateLinter,
+  createGroupLinter,
   createLinter,
   createTemplate,
   runAggregate,
+  runGroup,
   runRule,
 } from "espalier";
 ```
 
-Three entry points answer three questions. **Does this repository conform?** is
+Four entry points answer four questions. **Does this repository conform?** is
 `check`. **Does this per-file rule catch what it was written to catch?** is
 `runRule`. **Does this collective rule analyze its group correctly?** is
-`runAggregate`.
+`runAggregate`. **Does this grouping judge its group correctly?** is
+`runGroup`.
 
 `createTemplate` is the definition helper rule modules use for the separate
 `espalier create` command; it performs no filesystem operation itself.
 
-`createLinter` and `createAggregateLinter` are identity helpers that provide
-contextual types to rule callbacks. They do not run a rule or change its
+`createLinter`, `createAggregateLinter` and `createGroupLinter` are identity
+helpers that provide contextual types to rule callbacks. They do not run a rule or change its
 runtime contract; their complete type surface is documented in
 [TYPES.MD](TYPES.MD#typed-linter-helpers).
 
@@ -177,8 +180,9 @@ isolated copy of that context. It does not discover
 configuration or infer declaration bindings from the lint match. Omitting
 `guidance` for a function-valued `guidance` or `description` fails with `module_invalid_export`.
 Callback failures and invalid results use the same errors as compilation.
-String prose and descriptions need no guidance context. Modules with no prose
-remain usable for lint-only tests.
+String prose and descriptions need no guidance context. A module with no
+`lint` is accepted and returns no issues; its prose is still rendered and
+validated, which is the case for `runAggregate` and `runGroup` too.
 
 ### What comes back
 
@@ -203,7 +207,7 @@ invocation; repository-level selector behavior belongs to `check` and `lint`.
 
 ### Shared compiler tests
 
-`runRule` and `runAggregate` use the addon object you supply. They never call
+`runRule`, `runAggregate` and `runGroup` use the addon object you supply. They never call
 `prepare` or `setup`, start workers, or dispose the supplied object. Give each
 fixture its own service and release it even if an assertion fails:
 
@@ -281,7 +285,7 @@ As with `runRule`, `runAggregate` validates `targets` but treats the supplied
 sorted match set as already selected.
 
 The unsupported `unobservedImplementationDependencies` export is rejected by
-both rule-testing functions and by compilation. All checks evaluate current
+all three rule-testing functions and by compilation. All checks evaluate current
 inputs; there are no persistent dependency declarations.
 
 ## `runGroup(module, context)`

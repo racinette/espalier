@@ -166,10 +166,11 @@ Every other directory also carries a trailing `/`. Dynamic names retain their
 authored form, such as `[provider]/` or `[button].tsx`. Back-references whose
 bindings are known in a named instance appear as concrete names.
 
-A map that shows a masked or listed placeholder, such as
-`[seq=0(6)]_[name].sql`, is followed by one paragraph explaining the symbols
-that map uses and no others, so a reader who has never seen a mask can read
-the map without leaving it. A map without one says nothing about masks.
+A map whose directory names hold a masked or listed placeholder, such as
+`[seq=0(6)]/`, is followed by one paragraph explaining the symbols those
+names use and no others, so a reader who has never seen a mask can read the
+map without leaving it. A masked filename is explained in its own rule
+section instead. A map without a masked directory says nothing about masks.
 
 Structural rule headings are relative to the placement point that contains
 them. A document headed `src/` therefore describes `context.ts`, not
@@ -423,7 +424,7 @@ is valid for that purpose without becoming a destination for unrelated work.
 ```markdown
 ## `[provider]/client.ts` — an integration with an external API
 
-<the rule body, verbatim>
+<the guidance, verbatim>
 
 Reference implementation: src/clients/stripe/client.ts
 ```
@@ -491,9 +492,11 @@ Search contains DOMAIN.
 A `[module].ts` needs no declaration. Declaring one gives it its own guidance; see `espalier help instances`.
 ```
 
-An abstract contract reads "Every `[module].ts` here is declared, and an
-undeclared one is reported." and, with no instances yet, "No instances are
-declared yet." in place of the introduction. A contract inherited into an
+An abstract contract closes with "Every `[module].ts` here is declared, and
+an undeclared one is reported. See `espalier help instances`.", or "Every
+`[route]/` directory here is declared, …" for a directory, and with no
+instances yet says "No instances are declared yet." in place of the
+introduction. A contract inherited into an
 instance directory gets this section in that directory's document when
 something there is declared an instance of it, so the document that names
 the instances also states what they share. The instances appear in map order,
@@ -521,7 +524,9 @@ file has no dynamic contract to nest under. Its section states the inherited
 guidance first, introduced by "Inherits `app/[route]/loading.tsx`:", then its
 own. An instance directory's own document opens with "An instance of
 `[group]/`, whose guidance applies here:" followed by the contract's guidance,
-so neither document sends the reader up a level.
+or just "An instance of `[group]/`." when the contract has none, so neither
+document sends the reader up a level. The contract is named by its path from
+the repository root.
 
 Constraints come last, under one `Constraints` heading, one sub-section each.
 They are ordered by their rule-file paths, regardless of whether they check
@@ -536,14 +541,14 @@ selected group must follow the rule:
 
 Each file with exactly `.ts` as its extension under `src/` must follow this rule.
 
-<the rule body, verbatim>
+<the guidance, verbatim>
 
 ### message-registry — consistent incoming message registry
 
 Together, paths matching `*/messages.tolk` or
 `*/operations/*/message.tolk` under `src/` must follow this rule.
 
-<the rule body, verbatim>
+<the guidance, verbatim>
 ```
 
 Filename extensions and exported `targets` keep their distinct meanings in
@@ -703,6 +708,7 @@ espalier
 ├─ src/clients
 │  ├─ ESPALIER.mjs
 │  └─ [provider]
+│     ├─ ESPALIER.mjs
 │     ├─ client.ts.mjs
 │     ├─ requestModels.ts.mjs
 │     └─ handlers/webhook.ts.mjs
@@ -724,11 +730,12 @@ src/clients/AGENTS.MD
 
 # acme-web — `src/clients/`
 
-Outbound API integrations. Every upstream provider gets its own directory;
-nothing outside src/clients/ performs HTTP requests directly.
+Every upstream provider gets its own directory. Nothing outside
+`src/clients/` performs HTTP requests directly.
 
 ## Project layout
 
+    src/clients/
     └─ [provider]/          one directory per upstream provider (zero or more
                             matching directories)
        │
@@ -740,26 +747,35 @@ nothing outside src/clients/ performs HTTP requests directly.
        │
        └─ requestModels.ts  request payload types (required)
 
-Every path under src/clients/ must fit the project layout or a documented
-repository-specific purpose.
+## `[provider]/` — one directory per upstream provider
+
+Name the directory after the provider as they spell it: `stripe`, not
+`Stripe`.
 
 ## `[provider]/handlers/webhook.ts` — an inbound webhook handler
 
-Verify the provider's signature before parsing the body. Return 2xx only
-after the event is durably recorded.
+Verify the signature before parsing the body.
 
 ## `[provider]/client.ts` — an integration with an external API
 
-Export a single `create<Provider>Client(config)` factory. All requests go
-through the shared helper in `src/clients/request.ts`; do not call fetch
-directly.
+Export a single `create<Provider>Client(config)` factory.
 
 Reference implementation: src/clients/stripe/client.ts
 
 ## `[provider]/requestModels.ts` — request payload types
 
-Export one interface per endpoint the client calls.
+Types only, no runtime code.
 
+## Other repository paths
+
+These paths are part of the repository but serve specific purposes outside the project layout. Use them only for the purpose stated here.
+
+| Paths | Purpose |
+| --- | --- |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](../../espalier/src/clients/ESPALIER.mjs) to change this document's persistent guidance. |
+
+Every path under src/clients/ must fit the project layout or a documented
+repository-specific purpose.
 ```
 
 `handlers/` sorts ahead of its file siblings because directories come first, and `handlers/` itself carries no text because no `ESPALIER.mjs` describes it — a blank column would say the same nothing at greater length. `no-as-any` is a constraint on `[...path]`, whose longest static prefix is the root, so it renders in the root file and not here.

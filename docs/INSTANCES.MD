@@ -52,10 +52,14 @@ composition and requiredness rules in full.
 
 - The path is static. It is required by default, `optional = true` relaxes
   that, and `create` makes it like any declared file or directory.
-- `explain` and the generated guidance give it its own section, under its
-  contract, with the contract's guidance stated once above.
+- In generated guidance a file gets its own sub-section under its contract,
+  with the contract's guidance stated once above. A directory gets a line
+  under the contract and its own document, which opens with the contract's
+  guidance. `explain` lists the inherited chain.
 - Every inherited check still runs, and findings keep the module that
   produced them.
+- It stays a member of the contract's groupings, with the captures the
+  contract binds. See [TYPES.MD](TYPES.MD#groups).
 
 ## Abstract contracts
 
@@ -69,13 +73,15 @@ export const description = "a route";
 
 Every path the pattern admits must then be declared. One that is not is
 reported by `espalier lint` as `undeclared_instance`, on the file, or on the
-directory with a trailing slash, and the message names the module to write.
-The path is still owned, so it is not `unexpected_path`, and the contract's
-own checks still run against it.
+directory with a trailing slash. The message names the module to write and
+`metadata.contract` names the contract's declaration. The path is still
+owned, so it is not `unexpected_path`, and the contract's own checks still
+run against it.
 
-`espalier create` refuses an undeclared path under an abstract contract with
-the same message, since declaring is authoring and creation never writes
-into the espalier. Declare first, then create.
+`espalier create` refuses an undeclared path under an abstract contract as
+`invalid_create_target`, naming the same module to write, since declaring is
+authoring and creation never writes into the espalier. Declare first, then
+create.
 
 `abstract` goes on a dynamic structural rule or on a dynamic directory's
 `ESPALIER.mjs`, as a boolean. It is rejected on a static rule, on a
@@ -83,6 +89,8 @@ constraint, and on a directory that declares nothing. `minMatches` on an
 abstract contract counts its members as before; an undeclared member counts
 and is reported.
 
-The generated guidance lists an abstract contract's instances as a registry:
-each declared member has its own section, and the map counts "declared"
-rather than "matching" members.
+In generated guidance an abstract contract differs from an ordinary one in
+three places: the map counts "declared" rather than "matching" members, the
+closing "Adding new instances" note says every member here is declared and an
+undeclared one is reported, and with no instances yet the contract says so in
+place of the list. See [the build reference](cli/build/README.MD#contracts).

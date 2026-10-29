@@ -22,7 +22,7 @@
       "code": "undeclared_instance",
       "severity": "error",
       "rule": null,
-      "metadata": { "contract": "clients/[provider].ts.mjs", "captures": { "provider": "adyen" } }
+      "metadata": { "contract": "clients/[provider].ts", "captures": { "provider": "adyen" } }
     }
   ],
   "ownership": {

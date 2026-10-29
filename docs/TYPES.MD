@@ -53,7 +53,7 @@ aggregate form.
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
 | `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
-| `groups` | no | named groupings of a dynamic rule's files by shared captures, each with its own rule and optional `lint` |
+| `groups` | no | named groupings of a dynamic rule's files by shared captures, each with its own `description`, `guidance` and optional `lint` |
 
 ### `description`
 
@@ -123,6 +123,10 @@ or worker. Functions must be deterministic and free of side effects. They have
 no lint inputs or addon state. `build --check` detects stale rendered prose.
 A thrown or rejected callback is `rule_guidance_failed`; a non-string result is
 `module_invalid_export`.
+
+The export was previously named `rule`, on the module and inside each
+grouping. A module still exporting `rule` is rejected with a pointer, and
+`espalier migrate` renames it.
 
 ### `referenceImplementation`
 
@@ -309,8 +313,8 @@ constraints reject `minMatches`.
 
 `instanceOf` is a nonempty contract reference on a named structural leaf or
 on a directory module. It is not valid on constraints or dynamic leaves.
-Named structural rules keep their `description`, `guidance`, and `lint` exports;
-their lint adds to inherited checks. Their optional `template` replaces the
+Named structural rules keep their required `description` and `guidance` and
+optional `lint`; a local lint adds to inherited checks. Their optional `template` replaces the
 inherited creation recipe, without replacing checks. Without a local template,
 creation uses the inherited template and its original captures.
 
@@ -437,7 +441,7 @@ export const groups = {
   set: {
     by: ["num", "group"],
     description: "a migration set",
-    rule: "Steps are numbered from 01 with no gaps.",
+    guidance: "Steps are numbered from 01 with no gaps.",
     async lint({ captures, matches, emit }) {
       // captures = { num: "0001", group: "users" }
       // matches  = every file with those two values, with its full captures
@@ -446,7 +450,7 @@ export const groups = {
   release: {
     by: ["num"],
     description: "one release's migrations",
-    rule: "Every group in a release is listed in RELEASES.txt.",
+    guidance: "Every group in a release is listed in RELEASES.txt.",
     async lint({ captures, matches, read, emit }) { /* … */ },
   },
 };
@@ -497,8 +501,9 @@ scoping rule: a scoped lint that reaches one member runs the whole group.
 
 ## Directory modules
 
-`ESPALIER.mjs` describes its containing directory. It does not export a
-structural `guidance`, `lint`, or `template`. Its exports are:
+`ESPALIER.mjs` describes its containing directory. It does not export `lint`,
+`template`, or `minMatches`; its `guidance` describes the directory, not a
+file. Its exports are:
 
 | Export | Default | Meaning |
 |---|---|---|
@@ -570,7 +575,7 @@ export const lint = createLinter(async ({
 
 It is optional and has no runtime protocol of its own. A previously written
 `export async function lint(context) {}` remains valid, and compilation still
-checks only that `lint` is a function.
+checks only that `lint`, when exported, is a function.
 
 `createAggregateLinter` supplies the distinct aggregate context:
 
@@ -600,7 +605,7 @@ export const groups = {
   set: {
     by: ["num", "group"],
     description: "a migration set",
-    rule: "Steps are numbered from 01 with no gaps.",
+    guidance: "Steps are numbered from 01 with no gaps.",
     lint: createGroupLinter(async ({ group, captures, matches, read, emit }) => {
       // ...
     }),
@@ -837,6 +842,27 @@ An aggregate constraint instead receives:
  * Sorted complete match set, possibly empty.
  * @property {string[]} patterns
  * Admission globs derived from the filename extension or `targets`.
+ * @property {(path: string) => Promise<string>} read
+ * @property {ListFiles} files
+ * @property {EmitIssue} emit
+ * @property {Record<string, unknown>} addons
+ */
+
+/**
+ * Passed to a grouping's `lint`, once per group of a dynamic rule's files.
+ *
+ * @typedef {Object} GroupLintContext
+ *
+ * @property {string} group
+ * The grouping's name in `groups`.
+ * @property {string} path
+ * The directory holding the group, with a trailing slash, or `.`; the default issue path.
+ * @property {string} pattern
+ * The rule's declaration as authored, without `.mjs`.
+ * @property {Record<string, CaptureValue>} captures
+ * The values of the `by` captures, shared by every member.
+ * @property {Array<{ path: string, captures: Record<string, CaptureValue> }>} matches
+ * The members, sorted by path, each with its full captures.
  * @property {(path: string) => Promise<string>} read
  * @property {ListFiles} files
  * @property {EmitIssue} emit

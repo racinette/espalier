@@ -10,8 +10,7 @@ writes the rules.
 
 You change the architecture by adding or editing rules here. A nested
 `AGENTS.MD` beside a group of rules is a local note for those rules, not
-another copy of this page. Exclude tooling directories such as `.claude/` and `.codex/` explicitly
-with `skip` when they live beside the rules.
+another copy of this page.
 
 ## Agree on the architecture
 
@@ -115,10 +114,11 @@ and `guidance`; either may be a string or a sync/async function returning a
 string. Each function receives its own isolated context with the resolved
 config, authored pattern, concrete path when known, and inherited captures.
 It runs once per declaration during compilation, before lint workers start.
-`fold = true` folds the subtree's documents into its ancestor.
+`fold = true` folds the subtree's documents into its ancestor; `literalName`
+and `abstract` are described below.
 Keep structural exports stable;
 compute prose from explicit inputs. Leave the module out when it has nothing
-to say and declares no named instance.
+to say and declares no instance, literal name, or abstract contract.
 
 **A structural rule file names the repository file it governs, with `.mjs`
 appended.** The name can be literal, such as `main.ts.mjs`, or contain a
@@ -200,7 +200,9 @@ A real path whose name holds brackets, such as a Next.js `app/[slug]/`
 route or `pages/[id].tsx`, is declared by a module at that name exporting
 `literalName = true`: on `ESPALIER.mjs` for the directory, on the rule module
 for the file. The name is then static text, required by default, and may
-declare `instanceOf` to inherit a dynamic sibling's contract.
+declare `instanceOf` to inherit a dynamic sibling's contract. Globs and ignore
+files read brackets as character classes; escape a literal name there, as
+`\[slug\]/`.
 
 `{provider}` repeats the text captured by `[provider]` earlier in the same
 path:
@@ -219,15 +221,15 @@ both.
 
 A dynamic rule can state an obligation over several of its files at once by
 exporting `groups`. Each grouping names the captures whose shared values
-identify a group, describes what one group is, states the rule for the group,
-and lints each group with its members:
+identify a group, describes what one group is, states the guidance for the
+group, and may lint each group with its members:
 
 ```js
 export const groups = {
   set: {
     by: ["num", "group"],
     description: "a migration set",
-    rule: "Steps are numbered from 01 with no gaps.",
+    guidance: "Steps are numbered from 01 with no gaps.",
     async lint({ captures, matches, emit }) { /* one group at a time */ },
   },
 };
@@ -290,8 +292,9 @@ which paths either selector can reach. `aggregate = true` changes only whether
 Files such as `AGENTS.MD` can live beside the rules when the config’s
 `skip` list excludes them from compilation. `espalier init` sets this up
 for common agent instruction files, `.git`, and `.gitkeep`. Dot-prefixed names
-are ordinary paths. Exclude tooling directories explicitly with `skip`; an
-excluded directory may contain modules and `ESPALIER.mjs` without compiling them.
+are ordinary paths. `skip` uses gitignore syntax. Exclude tooling directories
+such as `.claude/` and `.codex/` explicitly with it; an excluded directory may
+contain modules and `ESPALIER.mjs` without compiling them.
 
 `espalier help matching` is the rest of this grammar.
 
@@ -397,7 +400,7 @@ export async function lint({ read, emit }) {
 
 Use `espalier create src/features/example-feature/AGENTS.md` for an existing feature,
 or `espalier create src/features/example-feature --with AGENTS.md` when creating it.
-The generated shared document lists the optional leaf and renders its rule,
+The generated shared document lists the optional leaf and renders its guidance,
 so readers can discover the notes. `explain` names their structural owner;
 `lint` checks them like other governed source.
 
@@ -528,11 +531,12 @@ directory exports `instanceOf = "../[group]"` from `ESPALIER.mjs`; a named file
 exports `instanceOf = "[module].ts.mjs"` to specialize a matching dynamic leaf
 in its inherited directory. These references name contracts, not JS imports.
 
-A contract may export `abstract = true` to refuse anonymous members: every
-path it admits must then be declared as an instance, and `espalier lint`
-reports one that is not. Use it where the set of members is itself part of
-the architecture, such as the providers a system integrates with.
-`espalier help instances` has the how-to.
+A dynamic rule module, or a dynamic directory's `ESPALIER.mjs`, may export
+`abstract = true` to refuse anonymous members: every path it admits must then
+be declared as an instance, `espalier lint` reports one that is not as
+`undeclared_instance`, and `espalier create` refuses to make it. Use it where
+the set of members is itself part of the architecture, such as the providers
+a system integrates with. `espalier help instances` has the how-to.
 
 Every inherited check still runs. Local rules add checks and domain guidance;
 they cannot admit unsupported paths, remove required members, or suppress base

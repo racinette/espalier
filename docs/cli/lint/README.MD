@@ -27,7 +27,7 @@ espalier lint [paths...]
 
 1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, build the matcher, and render computed descriptions, guidance, and directory guidance. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `guidance` export, a guidance callback that fails — stops the run before repository linting begins. Workers receive rendered guidance text and descriptions; they do not evaluate those callbacks. `--no-guidance` suppresses output, not compilation or callback validation.
 2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and a traversal failure stops the run. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
-3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required named leaves with no file report `missing_required_file`; absent required named directory instances report `missing_required_directory`; collections below their minimum report `missing_required_match`. See [MATCHING.MD](../../MATCHING.MD).
+3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. A match of an abstract contract that no instance declares reports `undeclared_instance`. Required named leaves with no file report `missing_required_file`; absent required named directory instances report `missing_required_directory`; collections below their minimum report `missing_required_match`. See [MATCHING.MD](../../MATCHING.MD).
 4. **Prepare execution.** Capture governed source contents, await addon preparation, and initialize all participating workers.
 5. **Run rules.** For every owned file: its inherited structural checks and local `lint`, plus each per-file constraint whose directory pattern and selector admit it. Run each aggregate once over its complete selected group, and each grouping of a dynamic rule once per group of files sharing its `by` captures in one directory.
 6. **Report and clean up.** Report distinct issues from each invocation as they arrive, then dispose worker-local addons.
@@ -234,7 +234,8 @@ reports only collections whose containing directory is inside the scope.
 
 `undeclared_instance` — an abstract contract admits this file, or this
 directory reported with a trailing slash, and no instance declares it. The
-message names the module to write; `metadata` names the `contract`. The path
+message names the module to write; `metadata.contract` is the contract's
+declaration, `clients/[provider].ts` or `app/[route]/`. The path
 is owned, so the contract's own checks still run. See
 [INSTANCES.MD](../../INSTANCES.MD).
 
@@ -267,12 +268,12 @@ clients/acme/random.ts
 
     The espalier recognizes  clients/[provider]/   (provider = "acme")
     Declared there:
-      client.ts          the provider's HTTP client
-      requestModels.ts   request payload types
+      client.ts
+      requestModels.ts
 
 clients/stripe/client.ts
 
-    Rule (the provider's HTTP client):
+    Guidance (the provider's HTTP client):
       Export a single create<Provider>Client(config) factory.
       All requests go through the shared request helper.
 

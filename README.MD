@@ -46,9 +46,9 @@ espalier
 
 Each structural rule file in this tree declares:
 
-- a **content description** — what kind of file this represents
-- a **rule** — the natural-language conventions that file must follow
-- a **lint function** — the deterministic check that verifies adherence
+- a **description** — what kind of file this represents
+- **guidance** — the natural-language conventions that file must follow
+- optionally, a **lint function** — the deterministic check that verifies adherence
 - optionally, a **template** — a typed, documented way to create that kind of file
 
 From this single source, `espalier` produces two standing surfaces and an
@@ -279,7 +279,7 @@ migrations
 
 `0` is a digit, `#` an optional digit, `A` a letter, `a` a lowercase letter, `X` a letter or digit, `x` a lowercase letter or digit, and `-` or `_` itself; `+` repeats the previous element one or more times and `(n)` exactly n times. A masked placeholder is a strict subset of a bare one, so `[seq=0+]_[name].tables.sql.mjs` and `[stem].tables.sql.mjs` can sit beside it and own what it does not. Two captures in one name must be separated by text neither can absorb; `[a]_[b]` is rejected at compile time with a name that splits two ways.
 
-The alternative is a rule body asking politely and a `lint` function checking afterwards, for a fact the espalier can simply state. Stating it also puts the requirement in the generated documentation, where an agent reads it before writing the file rather than after.
+The alternative is guidance asking politely and a `lint` function checking afterwards, for a fact the espalier can simply state. Stating it also puts the requirement in the generated documentation, where an agent reads it before writing the file rather than after.
 
 Structural rules and per-file constraints receive their declaration as
 `context.pattern`, placeholders and all, and the matched values in
@@ -289,8 +289,8 @@ captures.
 
 A dynamic rule can also judge its files in groups. `groups` names the
 captures a group shares, such as a migration set's number and name, and each
-grouping carries its own guidance text and a `lint` that runs once per group with
-the members. See [groups](docs/TYPES.MD#groups).
+grouping carries its own guidance and, optionally, a `lint` that runs once per
+group with the members. See [groups](docs/TYPES.MD#groups).
 
 Full grammar, matching precedence, and requiredness: [docs/MATCHING.MD](docs/MATCHING.MD) (`espalier help matching`).
 

@@ -26,13 +26,13 @@ to select files for either kind of constraint. A filename extension is exact;
 per file or over a group.
 
 Read the reference for this CLI with `espalier help types`,
-`espalier help matching`, and `espalier help api`. `espalier help` lists every
-page. If the contract's example obligations are not enough,
+`espalier help matching`, `espalier help instances`, and `espalier help api`.
+`espalier help` lists every page. If the contract's example obligations are not enough,
 `espalier examples --help` lists the example projects packed with this
 version. `espalier examples <name>` locates one;
 `espalier examples <name> --copy <directory>` copies it into a new directory.
 The complete contracts are [TYPES.MD](TYPES.MD), [MATCHING.MD](MATCHING.MD),
-and [API.MD](API.MD).
+[INSTANCES.MD](INSTANCES.MD), and [API.MD](API.MD).
 
 ## Worked example
 

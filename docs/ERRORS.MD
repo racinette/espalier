@@ -8,8 +8,9 @@ already emitted can remain in CLI output, and other child projects may still
 run. Exit `2` means that output cannot establish conformance. Programmatic
 `check` rejects with `OperationalError` instead of returning partial findings.
 
-Three codes are **issues** rather than failures and are not listed here:
-`unexpected_path`, `missing_required_file`, and `missing_required_match`. They come from matching, exit `1`, and are documented in [MATCHING.MD](MATCHING.MD#built-in-issues).
+Five codes are **issues** rather than failures and are not listed here:
+`unexpected_path`, `missing_required_file`, `missing_required_directory`,
+`missing_required_match` and `undeclared_instance`. They come from matching, exit `1`, and are documented in [MATCHING.MD](MATCHING.MD#built-in-issues) and [cli/lint/README.MD](cli/lint/README.MD#built-in-issues).
 
 Codes emitted by rule modules are free-form strings chosen by their authors. `espalier` neither validates nor namespaces them. Everything below is `espalier`'s own.
 
@@ -71,8 +72,9 @@ See [TYPES.MD](TYPES.MD).
 |---|---|
 | `module_import_failed` | the module could not be parsed or threw while being imported |
 | `module_missing_export` | no `guidance`, or no `description` on a structural rule |
-| `module_invalid_export` | an export of the wrong type or on the wrong rule kind, or `targets` together with a constraint filename extension |
+| `module_invalid_export` | an export of the wrong type or on the wrong rule kind, `targets` together with a constraint filename extension, a `lint` that is not a function, or a `rule` export left over from before the rename to `guidance` (`espalier migrate` rewrites a direct declaration and refuses a destructured or re-exported one) |
 | `invalid_reference_implementation` | a `referenceImplementation` that is absent, is not a governed file, or is not actually owned or covered by its rule |
+| `invalid_instance` | a specialization has a missing, incompatible, or cyclic base, introduces an unsupported child, or weakens inherited requirements |
 
 ## Configuration against the espalier
 
@@ -120,7 +122,7 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | `invalid_adopt_target` | `adopt` was given a path that is outside the repository, is not a directory, is excluded by repository policy, would produce skipped rules or prose, or is the espalier root |
 | `unmarked_documentation` | a build-owned documentation path contains an unmarked file; `build --force` may overwrite it, while `adopt --force` first preserves its contents in the corresponding `ESPALIER.mjs` |
 | `missing_argument` | a command was invoked without an argument it needs |
-| `invalid_create_target` | `create` was given a path outside the repository, excluded by repository policy, or not structurally declared as a file or directory |
+| `invalid_create_target` | `create` was given a path outside the repository, excluded by repository policy, not structurally declared as a file or directory, or admitted by an abstract contract without being declared as an instance |
 | `invalid_template_arguments` | create options or optional-leaf selections are invalid; template arguments are unknown, missing, outside schema choices, before `--`, or supplied to `help` |
 | `create_target_exists` | the requested file or directory already exists; `create` never overwrites |
 | `template_threw` | a template renderer threw instead of producing source |
@@ -148,5 +150,3 @@ is retained with only the coordinates that could be established.
 | Code | |
 |---|---|
 | `internal_error` | a bug in `espalier`. The stack trace is reported; please open an issue |
-
-| `invalid_instance` | A specialization has a missing, incompatible, or cyclic base, introduces an unsupported child, or weakens inherited requirements. |

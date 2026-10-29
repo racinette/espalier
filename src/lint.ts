@@ -138,7 +138,7 @@ async function lintOne(
     if (!file.rule.module.abstract || !inScope(file.path)) continue;
     builtin(file.path, "undeclared_instance",
       `this file matches the abstract contract \`${file.rule.pattern}\` and is not declared; ${declareHint(`${file.path}.mjs`)}`,
-      { contract: file.rule.modulePath, captures: file.captures });
+      { contract: file.rule.pattern, captures: file.captures });
   }
   for (const [directory, contract] of [...undeclaredDirectories].sort(([a], [b]) => a.localeCompare(b))) {
     if (!inScope(directory)) continue;

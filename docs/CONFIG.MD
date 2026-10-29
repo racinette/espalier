@@ -190,9 +190,12 @@ A list this long is easy to let grow, and a growing one means the espalier descr
 
 ## `skip`
 
-Required. Gitignore-syntax patterns relative to the espalier root. Matching
-directories are outside the rule tree: they are pruned without inspecting their
-contents. Matching non-grammar files are omitted from compilation.
+Required. Gitignore-syntax patterns relative to the espalier root, read by
+the same code as [`.espalierignore`](#espalierignore), brackets included: a
+rule directory literally named `[slug]` is skipped with `app/\[slug\]/`.
+Matching directories are outside the rule tree: they are pruned without
+inspecting their contents. Matching non-grammar files are omitted from
+compilation.
 
 ```yaml
 skip:

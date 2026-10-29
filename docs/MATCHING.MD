@@ -38,8 +38,10 @@ Nothing outside src/clients/ performs HTTP requests directly.`;
 export const fold = false;
 ```
 
-All three exports are optional. `description` and `guidance` may instead be
+These exports are optional. `description` and `guidance` may instead be
 sync/async functions of the [compilation context](TYPES.MD#directory-modules).
+The full list, including `instanceOf`, `literalName` and `abstract`, is in
+[TYPES.MD](TYPES.MD#directory-modules).
 `fold = true` folds this directory and its entire subtree
 into the nearest enclosing generated document. It changes placement only.
 See [Named instances](#named-instances) for context and inheritance.
@@ -53,7 +55,9 @@ both directory formats in the same directory are rejected.
 apply to matching, constraints, creation, documentation, and adoption.
 
 **`skip` excludes rule-tree entries.** Patterns are relative to the espalier
-root. Matching directories are pruned before reading their contents, including
+root and use gitignore syntax, read by the same code as `.espalierignore` and
+`ignoreFiles`, so a rule directory literally named `[slug]` is skipped with
+`app/\[slug\]/`. Matching directories are pruned before reading their contents, including
 any `.mjs` or `ESPALIER.mjs` inside. In directories that are inspected, matching
 non-grammar files are skipped; individually skipping a `.mjs` module or
 `ESPALIER.mjs` is `skip_hides_grammar`. Exclude a tooling directory as a whole,
@@ -316,8 +320,9 @@ from a placeholder of the same spelling.
 
 The flag is rejected on a constraint, whose filename is a selector rather than
 a path, and on a name that holds no bracket or brace, where there is nothing
-to take literally. Masks, lists and extension unions cannot combine with it:
-the whole name is text.
+to take literally: `module_invalid_export` on a rule module,
+`malformed_node_description` on a directory module. Masks, lists and extension
+unions cannot combine with it: the whole name is text.
 
 In `targets` and `context.files()`, which use glob syntax, a bracket is a
 character class. Escape it to name a literal path: `"\\[slug\\]/**"`. The
@@ -429,7 +434,7 @@ Espalier escapes literal text from structural directory segments when composing
 constraint admission globs. A directory named `literal?` in a rule path stays
 literal; only exported target patterns introduce glob syntax there.
 
-External ignore files and `.espalierignore` retain gitignore syntax.
+External ignore files, `.espalierignore` and `skip` use gitignore syntax.
 
 ## Ownership
 
@@ -442,7 +447,8 @@ Structural rules compile into a trie, one node per path segment. Matching walks 
 static  >  resolved  >  dynamic
 ```
 
-A **static** segment is a literal. A **resolved** segment contains a back-reference and becomes a literal once the captures above it are bound. A **dynamic** segment contains a `[name]` and matches many.
+A **static** segment is a literal, including a bracketed name declared
+`literalName` (see [Literal names](#literal-names)). A **resolved** segment contains a back-reference and becomes a literal once the captures above it are bound. A **dynamic** segment contains a `[name]` and matches many.
 
 The order is specificity, not a table to memorise: a segment that names one file beats one that names many, and a segment that always names the same file beats one that names a different file per instance.
 
@@ -472,7 +478,8 @@ clients
 
 The winning structural rule's `lint` runs, together with every contract it
 explicitly inherits. Unrelated matching siblings do not run. See
-[Named instances](#named-instances).
+[Named instances](#named-instances). A rule's `groups` run once per group
+beside it; see [TYPES.MD](TYPES.MD#groups).
 
 Constraints work differently. They do not participate in ownership and they do not compete. **Every** constraint whose directory pattern and selector admit a file runs against it, in addition to that file's structural owner.
 
@@ -605,7 +612,9 @@ files by default. `minMatches = N` requires at least N owned files in the
 containing directory. `optional` is invalid on dynamic leaves. Each owned file
 follows its rule; a matching file claimed by a more specific sibling follows
 that sibling's rule instead and does not count toward the collection, unless
-the sibling specializes this collection through `instanceOf`.
+the sibling specializes this collection through `instanceOf`. An `abstract`
+collection admits the same files but reports any that are not declared
+instances; see [INSTANCES.MD](INSTANCES.MD).
 
 A required collection on the static spine must meet its minimum even if its
 containing directory is absent. Beneath a dynamic directory, each instantiated
@@ -780,16 +789,9 @@ the same source valid under the base contract. Specialization can add
 requirements, never remove inherited requirements. Constraints retain their
 ordinary scope and complete aggregate membership.
 
-Directory guidance lives in `ESPALIER.mjs`, which exports optional
-`description` and `guidance` (strings or sync/async functions), plus `fold`
-(boolean). Each function receives `{ config, pattern, path, captures }`:
-`pattern` is the authored directory path, `path` is its concrete path when
-fully bound (otherwise null), and `captures` contains known bindings. The
-context is an isolated copy for each callback. Both exports must return strings
-and should be deterministic for the same inputs. Structural metadata is resolved
-before those callbacks run during compilation; computed prose cannot change it.
-Legacy `ESPALIER.MD` is accepted
-for migration; declaring both formats in one directory is an error.
+Directory guidance lives in `ESPALIER.mjs`; its exports and callback context
+are described under [Node kinds](#node-kinds) and in
+[TYPES.MD](TYPES.MD#directory-modules).
 
 In generated guidance an instance reads under its contract: the contract's
 guidance is stated once in the document that lists the instances, and each
@@ -804,4 +806,5 @@ A dynamic rule, or a dynamic directory's `ESPALIER.mjs`, may export
 names, with the same precedence, and a declared instance still wins as a
 static sibling. What changes is the verdict on a match that no instance
 declares. It is reported as `undeclared_instance` rather than accepted, and
-`create` refuses to make it. [INSTANCES.MD](INSTANCES.MD) is the how-to.
+`create` refuses to make it as `invalid_create_target`.
+[INSTANCES.MD](INSTANCES.MD) is the how-to.

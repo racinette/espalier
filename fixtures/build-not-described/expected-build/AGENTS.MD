@@ -53,7 +53,7 @@ Use this loop:
    starts empty; use --with or --with-optional to include optional files.
 4. Review the created source, complete any placeholders, and make the remaining
    change within the structure established for the task.
-5. Run `espalier lint` and follow the rule text attached to each finding.
+5. Run `espalier lint` and follow the guidance text attached to each finding.
 6. Run `espalier build`, review and include any generated guidance changes,
    then run `espalier build --check` immediately before committing.
 

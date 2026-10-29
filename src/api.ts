@@ -148,8 +148,6 @@ export interface AggregateRuleContext {
 }
 
 export interface GroupRuleContext {
-  /** Required for function-valued rule prose or descriptions. */
-  guidance?: RuleGuidanceContext;
   /** The grouping to run, by its name in `groups`. */
   group: string;
   /** The values of the `by` captures the members share. */
