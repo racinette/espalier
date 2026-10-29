@@ -6,9 +6,10 @@
 // are properties of one pattern against one path, and a fixture would need a
 // tree per pattern to say the same thing.
 //
-// The claim being held to is narrow and written down: gitignore *syntax*, not
-// gitignore compliance. Where the two diverge, the divergence is documented and
-// is asserted here so that closing it later is a decision rather than a drift.
+// The patterns are read by the same library that reads `ignoreFiles`, so a
+// line means the same thing in `.gitignore`, `.espalierignore` and `skip`.
+// What this file adds is the rule-by-rule evaluation around it: which rule won,
+// and that an excluded ancestor is final.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -123,17 +124,20 @@ test("surrounding whitespace is not part of the pattern", () => {
   assert.equal(matches(["  notes.txt  "], "notes.txt"), true);
 });
 
-test("character classes are not supported, and match literally", () => {
-  // Documented as unsupported rather than merely absent: `espalier` is not a
-  // git client, and a second silently-different gitignore implementation is
-  // what reading these files directly was meant to avoid. CONFIG.MD.
-  assert.equal(matches(["[a-z].ts"], "b.ts"), false);
-  assert.equal(matches(["[a-z].ts"], "[a-z].ts"), true);
+test("character classes read as git reads them", () => {
+  // One reader for every exclusion source. A line copied from `.gitignore`
+  // into `.espalierignore` keeps its meaning, and a Next.js `[slug]` route is
+  // named the way git names it. CONFIG.MD ".espalierignore".
+  assert.equal(matches(["[a-z].ts"], "b.ts"), true);
+  assert.equal(matches(["[a-z].ts"], "[a-z].ts"), false);
+  assert.equal(matches(["app/[slug]/"], "app/s/page.tsx"), true);
+  assert.equal(matches(["app/[slug]/"], "app/[slug]/page.tsx"), false);
+  assert.equal(matches(["app/\\[slug\\]/"], "app/[slug]/page.tsx"), true);
 });
 
-test("backslashes are not escapes, and match literally", () => {
-  assert.equal(matches(["\\#notes"], "#notes"), false);
-  assert.equal(matches(["\\#notes"], "\\#notes"), true);
+test("backslashes escape, as in git", () => {
+  assert.equal(matches(["\\#notes"], "#notes"), true);
+  assert.equal(matches(["\\#notes"], "\\#notes"), false);
 });
 
 test("excludedBy names the pattern and where it came from", () => {

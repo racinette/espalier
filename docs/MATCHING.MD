@@ -320,7 +320,9 @@ to take literally. Masks, lists and extension unions cannot combine with it:
 the whole name is text.
 
 In `targets` and `context.files()`, which use glob syntax, a bracket is a
-character class. Escape it to name a literal path: `"\\[slug\\]/**"`.
+character class. Escape it to name a literal path: `"\\[slug\\]/**"`. The
+same goes for `.espalierignore`, `skip` and every ignore file, which read
+brackets as git does: `app/\[slug\]/`.
 
 ### Multiple extensions
 

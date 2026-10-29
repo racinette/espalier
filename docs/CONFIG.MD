@@ -151,7 +151,7 @@ The value is a directory path, and is read as one: `espalier`, `./espalier` and 
 
 ## `.espalierignore`
 
-Paths `espalier` does not govern, one per line, in a file beside `espalier.config.yaml`. Gitignore syntax — leading `!` negates, later patterns win, a trailing `/` matches directories only, and `#` at the start of a line opens a comment.
+Paths `espalier` does not govern, one per line, in a file beside `espalier.config.yaml`. Gitignore syntax — leading `!` negates, later patterns win, a trailing `/` matches directories only, `#` at the start of a line opens a comment, `[a-z]` is a character class and a backslash escapes. The patterns are read by the same code that reads [`ignoreFiles`](#ignorefiles), so a line means the same thing in both. A real name holding brackets, such as a Next.js `app/[slug]/` route, is written `app/\[slug\]/`, as in git.
 
 This is the only escape from strict structural enforcement. Everything else in the repository must be owned by a structural rule or it is reported as `unexpected_path`.
 

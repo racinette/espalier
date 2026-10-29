@@ -1,8 +1,13 @@
-// Gitignore-syntax matching for `ignore` and for whatever `ignoreFiles` names.
-// docs/CONFIG.MD "ignore".
+// Gitignore-syntax matching for `.espalierignore` and `skip`, rule by rule so
+// that the winning rule and its comment can be reported. docs/CONFIG.MD
+// ".espalierignore". The patterns themselves are read by the `ignore` package,
+// the same reader `ignoreFiles` uses, so one line means one thing wherever it
+// is written.
+
+import ignore from "ignore";
 
 export interface IgnoreRule {
-  matcher: RegExp;
+  matcher: { test(local: string): boolean };
   negated: boolean;
   dirOnly: boolean;
   /** The pattern as written, for reporting. */
@@ -28,38 +33,22 @@ export interface IgnoreRule {
   group: number;
 }
 
-function escape(char: string): string {
-  return /[.*+?^${}()|[\]\\]/.test(char) ? `\\${char}` : char;
-}
-
-function toMatcher(glob: string, anchored: boolean): RegExp {
-  let body = "";
-
-  for (let i = 0; i < glob.length; i += 1) {
-    const char = glob[i]!;
-
-    if (char === "*") {
-      if (glob[i + 1] === "*") {
-        const afterSlash = i === 0 || glob[i - 1] === "/";
-        const beforeSlash = glob[i + 2] === "/";
-        if (afterSlash && beforeSlash) {
-          // `**/` matches zero or more leading directories.
-          body += "(?:.*/)?";
-          i += 2;
-        } else {
-          body += ".*";
-          i += 1;
-        }
-      } else {
-        body += "[^/]*";
-      }
-      continue;
-    }
-
-    body += char === "?" ? "[^/]" : escape(char);
-  }
-
-  return new RegExp(`^${anchored ? body : `(?:.*/)?${body}`}$`);
+/**
+ * One pattern, matched the way git would match it, by the same library that
+ * reads `ignoreFiles`. Negation, the directory-only slash and anchoring are
+ * decided by `compileIgnore` and `excludedBy` so that a rule can be reported;
+ * the pattern handed here has had them taken off, with a root anchor restored.
+ */
+function toMatcher(glob: string, rooted: boolean): { test(local: string): boolean } {
+  const matcher = ignore({ ignoreCase: false }).add(rooted ? `/${glob}` : glob);
+  // Callers ask about root-relative paths in whatever spelling they have,
+  // including the root itself; the reader wants `a/b` and nothing else.
+  return {
+    test: (local) => {
+      const relative = local.replace(/^(?:\.\/|\/)+/, "");
+      return relative !== "" && relative !== "." && matcher.ignores(relative);
+    },
+  };
 }
 
 export function compileIgnore(
@@ -95,12 +84,8 @@ export function compileIgnore(
     const rooted = glob.startsWith("/");
     if (rooted) glob = glob.slice(1);
 
-    // A pattern with an interior slash is anchored to the repository root;
-    // a bare name matches at any depth.
-    const anchored = rooted || glob.includes("/");
-
     rules.push({
-      matcher: toMatcher(glob, anchored),
+      matcher: toMatcher(glob, rooted),
       negated,
       dirOnly,
       pattern,
