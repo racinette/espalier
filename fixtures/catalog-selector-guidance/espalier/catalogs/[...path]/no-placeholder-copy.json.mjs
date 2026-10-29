@@ -1,5 +1,5 @@
 export const description = "shipped copy has no editorial placeholders";
-export const rule = `No catalog ships TODO or TBD as display copy. Finish each
+export const guidance = `No catalog ships TODO or TBD as display copy. Finish each
 message in its language before publishing the catalog.`;
 
 export async function lint({ read, emit }) {

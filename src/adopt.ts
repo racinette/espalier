@@ -65,7 +65,7 @@ function stub(description: string, optional: boolean): string {
   const marker = optional ? "\nexport const optional = true;             // TODO\n" : "";
   return `export const description = "${description}";   // TODO
 
-export const rule = \`\`;                  // TODO
+export const guidance = \`\`;              // TODO
 ${marker}
 export async function lint() {}
 `;

@@ -1,6 +1,6 @@
 export const description = "the reference page";
 
-export const rule = `Opens with the invocation as its level-one heading, then a
+export const guidance = `Opens with the invocation as its level-one heading, then a
 \`## Usage\` block listing every flag \`espalier init\` accepts. A reader
 looking up a command should not have to read the parser.
 

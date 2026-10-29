@@ -1,5 +1,5 @@
 export const description = "walking the repository";
 
-export const rule = ``;
+export const guidance = ``;
 
 export async function lint() {}

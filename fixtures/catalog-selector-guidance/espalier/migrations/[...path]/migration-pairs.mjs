@@ -1,7 +1,7 @@
 export const aggregate = true;
 export const targets = ["**/*.up.sql", "**/*.down.sql"];
 export const description = "every schema revision has both directions";
-export const rule = `Every numbered schema revision ships exactly one forward
+export const guidance = `Every numbered schema revision ships exactly one forward
 script and one rollback script. A release without either direction cannot be
 applied and reverted reliably.`;
 

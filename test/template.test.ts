@@ -57,7 +57,7 @@ function scratch(
 
 const SCHEMA_TEMPLATE = `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "a generated source module";
-export const rule = \`Keep it generated.\`;
+export const guidance = \`Keep it generated.\`;
 export async function lint() {}
 export const template = createTemplate({
   varname: {
@@ -110,7 +110,7 @@ function directoryRepository(): string {
     "espalier/clients/[provider]/client.ts.mjs",
     `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "the client implementation";
-export const rule = \`Implement the client.\`;
+export const guidance = \`Implement the client.\`;
 export async function lint() {}
 export const template = createTemplate({
   transport: {
@@ -128,7 +128,7 @@ export const template = createTemplate({
     "espalier/clients/[provider]/requestModels.ts.mjs",
     `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "request payload types";
-export const rule = \`Define requests.\`;
+export const guidance = \`Define requests.\`;
 export async function lint() {}
 export const template = createTemplate({
   format: {
@@ -152,7 +152,7 @@ export const template = createTemplate({
     "espalier/clients/[provider]/models/error.ts.mjs",
     `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "client error types";
-export const rule = \`Define errors.\`;
+export const guidance = \`Define errors.\`;
 export async function lint() {}
 export const template = createTemplate({
   withDocs: {
@@ -168,7 +168,7 @@ export const template = createTemplate({
     "espalier/clients/[provider]/{provider}.config.ts.mjs",
     `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "provider configuration";
-export const rule = \`Configure the provider.\`;
+export const guidance = \`Configure the provider.\`;
 export async function lint() {}
 export const template = createTemplate(({ path, captures }) =>
   JSON.stringify({ path, captures }) + "\\n"
@@ -179,7 +179,7 @@ export const template = createTemplate(({ path, captures }) =>
     root,
     "espalier/clients/[provider]/notes.txt.mjs",
     `export const description = "integration notes";
-export const rule = \`Notes may start empty.\`;
+export const guidance = \`Notes may start empty.\`;
 export async function lint() {}
 `,
   );
@@ -187,7 +187,7 @@ export async function lint() {}
     root,
     "espalier/clients/[provider]/README.md.mjs",
     `export const description = "optional client documentation";
-export const rule = \`Document unusual clients.\`;
+export const guidance = \`Document unusual clients.\`;
 export const optional = true;
 export async function lint() {}
 `,
@@ -196,7 +196,7 @@ export async function lint() {}
     root,
     "espalier/clients/[provider]/[extension].ts.mjs",
     `export const description = "optional extension collection";
-export const rule = \`Extensions are a collection.\`;
+export const guidance = \`Extensions are a collection.\`;
 export async function lint() {}
 `,
   );
@@ -204,7 +204,7 @@ export async function lint() {}
     root,
     "espalier/clients/[provider]/plugins/[plugin]/index.ts.mjs",
     `export const description = "plugin entrypoint";
-export const rule = \`Implement a plugin.\`;
+export const guidance = \`Implement a plugin.\`;
 export async function lint() {}
 `,
   );
@@ -378,7 +378,7 @@ test("directory help leads to optional file options without creating or renderin
   const rule = `import { createTemplate } from ${JSON.stringify(api)};
 import { writeFileSync } from 'node:fs';
 export const description = "optional notes";
-export const rule = \`Document the group.\`;
+export const guidance = \`Document the group.\`;
 export const optional = true;
 export function lint() {}
 export const template = createTemplate({
@@ -525,7 +525,7 @@ test("a directory render failure leaves no partial target", () => {
       "espalier/clients/[provider]/requestModels.ts.mjs",
       `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "request payload types";
-export const rule = \`Define requests.\`;
+export const guidance = \`Define requests.\`;
 export async function lint() {}
 export const template = createTemplate(() => { throw new Error("cannot render requests"); });
 `,
@@ -570,7 +570,7 @@ test("create uses the narrowest dynamic directory and file, including help and c
   const template = (body: string): string =>
     `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "simulation source";
-export const rule = "Declare the named simulation source.";
+export const guidance = "Declare the named simulation source.";
 export async function lint() {}
 export const template = createTemplate(${body});
 `;
@@ -615,7 +615,7 @@ export const template = createTemplate(${body});
 test("directory create and lint preserve newline captures through specialized back-references", () => {
   const template = `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "simulation source";
-export const rule = "Declare the named simulation source.";
+export const guidance = "Declare the named simulation source.";
 export async function lint() {}
 export const template = createTemplate(({ captures }) => JSON.stringify(captures) + "\\n");
 `;
@@ -641,7 +641,7 @@ export const template = createTemplate(({ captures }) => JSON.stringify(captures
 test("file create and explain support a newline stem with an extension union", () => {
   const template = `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "simulation source";
-export const rule = "Declare the named simulation source.";
+export const guidance = "Declare the named simulation source.";
 export async function lint() {}
 export const template = createTemplate(({ captures }) => JSON.stringify(captures) + "\\n");
 `;
@@ -673,7 +673,7 @@ test("a trailing slash selects a directory when the same spelling can be a file"
       "espalier/widgets/item.mjs",
       `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "the item file";
-export const rule = \`An item file.\`;
+export const guidance = \`An item file.\`;
 export async function lint() {}
 export const template = createTemplate(() => "file\\n");
 `,
@@ -683,7 +683,7 @@ export const template = createTemplate(() => "file\\n");
       "espalier/widgets/item/index.ts.mjs",
       `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "the item entrypoint";
-export const rule = \`An item directory.\`;
+export const guidance = \`An item directory.\`;
 export async function lint() {}
 export const template = createTemplate(() => "directory\\n");
 `,
@@ -715,13 +715,13 @@ export const template = createTemplate(() => "directory\\n");
 
 test("directory help lists nonempty collections while create leaves their filenames to the author", () => {
   const root = repository(`export const description = "a member";
-export const rule = "Each group has at least one member.";
+export const guidance = "Each group has at least one member.";
 export const minMatches = 1;
 export function lint() {}
 `, "groups/[group]/[member].js.mjs");
   try {
     const rule = `export const description = "a test";
-export const rule = "Each group has a test.";
+export const guidance = "Each group has a test.";
 export const minMatches = 1;
 export function lint() {}
 `;
@@ -773,7 +773,7 @@ test("a declared directory with no required leaves is created empty", () => {
       root,
       "espalier/groups/[group]/notes.md.mjs",
       `export const description = "optional notes";
-export const rule = \`Notes are optional.\`;
+export const guidance = \`Notes are optional.\`;
 export const optional = true;
 export async function lint() {}
 `,
@@ -883,7 +883,7 @@ test("the help action refuses trailing template options", () => {
 test("former framework flags are available to the template schema", () => {
   const rule = `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "a configurable module";
-export const rule = \`Keep the configuration.\`;
+export const guidance = \`Keep the configuration.\`;
 export async function lint() {}
 export const template = createTemplate({
   config: { type: "string", required: true, description: "Configuration name" },
@@ -948,7 +948,7 @@ test("the no-schema overload omits only the template arguments", () => {
 
   const rule = `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "an empty module";
-export const rule = \`No exports.\`;
+export const guidance = \`No exports.\`;
 export async function lint() {}
 export const template = createTemplate(() => "export {};\\n");
 `;
@@ -963,7 +963,7 @@ export const template = createTemplate(() => "export {};\\n");
 test("template renderers receive the concrete path and structural captures", () => {
   const rule = `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "a component";
-export const rule = \`Name the component after its file.\`;
+export const guidance = \`Name the component after its file.\`;
 export async function lint() {}
 export const template = createTemplate(({ path, captures }) =>
   JSON.stringify({ path, captures }) + "\\n",
@@ -989,7 +989,7 @@ export const template = createTemplate(({ path, captures }) =>
 
 test("a declared file without a template is created empty", () => {
   const rule = `export const description = "an unopinionated source module";
-export const rule = \`Any contents are allowed.\`;
+export const guidance = \`Any contents are allowed.\`;
 export async function lint() {}
 `;
   scratch(rule, (root) => {
@@ -1016,7 +1016,7 @@ export async function lint() {}
 test("create refuses an existing file before it calls the renderer", () => {
   const rule = `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "a source module";
-export const rule = \`Preserve it.\`;
+export const guidance = \`Preserve it.\`;
 export async function lint() {}
 export const template = createTemplate(() => { throw new Error("renderer ran"); });
 `;
@@ -1137,7 +1137,7 @@ test("preview preserves source whitespace and escapes paths and embedded fences"
   const target = 'src/line\n"quoted".ts';
   scratch(`import { createTemplate } from ${JSON.stringify(api)};
 export const description = "source with significant whitespace";
-export const rule = "Preserve source whitespace.";
+export const guidance = "Preserve source whitespace.";
 export async function lint() {}
 export const template = createTemplate(() => ${JSON.stringify(contents)});
 `, (root) => {
@@ -1155,7 +1155,7 @@ test("preview identifies empty files and directories without writing either", ()
   for (const template of ["", `export const template = createTemplate(() => "");`]) {
     scratch(`import { createTemplate } from ${JSON.stringify(api)};
 export const description = "optional notes";
-export const rule = "Document the group.";
+export const guidance = "Document the group.";
 export async function lint() {}
 export const optional = true;
 ${template}
@@ -1174,7 +1174,7 @@ ${template}
 test("preview keeps all long flags and option values available to templates", () => {
   scratch(`import { createTemplate } from ${JSON.stringify(api)};
 export const description = "configurable source";
-export const rule = "Keep the selected configuration.";
+export const guidance = "Keep the selected configuration.";
 export async function lint() {}
 export const template = createTemplate({
   preview: { type: "flag", description: "Include preview support" },
@@ -1223,7 +1223,7 @@ test("preview renderer failures produce no partial source or target directories"
   for (const body of ['throw new Error("render failed");', "return 42;"]) {
     const rule = `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "source that cannot render";
-export const rule = "Render the source.";
+export const guidance = "Render the source.";
 export async function lint() {}
 export const template = createTemplate(() => { ${body} });
 `;
@@ -1251,7 +1251,7 @@ export const template = createTemplate(() => { ${body} });
 test("preview refuses existing and excluded targets before rendering", () => {
   scratch(`import { createTemplate } from ${JSON.stringify(api)};
 export const description = "kept source";
-export const rule = "Preserve existing source.";
+export const guidance = "Preserve existing source.";
 export async function lint() {}
 export const template = createTemplate(() => { throw new Error("renderer ran"); });
 `, (root) => {
@@ -1278,7 +1278,7 @@ test("preview delegates nested paths while keeping renderer context child-relati
       write(root, `${child}/espalier.config.yaml`, "pin: 0.9.2\nroot: espalier\nignoreFiles: []\nskip: []\n");
       write(root, `${child}/espalier/groups/[group]/index.ts.mjs`, `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "group source";
-export const rule = "Use the group context.";
+export const guidance = "Use the group context.";
 export async function lint() {}
 export const template = createTemplate((context) => JSON.stringify(context) + "\\n");
 `);
@@ -1319,7 +1319,7 @@ for (const [modulePath, target] of [
   test(`dotted target ${target} has preview/create parity without preview writes`, () => {
     scratch(`import { createTemplate } from ${JSON.stringify(api)};
 export const description = "Dotted target";
-export const rule = "Keep the concrete target.";
+export const guidance = "Keep the concrete target.";
 export function lint() {}
 export const template = createTemplate({}, (_args, context) => context.path + "\\n");
 `, (root) => {
@@ -1341,7 +1341,7 @@ test("directory optional selection composes schemas, previews, and writes only s
   try {
     write(root, "espalier/clients/[provider]/README.md.mjs", `import { createTemplate } from ${JSON.stringify(api)};
 export const description = 'client notes';
-export const optional = true; export const rule = 'Local notes'; export function lint() {}
+export const optional = true; export const guidance = 'Local notes'; export function lint() {}
 export const template = createTemplate({ title: { type: 'string', required: true, description: 'Notes title', examples: ['Stripe'] } }, ({title}, {captures}) => title + ':' + captures.provider);
 `);
     const help = run(root, ["create", "clients/stripe", "help", "--with", "README.md"]);
@@ -1364,7 +1364,7 @@ export const template = createTemplate({ title: { type: 'string', required: true
 test("all optional leaves include resolved names but do not invent dynamic members", () => {
   const root = directoryRepository();
   try {
-    write(root, "espalier/clients/[provider]/{provider}.notes.md.mjs", "export const description = 'notes'; export const optional = true; export const rule = 'Local notes'; export function lint() {}");
+    write(root, "espalier/clients/[provider]/{provider}.notes.md.mjs", "export const description = 'notes'; export const optional = true; export const guidance = 'Local notes'; export function lint() {}");
     const result = run(root, ["create", "clients/stripe", "--with-optional", "--", "--client.ts:transport", "fetch"]);
     assert.equal(result.status, 0, result.stdout);
     for (const file of ["README.md", "stripe.notes.md", "client.ts"]) assert.ok(existsSync(path.join(root, "clients/stripe", file)));
@@ -1388,7 +1388,7 @@ test("optional selection failures leave no partial directory", () => {
     assert.equal(existsSync(path.join(root, "clients")), false);
     write(root, ".espalierignore", "");
     write(root, "espalier/clients/[provider]/README.md.mjs", `import { createTemplate } from ${JSON.stringify(api)};
-export const optional = true; export const rule = 'Local notes'; export function lint() {}
+export const optional = true; export const guidance = 'Local notes'; export function lint() {}
 export const description = 'notes';
 export const template = createTemplate({ title: { type: 'string', required: true, description: 'Title' } }, () => { throw Error('optional renderer failed'); });`);
     const missing = run(root, ["create", "clients/stripe", "--with", "README.md", "--", "--client.ts:transport", "fetch"]);
@@ -1404,9 +1404,9 @@ export const template = createTemplate({ title: { type: 'string', required: true
 });
 
 test("selecting a leaf activates optional named directories with inherited requirements", () => {
-  const root = repository("export const description = 'required sibling'; export const rule = 'Required'; export function lint() {}", "groups/[group]/[part]/required.ts.mjs");
+  const root = repository("export const description = 'required sibling'; export const guidance = 'Required'; export function lint() {}", "groups/[group]/[part]/required.ts.mjs");
   try {
-    write(root, "espalier/groups/[group]/[part]/notes.md.mjs", "export const description = 'notes'; export const optional = true; export const rule = 'Local notes'; export function lint() {}");
+    write(root, "espalier/groups/[group]/[part]/notes.md.mjs", "export const description = 'notes'; export const optional = true; export const guidance = 'Local notes'; export function lint() {}");
     write(root, "espalier/groups/[group]/extra/ESPALIER.mjs", "export const instanceOf = '../[part]'; export const optional = true;");
     const help = run(root, ["create", "groups/new", "help"]);
     assert.equal(help.status, 0, help.stdout);

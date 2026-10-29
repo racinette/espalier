@@ -1,5 +1,5 @@
 export const description = "standalone SQL can be reapplied safely";
-export const rule = `Standalone SQL scripts, such as the initial baseline,
+export const guidance = `Standalone SQL scripts, such as the initial baseline,
 use CREATE TABLE IF NOT EXISTS so rerunning setup does not fail. Numbered
 up and down migrations have different lifecycle rules.`;
 

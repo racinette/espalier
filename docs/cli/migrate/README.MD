@@ -47,6 +47,12 @@ may be normalized.
 **`version`.** Removed. `pin` is the only version; other commands that load
 repository configuration reject this leftover schema identifier as an unknown key.
 
+**`rule` to `guidance`.** A rule module's `rule` export, string or function,
+is renamed `guidance`, and so is `rule` inside each entry of `groups`. Only a
+direct declaration is rewritten; a destructured or re-exported `rule` is
+reported, since its source has no single line to change. Prose that happens
+to contain the words is untouched.
+
 **Directory guidance.** Converts each `ESPALIER.MD` to `ESPALIER.mjs`, then
 removes the Markdown source. The prose becomes a string export; `description`
 and non-default `fold` become exports. Guidance uses an editable template literal

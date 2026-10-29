@@ -19,7 +19,7 @@ function repository(rule: string, addon = ""): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-parallel-"));
   write(root, "espalier.config.yaml", `pin: 0.9.2\nroot: espalier\nignoreFiles: []\nskip: []\n${addon ? "addons: addon.mjs\n" : ""}`);
   write(root, ".espalierignore", "addon.mjs\ntrace.txt\nhelper.mjs\n");
-  write(root, "espalier/[file].ts.mjs", `export const description = "a file";\nexport const rule = "Check the source.";\n${rule}`);
+  write(root, "espalier/[file].ts.mjs", `export const description = "a file";\nexport const guidance = "Check the source.";\n${rule}`);
   write(root, "a.ts", "original a");
   write(root, "b.ts", "original b");
   if (addon) write(root, "addon.mjs", addon);

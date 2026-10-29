@@ -18,7 +18,7 @@
       "captures": { "num": "0002", "group": "users" },
       "message": "set 0002_users has steps 1, 3",
       "metadata": { "members": ["migrations/000201_users.sql", "migrations/000203_users.sql"] },
-      "ruleText": "Steps are numbered from 01 with no gaps."
+      "guidance": "Steps are numbered from 01 with no gaps."
     },
     {
       "path": "migrations/RELEASES.txt",
@@ -64,7 +64,7 @@
           {
             "path": "migrations/[num=0000][ord=00]_[group=a+].sql",
             "groups": [
-              { "name": "set", "by": ["num", "group"], "ruleText": "Steps are numbered from 01 with no gaps." },
+              { "name": "set", "by": ["num", "group"], "guidance": "Steps are numbered from 01 with no gaps." },
               { "name": "release", "by": ["num"] }
             ]
           }

@@ -1,4 +1,4 @@
-export const rule = `
+export const guidance = `
 Go through the shared request helper. Never call \`fetch\` directly.
 `;
 

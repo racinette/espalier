@@ -1,6 +1,6 @@
 export const description = "every implementation module opens with a header";
 
-export const rule = `Opens with a comment naming what the module is and, where one
+export const guidance = `Opens with a comment naming what the module is and, where one
 exists, the document that specifies it:
 
     // What counts as a file. docs/CONFIG.MD "What counts as a file".

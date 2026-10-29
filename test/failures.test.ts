@@ -72,12 +72,12 @@ function write(root: string, relative: string, contents: string): void {
 }
 
 /** A rule module that is valid and does nothing, for the cases about something else. */
-const INERT = 'export const description = "a file";\nexport const rule = `Nothing.`;\nexport async function lint() {}\n';
+const INERT = 'export const description = "a file";\nexport const guidance = `Nothing.`;\nexport async function lint() {}\n';
 
 function templated(definition: string): string {
   return `import { createTemplate } from ${JSON.stringify(api)};
 export const description = "a generated file";
-export const rule = \`Generated.\`;
+export const guidance = \`Generated.\`;
 export async function lint() {}
 export const template = ${definition};
 `;
@@ -235,17 +235,17 @@ const cases: Case[] = [
   {
     what: "groups on a static leaf, which has no captures",
     code: "module_invalid_export",
-    espalier: { "src/main.ts.mjs": `${INERT}export const groups = { all: { by: [], description: "all", rule: "", lint() {} } };\n` },
+    espalier: { "src/main.ts.mjs": `${INERT}export const groups = { all: { by: [], description: "all", guidance: "", lint() {} } };\n` },
   },
   {
     what: "a grouping naming a capture the path does not declare",
     code: "module_invalid_export",
-    espalier: { "src/[name].ts.mjs": `${INERT}export const groups = { kind: { by: ["kind"], description: "a kind", rule: "", lint() {} } };\n` },
+    espalier: { "src/[name].ts.mjs": `${INERT}export const groups = { kind: { by: ["kind"], description: "a kind", guidance: "", lint() {} } };\n` },
   },
   {
     what: "a grouping naming every capture, so each group is one file",
     code: "module_invalid_export",
-    espalier: { "src/[name].ts.mjs": `${INERT}export const groups = { one: { by: ["name"], description: "one", rule: "", lint() {} } };\n` },
+    espalier: { "src/[name].ts.mjs": `${INERT}export const groups = { one: { by: ["name"], description: "one", guidance: "", lint() {} } };\n` },
   },
   {
     what: "literalName that is not a boolean",
@@ -275,12 +275,12 @@ const cases: Case[] = [
   {
     what: "two groupings by the same captures",
     code: "module_invalid_export",
-    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { x: { by: ["a"], description: "x", rule: "", lint() {} }, y: { by: ["a"], description: "y", rule: "", lint() {} } };\n` },
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { x: { by: ["a"], description: "x", guidance: "", lint() {} }, y: { by: ["a"], description: "y", guidance: "", lint() {} } };\n` },
   },
   {
     what: "a grouping whose lint is not a function",
     code: "module_invalid_export",
-    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { x: { by: ["a"], description: "x", rule: "", lint: 1 } };\n` },
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { x: { by: ["a"], description: "x", guidance: "", lint: 1 } };\n` },
   },
   {
     what: "a filename extension and targets together",
@@ -314,42 +314,42 @@ const cases: Case[] = [
     what: "a rule guidance callback that throws before any source exists",
     code: "rule_guidance_failed",
     espalier: {
-      "src/[name].ts.mjs": 'export const description = "file"; export function rule() { throw new Error("bad prose"); } export function lint() {}',
+      "src/[name].ts.mjs": 'export const description = "file"; export function guidance() { throw new Error("bad prose"); } export function lint() {}',
     },
   },
   {
     what: "a constraint guidance callback that rejects before any source exists",
     code: "rule_guidance_failed",
     espalier: {
-      "[...files]/check.ts.mjs": 'export async function rule() { throw new Error("bad prose"); } export function lint() {}',
+      "[...files]/check.ts.mjs": 'export async function guidance() { throw new Error("bad prose"); } export function lint() {}',
     },
   },
   {
     what: "a rule guidance callback that returns a non-string",
     code: "module_invalid_export",
     espalier: {
-      "src/[name].ts.mjs": 'export const description = "file"; export async function rule() { return 42; } export function lint() {}',
+      "src/[name].ts.mjs": 'export const description = "file"; export async function guidance() { return 42; } export function lint() {}',
     },
   },
   {
     what: "a file description callback that rejects before any source exists",
     code: "rule_guidance_failed",
-    espalier: { "src/[name].ts.mjs": "export async function description() { throw new Error(\"bad label\"); } export const rule = \"Text\"; export function lint() {}" },
+    espalier: { "src/[name].ts.mjs": "export async function description() { throw new Error(\"bad label\"); } export const guidance = \"Text\"; export function lint() {}" },
   },
   {
     what: "a file description callback that returns a non-string before any source exists",
     code: "module_invalid_export",
-    espalier: { "src/[name].ts.mjs": "export async function description() { return 42; } export const rule = \"Text\"; export function lint() {}" },
+    espalier: { "src/[name].ts.mjs": "export async function description() { return 42; } export const guidance = \"Text\"; export function lint() {}" },
   },
   {
     what: "a constraint description callback that rejects before any source exists",
     code: "rule_guidance_failed",
-    espalier: { "[...files]/check.ts.mjs": "export async function description() { throw new Error(\"bad label\"); } export const rule = \"Text\"; export function lint() {}" },
+    espalier: { "[...files]/check.ts.mjs": "export async function description() { throw new Error(\"bad label\"); } export const guidance = \"Text\"; export function lint() {}" },
   },
   {
     what: "a constraint description callback that returns a non-string before any source exists",
     code: "module_invalid_export",
-    espalier: { "[...files]/check.ts.mjs": "export async function description() { return 42; } export const rule = \"Text\"; export function lint() {}" },
+    espalier: { "[...files]/check.ts.mjs": "export async function description() { return 42; } export const guidance = \"Text\"; export function lint() {}" },
   },
   {
     what: "a directory description callback that rejects before any source exists",
@@ -362,24 +362,34 @@ const cases: Case[] = [
     espalier: { "src/ESPALIER.mjs": "export async function description() { return 42; }" },
   },
   {
-    what: "a module with no `rule`",
+    what: "a module with no `guidance`",
     code: "module_missing_export",
     espalier: {
       "src/[name].ts.mjs": 'export const description = "a file";\nexport async function lint() {}\n',
     },
   },
   {
+    what: "`rule`, the old name of `guidance`",
+    code: "module_invalid_export",
+    espalier: { "src/main.ts.mjs": `export const description = "a file";\nexport const ${"rule"} = \`R\`;\n` },
+  },
+  {
+    what: "a grouping still saying `rule`",
+    code: "module_invalid_export",
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { x: { by: ["a"], description: "x", rule: "" } };\n` },
+  },
+  {
     what: "a `lint` that is not a function",
     code: "module_invalid_export",
     espalier: {
-      "src/[name].ts.mjs": 'export const description = "a file";\nexport const rule = `R`;\nexport const lint = true;\n',
+      "src/[name].ts.mjs": 'export const description = "a file";\nexport const guidance = `R`;\nexport const lint = true;\n',
     },
   },
   {
     what: "a module with no `description`",
     code: "module_missing_export",
     espalier: {
-      "src/[name].ts.mjs": "export const rule = `R`;\nexport async function lint() {}\n",
+      "src/[name].ts.mjs": "export const guidance = `R`;\nexport async function lint() {}\n",
     },
   },
   {
@@ -395,7 +405,7 @@ const cases: Case[] = [
     espalier: {
       "src/[name].ts.mjs": INERT,
       "[...path]/generated.ts.mjs": `import { createTemplate } from ${JSON.stringify(api)};
-export const rule = \`Generated.\`;
+export const guidance = \`Generated.\`;
 export async function lint() {}
 export const template = createTemplate(() => "");
 `,
@@ -410,7 +420,7 @@ export const template = createTemplate(() => "");
     espalier: {
       "src/[name].ts.mjs": INERT,
       "[...path]/no-x.ts.mjs":
-        "export const description = 42;\nexport const rule = `R`;\nexport async function lint() {}\n",
+        "export const description = 42;\nexport const guidance = `R`;\nexport async function lint() {}\n",
     },
   },
   {
@@ -418,7 +428,7 @@ export const template = createTemplate(() => "");
     code: "module_invalid_export",
     espalier: {
       "src/[name].ts.mjs":
-        'export const description = "a file";\nexport const referenceImplementation = 1;\nexport const rule = `R`;\nexport async function lint() {}\n',
+        'export const description = "a file";\nexport const referenceImplementation = 1;\nexport const guidance = `R`;\nexport async function lint() {}\n',
     },
   },
   {
@@ -463,7 +473,7 @@ export const template = createTemplate(() => "");
     code: "invalid_reference_implementation",
     espalier: {
       "src/[name].ts.mjs": INERT,
-      "[...path]/no-x.mjs": `export const rule = \`No x.\`;
+      "[...path]/no-x.mjs": `export const guidance = \`No x.\`;
 export const targets = ["src/allowed.ts"];
 export const referenceImplementation = "src/reference.ts";
 export async function lint() {}
@@ -476,7 +486,7 @@ export async function lint() {}
     code: "module_invalid_export",
     espalier: {
       "src/client.ts.mjs":
-        'export const description = "a file";\nexport const optional = "yes";\nexport const rule = `R`;\nexport async function lint() {}\n',
+        'export const description = "a file";\nexport const optional = "yes";\nexport const guidance = `R`;\nexport async function lint() {}\n',
     },
   },
   {
@@ -484,7 +494,7 @@ export async function lint() {}
     code: "module_invalid_export",
     espalier: {
       "src/[name].ts.mjs":
-        'export const description = "a file";\nexport const unobservedImplementationDependencies = ["../outside.wasm"];\nexport const rule = `R`;\nexport async function lint() {}\n',
+        'export const description = "a file";\nexport const unobservedImplementationDependencies = ["../outside.wasm"];\nexport const guidance = `R`;\nexport async function lint() {}\n',
     },
   },
   {
@@ -569,7 +579,7 @@ export async function lint() {}
     code: "invalid_issue_path",
     espalier: {
       "src/[name].ts.mjs": `export const description = "a file";
-export const rule = \`R\`;
+export const guidance = \`R\`;
 export async function lint(context) {
   context.emit({ code: "bad", message: "m", path: 42 });
 }
@@ -664,7 +674,7 @@ test("read_failed: a governed file the process may not open", () => {
       root,
       path.join("espalier", "src", "[name].ts.mjs"),
       `export const description = "a file";
-export const rule = \`R\`;
+export const guidance = \`R\`;
 export async function lint(context) {
   await context.read();
 }

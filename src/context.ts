@@ -35,7 +35,7 @@ export interface EmitOptions {
   path: string;
   captures: Record<string, CaptureValue>;
   /** The module's `rule` text, or null when the caller suppressed it. */
-  ruleText: string | null;
+  guidance: string | null;
   description?: string | null;
   referenceImplementation?: string | null;
   /** The grouping that is running, recorded on every issue it emits. */
@@ -81,7 +81,7 @@ export function createEmit(options: EmitOptions): (raw: unknown) => void {
       line: typeof issue["line"] === "number" ? issue["line"] : null,
       column: typeof issue["column"] === "number" ? issue["column"] : null,
       metadata: (issue["metadata"] ?? {}) as Record<string, unknown>,
-      ruleText: options.ruleText,
+      guidance: options.guidance,
       description: options.description,
       referenceImplementation: options.referenceImplementation,
       ...(options.group === undefined ? {} : { group: options.group }),

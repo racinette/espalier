@@ -1,6 +1,6 @@
 export const targets = ["**/*.sql"];
 export const description = "release SQL has no unfinished edits";
-export const rule = `No SQL shipped in this release bundle contains a TODO or
+export const guidance = `No SQL shipped in this release bundle contains a TODO or
 TBD marker. This applies to the standalone baseline and to both directions
 of every numbered migration.`;
 

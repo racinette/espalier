@@ -1,5 +1,5 @@
 export const description = "finding and validating the configuration";
 
-export const rule = ``;
+export const guidance = ``;
 
 export async function lint() {}

@@ -99,7 +99,7 @@ export async function check(options: CheckOptions): Promise<Issue[]> {
       config: options.config,
       paths: options.paths ?? [],
       rule: options.rule,
-      ruleText: true,
+      guidance: true,
       jobs: options.jobs,
     },
     collector(issues, failures),
@@ -248,7 +248,7 @@ export async function runRule(module: RuleModule, context: RuleContext): Promise
     pattern: context.pattern ?? context.path,
     path: context.path,
     captures: context.captures ?? {},
-    ruleText: await renderRuleText(module.rule, context.guidance, whose),
+    guidance: await renderRuleText(module.guidance, context.guidance, whose),
     description: await renderRuleText(module.description, context.guidance, whose, "description"),
     referenceImplementation:
       typeof module.referenceImplementation === "string"
@@ -333,7 +333,7 @@ export async function runAggregate(
     pattern,
     path: at,
     captures: {},
-    ruleText: await renderRuleText(module.rule, context.guidance, whose),
+    guidance: await renderRuleText(module.guidance, context.guidance, whose),
     description: await renderRuleText(module.description, context.guidance, whose, "description"),
     referenceImplementation:
       typeof module.referenceImplementation === "string"
@@ -374,12 +374,12 @@ export async function runGroup(module: RuleModule, context: GroupRuleContext): P
   if (grouping === null || typeof grouping !== "object") {
     fail("module_invalid_export", `runGroup: \`groups.${context.group}\` must be a grouping`);
   }
-  const { description, rule, lint } = grouping as { description?: unknown; rule?: unknown; lint?: unknown };
+  const { description, guidance, lint } = grouping as { description?: unknown; guidance?: unknown; lint?: unknown };
   if (lint !== undefined && typeof lint !== "function") {
     fail("module_invalid_export", `runGroup: \`groups.${context.group}.lint\` must be a function`);
   }
-  if (typeof description !== "string" || typeof rule !== "string") {
-    fail("module_invalid_export", `runGroup: \`groups.${context.group}\` needs a string description and rule`);
+  if (typeof description !== "string" || typeof guidance !== "string") {
+    fail("module_invalid_export", `runGroup: \`groups.${context.group}\` needs a string description and guidance`);
   }
   validateTemplate(module.template, "runGroup");
 
@@ -414,7 +414,7 @@ export async function runGroup(module: RuleModule, context: GroupRuleContext): P
     pattern,
     path: at,
     captures,
-    ruleText: rule,
+    guidance,
     description,
     referenceImplementation:
       typeof module.referenceImplementation === "string"

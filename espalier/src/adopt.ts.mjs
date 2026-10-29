@@ -1,5 +1,5 @@
 export const description = "the adopt command";
 
-export const rule = ``;
+export const guidance = ``;
 
 export async function lint() {}

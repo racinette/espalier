@@ -297,7 +297,7 @@ excluded directory may contain modules and `ESPALIER.mjs` without compiling them
 
 ## The rule file
 
-Every rule file exports `rule`, the written requirements, and `lint`, the
+Every rule file exports `guidance`, the written requirements, and usually `lint`, the
 function that checks them. A structural rule file also exports
 `description`, a short phrase describing what the governed file is.
 A constraint may export `description` to briefly summarize its requirement.
@@ -308,7 +308,7 @@ here.
 ```js
 export const description = "a button component";
 
-export const rule = `\`components/buttons/SubmitButton.tsx\` default-exports
+export const guidance = `\`components/buttons/SubmitButton.tsx\` default-exports
 a function named \`SubmitButton\` and provides a named export for the interface
 \`SubmitButtonProps\`.`;
 
@@ -317,11 +317,11 @@ export async function lint({ read, emit }) {
 }
 ```
 
-`rule` states the requirements in Markdown. Its text appears in generated
+`guidance` states the requirements in Markdown. Its text appears in generated
 guidance, `explain`, and reported issues. Write it for someone about to
 create or change the governed files.
 
-`rule` may also be a synchronous or asynchronous function returning Markdown.
+`guidance` may also be a synchronous or asynchronous function returning Markdown.
 `description` likewise accepts a function returning its short label, with the
 same context and timing. Each callback receives its own isolated
 `{ config, pattern, path, captures }`: a resolved config snapshot,
@@ -338,7 +338,7 @@ See `espalier help types` for details and the `RuleGuidanceContext` type.
 - Per-file: name the kind of file and what each must or must not contain.
 - Aggregate: name the group and the conditions it must satisfy.
 
-Template literals are convenient for multiline rule prose and apostrophes.
+Template literals are convenient for multiline guidance and apostrophes.
 Escape embedded backticks and literal `${...}` sequences as JavaScript requires.
 
 A diagnostic can refer to a specific location with wording such as
@@ -379,7 +379,7 @@ import { createTemplate } from "espalier";
 
 export const description = "local feature notes";
 export const optional = true;
-export const rule = `Start with a level-one heading. Describe this feature's
+export const guidance = `Start with a level-one heading. Describe this feature's
 purpose, domain decisions, and maintenance considerations. Read these notes
 when working in this feature. They supplement the shared feature contract;
 they do not authorize changing or weakening it.`;

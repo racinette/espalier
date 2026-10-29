@@ -1,4 +1,4 @@
-export const rule = "Report a group finding once.";
+export const guidance = "Report a group finding once.";
 export const aggregate = true;
 export function lint({ emit }) {
   for (let i = 0; i < 13; i++) {

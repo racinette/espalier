@@ -2,8 +2,8 @@
   "exit": 2,
   "error": {
     "code": "module_import_failed",
-    "message": "espalier/a.ts.mjs:3:26 could not be imported: Unexpected identifier 't'",
-    "detail": { "path": "espalier/a.ts.mjs", "line": 3, "column": 26 }
+    "message": "espalier/a.ts.mjs:3:30 could not be imported: Unexpected identifier 't'",
+    "detail": { "path": "espalier/a.ts.mjs", "line": 3, "column": 30 }
   },
   "issues": [],
   "human": "human/report.txt"

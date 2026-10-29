@@ -1,6 +1,6 @@
 export const description = "an operation the provider supports";
 
-export const rule = `
+export const guidance = `
 One exported function per file, named after the file.
 `;
 

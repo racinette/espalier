@@ -2,7 +2,7 @@ main.ts                                  the application entry point
 
   Owned by  main.ts
 
-  Rule
+  Guidance
     Wire up the application and start it.
 
 ── Constraints applying to main.ts ───────────────────────────────────

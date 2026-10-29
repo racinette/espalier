@@ -1,6 +1,6 @@
 export const description = "the module registry";
 
-export const rule = `   `;
+export const guidance = `   `;
 
 export const referenceImplementation = "src/registry.ts";
 

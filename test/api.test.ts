@@ -96,7 +96,7 @@ test("check raises a child's failure, but only once its siblings have run", asyn
 test("runRule returns what the module emitted, in the runner's shape", async () => {
   const module = {
     description: "a button component",
-    rule: "Name the component after its file.",
+    guidance: "Name the component after its file.",
     referenceImplementation: "components/Button.tsx",
     lint({ path: target, captures, emit }: any) {
       emit({ code: "name_mismatch", message: `${target} is not ${captures["name"]}`, line: 3 });
@@ -122,7 +122,7 @@ test("runRule returns what the module emitted, in the runner's shape", async () 
       line: 3,
       column: null,
       metadata: {},
-      ruleText: "Name the component after its file.",
+      guidance: "Name the component after its file.",
       description: "a button component",
       referenceImplementation: "components/Button.tsx",
     },
@@ -131,7 +131,7 @@ test("runRule returns what the module emitted, in the runner's shape", async () 
 
 test("runRule defaults the pattern to the path and the module path to null", async () => {
   const module = {
-    rule: "anything",
+    guidance: "anything",
     lint: ({ emit }: any) => void emit({ code: "ran", message: "ran", severity: "info" }),
   };
 
@@ -144,7 +144,7 @@ test("runRule defaults the pattern to the path and the module path to null", asy
 
 test("runRule serves read and files from the supplied tree", async () => {
   const module = {
-    rule: "anything",
+    guidance: "anything",
     async lint({ read, files, emit }: any) {
       const own = await read();
       const other = await read("components/Other.tsx");
@@ -168,7 +168,7 @@ test("runRule serves read and files from the supplied tree", async () => {
 
 test("runRule fails rather than inventing contents for a file the tree lacks", async () => {
   const module = {
-    rule: "anything",
+    guidance: "anything",
     lint: ({ read }: any) => read(),
   };
 
@@ -178,7 +178,7 @@ test("runRule fails rather than inventing contents for a file the tree lacks", a
 test("runRule accepts an injected read and files", async () => {
   let reads = 0;
   const module = {
-    rule: "anything",
+    guidance: "anything",
     async lint({ read, files, emit }: any) {
       await read();
       await read();
@@ -202,7 +202,7 @@ test("runRule accepts an injected read and files", async () => {
 test("runRule hands the addons through untouched", async () => {
   const parser = { parse: () => "parsed" };
   const module = {
-    rule: "anything",
+    guidance: "anything",
     lint: ({ addons, emit }: any) => void emit({ code: "used", message: addons["parser"].parse() }),
   };
 
@@ -213,7 +213,7 @@ test("runRule hands the addons through untouched", async () => {
 
 test("API emit deduplicates within each invocation for per-file and aggregate rules", async () => {
   const module = {
-    rule: "Report once per distinct finding.",
+    guidance: "Report once per distinct finding.",
     lint({ emit }: any) {
       const issue = { code: "repeated", message: "same finding" };
       emit(issue);
@@ -236,7 +236,7 @@ test("API emit deduplicates within each invocation for per-file and aggregate ru
 
 test("runRule validates emitted issues exactly as the runner does", async () => {
   const emitting = (issue: unknown) => ({
-    rule: "anything",
+    guidance: "anything",
     lint: ({ emit }: any) => void emit(issue),
   });
 
@@ -259,7 +259,7 @@ test("runRule validates emitted issues exactly as the runner does", async () => 
 
 test("runRule treats a throwing lint as a bug in the rule", async () => {
   const module = {
-    rule: "anything",
+    guidance: "anything",
     lint: () => {
       throw new TypeError("cannot read properties of undefined");
     },
@@ -269,8 +269,8 @@ test("runRule treats a throwing lint as a bug in the rule", async () => {
 });
 
 test("runRule rejects a lint that is not a function, and runs a module without one", async () => {
-  await rejects(() => runRule({ rule: "anything", lint: 1 } as never, { path: "a.ts" }), "module_invalid_export");
-  assert.deepEqual(await runRule({ rule: "anything" } as never, { path: "a.ts" }), []);
+  await rejects(() => runRule({ guidance: "anything", lint: 1 } as never, { path: "a.ts" }), "module_invalid_export");
+  assert.deepEqual(await runRule({ guidance: "anything" } as never, { path: "a.ts" }), []);
 });
 
 test("runRule rejects unsupported persistent-cache declarations", async () => {
@@ -278,7 +278,7 @@ test("runRule rejects unsupported persistent-cache declarations", async () => {
     () =>
       runRule(
         {
-          rule: "anything",
+          guidance: "anything",
           lint() {},
           ...{ unobservedImplementationDependencies: ["../outside.wasm"] },
         },

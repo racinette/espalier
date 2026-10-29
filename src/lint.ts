@@ -20,7 +20,7 @@ export interface LintOptions {
   config: string | undefined;
   paths: string[];
   rule: string | undefined;
-  ruleText: boolean;
+  guidance: boolean;
   jobs?: Jobs;
 }
 
@@ -102,7 +102,7 @@ async function lintOne(
       line: null,
       column: null,
       metadata,
-      ruleText: null,
+      guidance: null,
     });
   };
 
@@ -186,7 +186,7 @@ async function lintOne(
     target: string, captures: Record<string, CaptureValue>,
   ): Invocation => ({
     modulePath, pattern, path: target, captures,
-    ruleText: options.ruleText ? module.rule : null,
+    guidance: options.guidance ? module.guidance : null,
     description: module.description, referenceImplementation: module.referenceImplementation,
   });
 
@@ -291,7 +291,7 @@ async function lintOne(
     if (scope !== null && !group.matches.some((match) => inScope(match.path))) continue;
     jobs.push([{
       ...invocation(group.rule.modulePath, group.rule.module, group.rule.pattern, group.directory === "" ? "." : `${group.directory}/`, group.captures),
-      ruleText: options.ruleText ? group.grouping.rule : null,
+      guidance: options.guidance ? group.grouping.guidance : null,
       description: group.grouping.description,
       group: group.grouping.name,
       matches: group.matches.sort((left, right) => left.path.localeCompare(right.path)),

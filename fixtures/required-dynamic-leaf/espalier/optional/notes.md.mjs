@@ -1,2 +1,2 @@
 import { unit } from "../../analysis.mjs";
-export const { description, rule, optional, lint } = unit();
+export const { description, guidance, optional, lint } = unit();

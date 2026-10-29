@@ -8,7 +8,7 @@ repository exclusion policy.
 espalier adopt src/clients
 ```
 
-`adopt` produces structure. It cannot produce meaning — the `rule` bodies are yours to write, and until you do, the generated documentation says where things go and nothing about how they should be written. Choosing a rule's kind and writing that prose is [`espalier help authoring`](../help/README.MD).
+`adopt` produces structure. It cannot produce meaning — the `guidance` bodies are yours to write, and until you do, the generated documentation says where things go and nothing about how they should be written. Choosing a rule's kind and writing that prose is [`espalier help authoring`](../help/README.MD).
 
 Adoption changes architectural declarations. Under
 [`build.guidanceMode: fixed`](../../CONFIG.MD#architecture-guidance-modes),
@@ -29,7 +29,7 @@ espalier adopt <path> [--force]
   --out <dest>     stdout, stderr, or a file path (default: stdout)
 ```
 
-`adopt` never overwrites a rule module that already exists. The `rule` body is the expensive part and the whole point of the exercise; a re-run that ate one would be worse than no command at all. Existing modules are reported as `skipped` and left alone, so running `adopt` twice on a growing directory adds what is new and touches nothing else.
+`adopt` never overwrites a rule module that already exists. The `guidance` body is the expensive part and the whole point of the exercise; a re-run that ate one would be worse than no command at all. Existing modules are reported as `skipped` and left alone, so running `adopt` twice on a growing directory adds what is new and touches nothing else.
 
 ## What it infers
 
@@ -52,7 +52,7 @@ espalier/src/clients/[client]/requestModels.ts.mjs
 ```js
 export const description = "a client";   // TODO
 
-export const rule = ``;                  // TODO
+export const guidance = ``;                  // TODO
 
 export async function lint() {}
 ```
@@ -234,7 +234,7 @@ The value is in the prose you add afterwards, and prose is written per area. The
    required and optional files express the intended guarantees.
 2. Rename retained placeholders to words that mean something.
 3. Write `description` for each module using the project's vocabulary, and
-   write `rule` bodies that state the agreed requirements.
+   write `guidance` bodies that state the agreed requirements.
 4. Implement checks in the generated `lint` functions where worthwhile. The
    `lint` export is required; structural enforcement works even when its body
    is empty. Test implemented checks against valid and violating examples.

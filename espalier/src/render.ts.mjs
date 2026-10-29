@@ -1,5 +1,5 @@
 export const description = "turning the espalier into documentation";
 
-export const rule = ``;
+export const guidance = ``;
 
 export async function lint() {}

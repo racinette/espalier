@@ -115,7 +115,7 @@ test("the packed package installs and supports the quick start", () => {
       path.join(app, "espalier", "src", "[name].ts.mjs"),
       `import { createLinter, createTemplate } from "espalier";
 export const description = "a source module";
-export const rule = \`Exports one value.\`;
+export const guidance = \`Exports one value.\`;
 export const lint = createLinter(async () => {});
 export const template = createTemplate(
   {

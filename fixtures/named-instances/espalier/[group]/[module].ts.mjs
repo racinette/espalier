@@ -1,5 +1,5 @@
 export const description = "a shared module";
-export const rule = "Every module contains BASE.";
+export const guidance = "Every module contains BASE.";
 export const minMatches = 1;
 export async function lint({path, pattern, captures, read, emit}) {
   if (pattern !== "[group]/[module].ts") emit({code: "base_pattern", message: "Inherited pattern changed"});

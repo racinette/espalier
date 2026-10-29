@@ -37,19 +37,19 @@ test("an explicit all-file selector admits every owned governed file in scope", 
     write(
       root,
       "espalier/[name].json.mjs",
-      'export const description = "a json file";\nexport const rule = `owned`;\nexport async function lint() {}\n',
+      'export const description = "a json file";\nexport const guidance = `owned`;\nexport async function lint() {}\n',
     );
     write(
       root,
       "espalier/[name].md.mjs",
-      'export const description = "a markdown file";\nexport const rule = `owned`;\nexport async function lint() {}\n',
+      'export const description = "a markdown file";\nexport const guidance = `owned`;\nexport async function lint() {}\n',
     );
     write(
       root,
       "espalier/[...path]/inventory.mjs",
       `export const aggregate = true;
 export const targets = ["**/*"];
-export const rule = "inventory";
+export const guidance = "inventory";
 export async function lint({ matches, patterns, emit }) {
   emit({
     code: "inventory",
@@ -90,7 +90,7 @@ export async function lint({ matches, patterns, emit }) {
       "espalier/[...path]/inventory.mjs",
       `export const aggregate = true;
 export const targets = ["**/*"];
-export const rule = "inventory";
+export const guidance = "inventory";
 export const referenceImplementation = "a.json";
 export async function lint() {}
 `,
@@ -108,14 +108,14 @@ test("selector origin stays before the recursive placeholder when directories fo
     write(
       root,
       "espalier/backend/[area]/handlers/[name].ts.mjs",
-      'export const description = "a handler";\nexport const rule = `handler`;\nexport async function lint() {}\n',
+      'export const description = "a handler";\nexport const guidance = `handler`;\nexport async function lint() {}\n',
     );
-    write(root, "espalier/backend/[area]/[name].ts.mjs", 'export const description = "an area file";\nexport const rule = `owned`;\nexport async function lint() {}\n');
+    write(root, "espalier/backend/[area]/[name].ts.mjs", 'export const description = "an area file";\nexport const guidance = `owned`;\nexport async function lint() {}\n');
     write(
       root,
       "espalier/backend/[...path]/handlers/registry.mjs",
       `export const aggregate = true;
-export const rule = "handlers together";
+export const guidance = "handlers together";
 export const targets = ["**/create.ts"];
 export async function lint({ matches, patterns, emit }) {
   emit({
@@ -184,13 +184,13 @@ test("an extension-selected aggregate with trailing directories names the comple
     write(
       root,
       "espalier/backend/[area]/handlers/[name].ts.mjs",
-      'export const description = "a handler";\nexport const rule = `handler`;\nexport async function lint() {}\n',
+      'export const description = "a handler";\nexport const guidance = `handler`;\nexport async function lint() {}\n',
     );
     write(
       root,
       "espalier/backend/[...path]/handlers/inventory.ts.mjs",
       `export const aggregate = true;
-export const rule = "handlers together";
+export const guidance = "handlers together";
 export async function lint() {}
 `,
     );
@@ -214,13 +214,13 @@ test("a dotted aggregate name selects its extension", () => {
     write(
       root,
       "espalier/[name].mjs",
-      'export const description = "a file";\nexport const rule = `owned`;\nexport async function lint() {}\n',
+      'export const description = "a file";\nexport const guidance = `owned`;\nexport async function lint() {}\n',
     );
     write(
       root,
       "espalier/[...path]/group.json.mjs",
       `export const aggregate = true;
-export const rule = "the leftover name";
+export const guidance = "the leftover name";
 export async function lint({ matches, emit }) {
   emit({ code: "group", severity: "info", message: matches.map(({ path }) => path).join(",") });
 }

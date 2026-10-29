@@ -1,5 +1,5 @@
 export const description = "numbered migrations run in a transaction";
-export const rule = `Each numbered migration begins with a header naming its
+export const guidance = `Each numbered migration begins with a header naming its
 revision and direction, then runs between BEGIN and COMMIT. The standalone
 baseline follows its own setup contract.`;
 

@@ -2,7 +2,7 @@ import { createTemplate } from "espalier";
 import { snapshotFor } from "../../../../analysis/snapshot.mjs";
 
 export const description = "a feature's cohesive model operations";
-export const rule = `Exports createModel and updateModel from model.ts.
+export const guidance = `Exports createModel and updateModel from model.ts.
 Related model operations belong together in this module.`;
 export const template = createTemplate(() =>
   "export function createModel() { return 0; }\n" +

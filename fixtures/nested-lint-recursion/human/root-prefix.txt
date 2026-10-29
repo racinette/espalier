@@ -21,14 +21,14 @@
 
   a package entry point
 
-  Rule
+  Guidance
     placeholder
 
 ── main.ts ───────────────────────────────────────────────────────────
 
   the application entry point
 
-  Rule
+  Guidance
     placeholder
 
 ── Constraints applying under ./ ─────────────────────────────────────

@@ -1,3 +1,3 @@
 export const description = "a source file";
-export const rule = "Export the implementation.";
+export const guidance = "Export the implementation.";
 export async function lint() {}

@@ -63,7 +63,7 @@ test("a helper's syntax failure does not get coordinates from the importing rule
 
 test("syntax recovery keeps --out routing and does not run inherited preloads again", () => {
   scratch((root) => {
-    writeFileSync(path.join(root, "espalier/a.ts.mjs"), "export const rule = 'Don't mutate';\n");
+    writeFileSync(path.join(root, "espalier/a.ts.mjs"), "export const guidance = 'Don't mutate';\n");
     const preload = path.join(root, "preload.mjs");
     writeFileSync(preload, `import { appendFileSync } from 'node:fs';
 appendFileSync(new URL('./preloads', import.meta.url), 'loaded\\n');\n`);
@@ -74,7 +74,7 @@ appendFileSync(new URL('./preloads', import.meta.url), 'loaded\\n');\n`);
       assert.equal(result.stderr, "");
       const failure = JSON.parse(readFileSync(path.join(root, "report.jsonl"), "utf8"));
       assert.equal(failure.code, "module_import_failed");
-      assert.deepEqual(failure.detail, { path: "espalier/a.ts.mjs", line: 1, column: 26 });
+      assert.deepEqual(failure.detail, { path: "espalier/a.ts.mjs", line: 1, column: 30 });
     }
     assert.equal(readFileSync(path.join(root, "preloads"), "utf8"), "loaded\nloaded\n");
   });

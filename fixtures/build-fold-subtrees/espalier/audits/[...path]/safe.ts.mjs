@@ -1,2 +1,2 @@
-export const rule = `Use safe operations here.`;
+export const guidance = `Use safe operations here.`;
 export async function lint() {}

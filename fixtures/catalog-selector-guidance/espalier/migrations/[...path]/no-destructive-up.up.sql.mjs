@@ -1,5 +1,5 @@
 export const description = "forward migrations preserve existing tables";
-export const rule = `Forward migrations must not drop a table. If a release
+export const guidance = `Forward migrations must not drop a table. If a release
 retires data, use a separately reviewed cleanup after readers have moved.`;
 
 export async function lint({ read, emit }) {

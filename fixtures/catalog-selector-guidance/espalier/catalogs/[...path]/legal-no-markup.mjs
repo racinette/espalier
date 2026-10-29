@@ -1,6 +1,6 @@
 export const targets = ["*/legal-*.json"];
 export const description = "legal copy stays plain text";
-export const rule = `Every legal-* catalog contains plain-text legal copy,
+export const guidance = `Every legal-* catalog contains plain-text legal copy,
 never HTML markup. Legal screens render its values without HTML parsing.`;
 
 export async function lint({ read, emit }) {

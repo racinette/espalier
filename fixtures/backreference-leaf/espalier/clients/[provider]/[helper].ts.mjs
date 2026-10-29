@@ -1,5 +1,5 @@
 export const description = "a helper";
 
-export const rule = `Anything the entry point needs and nobody else does.`;
+export const guidance = `Anything the entry point needs and nobody else does.`;
 
 export async function lint() {}

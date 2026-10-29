@@ -17,7 +17,7 @@ const cli = path.join(
 );
 
 const INERT = `export const description = "a file";
-export const rule = \`Nothing.\`;
+export const guidance = \`Nothing.\`;
 export async function lint() {}
 `;
 

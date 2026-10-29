@@ -19,13 +19,13 @@ espalier lint [paths...]
   --out <dest>          stdout, stderr, or a file path (default: stdout)
   --rule <module>       run one rule module only
   --config <path>       use this config file instead of discovering one
-  --no-rule-text        omit rule bodies from output
+  --no-guidance        omit guidance bodies from output
   --jobs <n|auto>       maximum workers (default: lint.jobs, otherwise auto)
 ```
 
 ## What it does
 
-1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, build the matcher, and render computed descriptions, rule prose, and directory guidance. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `rule` export, a guidance callback that fails — stops the run before repository linting begins. Workers receive rendered rule text and descriptions; they do not evaluate those callbacks. `--no-rule-text` suppresses output, not compilation or callback validation.
+1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, build the matcher, and render computed descriptions, guidance, and directory guidance. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `guidance` export, a guidance callback that fails — stops the run before repository linting begins. Workers receive rendered guidance text and descriptions; they do not evaluate those callbacks. `--no-guidance` suppresses output, not compilation or callback validation.
 2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and a traversal failure stops the run. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
 3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required named leaves with no file report `missing_required_file`; absent required named directory instances report `missing_required_directory`; collections below their minimum report `missing_required_match`. See [MATCHING.MD](../../MATCHING.MD).
 4. **Prepare execution.** Capture governed source contents, await addon preparation, and initialize all participating workers.
@@ -85,7 +85,7 @@ are induced by the files present, so none is empty. See
 A grouping is scoped like an aggregate: if the scope reaches one member, the
 grouping receives the whole group. Its issues carry the rule's module path,
 the grouping's name as `group`, the shared captures, and the grouping's own
-rule text; the default issue path is the group's directory.
+guidance text; the default issue path is the group's directory.
 
 ## Scoping
 
@@ -181,7 +181,7 @@ call, plus what the runner knows:
 | `captures` | values from placeholders in the declaration; for a grouping, the values its members share |
 | `line`, `column` | 1-based, or `null` |
 | `metadata` | arbitrary structured data from the rule |
-| `ruleText` | the module's `rule` body, or the grouping's |
+| `guidance` | the module's `guidance` body, or the grouping's |
 
 Human output uses the rendered description in rule headings. The JavaScript
 API also exposes `description` and `referenceImplementation` on its `Issue`
@@ -190,7 +190,7 @@ records include descriptions.
 
 `rule` is the module's path in the espalier — `clients/[provider]/client.ts.mjs` — because that is the thing you open to change the behaviour. Identity never derives from description prose, which collides and changes.
 
-**`ruleText` is included by default,** in both formats. Delivering the rule at the moment it was violated is the mechanism by which agents learn what the repository expects; a violation that says only "this is wrong" wastes the one moment the agent is guaranteed to be paying attention. `--no-rule-text` drops it for machine consumers that do not need it.
+**`guidance` is included by default,** in both formats. Delivering the rule at the moment it was violated is the mechanism by which agents learn what the repository expects; a violation that says only "this is wrong" wastes the one moment the agent is guaranteed to be paying attention. `--no-guidance` drops it for machine consumers that do not need it.
 
 ### Attaching an issue elsewhere
 
@@ -249,7 +249,7 @@ reports only collections whose containing directory is inside the scope.
 ### `human`
 
 The default. Issues are grouped by path, then by the Espalier and rule module
-that emitted them. Each group's rule text and reference implementation appear
+that emitted them. Each group's guidance text and reference implementation appear
 once, before its findings. Groups follow first occurrence; findings retain
 their arrival order within each group. Distinct modules remain separate even
 when their prose is identical. Every finding is printed, including findings
@@ -278,7 +278,7 @@ clients/stripe/client.ts
 ```
 
 Built-in issues have no rule behind them, so they show the deepest recognized
-node beside each finding. `--no-rule-text` omits prose while retaining every
+node beside each finding. `--no-guidance` omits prose while retaining every
 finding and the reference implementation, when present.
 
 `referenceImplementation` is a repository path and reads as one line:
@@ -292,8 +292,8 @@ One JSON object per line, nothing else. No header, no summary object, no wrappin
 Every line carries a `kind` — `issue`, `warning`, or `failure`. A reader dispatches on one field rather than inferring from which keys happen to be present, and a line whose `kind` it does not recognize is one it can skip rather than one it misreads.
 
 ```json
-{"kind":"issue","path":"clients/acme/random.ts","code":"unexpected_path","message":"…","severity":"error","espalier":null,"rule":null,"pattern":null,"captures":{},"line":null,"column":null,"metadata":{"recognized":"clients/[provider]","captures":{"provider":"acme"},"declared":["client.ts","requestModels.ts"]},"ruleText":null}
-{"kind":"issue","path":"clients/stripe/client.ts","code":"missing_factory","message":"…","severity":"error","espalier":null,"rule":"clients/[provider]/client.ts.mjs","pattern":"clients/[provider]/client.ts","captures":{"provider":"stripe"},"line":12,"column":3,"metadata":{},"ruleText":"…"}
+{"kind":"issue","path":"clients/acme/random.ts","code":"unexpected_path","message":"…","severity":"error","espalier":null,"rule":null,"pattern":null,"captures":{},"line":null,"column":null,"metadata":{"recognized":"clients/[provider]","captures":{"provider":"acme"},"declared":["client.ts","requestModels.ts"]},"guidance":null}
+{"kind":"issue","path":"clients/stripe/client.ts","code":"missing_factory","message":"…","severity":"error","espalier":null,"rule":"clients/[provider]/client.ts.mjs","pattern":"clients/[provider]/client.ts","captures":{"provider":"stripe"},"line":12,"column":3,"metadata":{},"guidance":"…"}
 {"kind":"warning","message":"partial run: 3 of 214 files checked. A scoped run cannot tell you the repository conforms."}
 {"kind":"failure","code":"ambiguous_siblings","message":"…"}
 ```
@@ -313,7 +313,7 @@ behavior applies to per-file and aggregate rules, every worker count, and the AP
 
 Presentation is the formatter's business, and formatters may buffer. `human`
 groups by path and rule identity. `jsonl` does not reorder or group anything;
-each issue retains its own rule text unless `--no-rule-text` is selected.
+each issue retains its own guidance text unless `--no-guidance` is selected.
 
 ## Exit codes
 

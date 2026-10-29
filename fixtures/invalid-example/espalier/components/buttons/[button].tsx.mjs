@@ -3,5 +3,5 @@ export const description = "a button component";
 // this path is not under it. A reference not owned by its declaring rule is a
 // specification error.
 export const referenceImplementation = "components/Modal.tsx";
-export const rule = `Default-export a single component named after the file.`;
+export const guidance = `Default-export a single component named after the file.`;
 export async function lint() {}

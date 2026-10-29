@@ -40,10 +40,10 @@ repeatability. When schemas provide examples, help assembles them into one
 invocation. A required file without a custom template is identified as an
 empty file.
 
-Creation, help, and preview all compile directory guidance, rule prose, and
+Creation, help, and preview all compile directory guidance, guidance, and
 descriptions. Their callbacks receive the authored declaration context, not
 the target file's captures. Template renderers receive the concrete target
-path and its captures; see [callback contexts](../../TYPES.MD#rule).
+path and its captures; see [callback contexts](../../TYPES.MD#guidance).
 
 The positional action `preview`, immediately after the path, renders the
 selected templates without writing target files. Its following arguments use

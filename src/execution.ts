@@ -96,7 +96,7 @@ export interface Invocation {
   pattern: string;
   path: string;
   captures: Record<string, CaptureValue>;
-  ruleText: string | null;
+  guidance: string | null;
   description: string | null;
   referenceImplementation: string | null;
   matches?: Array<{ path: string; captures: Record<string, CaptureValue> }>;

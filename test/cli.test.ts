@@ -33,7 +33,7 @@ function run(cwd: string, args: string[]) {
 }
 
 const RULE = `export const description = "a source file";
-export const rule = \`Keep it small.\`;
+export const guidance = \`Keep it small.\`;
 export async function lint() {}
 `;
 
@@ -243,7 +243,7 @@ test("format and destination are independent choices", () => {
 
 // Flags that narrow a run.
 
-test("--no-rule-text drops the rule bodies and nothing else", () => {
+test("--no-guidance drops the rule bodies and nothing else", () => {
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier", "src", "[name].ts.mjs"),
@@ -253,7 +253,7 @@ test("--no-rule-text drops the rule bodies and nothing else", () => {
     );
 
     const full = run(root, ["lint"]);
-    const bare = run(root, ["lint", "--no-rule-text"]);
+    const bare = run(root, ["lint", "--no-guidance"]);
     assert.match(full.stdout, /Keep it small\./);
     assert.doesNotMatch(bare.stdout, /Keep it small\./);
     assert.match(bare.stdout, /a finding/);

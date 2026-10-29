@@ -152,6 +152,26 @@ A literal leaf such as `main.{ts,tsx}.mjs` cannot list alternatives: it would
 not say which file is required. Write separate literal rules if both are
 required.
 
+A placeholder can constrain the text it accepts. `[name=mask]` pictures the
+text one character at a time: `0` is a digit, `#` an optional digit, `A` a
+letter, `a` a lowercase letter, `X` a letter or digit, `x` a lowercase letter
+or digit, and `-` or `_` itself. `+` repeats the element before it one or more
+times and `(n)` exactly n times. `[name={a,b}]` accepts exactly the listed
+names.
+
+```text
+[seq=0(6)]_[name=x+].tables.sql.mjs   000100_init.tables.sql; not abc_init.tables.sql
+[at=0(14)]_[name].rb.mjs              a fourteen-digit timestamp
+[kind={tables,views}].sql.mjs         tables.sql and views.sql only
+```
+
+A mask describes shape, not meaning; whether fourteen digits are a valid date
+is for `lint`. A masked placeholder matches a strict subset of a bare one, so
+`[seq=0+]_[name].tables.sql.mjs` beside the padded rule owns the unpadded
+migrations. Two captures in one name must be separated by text neither can
+absorb: `[a]_[b].ts.mjs` is rejected, because `a_b_c.ts` splits two ways,
+while `[a=0+]_[b].ts.mjs` is accepted.
+
 A literal filename wins over a placeholder in the same directory. Both rule
 files below match `SubmitButton.tsx`, but `SubmitButton.tsx.mjs` owns it:
 
@@ -176,6 +196,12 @@ Distinct prefixes such as `a-[name]/` and `b-[name]/` are disjoint and may
 both sit beside a broad fallback. A directory placeholder and a file
 placeholder may coexist, because they match different kinds of path.
 
+A real path whose name holds brackets, such as a Next.js `app/[slug]/`
+route or `pages/[id].tsx`, is declared by a module at that name exporting
+`literalName = true`: on `ESPALIER.mjs` for the directory, on the rule module
+for the file. The name is then static text, required by default, and may
+declare `instanceOf` to inherit a dynamic sibling's contract.
+
 `{provider}` repeats the text captured by `[provider]` earlier in the same
 path:
 
@@ -190,6 +216,27 @@ without an earlier `[provider]` is an error.
 Once resolved, `{provider}.ts` names one file and wins over a placeholder
 sibling such as `[name].ts`. A literal filename still takes precedence over
 both.
+
+A dynamic rule can state an obligation over several of its files at once by
+exporting `groups`. Each grouping names the captures whose shared values
+identify a group, describes what one group is, states the rule for the group,
+and lints each group with its members:
+
+```js
+export const groups = {
+  set: {
+    by: ["num", "group"],
+    description: "a migration set",
+    rule: "Steps are numbered from 01 with no gaps.",
+    async lint({ captures, matches, emit }) { /* one group at a time */ },
+  },
+};
+```
+
+Groups are per directory and never empty. Use a grouping when the invariant is
+about the files together — numbering, completeness, agreement — and a per-file
+`lint` when each file can be judged alone. A grouping that needs every file in
+the directory lists no captures: `by: []`.
 
 **A per-file constraint does not own files.** It checks files already owned
 by structural rules. Its path contains `[...name]`, which matches any depth
@@ -250,7 +297,7 @@ excluded directory may contain modules and `ESPALIER.mjs` without compiling them
 
 ## The rule file
 
-Every rule file exports `rule`, the written requirements, and `lint`, the
+Every rule file exports `guidance`, the written requirements, and usually `lint`, the
 function that checks them. A structural rule file also exports
 `description`, a short phrase describing what the governed file is.
 A constraint may export `description` to briefly summarize its requirement.
@@ -261,7 +308,7 @@ here.
 ```js
 export const description = "a button component";
 
-export const rule = `\`components/buttons/SubmitButton.tsx\` default-exports
+export const guidance = `\`components/buttons/SubmitButton.tsx\` default-exports
 a function named \`SubmitButton\` and provides a named export for the interface
 \`SubmitButtonProps\`.`;
 
@@ -270,11 +317,11 @@ export async function lint({ read, emit }) {
 }
 ```
 
-`rule` states the requirements in Markdown. Its text appears in generated
+`guidance` states the requirements in Markdown. Its text appears in generated
 guidance, `explain`, and reported issues. Write it for someone about to
 create or change the governed files.
 
-`rule` may also be a synchronous or asynchronous function returning Markdown.
+`guidance` may also be a synchronous or asynchronous function returning Markdown.
 `description` likewise accepts a function returning its short label, with the
 same context and timing. Each callback receives its own isolated
 `{ config, pattern, path, captures }`: a resolved config snapshot,
@@ -291,7 +338,7 @@ See `espalier help types` for details and the `RuleGuidanceContext` type.
 - Per-file: name the kind of file and what each must or must not contain.
 - Aggregate: name the group and the conditions it must satisfy.
 
-Template literals are convenient for multiline rule prose and apostrophes.
+Template literals are convenient for multiline guidance and apostrophes.
 Escape embedded backticks and literal `${...}` sequences as JavaScript requires.
 
 A diagnostic can refer to a specific location with wording such as
@@ -332,7 +379,7 @@ import { createTemplate } from "espalier";
 
 export const description = "local feature notes";
 export const optional = true;
-export const rule = `Start with a level-one heading. Describe this feature's
+export const guidance = `Start with a level-one heading. Describe this feature's
 purpose, domain decisions, and maintenance considerations. Read these notes
 when working in this feature. They supplement the shared feature contract;
 they do not authorize changing or weakening it.`;

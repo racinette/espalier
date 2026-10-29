@@ -456,7 +456,7 @@ remove it and preserve single-document output using root `fold: true`.
 `espalierGuidance: false` omits the canned `Working with Espalier` introduction
 from an outer root and the `Governance boundary` and `Architecture changes`
 sections from a nested Espalier root. It does not remove provenance, project
-structure, exclusions, rule text, persistent `ESPALIER.mjs` prose, or guidance
+structure, exclusions, guidance text, persistent `ESPALIER.mjs` prose, or guidance
 about the generated document's edit target.
 
 ### Architecture guidance modes

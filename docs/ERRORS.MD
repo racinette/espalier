@@ -70,7 +70,7 @@ See [TYPES.MD](TYPES.MD).
 | Code | |
 |---|---|
 | `module_import_failed` | the module could not be parsed or threw while being imported |
-| `module_missing_export` | no `rule`, or no `description` on a structural rule |
+| `module_missing_export` | no `guidance`, or no `description` on a structural rule |
 | `module_invalid_export` | an export of the wrong type or on the wrong rule kind, or `targets` together with a constraint filename extension |
 | `invalid_reference_implementation` | a `referenceImplementation` that is absent, is not a governed file, or is not actually owned or covered by its rule |
 
@@ -85,7 +85,7 @@ See [TYPES.MD](TYPES.MD).
 | Code | |
 |---|---|
 | `rule_threw` | a `lint` function threw. A bug in the rule, not a finding about the repository |
-| `rule_guidance_failed` | a function-valued `rule` or `description` threw or rejected while rendering declaration guidance |
+| `rule_guidance_failed` | a function-valued `guidance` or `description` threw or rejected while rendering declaration guidance |
 | `invalid_issue` | `emit` was called with something that is not a well-formed issue |
 | `invalid_issue_path` | an emitted or read path is not a non-empty relative string, or escapes the repository |
 | `read_failed` | a snapshot file could not be read, an aggregate read omitted its path, or an isolated rule test lacks the requested contents |

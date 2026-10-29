@@ -19,7 +19,7 @@
       "captures": {},
       "message": "a dynamic page must export getStaticPaths",
       "metadata": {},
-      "ruleText": "Exports `getStaticPaths` beside the component."
+      "guidance": "Exports `getStaticPaths` beside the component."
     }
   ],
   "ownership": {

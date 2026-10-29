@@ -3,7 +3,7 @@ import { parseCase } from "../../../helpers/case.mjs";
 export const aggregate = true;
 export const targets = ["*/case.json"];
 export const description = "the fixture corpus stays mixed enough";
-export const rule = `The selected fixture cases together keep a mixed corpus:
+export const guidance = `The selected fixture cases together keep a mixed corpus:
 at least three cases, at least 25% and at most 75% of cases are mutations,
 mean depth at least 1.5, and mean args at least 1.5.`;
 

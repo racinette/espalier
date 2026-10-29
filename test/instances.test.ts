@@ -12,7 +12,7 @@ import { VERSION } from '../src/version.js';
 
 const cli = fileURLToPath(new URL('../src/cli.js', import.meta.url));
 const api = pathToFileURL(fileURLToPath(new URL('../src/api.js', import.meta.url))).href;
-const rule = 'export const description="module"; export const rule="Shared obligation"; export function lint() {}\n';
+const rule = 'export const description="module"; export const guidance="Shared obligation"; export function lint() {}\n';
 function run(root: string, args: string[]) {
   const result = spawnSync(process.execPath, [cli, ...args], { cwd: root, encoding: 'utf8' });
   if (result.error) throw result.error;
@@ -158,7 +158,7 @@ test('empty named directories are required and can be created from a guidance-on
 
 test('migration ignores export-shaped prose and preserves literal collection semantics', async () => {
   await scratch((root,put)=>{
-    const source='export const description="source";\nexport const rule=`Example:\nexport const optional = false;\n`;\nexport const optional = false;\nexport function lint() {}\n';
+    const source='export const description="source";\nexport const guidance=`Example:\nexport const optional = false;\n`;\nexport const optional = false;\nexport function lint() {}\n';
     put('espalier/[module].ts.mjs',source);
     put('espalier/ESPALIER.MD','---\ndescription: Root\n---\nProse with `code` and ${expressions}.\n');
     const dry=run(root,['migrate','--dry-run']);
@@ -175,6 +175,27 @@ test('migration ignores export-shaped prose and preserves literal collection sem
     const before=readFileSync(path.join(root,'espalier/ESPALIER.mjs'),'utf8');
     assert.equal(run(root,['migrate']).status,0);
     assert.equal(readFileSync(path.join(root,'espalier/ESPALIER.mjs'),'utf8'),before);
+  });
+});
+
+test('migration renames rule to guidance on modules and groupings, and refuses a destructured one', async () => {
+  await scratch((root,put)=>{
+    const old='rule';
+    put('espalier/[a=0+]_[b].sql.mjs',`export const description="a step";\nexport const ${old} = \`Prose mentioning export const rule.\`;\nexport const groups = { set: { by: ["a"], description: "a set", ${old}: "No gaps.", lint() {} } };\nexport function lint() {}\n`);
+    put('espalier/main.ts.mjs',`export const description="main";\nexport async function ${old}() { return "computed"; }\n`);
+    put('espalier/[...path]/no-fetch.ts.mjs',`export const ${old} = "No fetch.";\nexport function lint() {}\n`);
+    const migrated=run(root,['migrate']);
+    assert.equal(migrated.status,0,migrated.stdout+migrated.stderr);
+    const step=readFileSync(path.join(root,'espalier/[a=0+]_[b].sql.mjs'),'utf8');
+    assert.match(step,/export const guidance = `Prose mentioning export const rule\.`;/);
+    assert.match(step,/description: "a set", guidance: "No gaps\."/);
+    assert.match(readFileSync(path.join(root,'espalier/main.ts.mjs'),'utf8'),/export async function guidance\(\)/);
+    assert.match(readFileSync(path.join(root,'espalier/[...path]/no-fetch.ts.mjs'),'utf8'),/export const guidance = "No fetch\."/);
+    assert.equal(run(root,['build']).status,0);
+    put('espalier/other.ts.mjs',`const unit = { description: "o", ${old}: "r", lint() {} };\nexport const { description, ${old}, lint } = unit;\n`);
+    const refused=run(root,['migrate']);
+    assert.equal(refused.status,2);
+    assert.match(refused.stdout,/destructured or re-exported/);
   });
 });
 

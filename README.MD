@@ -60,7 +60,7 @@ optional construction entry point:
 
 **Linters**, run deterministically against the working tree by `espalier lint`:
 
-> After the agent writes or edits a file, `espalier lint` verifies the result. Findings include the applicable rule text by default. Output is human-readable unless `--format jsonl` is selected for machine consumption. The agent revises until validation succeeds. See [`espalier lint`](docs/cli/lint/README.MD).
+> After the agent writes or edits a file, `espalier lint` verifies the result. Findings include the applicable guidance text by default. Output is human-readable unless `--format jsonl` is selected for machine consumption. The agent revises until validation succeeds. See [`espalier lint`](docs/cli/lint/README.MD).
 
 **Creation**, invoked for any structural rule by `espalier create`:
 
@@ -87,7 +87,7 @@ concrete path and the owning rule's placeholder captures.
 1. The agent reads the project map at the repository root — always present, small, architectural.
 2. Working in a directory, it reads the nearest applicable generated guidance: what belongs there, what is required, and the conventions for each.
 3. After writing, `espalier lint` validates the result.
-4. Drift is reported as findings with the applicable rule text; `--format jsonl` provides machine-readable output.
+4. Drift is reported as findings with the applicable guidance text; `--format jsonl` provides machine-readable output.
 5. The agent revises until the project's constraints are satisfied.
 
 Guidance steers; the linter corrects. Generated-document freshness prevents stale copies. Executable checks give the same answer for the same source inputs. Tests and review establish whether those checks implement the intended architecture. Incomplete, contradictory, or unsatisfiable policy remains the author's.
@@ -140,7 +140,7 @@ espalier
 
 export const description = "the repository root README file";
 
-export const rule = `
+export const guidance = `
 The root README must not be empty.
 `;
 
@@ -289,7 +289,7 @@ captures.
 
 A dynamic rule can also judge its files in groups. `groups` names the
 captures a group shares, such as a migration set's number and name, and each
-grouping carries its own rule text and a `lint` that runs once per group with
+grouping carries its own guidance text and a `lint` that runs once per group with
 the members. See [groups](docs/TYPES.MD#groups).
 
 Full grammar, matching precedence, and requiredness: [docs/MATCHING.MD](docs/MATCHING.MD) (`espalier help matching`).
@@ -304,7 +304,7 @@ converting Markdown directory guidance to `ESPALIER.mjs`.
 
 ## Writing rules
 
-Every rule file exports `rule` and `lint`. Structural rules also require a
+Every rule file exports `guidance`; most also export `lint`. Structural rules also require a
 `description`. This structural example shows the exports; its check is an
 outline, not an implementation:
 
@@ -312,7 +312,7 @@ outline, not an implementation:
 export const description =
   "a concise description of what this file represents";
 
-export const rule = `Props must be a named exported interface \`<Name>Props\`.`;
+export const guidance = `Props must be a named exported interface \`<Name>Props\`.`;
 
 import { createLinter } from "espalier";
 
@@ -321,12 +321,12 @@ export const lint = createLinter(async (context) => {
 });
 ```
 
-That `rule` renders as: Props must be a named exported interface `<Name>Props`.
+That `guidance` renders as: Props must be a named exported interface `<Name>Props`.
 
 An ordinary template literal is the default. Reach for `String.raw` when the text contains backslashes and no backticks:
 
 ```js
-export const rule = String.raw`File names must match ^[A-Z][a-zA-Z0-9]*$.`;
+export const guidance = String.raw`File names must match ^[A-Z][a-zA-Z0-9]*$.`;
 ```
 
 `createLinter` provides contextual editor and TypeScript types and returns the
@@ -337,13 +337,13 @@ rules remain valid. Aggregate constraints have the corresponding
 For a structural rule, `description` briefly describes what the file is.
 For a constraint, it optionally summarizes the requirement. Use the project's
 vocabulary: "a payment provider client" or "checkout message IDs agree across
-locales." Put the full requirements in `rule`.
+locales." Put the full requirements in `guidance`.
 
-The `rule` describes the requirements for the file or selected group. The same
+The `guidance` describes the requirements for the file or selected group. The same
 requirements apply whether files are being created or edited, and the same
 text appears in generated guidance and reported findings.
 
-Rule [`description`](docs/TYPES.MD#description) and [`rule`](docs/TYPES.MD#rule)
+Rule [`description`](docs/TYPES.MD#description) and [`guidance`](docs/TYPES.MD#guidance)
 exports can also be sync/async functions. Directory modules accept computed
 [`description` and `guidance`](docs/TYPES.MD#directory-modules). These callbacks
 run once per authored declaration during compilation, using configuration and

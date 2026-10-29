@@ -221,7 +221,7 @@ backend/[...path]/no-fetch.ts.mjs     →  backend/[...path]/no-fetch.ts
 ```
 
 That is what `lint` receives as `context.pattern`, what an issue records, what
-`explain` reports, and what a computed `rule` or `description` callback is
+`explain` reports, and what a computed `guidance` or `description` callback is
 given. Nothing is normalized away: placeholder names, masks, back-references
 and extension unions all survive, because they carry meaning a glob cannot
 express. The file that matched is `context.path`, exact, and the values the
@@ -790,5 +790,5 @@ for migration; declaring both formats in one directory is an error.
 
 Inherited prose is documented at the shared contract. A named instance's
 output identifies that contract and presents its own domain guidance and
-concrete layout without repeating inherited rule prose. Folding continues to
+concrete layout without repeating inherited guidance. Folding continues to
 control placement. `explain` exposes the full inherited rule chain.

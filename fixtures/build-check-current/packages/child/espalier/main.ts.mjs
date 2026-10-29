@@ -1,3 +1,3 @@
 export const description = "source";
-export const rule = "Source.";
+export const guidance = "Source.";
 export function lint() {}

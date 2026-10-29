@@ -31,7 +31,7 @@ Agent tools disagree about almost everything: whether rules attach by glob, whet
 
 `build` depends on one thing instead: agents read the documentation files in the directory they are working in. That convention is converging across tools, it costs nothing to support, and it works identically for creating a file and for editing one.
 
-Everything else the agent needs arrives from `espalier lint`, which reports violations with the rule text attached. Guidance steers, lint corrects, and both come from the same modules, so drift between them is reviewable. Colocation does not prove the prose and the check are the same obligation; tests and review still establish that.
+Everything else the agent needs arrives from `espalier lint`, which reports violations with the guidance text attached. Guidance steers, lint corrects, and both come from the same modules, so drift between them is reviewable. Colocation does not prove the prose and the check are the same obligation; tests and review still establish that.
 
 ## Where files go
 
@@ -68,10 +68,10 @@ without a document remain expanded, so every structural node appears somewhere.
 
 **Rule bodies** — for rules placed here and sections explicitly folded here.
 Other descendant documents retain their own rule detail.
-Function-valued `rule` exports are rendered during compilation using their
+Function-valued `guidance` exports are rendered during compilation using their
 declaration context, just as directory guidance and function-valued
 `description` exports are. `build --check` detects changes to both prose and
-map labels. See [computed rule prose](../../TYPES.MD#rule).
+map labels. See [computed guidance](../../TYPES.MD#guidance).
 
 **Cardinality and the complete account** — which files are required, which may
 appear zero or more times, and the final statement that every path belongs to
@@ -135,7 +135,7 @@ node prose                    the rendered ESPALIER.mjs guidance
 
 Text `espalier` composes — the map's own text, constraint selection sentences,
 and the complete-account sentence — is greedily wrapped at 80 columns. Text an
-author wrote — node prose, rule bodies — is copied verbatim and never
+author wrote — node prose, guidance bodies — is copied verbatim and never
 re-wrapped, because reflowing someone's markdown is how a tool mangles a table.
 
 ### The heading
@@ -540,7 +540,7 @@ Use this loop:
    starts empty; use --with or --with-optional to include optional files.
 4. Review the created source, complete any placeholders, and make the remaining
    change within the structure established for the task.
-5. Run `espalier lint` and follow the rule text attached to each finding.
+5. Run `espalier lint` and follow the guidance text attached to each finding.
 6. Run `espalier build`, review and include any generated guidance changes,
    then run `espalier build --check` immediately before committing.
 
@@ -624,7 +624,7 @@ switching modes. See [guidance modes](../../CONFIG.MD#architecture-guidance-mode
 
 Set `build.espalierGuidance: false` to omit the canned operational and mode
 sections, including the nested governance boundary. The setting does not
-suppress provenance, structural maps, exclusions, rule bodies, or authored
+suppress provenance, structural maps, exclusions, guidance bodies, or authored
 `ESPALIER.mjs` guidance.
 
 ## Example
@@ -868,7 +868,7 @@ Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).
 
 A directory declaring `instanceOf` has inherited structure and locally authored
 domain guidance. Its concrete layout includes inherited files, while inherited
-rule prose stays at the shared contract. The local document names its contract.
+guidance stays at the shared contract. The local document names its contract.
 Local file specializations document their additional obligations and identify
 the inherited rule. `fold` still controls placement. Optional named directory instances receive their local generated documents
 only once their source directory exists. Building guidance does not create an

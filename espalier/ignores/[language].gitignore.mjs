@@ -1,6 +1,6 @@
 export const description = "a shipped ignore list";
 
-export const rule = `One file per language, named for the language in lower
+export const guidance = `One file per language, named for the language in lower
 case. \`_common\` is the exception: it belongs to no language and \`init\` writes
 it every time.
 

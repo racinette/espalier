@@ -1,5 +1,5 @@
 export const description = "compiler settings supplied to the analysis service";
-export const rule = `Contains a compilerOptions object. Source membership comes
+export const guidance = `Contains a compilerOptions object. Source membership comes
 from governed src files; settings have no extends, files, include, or exclude.`;
 export async function lint({ read, emit }) {
   const value = JSON.parse(await read());

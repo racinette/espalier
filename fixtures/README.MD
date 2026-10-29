@@ -39,7 +39,7 @@ The fixture directory *is* the repository root — config discovery finds `espal
 
 **`issues`** — every issue the run must produce, and no others. Order is not compared: the runner does not promise one, so a fixture asserting one would be pinning an accident. Count is compared, including findings retained from separate invocations.
 
-**Only the fields present are compared.** An expected issue naming `path`, `code` and `severity` asserts nothing about `line` or `ruleText`. This keeps fixtures readable and stops them failing over cosmetic changes to fields they were not written to test. The rule applies at every depth, so an expected `metadata` naming two keys asserts nothing about a third.
+**Only the fields present are compared.** An expected issue naming `path`, `code` and `severity` asserts nothing about `line` or `guidance`. This keeps fixtures readable and stops them failing over cosmetic changes to fields they were not written to test. The rule applies at every depth, so an expected `metadata` naming two keys asserts nothing about a third.
 
 **`error`** — the `code` of an expected `kind: "failure"` line. A fixture needing to pin another of its fields — which espalier reported it — gives an object instead, compared by the same partial rule as everything else.
 

@@ -1,6 +1,6 @@
 import { snapshotFor } from "../../../analysis/snapshot.mjs";
 
-export const rule = `Governed TypeScript source must have no compiler errors
+export const guidance = `Governed TypeScript source must have no compiler errors
 under compiler.json's settings.`;
 export async function lint(context) {
   const snapshot = await snapshotFor(context);

@@ -48,7 +48,7 @@ function scratch(body: (root: string) => void): void {
 }
 
 const RULE = `export const description = "a client";
-export const rule = \`Every client wraps one provider.\`;
+export const guidance = \`Every client wraps one provider.\`;
 export async function lint() {}
 `;
 
@@ -168,7 +168,7 @@ test("an issue carries its position ahead of its severity", () => {
       root,
       "espalier/[file].ts.mjs",
       `export const description = "a file";
-export const rule = \`R\`;
+export const guidance = \`R\`;
 export async function lint(context) {
   context.emit({ code: "positioned", message: "here", severity: "warning", line: 12, column: 3 });
 }
@@ -188,7 +188,7 @@ test("issues are grouped under their path, in path order", () => {
       root,
       "espalier/[file].ts.mjs",
       `export const description = "a file";
-export const rule = \`R\`;
+export const guidance = \`R\`;
 export const referenceImplementation = "a.ts";
 export async function lint(context) {
   context.emit({ code: "one", message: "first", severity: "warning" });
@@ -210,12 +210,12 @@ export async function lint(context) {
       shown.stdout,
       /a\.ts\n[\s\S]*? {2}warning {2}one {3}first\n {2}warning {2}two {3}second\n\nb\.ts\n/,
     );
-    assert.equal(shown.stdout.match(/Rule \(a file\):/g)?.length, 2);
+    assert.equal(shown.stdout.match(/Guidance \(a file\):/g)?.length, 2);
     assert.equal(shown.stdout.match(/Reference implementation: a\.ts/g)?.length, 2);
 
-    const terse = run(root, ["lint", "--no-rule-text"]);
+    const terse = run(root, ["lint", "--no-guidance"]);
     assert.equal(terse.status, shown.status);
-    assert.doesNotMatch(terse.stdout, /Rule \(a file\):/);
+    assert.doesNotMatch(terse.stdout, /Guidance \(a file\):/);
     assert.equal(terse.stdout.match(/Reference implementation: a\.ts/g)?.length, 2);
     assert.deepEqual(
       terse.stdout.match(/^ {2}warning.*$/gm),
@@ -253,7 +253,7 @@ test("rule text is indented above the findings that cite it", () => {
       root,
       "espalier/[file].ts.mjs",
       `export const description = "a client";
-export const rule = \`Every client wraps one provider.
+export const guidance = \`Every client wraps one provider.
 It does not wrap two.\`;
 export async function lint(context) {
   context.emit({ code: "noted", message: "a finding", severity: "warning" });
@@ -263,6 +263,6 @@ export async function lint(context) {
     write(root, "a.ts", "export const a = 1;\n");
 
     const shown = run(root, ["lint"]);
-    assert.match(shown.stdout, /Rule \(a client\):\n {6}Every client wraps one provider\.\n {6}It does not wrap two\./);
+    assert.match(shown.stdout, /Guidance \(a client\):\n {6}Every client wraps one provider\.\n {6}It does not wrap two\./);
   });
 });

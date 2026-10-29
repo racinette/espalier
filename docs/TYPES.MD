@@ -13,7 +13,7 @@ export const description = "a button component";
 
 export const referenceImplementation = "components/buttons/SubmitButton.tsx";
 
-export const rule = `
+export const guidance = `
 Default-export a single component named after the file.
 Props must be a named exported interface \`<Name>Props\`.
 `;
@@ -42,7 +42,7 @@ aggregate form.
 | Export | Required | |
 |---|---|---|
 | `description` | structural only | string or sync/async function briefly describing the file or a constraint's requirement |
-| `rule` | yes | Markdown string or function returning the natural-language conventions |
+| `guidance` | yes | Markdown string or function returning the natural-language conventions |
 | `lint` | no | deterministic validation; a module with nothing to check exports none |
 | `referenceImplementation` | no | a path to a canonical conforming file |
 | `optional` | no | whether a named file may be absent |
@@ -61,25 +61,25 @@ governed file is, such as "a payment provider client."
 
 For a constraint, `description` is optional: briefly summarize the requirement,
 such as "checkout message IDs agree across locales." Put the full requirements
-in `rule`.
+in `guidance`.
 
 The export accepts a string or a synchronous or asynchronous function returning
 a string. Functions receive `RuleGuidanceContext`, with the same declaration
-context and evaluation timing as [`rule`](#rule). Each callback gets its own
+context and evaluation timing as [`guidance`](#guidance). Each callback gets its own
 isolated context. Descriptions are rendered once per declaration before lint
 workers start, including when no files match; maps, creation help, explain, and
 findings use that rendered string. A thrown or rejected callback is
 `rule_guidance_failed`; a non-string result is `module_invalid_export`.
 
-### `rule`
+### `guidance`
 
 The conventions the file must follow, in natural language. Markdown is supported.
 
 An ordinary template literal is the right default. A backtick inside one has to be written `` \` `` either way — the literal would otherwise end — and an ordinary template literal resolves that escape, while `String.raw` keeps the backslash and puts it in your documentation. Reach for `String.raw` when the text contains backslashes and no backticks, which in practice means a regular expression.
 
 ```js
-export const rule = `Props must be a named exported interface \`<Name>Props\`.`;
-export const rule = String.raw`File names must match ^[A-Z][a-zA-Z0-9]*$.`;
+export const guidance = `Props must be a named exported interface \`<Name>Props\`.`;
+export const guidance = String.raw`File names must match ^[A-Z][a-zA-Z0-9]*$.`;
 ```
 
 Creation and editing use the same rendered requirements. Exporters format
@@ -92,7 +92,7 @@ function returning a string:
 
 ```js
 /** @param {import("espalier").RuleGuidanceContext} context */
-export function rule({ config }) {
+export function guidance({ config }) {
   return config.build.guidanceMode === "fixed"
     ? "Changes to this file's responsibilities require architecture authorization."
     : "Discuss changes to this file's responsibilities before implementing them.";
@@ -308,7 +308,7 @@ constraints reject `minMatches`.
 
 `instanceOf` is a nonempty contract reference on a named structural leaf or
 on a directory module. It is not valid on constraints or dynamic leaves.
-Named structural rules keep their `description`, `rule`, and `lint` exports;
+Named structural rules keep their `description`, `guidance`, and `lint` exports;
 their lint adds to inherited checks. Their optional `template` replaces the
 inherited creation recipe, without replacing checks. Without a local template,
 creation uses the inherited template and its original captures.
@@ -443,7 +443,7 @@ Each key is the grouping's name, an identifier that appears in guidance, in
 |---|---|
 | `by` | captures of this rule's path whose values identify a group; the others vary within it |
 | `description` | what one group is, for headings |
-| `rule` | the Markdown obligation the group as a whole must satisfy |
+| `guidance` | the Markdown obligation the group as a whole must satisfy |
 | `lint` | runs once per group with that group's members |
 
 `by` may be empty, which groups every file the rule owns in one directory.
@@ -473,7 +473,7 @@ The `lint` context is:
 | `files`, `emit`, `addons` | as for every rule |
 
 Issues a grouping emits carry the rule's module path, the grouping's name as
-`group`, the shared captures, and the grouping's own `rule` text and
+`group`, the shared captures, and the grouping's own `guidance` and
 `description`. Attach an issue to a member or another file with `path` when
 one file has to change; the directory is the right address when the group as
 a whole is wrong. Groupings run as jobs beside aggregates and follow the same
@@ -482,7 +482,7 @@ scoping rule: a scoped lint that reaches one member runs the whole group.
 ## Directory modules
 
 `ESPALIER.mjs` describes its containing directory. It does not export a
-structural `rule`, `lint`, or `template`. Its exports are:
+structural `guidance`, `lint`, or `template`. Its exports are:
 
 | Export | Default | Meaning |
 |---|---|---|
@@ -511,7 +511,7 @@ export function guidance({ config }) {
 
 Both `description` and `guidance` functions receive `DirectoryGuidanceContext`:
 `{ config, pattern, path, captures }`. `config` has the same resolved shape
-described for [`RuleGuidanceContext`](#rule), including `build` and `lint`
+described for [`RuleGuidanceContext`](#guidance), including `build` and `lint`
 settings. `pattern` is the authored directory path, relative to the rule-tree
 root. `path` is the concrete repository-relative path when known at compile
 time, otherwise null; both paths are the empty string at the root. `captures`

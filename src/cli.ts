@@ -62,7 +62,7 @@ const USAGE = `espalier <command> [options]
 
   lint only:
   --rule <module>       run one rule module only
-  --no-rule-text        omit rule bodies from output
+  --no-guidance         omit guidance bodies from output
   --jobs <n|auto>       maximum workers (default: lint.jobs, otherwise auto)
 
   explain only:
@@ -149,7 +149,7 @@ async function main(): Promise<number> {
         "no-common-ignore": { type: "boolean" },
         "dry-run": { type: "boolean" },
         rule: { type: "string" },
-        "no-rule-text": { type: "boolean" },
+        "no-guidance": { type: "boolean" },
         ...(command === "lint" ? { jobs: { type: "string" as const } } : {}),
         ...(command === "explain" ? { concise: { type: "boolean" as const } } : {}),
       },
@@ -247,7 +247,7 @@ async function main(): Promise<number> {
         config: values["config"] as string | undefined,
         paths: positionals,
         rule: values["rule"] as string | undefined,
-        ruleText: values["no-rule-text"] !== true,
+        guidance: values["no-guidance"] !== true,
         jobs: values["jobs"] === undefined ? undefined : values["jobs"] === "auto" ? "auto"
           : /^\d+$/.test(String(values["jobs"])) ? Number(values["jobs"]) : NaN,
       },

@@ -28,7 +28,7 @@ function scratch(body: (root: string, put: (at: string, contents: string) => voi
     put("espalier.config.yaml", config());
     put("espalier/ESPALIER.MD", "Authored policy stays here.\n");
     put("espalier/main.ts.mjs", `export const description = "entry";
-export const rule = "Entry policy.";
+export const guidance = "Entry policy.";
 export function lint() {}
 `);
     body(root, put);

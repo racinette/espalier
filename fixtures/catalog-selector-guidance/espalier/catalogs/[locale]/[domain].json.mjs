@@ -1,5 +1,5 @@
 export const description = "a message catalog for one locale and domain";
-export const rule = `Each domain catalog is a JSON object from message IDs to
+export const guidance = `Each domain catalog is a JSON object from message IDs to
 non-empty strings. Its filename is the domain identifier used by the storefront.`;
 
 export async function lint({ read, emit }) {

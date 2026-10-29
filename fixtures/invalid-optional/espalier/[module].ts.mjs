@@ -1,6 +1,6 @@
 export const description = "a module";
 
-export const rule = `One export per file.`;
+export const guidance = `One export per file.`;
 
 export const optional = "true";
 

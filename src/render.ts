@@ -832,7 +832,7 @@ export interface ConstraintGroup {
   rule: string;
   patterns: string[];
   description: string;
-  ruleText: string;
+  guidance: string;
   referenceImplementation: string | null;
   /** The longest static prefix of the directory the constraint applies under. */
   prefix: string;
@@ -860,7 +860,7 @@ export function constraintGroups(espalier: Espalier): ConstraintGroup[] {
       rule: first.modulePath,
       patterns,
       description: describeConstraint(first, members, patterns),
-      ruleText: first.module.rule.trim(),
+      guidance: first.module.guidance.trim(),
       referenceImplementation: first.module.referenceImplementation,
       prefix: staticPrefix(first.directory),
       members,
@@ -880,7 +880,7 @@ function constraintHeading(group: ConstraintGroup, level: number): string[] {
 }
 
 function constraintBody(group: ConstraintGroup): string[] {
-  return group.ruleText === "" ? [] : [group.ruleText];
+  return group.guidance === "" ? [] : [group.guidance];
 }
 
 /** The directory is a static prefix plus a trailing recursive catch-all. */
@@ -922,7 +922,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
     const body: string[] = [];
 
     if (section.rule.inherited?.length) body.push(`Shared contract: ${section.rule.inherited.map((rule) => codeSpan(rule.modulePath.replace(/\.mjs$/, ""))).join(", ")}. Inherited requirements still apply.`);
-    if (module.rule.trim() !== "") body.push(module.rule.trim());
+    if (module.guidance.trim() !== "") body.push(module.guidance.trim());
 
     // The reference is a repository path and therefore reads as one line.
     // docs/cli/build/README.MD "Rule sections".
@@ -947,7 +947,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
       blocks.push(
         `${hashes}# ${grouping.name} — ${grouping.description}`,
         `${shared} must follow this rule.`,
-        ...(grouping.rule.trim() === "" ? [] : [grouping.rule.trim()]),
+        ...(grouping.guidance.trim() === "" ? [] : [grouping.guidance.trim()]),
       );
     }
   }

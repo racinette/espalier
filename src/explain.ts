@@ -133,15 +133,15 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
         path: `${prefix}${visit.at}`,
         pattern: visit.node.rule!.pattern,
         ...(visit.node.rule!.inherited?.length ? { inherited: visit.node.rule!.inherited!.map((rule) => ({
-          rule: rule.modulePath, pattern: rule.pattern, description: rule.module.description, ruleText: rule.module.rule.trim(),
+          rule: rule.modulePath, pattern: rule.pattern, description: rule.module.description, guidance: rule.module.guidance.trim(),
         })) } : {}),
         rule: visit.node.rule!.modulePath,
         description: visit.node.rule!.module.description,
-        ruleText: visit.node.rule!.module.rule.trim(),
+        guidance: visit.node.rule!.module.guidance.trim(),
         referenceImplementation: visit.node.rule!.module.referenceImplementation,
         required: required.has(visit.at),
         ...(visit.node.rule!.module.groups.length > 0 ? { groups: visit.node.rule!.module.groups.map((grouping) => ({
-          name: grouping.name, by: grouping.by, description: grouping.description, ruleText: grouping.rule.trim(),
+          name: grouping.name, by: grouping.by, description: grouping.description, guidance: grouping.guidance.trim(),
         })) } : {}),
       }));
 
@@ -228,7 +228,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
   // the shared captures. docs/cli/explain/README.MD "Groupings".
   const memberships = structuralChecks(owner.rule, target, owner.captures).flatMap(({ rule, captures }) =>
     rule.module.groups.map((grouping) => ({
-      name: grouping.name, by: grouping.by, description: grouping.description, ruleText: grouping.rule.trim(),
+      name: grouping.name, by: grouping.by, description: grouping.description, guidance: grouping.guidance.trim(),
       captures: Object.fromEntries(grouping.by.map((name) => [name, captures[name]!])),
     })));
 
@@ -237,14 +237,14 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     espalier: null,
     path: target,
     ...(owner.rule.inherited?.length ? { inherited: structuralChecks(owner.rule, target, owner.captures).slice(0, -1).map(({ rule, captures }) => ({
-      rule: rule.modulePath, pattern: rule.pattern, captures, ruleText: rule.module.rule.trim(), description: rule.module.description,
+      rule: rule.modulePath, pattern: rule.pattern, captures, guidance: rule.module.guidance.trim(), description: rule.module.description,
     })) } : {}),
     ...(memberships.length > 0 ? { groups: memberships } : {}),
     rule: owner.rule.modulePath,
     pattern: owner.rule.pattern,
     captures: owner.captures,
     description: owner.rule.module.description,
-    ruleText: owner.rule.module.rule.trim(),
+    guidance: owner.rule.module.guidance.trim(),
     referenceImplementation: owner.rule.module.referenceImplementation,
     constraints,
   });

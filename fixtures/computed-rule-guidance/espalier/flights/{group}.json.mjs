@@ -1,5 +1,5 @@
 export const description = "flight manifest";
-export function rule({ pattern, path, captures }) {
+export function guidance({ pattern, path, captures }) {
   return `Resolved ${pattern}; path=${path}; captures=${JSON.stringify(captures)}.`;
 }
 export function lint({ emit }) {

@@ -20,7 +20,7 @@ export interface ConstraintAnswer {
   rule: string;
   patterns: string[];
   description: string;
-  ruleText: string;
+  guidance: string;
   referenceImplementation: string | null;
   captures?: Record<string, CaptureValue>;
   aggregate?: true;
@@ -32,7 +32,7 @@ export interface GroupAnswer {
   name: string;
   by: string[];
   description: string;
-  ruleText: string;
+  guidance: string;
   /** The group a file belongs to; absent in a prefix answer, where no file is in hand. */
   captures?: Record<string, CaptureValue>;
 }
@@ -44,7 +44,7 @@ export interface RuleAnswer {
   pattern: string;
   rule: string;
   description: string | null;
-  ruleText: string;
+  guidance: string;
   referenceImplementation: string | null;
   required: boolean;
 }
@@ -67,7 +67,7 @@ export interface PrefixAnswer {
 }
 
 export interface InheritedAnswer {
-  rule: string; pattern: string; captures: Record<string, CaptureValue>; ruleText: string; description: string | null;
+  rule: string; pattern: string; captures: Record<string, CaptureValue>; guidance: string; description: string | null;
 }
 
 export interface OwnedAnswer {
@@ -81,7 +81,7 @@ export interface OwnedAnswer {
   pattern: string;
   captures: Record<string, CaptureValue>;
   description: string | null;
-  ruleText: string;
+  guidance: string;
   referenceImplementation: string | null;
   constraints: ConstraintAnswer[];
 }
@@ -169,12 +169,12 @@ function describeCaptures(captures: Record<string, CaptureValue>, indent: string
 
 /** The rule and reference-implementation blocks a rule and constraint share. */
 function body(
-  ruleText: string,
+  guidance: string,
   referenceImplementation: string | null,
 ): string[] {
   const blocks: string[] = [];
-  if (ruleText !== "") {
-    blocks.push(`  Rule\n${ruleText.split("\n").map((line) => `    ${line}`).join("\n")}`);
+  if (guidance !== "") {
+    blocks.push(`  Guidance\n${guidance.split("\n").map((line) => `    ${line}`).join("\n")}`);
   }
   if (referenceImplementation !== null) {
     blocks.push(
@@ -190,7 +190,7 @@ function groupBlocks(groups: GroupAnswer[], concise: boolean): string[] {
     const by = group.by.length === 0 ? "the directory" : group.by.join(", ");
     const lines = [`  Grouped as ${group.name} by ${by}  ${group.description}`];
     if (group.captures !== undefined) lines.push(...describeCaptures(group.captures, " ".repeat(12)));
-    if (!concise && group.ruleText !== "") lines.push("", ...group.ruleText.split("\n").map((line) => `    ${line}`));
+    if (!concise && group.guidance !== "") lines.push("", ...group.guidance.split("\n").map((line) => `    ${line}`));
     return lines.join("\n");
   });
 }
@@ -218,7 +218,7 @@ function constraintBlocks(
     blocks.push(
       [
         `  ${column(constraint.name, COLUMN - 2)}${constraint.patterns.join(", ")}`,
-        ...constraint.ruleText.split("\n").map((line) => `    ${line}`),
+        ...constraint.guidance.split("\n").map((line) => `    ${line}`),
       ].join("\n"),
     );
   }
@@ -275,7 +275,7 @@ export function renderExplanation(answer: Explanation, concise = false): string 
         blocks.push(section(rule.path));
         if (rule.description !== null) blocks.push(`  ${rule.description}`);
         blocks.push(
-          ...body(rule.ruleText, rule.referenceImplementation),
+          ...body(rule.guidance, rule.referenceImplementation),
           ...groupBlocks(rule.groups ?? [], false),
         );
       }
@@ -329,10 +329,10 @@ export function renderExplanation(answer: Explanation, concise = false): string 
     ].join("\n"),
   );
   blocks.push(
-    ...body(concise ? "" : answer.ruleText, answer.referenceImplementation),
+    ...body(concise ? "" : answer.guidance, answer.referenceImplementation),
     ...(answer.inherited ?? []).flatMap((base) => [
       `  Inherits ${base.rule}`,
-      ...body(concise ? "" : base.ruleText, null),
+      ...body(concise ? "" : base.guidance, null),
     ]),
     ...groupBlocks(answer.groups ?? [], concise),
   );

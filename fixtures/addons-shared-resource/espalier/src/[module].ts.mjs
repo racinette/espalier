@@ -1,5 +1,5 @@
 export const description = "a source module";
-export const rule = `Export something.`;
+export const guidance = `Export something.`;
 
 export async function lint({ path, emit, addons }) {
   addons.note(path);

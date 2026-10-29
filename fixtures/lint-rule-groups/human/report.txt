@@ -1,7 +1,7 @@
 
 a.ts
 
-    Rule (source):
+    Guidance (source):
       Shared policy.
 
     Reference implementation: a.ts
@@ -10,7 +10,7 @@ a.ts
   3:5  warning  duplicate   same location
   3:5  error  different   another violation
 
-    Rule (source):
+    Guidance (source):
       Shared policy.
 
     Reference implementation: a.ts

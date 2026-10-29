@@ -122,7 +122,7 @@ test("migrate updates a 0.2.0 pin without rewriting old rule selectors", () => {
     mkdirSync(directory);
     const rulePath = path.join(directory, "element-frequency.mjs");
     const oldRule = `export const aggregate = true;
-export const rule = "Check the whole selected group.";
+export const guidance = "Check the whole selected group.";
 export async function lint() {}
 `;
     writeFileSync(rulePath, oldRule);

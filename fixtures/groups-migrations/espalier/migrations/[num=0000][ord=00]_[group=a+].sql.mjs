@@ -1,12 +1,12 @@
 export const description = "a migration step";
-export const rule = "One statement per step.";
+export const guidance = "One statement per step.";
 export async function lint() {}
 
 export const groups = {
   set: {
     by: ["num", "group"],
     description: "a migration set",
-    rule: "Steps are numbered from 01 with no gaps.",
+    guidance: "Steps are numbered from 01 with no gaps.",
     async lint({ captures, matches, emit }) {
       const ords = matches.map(({ captures }) => Number(captures.ord)).sort((a, b) => a - b);
       const expected = ords.map((_, index) => index + 1);
@@ -18,7 +18,7 @@ export const groups = {
   release: {
     by: ["num"],
     description: "one release's migrations",
-    rule: "Every group in a release is listed in RELEASES.txt as `<num> <group>`.",
+    guidance: "Every group in a release is listed in RELEASES.txt as `<num> <group>`.",
     async lint({ captures, matches, read, emit }) {
       const manifest = await read("migrations/RELEASES.txt");
       const listed = new Set(manifest.split("\n").filter(Boolean));

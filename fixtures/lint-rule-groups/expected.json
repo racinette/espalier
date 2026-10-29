@@ -3,10 +3,10 @@
   "human": "human/report.txt",
   "ownership": { "a.ts": "a.ts.mjs", "stray.txt": null },
   "issues": [
-    { "code": "duplicate", "line": 3, "column": 5, "metadata": { "item": 1 }, "ruleText": "Shared policy." },
-    { "code": "duplicate", "line": 3, "column": 5, "metadata": { "item": 2 }, "ruleText": "Shared policy." },
-    { "code": "different", "line": 3, "column": 5, "ruleText": "Shared policy." },
-    { "code": "constraint", "line": 3, "column": 5, "ruleText": "Shared policy." },
-    { "code": "unexpected_path", "path": "stray.txt", "ruleText": null }
+    { "code": "duplicate", "line": 3, "column": 5, "metadata": { "item": 1 }, "guidance": "Shared policy." },
+    { "code": "duplicate", "line": 3, "column": 5, "metadata": { "item": 2 }, "guidance": "Shared policy." },
+    { "code": "different", "line": 3, "column": 5, "guidance": "Shared policy." },
+    { "code": "constraint", "line": 3, "column": 5, "guidance": "Shared policy." },
+    { "code": "unexpected_path", "path": "stray.txt", "guidance": null }
   ]
 }

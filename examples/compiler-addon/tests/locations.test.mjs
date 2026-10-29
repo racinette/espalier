@@ -24,7 +24,7 @@ test("compiler locations remain valid application findings with readable origins
     assert.equal("column" in fallback, false);
     assert.match(fallback.message, /from .*index\.d\.ts:4:7/);
     assert.equal(fallback.metadata.origin.line, 4);
-    const issues = await runRule({ rule: "Reports an adapted compiler finding.", lint: ({ emit }) => emit(fallback) }, { path: checkedPath });
+    const issues = await runRule({ guidance: "Reports an adapted compiler finding.", lint: ({ emit }) => emit(fallback) }, { path: checkedPath });
     assert.equal(issues.length, 1);
   }
   const global = issueFor(undefined);

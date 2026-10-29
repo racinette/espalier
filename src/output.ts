@@ -27,7 +27,7 @@ export interface Issue {
   line: number | null;
   column: number | null;
   metadata: Record<string, unknown>;
-  ruleText: string | null;
+  guidance: string | null;
   /** The grouping of the rule that reported this, when a grouping did. */
   group?: string;
   /**
@@ -120,7 +120,7 @@ function serialize(issue: Issue): string {
     line: issue.line,
     column: issue.column,
     metadata: issue.metadata,
-    ruleText: issue.ruleText,
+    guidance: issue.guidance,
   });
 }
 
@@ -350,14 +350,14 @@ class HumanReporter implements Reporter {
 
       for (const group of rules.values()) {
         const first = group[0]!;
-        if (first.ruleText !== null) {
-          const heading = first.description == null ? "Rule:" : `Rule (${first.description}):`;
-          this.destination.write(`\n    ${heading}\n${indent(first.ruleText, "      ")}\n`);
+        if (first.guidance !== null) {
+          const heading = first.description == null ? "Guidance:" : `Guidance (${first.description}):`;
+          this.destination.write(`\n    ${heading}\n${indent(first.guidance, "      ")}\n`);
         }
         if (first.referenceImplementation != null) {
           this.destination.write(`\n    Reference implementation: ${first.referenceImplementation}\n`);
         }
-        if (first.ruleText !== null || first.referenceImplementation != null) this.destination.write("\n");
+        if (first.guidance !== null || first.referenceImplementation != null) this.destination.write("\n");
 
         for (const issue of group) {
           const position =

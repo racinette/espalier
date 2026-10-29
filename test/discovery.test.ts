@@ -30,7 +30,7 @@ function repository(): string {
   writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.9.2\nignoreFiles: []\nskip: []\n");
   writeFileSync(
     path.join(root, "espalier", "src", "[name].ts.mjs"),
-    'export const description = "a module";\nexport const rule = "r";\nexport async function lint() {}\n',
+    'export const description = "a module";\nexport const guidance = "r";\nexport async function lint() {}\n',
   );
   writeFileSync(path.join(root, "src", "a.ts"), "export const a = 1;\n");
   return root;

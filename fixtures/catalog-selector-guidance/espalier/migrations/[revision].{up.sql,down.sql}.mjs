@@ -1,5 +1,5 @@
 export const description = "a forward or rollback schema migration";
-export const rule = `Each numbered revision has an up script and a down script.
+export const guidance = `Each numbered revision has an up script and a down script.
 Keep the revision number in both filenames; the pair check verifies that both
 directions are present.`;
 

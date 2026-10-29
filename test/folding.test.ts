@@ -26,7 +26,7 @@ function scratch(body: (root: string, put: (at: string, text: string) => void) =
   try {
     put('espalier.config.yaml', `pin: ${VERSION}\nignoreFiles: []\nskip: []\n`);
     put('espalier/src/ESPALIER.MD', 'Source guidance.\n');
-    put('espalier/src/deep/[name].ts.mjs', 'export const description = "source";\nexport const rule = "Keep it local.";\nexport async function lint() {}\n');
+    put('espalier/src/deep/[name].ts.mjs', 'export const description = "source";\nexport const guidance = "Keep it local.";\nexport async function lint() {}\n');
     body(root, put);
   } finally { rmSync(root, { recursive: true, force: true }); }
 }

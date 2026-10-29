@@ -1,7 +1,7 @@
 import { parseCase } from "../../../helpers/case.mjs";
 
 export const description = "each fixture case is locally well-formed";
-export const rule = `Each selected fixture case is a JSON object with \`kind\`
+export const guidance = `Each selected fixture case is a JSON object with \`kind\`
 (\`query\` or \`mutation\`), a non-negative integer \`depth\`, and a
 non-negative integer \`args\`.`;
 

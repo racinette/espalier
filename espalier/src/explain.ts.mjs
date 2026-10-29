@@ -1,5 +1,5 @@
 export const description = "the explain command";
 
-export const rule = ``;
+export const guidance = ``;
 
 export async function lint() {}

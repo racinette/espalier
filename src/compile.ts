@@ -34,6 +34,8 @@ export const LEGACY_NODE_DESCRIPTION = "ESPALIER.MD";
 
 export interface RuleModule {
   description?: unknown;
+  guidance?: unknown;
+  /** The old name of `guidance`, rejected with a pointer rather than ignored. */
   rule?: unknown;
   lint?: unknown;
   referenceImplementation?: unknown;
@@ -60,14 +62,14 @@ export interface Grouping {
   /** Captures whose values identify a group; the rest vary within it. */
   by: string[];
   description: string;
-  rule: string;
+  guidance: string;
 }
 
 export interface LoadedModule {
   description: string | null;
   descriptionRenderer?: (context: RuleGuidanceContext) => unknown;
-  rule: string;
-  ruleRenderer?: (context: RuleGuidanceContext) => unknown;
+  guidance: string;
+  guidanceRenderer?: (context: RuleGuidanceContext) => unknown;
   /** Absent when the module has nothing to check; guidance alone is a rule. */
   lint?: (context: unknown) => unknown;
   referenceImplementation: string | null;
@@ -313,8 +315,11 @@ async function loadModule(
   }
 
   if ("unobservedImplementationDependencies" in loaded) fail("module_invalid_export", `${modulePath}: unobservedImplementationDependencies is not supported`);
-  if (typeof loaded.rule !== "string" && typeof loaded.rule !== "function") {
-    fail("module_missing_export", `${modulePath} must export a string or function \`rule\``);
+  if ("rule" in loaded) {
+    fail("module_invalid_export", `${modulePath}: \`rule\` was renamed to \`guidance\`; espalier migrate rewrites it`);
+  }
+  if (typeof loaded.guidance !== "string" && typeof loaded.guidance !== "function") {
+    fail("module_missing_export", `${modulePath} must export a string or function \`guidance\``);
   }
   if (loaded.lint !== undefined && typeof loaded.lint !== "function") {
     fail("module_invalid_export", `${modulePath}: \`lint\` must be a function`);
@@ -411,9 +416,9 @@ async function loadModule(
     description: typeof loaded.description === "string" ? loaded.description : null,
     ...(typeof loaded.description === "function"
       ? { descriptionRenderer: loaded.description as (context: RuleGuidanceContext) => unknown } : {}),
-    rule: typeof loaded.rule === "string" ? loaded.rule : "",
-    ...(typeof loaded.rule === "function"
-      ? { ruleRenderer: loaded.rule as (context: RuleGuidanceContext) => unknown } : {}),
+    guidance: typeof loaded.guidance === "string" ? loaded.guidance : "",
+    ...(typeof loaded.guidance === "function"
+      ? { guidanceRenderer: loaded.guidance as (context: RuleGuidanceContext) => unknown } : {}),
     ...(loaded.lint === undefined ? {} : { lint: loaded.lint as (context: unknown) => unknown }),
     referenceImplementation:
       typeof loaded.referenceImplementation === "string"
@@ -446,19 +451,20 @@ function parseGroups(raw: unknown, modulePath: string, kind: ModuleKind): Groupi
   const groups: Grouping[] = [];
   for (const [name, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!GROUP_NAME.test(name)) bad(`names a grouping "${name}", which is not an identifier`);
-    if (value === null || typeof value !== "object" || Array.isArray(value)) bad(`.${name} must be an object with by, description and rule`);
+    if (value === null || typeof value !== "object" || Array.isArray(value)) bad(`.${name} must be an object with by, description and guidance`);
     const grouping = value as Record<string, unknown>;
     const by = grouping["by"];
     if (!Array.isArray(by) || by.some((entry) => typeof entry !== "string") || new Set(by).size !== by.length) {
       bad(`.${name}.by must be an array of distinct capture names`);
     }
     if (typeof grouping["description"] !== "string" || grouping["description"].trim() === "") bad(`.${name}.description must be a non-empty string`);
-    if (typeof grouping["rule"] !== "string") bad(`.${name}.rule must be a string`);
+    if ("rule" in grouping) bad(`.${name}.rule was renamed to guidance; espalier migrate rewrites it`);
+    if (typeof grouping["guidance"] !== "string") bad(`.${name}.guidance must be a string`);
     if (grouping["lint"] !== undefined && typeof grouping["lint"] !== "function") bad(`.${name}.lint must be a function`);
     const key = JSON.stringify([...(by as string[])].sort());
     const twin = groups.find((other) => JSON.stringify([...other.by].sort()) === key);
     if (twin !== undefined) bad(`.${name} and .${twin.name} group by the same captures; one grouping can carry both rules`);
-    groups.push({ name, by: by as string[], description: (grouping["description"] as string).trim(), rule: grouping["rule"] as string });
+    groups.push({ name, by: by as string[], description: (grouping["description"] as string).trim(), guidance: grouping["guidance"] as string });
   }
   return groups;
 }
@@ -747,13 +753,13 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
 
   // Cloned inherited rules share their declaration's prose, not the context of
   // whichever concrete instance happens to be visited first.
-  const renderedRules = new Map<string, { rule: string; description: string | null }>();
+  const renderedRules = new Map<string, { guidance: string; description: string | null }>();
   const renderModule = async (modulePath: string, module: LoadedModule, constraint = false): Promise<void> => {
-    if (!module.ruleRenderer && !module.descriptionRenderer) return;
+    if (!module.guidanceRenderer && !module.descriptionRenderer) return;
     if (!renderedRules.has(modulePath)) {
       const context = ruleGuidanceContext(trie, config, declaration(modulePath), constraint);
       renderedRules.set(modulePath, {
-        rule: (await renderRuleText(module.ruleRenderer ?? module.rule, context, modulePath))!,
+        guidance: (await renderRuleText(module.guidanceRenderer ?? module.guidance, context, modulePath))!,
         description: await renderRuleText(module.descriptionRenderer ?? module.description, context, modulePath, "description"),
       });
     }
@@ -843,7 +849,7 @@ function ruleGuidanceContext(root: TrieNode, config: Config, pattern: string, co
 }
 
 /** Shared by compilation and standalone rule tests; neither guesses a context. */
-export async function renderRuleText(value: unknown, context: RuleGuidanceContext | undefined, source: string, field: "rule" | "description" = "rule"): Promise<string | null> {
+export async function renderRuleText(value: unknown, context: RuleGuidanceContext | undefined, source: string, field: "guidance" | "description" = "guidance"): Promise<string | null> {
   if (typeof value !== "function") return typeof value === "string" ? value : null;
   if (!context) fail("module_invalid_export", `${source}: a function-valued ${field} requires a guidance context`);
   let result: unknown;

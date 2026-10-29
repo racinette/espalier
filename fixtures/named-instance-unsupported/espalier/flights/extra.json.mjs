@@ -1,1 +1,1 @@
-export const description="extra"; export const rule=""; export function lint() {}
+export const description="extra"; export const guidance=""; export function lint() {}

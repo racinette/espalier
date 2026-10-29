@@ -1,5 +1,5 @@
 export const description = "a module";
-export const rule = "Report the shared problem and its distinct variants.";
+export const guidance = "Report the shared problem and its distinct variants.";
 export function lint({ emit }) {
   const base = { path: "shared.ts", code: "problem", message: "shared problem", line: 3, column: 2 };
   for (let i = 0; i < 13; i++) emit(base);

@@ -1,6 +1,6 @@
 export const description = "a baz";   // TODO
 
-export const rule = ``;                  // TODO
+export const guidance = ``;              // TODO
 
 export const optional = true;             // TODO
 

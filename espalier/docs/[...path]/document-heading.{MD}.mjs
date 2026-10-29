@@ -1,6 +1,6 @@
 export const description = "every document opens with a level-one heading";
 
-export const rule = `Opens with a level-one heading naming its subject. A
+export const guidance = `Opens with a level-one heading naming its subject. A
 document a reader lands in the middle of should say what it is before it says
 anything else.`;
 

@@ -1,3 +1,3 @@
 export const description = "source";
-export const rule = "Complete functions.";
+export const guidance = "Complete functions.";
 export function lint() {

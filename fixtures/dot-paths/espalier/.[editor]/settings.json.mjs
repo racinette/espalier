@@ -1,3 +1,3 @@
 export const description = "Declared file";
-export const rule = "Keep this file.";
+export const guidance = "Keep this file.";
 export function lint() {}

@@ -378,6 +378,39 @@ function proseLiteral(body: string): string {
   return `\`${escaped}\``;
 }
 
+/**
+ * `rule` became `guidance`, on the module and inside each grouping. Only
+ * direct declarations are rewritten; a destructured or re-exported `rule`
+ * has no source-only rewrite and is reported instead.
+ */
+function renameRuleExport(source: string, entry: string): string {
+  const code = sourceCode(source);
+  const edits: Array<[number, number]> = [];
+  for (const match of code.matchAll(/(^|\n)[ \t]*export\s+(?:const|async\s+function|function)\s+(rule)\b/g)) {
+    const at = match.index! + match[0].length - "rule".length;
+    edits.push([at, at + "rule".length]);
+  }
+  const groups = /export\s+const\s+groups\s*=\s*\{/.exec(code);
+  if (groups !== null) {
+    let depth = 0;
+    let end = code.length;
+    for (let i = groups.index + groups[0].length - 1; i < code.length; i += 1) {
+      if (code[i] === "{") depth += 1;
+      else if (code[i] === "}" && --depth === 0) { end = i; break; }
+    }
+    for (const match of code.slice(groups.index, end).matchAll(/(^|[{,]\s*)(rule)\s*:/g)) {
+      const at = groups.index + match.index! + match[1]!.length;
+      edits.push([at, at + "rule".length]);
+    }
+  }
+  if (/export\s+(?:const\s*)?\{[^}]*\brule\b/.test(code)) {
+    fail("module_invalid_export", `${entry}: rename the destructured or re-exported \`rule\` to \`guidance\` by hand before migrating`);
+  }
+  let out = source;
+  for (const [start, end] of edits.sort((a, b) => b[0] - a[0])) out = `${out.slice(0, start)}guidance${out.slice(end)}`;
+  return out;
+}
+
 /** Plan all syntax conversions before changing configuration or authored inputs. */
 function planGrammarMigration(root: string, rules: string, skip: string[], fold: boolean): Array<{ path: string; contents: string; remove?: string }> {
   const directory = path.join(root, rules);
@@ -403,12 +436,17 @@ function planGrammarMigration(root: string, rules: string, skip: string[], fold:
       changes.push({ path: destination, remove: absolute, contents: comment + exports.join("\n") + (exports.length ? "\n" : "") });
       continue;
     }
-    if (!entry.endsWith(".mjs") || path.basename(entry) === "ESPALIER.mjs" || entry.includes("[...")) continue;
-    const source = readFileSync(absolute, "utf8");
-    // A literal name only looks dynamic; its `optional` is a named file's.
-    if (/\bexport\s+const\s+literalName\s*=\s*true\b/.test(sourceCode(source))) continue;
-    const leaf = parseStructuralLeaf(path.basename(entry).slice(0, -4), entry);
-    if (!leaf.dynamic) continue;
+    if (!entry.endsWith(".mjs") || path.basename(entry) === "ESPALIER.mjs") continue;
+    const original = readFileSync(absolute, "utf8");
+    const source = renameRuleExport(original, entry);
+    const renamed = source !== original;
+    // Constraints have nothing else to migrate; a literal name only looks
+    // dynamic, and its `optional` is a named file's.
+    if (entry.includes("[...") || /\bexport\s+const\s+literalName\s*=\s*true\b/.test(sourceCode(source))
+        || !parseStructuralLeaf(path.basename(entry).slice(0, -4), entry).dynamic) {
+      if (renamed) changes.push({ path: absolute, contents: source });
+      continue;
+    }
     // Only a direct literal declaration has a source-only, unambiguous rewrite.
     const declaration = /(^|\n)([ \t]*)export\s+const\s+optional\s*=\s*(true|false)\s*;/g;
     const code = sourceCode(source);
@@ -424,6 +462,8 @@ function planGrammarMigration(root: string, rules: string, skip: string[], fold:
       changes.push({ path: absolute, contents: source.slice(0, start) + replacement + source.slice(start + match[0].length) });
     } else if (/export[^;]*\boptional\b/.test(code)) {
       fail("module_invalid_export", `${entry}: convert the computed or re-exported optional value to minMatches before migrating (false becomes 1; true becomes 0)`);
+    } else if (renamed) {
+      changes.push({ path: absolute, contents: source });
     }
   }
   if (fold && !entries.includes("ESPALIER.MD")) {

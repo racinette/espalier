@@ -19,7 +19,7 @@ function write(root: string, relative: string, contents: string): void {
 function rule(body = ""): string {
   return `
 export const description = "a test rule";
-export const rule = "test rule";
+export const guidance = "test rule";
 export async function lint(context) { ${body} }
 `;
 }
@@ -58,7 +58,7 @@ test("targets select per-file and aggregate constraints while preserving the com
       "espalier/fixtures/[...fixture]/ordinary.mjs",
       `
 export const description = "queries individually";
-export const rule = "queries individually";
+export const guidance = "queries individually";
 export const targets = ["*/queries.sql"];
 export async function lint({ read, emit }) {
   const source = await read();
@@ -71,7 +71,7 @@ export async function lint({ read, emit }) {
       "espalier/fixtures/[...fixture]/aggregate.mjs",
       `
 export const description = "queries together";
-export const rule = "queries together";
+export const guidance = "queries together";
 export const aggregate = true;
 export const targets = ["*/queries.sql"];
 export async function lint({ matches, emit }) {
@@ -150,7 +150,7 @@ test("exact filename extensions and broad target globs select and describe diffe
       ["exported", 'export const targets = ["**/*.json"];'],
     ]) {
       write(root, `espalier/[...path]/${name}.mjs`, `
-export const rule = "JSON only";
+export const guidance = "JSON only";
 ${selector}
 export async function lint({ emit }) {
   emit({ code: "${name}", severity: "info", message: "selected" });
@@ -163,7 +163,7 @@ export async function lint({ emit }) {
     ]) {
       write(root, `espalier/[...path]/${name}.mjs`, `
 export const aggregate = true;
-export const rule = "JSON together";
+export const guidance = "JSON together";
 ${selector}
 export async function lint({ matches, emit }) {
   emit({ code: "${name}", severity: "info", message: matches.map(({ path }) => path).join(",") });
@@ -232,12 +232,12 @@ test("a compound filename suffix selects its full dotted extension", () => {
     write(root, "espalier/migrations/001.sql.mjs", rule());
     write(root, "migrations/001.sql", "-- other\n");
     write(root, "espalier/migrations/[...path]/only-up.up.sql.mjs", `
-export const rule = "up migrations";
+export const guidance = "up migrations";
 export async function lint({ emit }) { emit({ code: "up", severity: "info", message: "up" }); }
 `);
     write(root, "espalier/migrations/[...path]/pair.{up.sql,down.sql}.mjs", `
 export const aggregate = true;
-export const rule = "migration pairs";
+export const guidance = "migration pairs";
 export async function lint({ matches, emit }) {
   emit({ code: "pair", severity: "info", message: matches.map(({ path }) => path).join(",") });
 }
@@ -268,12 +268,12 @@ test("structural unions and constraint lists match complete extensions once", ()
     write(root, "espalier/[file].test.ts.mjs", rule());
     for (const name of ["foo.ts", "foo.d.ts", "foo.tsx", "foo.test.ts"]) write(root, name, "export {};\n");
     write(root, "espalier/[...path]/exact.{ts,d.ts,tsx}.mjs", `
-export const rule = "Check these complete extensions.";
+export const guidance = "Check these complete extensions.";
 export async function lint({ emit }) { emit({ code: "exact", severity: "info", message: "selected" }); }
 `);
     write(root, "espalier/[...path]/glob.mjs", `
 export const targets = ["**/*.ts"];
-export const rule = "Check names ending in .ts.";
+export const guidance = "Check names ending in .ts.";
 export async function lint({ emit }) { emit({ code: "glob", severity: "info", message: "selected" }); }
 `);
 
@@ -348,7 +348,7 @@ test("aggregate jobs rerun on current inputs", () => {
       "espalier/fixtures/[...fixture]/aggregate.mjs",
       `
 export const description = "queries together";
-export const rule = "queries together";
+export const guidance = "queries together";
 export const aggregate = true;
 export const targets = ["*/queries.sql"];
 export async function lint({ emit }) {

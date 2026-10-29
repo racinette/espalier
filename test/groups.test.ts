@@ -11,13 +11,13 @@ import { VERSION } from "../src/version.js";
 
 const rule = {
   description: "a step",
-  rule: "Per step.",
+  guidance: "Per step.",
   lint() {},
   groups: {
     set: {
       by: ["num", "group"],
       description: "a migration set",
-      rule: "No gaps.",
+      guidance: "No gaps.",
       async lint({ group, captures, matches, read, emit }: { group: string; captures: Record<string, unknown>; matches: { path: string; captures: Record<string, unknown> }[]; read: (path: string) => Promise<string>; emit: (issue: unknown) => void }) {
         const sizes = await Promise.all(matches.map(({ path }) => read(path)));
         emit({ code: "seen", message: `${group} ${captures["num"]} ${matches.map(({ captures }) => captures["ord"]).join(",")} ${sizes.join("|")}` });
@@ -44,14 +44,14 @@ test("runGroup runs one grouping with sorted members and records the grouping on
   assert.equal(issue!.path, "migrations/");
   assert.equal(issue!.group, "set");
   assert.deepEqual(issue!.captures, { num: "0001", group: "users" });
-  assert.equal(issue!.ruleText, "No gaps.");
+  assert.equal(issue!.guidance, "No gaps.");
   assert.equal(issue!.description, "a migration set");
   assert.equal(issue!.rule, "migrations/[num=0000][ord=00]_[group=a+].sql.mjs");
 });
 
 test("runGroup refuses a module without the named grouping", async () => {
   await assert.rejects(runGroup({ ...rule, groups: {} }, { group: "set", matches: [] }), { code: "module_invalid_export" });
-  await assert.rejects(runGroup({ description: "x", rule: "x", lint() {} }, { group: "set", matches: [] }), { code: "module_invalid_export" });
+  await assert.rejects(runGroup({ description: "x", guidance: "x", lint() {} }, { group: "set", matches: [] }), { code: "module_invalid_export" });
 });
 
 test("a grouping runs once per directory and key, and --rule selects it with its rule", async () => {
@@ -62,13 +62,13 @@ test("a grouping runs once per directory and key, and --rule selects it with its
   };
   try {
     put("espalier.config.yaml", `pin: ${VERSION}\nignoreFiles: []\nskip: []\n`);
-    put("espalier/[area]/[num=0000][ord=00]_[group=a+].sql.mjs", `export const description = "a step"; export const rule = "Per step.";
+    put("espalier/[area]/[num=0000][ord=00]_[group=a+].sql.mjs", `export const description = "a step"; export const guidance = "Per step.";
 export function lint({ emit }) { emit({ code: "file", message: "file", severity: "info" }); }
 export const groups = {
-  set: { by: ["num", "group"], description: "a set", rule: "", async lint({ path, captures, matches, emit }) {
+  set: { by: ["num", "group"], description: "a set", guidance: "", async lint({ path, captures, matches, emit }) {
     emit({ code: "set", message: path + " " + captures.num + " " + captures.group + " " + matches.length, severity: "info" });
   } },
-  all: { by: [], description: "a directory", rule: "", async lint({ path, matches, emit }) {
+  all: { by: [], description: "a directory", guidance: "", async lint({ path, matches, emit }) {
     emit({ code: "all", message: path + " " + matches.length, severity: "info" });
   } },
 };

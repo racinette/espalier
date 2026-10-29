@@ -164,18 +164,18 @@ The first argument is the module — whatever `import` gave you. It is not looke
 | `files` | derived from `tree` | override for an exotic lister |
 | `addons` | `{}` | whatever the rule expects to find there |
 | `rule` | `null` | the module path to record on emitted issues |
-| `guidance` | absent | explicit `RuleGuidanceContext`, required when the module's `rule` or `description` is a function |
+| `guidance` | absent | explicit `RuleGuidanceContext`, required when the module's `guidance` or `description` is a function |
 
 `tree` is the common case and backs both `read` and `files`. Reading a path it does not hold fails with `read_failed`; a real run instead uses `read_ungoverned` for a path absent from its governed snapshot. Globbing matches its keys with the same matcher `context.files` uses, and returns them sorted. Supply `read` or `files` directly when a test needs something a map cannot express — a reader that counts its calls, a lister that returns thousands of paths without holding their contents.
 
 Nothing is inferred from `path`. A rule reading a file it was not given gets `read_failed` rather than an empty string, because a test that silently linted nothing is the failure mode this exists to prevent.
 
-For a function-valued `rule` or `description`, supply
+For a function-valued `guidance` or `description`, supply
 `guidance: { config, pattern, path, captures }` with the declaration context you
 want to test. The helper evaluates each callback once before lint, using an
 isolated copy of that context. It does not discover
 configuration or infer declaration bindings from the lint match. Omitting
-`guidance` for a function-valued `rule` or `description` fails with `module_invalid_export`.
+`guidance` for a function-valued `guidance` or `description` fails with `module_invalid_export`.
 Callback failures and invalid results use the same errors as compilation.
 String prose and descriptions need no guidance context. Modules with no prose
 remain usable for lint-only tests.
@@ -184,7 +184,7 @@ remain usable for lint-only tests.
 
 The same `Issue` objects `check` returns, with the same fields, so an assertion
 written against one transfers to the other. `pattern`, `captures` and `rule`
-echo the context; `ruleText` and `description` contain the module's rendered
+echo the context; `guidance` and `description` contain the module's rendered
 strings, and `referenceImplementation` comes from its export. The API includes
 the description and reference fields even though
 [JSONL lint issues](cli/lint/README.MD#issues) omit them.
@@ -318,7 +318,7 @@ const issues = await runGroup(rule, {
 | `rule` | `null` | module path recorded on issues |
 
 The module must export `groups` with the named grouping. Issues carry the
-grouping's name as `group` and the grouping's `rule` and `description`, as
+grouping's name as `group` and the grouping's `guidance` and `description`, as
 they do in a lint run. `runGroup` does not check `by` against the module's
 path, which it cannot see; compilation does.
 
@@ -335,9 +335,9 @@ return a string or a promise of one. See the
 [directory module contract](TYPES.MD#directory-modules) for an executable
 example, evaluation timing, and path semantics.
 
-`RuleGuidanceContext` types a file rule or constraint's `rule` and `description`
+`RuleGuidanceContext` types a file rule or constraint's `guidance` and `description`
 functions. It has the same four fields, with declaration-specific semantics described in
-[rule prose](TYPES.MD#rule). Repository commands render each declaration once
+[guidance](TYPES.MD#guidance). Repository commands render each declaration once
 before distributing lint jobs; workers receive the rendered string. Standalone
 `runRule` and `runAggregate` callers supply that context explicitly through
 `guidance`.

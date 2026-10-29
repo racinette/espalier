@@ -4,7 +4,7 @@ Pins the assembly sentence in [cli/build/README.MD](../../docs/cli/build/README.
 *a section with nothing to say is omitted entirely, along with its heading; no
 placeholder text is ever written.*
 
-`espalier adopt` writes `export const rule = ``;` as a TODO, so this is the
+`espalier adopt` writes `export const guidance = ``;` as a TODO, so this is the
 state of every node in a freshly adopted project rather than an exotic one.
 `build` was rendering the heading anyway, giving `src/AGENTS.MD` a
 `## src/[module].ts — a module` followed by nothing — a document whose most

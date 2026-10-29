@@ -1,7 +1,7 @@
 export const aggregate = true;
 export const targets = ["*/checkout.json"];
 export const description = "checkout message IDs agree across locales";
-export const rule = `All checkout catalogs expose the same message IDs.
+export const guidance = `All checkout catalogs expose the same message IDs.
 Values differ by locale, but the checkout UI can use one stable key set.`;
 
 export async function lint({ matches, read, emit }) {

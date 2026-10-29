@@ -8,7 +8,7 @@ export async function description({ config, pattern, path, captures }) {
   return text;
 }
 let calls = 0;
-export async function rule({ config, pattern, path, captures }) {
+export async function guidance({ config, pattern, path, captures }) {
   if (!isMainThread || ++calls !== 1) throw new Error("render once in coordinator");
   const text = `Base ${pattern}; path=${path}; captures=${JSON.stringify(captures)}; ${config.build.guidanceMode}.`;
   config.build.guidanceMode = "evolving"; // Prove the callback gets its own copy.

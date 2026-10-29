@@ -1,6 +1,6 @@
 export const aggregate = true;
 export const description = "every locale covers the same domains";
-export const rule = `Every locale represented in the catalog tree has the same
+export const guidance = `Every locale represented in the catalog tree has the same
 set of domain files. A missing domain leaves part of the storefront untranslated.`;
 
 export async function lint({ matches, emit }) {

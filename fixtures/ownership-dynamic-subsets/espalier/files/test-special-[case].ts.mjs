@@ -1,3 +1,3 @@
 export const description = "special simulation tests";
-export const rule = "Exercise reconciliation behavior.";
+export const guidance = "Exercise reconciliation behavior.";
 export async function lint() {}

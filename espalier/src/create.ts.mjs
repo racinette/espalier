@@ -1,6 +1,6 @@
 export const description = "the create command";
 
-export const rule = `Creates only absent files or directories declared by
+export const guidance = `Creates only absent files or directories declared by
 structural rules. A directory contains every recursively required static or
 resolved leaf plus explicitly selected optional leaves, and composes their template arguments under literal
 relative-file prefixes. Never overwrites source or exposes a partially rendered

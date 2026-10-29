@@ -1,3 +1,3 @@
 export const description = "an application source";
-export const rule = "Export the application implementation.";
+export const guidance = "Export the application implementation.";
 export async function lint() {}

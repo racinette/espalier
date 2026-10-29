@@ -1,5 +1,5 @@
 export const description = "a tsx";   // TODO
 
-export const rule = ``;                  // TODO
+export const guidance = ``;              // TODO
 
 export async function lint() {}

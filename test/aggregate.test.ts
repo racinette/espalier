@@ -24,13 +24,13 @@ function repository(extension = "json", listFiles = false): string {
   write(
     root,
     `espalier/[name].${extension}.mjs`,
-    'export const description = "a data file";\nexport const rule = `Valid JSON.`;\nexport async function lint() {}\n',
+    'export const description = "a data file";\nexport const guidance = `Valid JSON.`;\nexport async function lint() {}\n',
   );
   write(
     root,
     `espalier/[...path]/count.${extension}.mjs`,
     `export const aggregate = true;
-export const rule = \`Count the data files together.\`;
+export const guidance = \`Count the data files together.\`;
 export async function lint({ matches, emit, files }) {
   ${listFiles ? `await files("**/*.${extension}");` : ""}
   emit({ code: "count", message: \`\${matches.length}:\${process.env.ESPALIER_TEST_TOKEN}\`, severity: "warning" });
@@ -61,7 +61,7 @@ function aggregateMessage(root: string, token: string): string {
 test("runAggregate supplies one sorted group context", async () => {
   const module = {
     aggregate: true,
-    rule: "Compare the group.",
+    guidance: "Compare the group.",
     async lint(context: Record<string, unknown>) {
       const matches = context["matches"] as { path: string }[];
       const read = context["read"] as (path: string) => Promise<string>;
@@ -106,7 +106,7 @@ test("aggregate is valid only as a boolean on constraints", async () => {
     write(
       root,
       "espalier/[name].ts.mjs",
-      'export const aggregate = true;\nexport const description = "a file";\nexport const rule = `r`;\nexport async function lint() {}\n',
+      'export const aggregate = true;\nexport const description = "a file";\nexport const guidance = `r`;\nexport async function lint() {}\n',
     );
     await assert.rejects(
       () => check({ cwd: root }),
@@ -117,7 +117,7 @@ test("aggregate is valid only as a boolean on constraints", async () => {
     write(
       root,
       "espalier/[...path]/group.ts.mjs",
-      'export const aggregate = "yes";\nexport const rule = `r`;\nexport async function lint() {}\n',
+      'export const aggregate = "yes";\nexport const guidance = `r`;\nexport async function lint() {}\n',
     );
     await assert.rejects(
       () => check({ cwd: root }),
@@ -144,7 +144,7 @@ test("aggregate jobs evaluate current group membership", () => {
 test("aggregate jobs use exact selectors, not admission globs", () => {
   const root = repository("ts");
   try {
-    write(root, "espalier/[name].d.ts.mjs", 'export const description = "a declaration";\nexport const rule = "Declare public types.";\nexport async function lint() {}\n');
+    write(root, "espalier/[name].d.ts.mjs", 'export const description = "a declaration";\nexport const guidance = "Declare public types.";\nexport async function lint() {}\n');
     assert.equal(aggregateMessage(root, "cold"), "1:cold");
     write(root, "b.d.ts", "export {};\n");
     assert.equal(aggregateMessage(root, "excluded-added"), "1:excluded-added");
@@ -168,7 +168,7 @@ test("aggregate jobs use exact selectors, not admission globs", () => {
 test("aggregate explicit files dependencies still use glob semantics", () => {
   const root = repository("ts", true);
   try {
-    write(root, "espalier/[name].d.ts.mjs", 'export const description = "a declaration";\nexport const rule = "Declare public types.";\nexport async function lint() {}\n');
+    write(root, "espalier/[name].d.ts.mjs", 'export const description = "a declaration";\nexport const guidance = "Declare public types.";\nexport async function lint() {}\n');
     assert.equal(aggregateMessage(root, "cold"), "1:cold");
     write(root, "b.d.ts", "export {};\n");
     assert.equal(aggregateMessage(root, "listed-added"), "1:listed-added");
