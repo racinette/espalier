@@ -103,6 +103,8 @@ export interface Invocation {
   patterns?: string[];
   /** A grouping of a dynamic structural rule: `module.groups[group].lint` runs over `matches`. */
   group?: string;
+  /** The module declares one group of `group`, and its own `lint` runs over `matches`. */
+  declaredGroup?: true;
 }
 export type Job = Invocation[];
 export interface WorkerInputs {
@@ -125,7 +127,7 @@ export async function executeJob(data: WorkerInputs, job: Job, addons: Record<st
     const emit = createEmit({ ...invocation, record });
     try {
       // A module, or a grouping, may carry guidance and nothing to check.
-      const check = invocation.group === undefined ? module.lint : module.groups[invocation.group].lint;
+      const check = invocation.group === undefined || invocation.declaredGroup ? module.lint : module.groups[invocation.group].lint;
       if (typeof check !== "function") continue;
       if (invocation.group !== undefined) {
         await check({

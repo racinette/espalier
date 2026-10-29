@@ -311,7 +311,9 @@ constraints reject `minMatches`.
 ### `instanceOf`
 
 `instanceOf` is a nonempty contract reference on a named structural leaf or
-on a directory module. It is not valid on constraints or dynamic leaves.
+on a directory module. It is not valid on constraints. On a dynamic name it
+declares one group of the named rule's files rather than a file; see
+[Declaring a group](INSTANCES.MD#declaring-a-group).
 Named structural rules keep their required `description` and `guidance` and
 optional `lint`; a local lint adds to inherited checks. Their optional `template` replaces the
 inherited creation recipe, without replacing checks. Without a local template,
@@ -464,6 +466,7 @@ Each key is the grouping's name, an identifier that appears in guidance, in
 | `description` | what one group is, for headings |
 | `guidance` | the Markdown obligation the group as a whole must satisfy |
 | `lint` | runs once per group with that group's members |
+| `abstract` | when `true`, every group must be declared; see below |
 
 `by` may be empty, which groups every file the rule owns in one directory.
 It may not name every capture, since each group would then hold one file,
@@ -474,10 +477,15 @@ which have no captures to group by.
 
 Groups are per directory: files in two directories matched by the same
 dynamic path are in different groups even when their captures agree. A group
-is induced by the files that exist, so `lint` never sees an empty group; a
-group that must exist is the containing directory's `minMatches` or a static
-sibling's business. A named instance of the rule contributes its file to the
-base rule's groups, with the captures the base path binds.
+is induced by the files that exist, so `lint` never sees an empty group. A
+named instance of the rule contributes its file to the base rule's groups,
+with the captures the base path binds.
+
+One group can be declared with its own `description`, `guidance` and `lint`,
+by a module at the rule's name with the grouping's captures written as values:
+`0001[ord=00]_users.sql.mjs` declares the `0001`, `users` group of `set`. A
+declared group must exist unless it is `optional`. With `abstract: true` every
+group must be declared. See [INSTANCES.MD](INSTANCES.MD#declaring-a-group).
 
 The `lint` context is:
 

@@ -361,6 +361,14 @@ prefix lists the same groupings without `captures`, since no file is in hand.
 Human output shows each as "Grouped as <name> by <by names>  <description>",
 followed by the group's values and guidance; concise output omits the guidance.
 
+An abstract grouping carries `abstract: true`. When the file's group is
+declared, the grouping also carries `instance`: the declaring module as
+`rule`, its `pattern`, `captures`, `description` and `guidance`. Human output
+adds "Declared as <pattern>" with that guidance, or a line saying the group
+must be declared when an abstract grouping has no declaration for it. A rule
+summary under a prefix lists each grouping's declared groups as `instances`.
+See [INSTANCES.MD](../../INSTANCES.MD#declaring-a-group).
+
 ## Inherited contracts
 
 A named specialization remains the concrete owner. File explanations also

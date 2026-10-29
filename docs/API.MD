@@ -323,7 +323,9 @@ const issues = await runGroup(rule, {
 
 The module must export `groups` with the named grouping. Issues carry the
 grouping's name as `group` and the grouping's `guidance` and `description`, as
-they do in a lint run. `runGroup` does not check `by` against the module's
+they do in a lint run. Given a module that declares one group with
+`instanceOf`, `runGroup` runs that module's own `lint` instead, and its issues
+carry the declaration's `guidance` and `description`. `runGroup` does not check `by` against the module's
 path, which it cannot see; compilation does.
 
 ## Coverage

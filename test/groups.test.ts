@@ -88,3 +88,60 @@ export const groups = {
     ]);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test("runGroup runs a declared group's own lint with its own prose", async () => {
+  const declared = {
+    instanceOf: "[num=0000][ord=00]_[group=a+].sql.mjs",
+    description: "create users",
+    guidance: "Creates the users table.",
+    lint({ group, captures, matches, emit }: { group: string; captures: Record<string, unknown>; matches: unknown[]; emit: (issue: unknown) => void }) {
+      emit({ code: "declared", message: `${group} ${captures["group"]} ${matches.length}` });
+    },
+  };
+  const [issue, ...rest] = await runGroup(declared, {
+    group: "set",
+    captures: { num: "0001", group: "users" },
+    matches: [{ path: "migrations/000101_users.sql" }],
+    at: "migrations/",
+    rule: "migrations/0001[ord=00]_users.sql.mjs",
+  });
+  assert.equal(rest.length, 0);
+  assert.equal(issue!.message, "set users 1");
+  assert.equal(issue!.group, "set");
+  assert.equal(issue!.guidance, "Creates the users table.");
+  assert.equal(issue!.description, "create users");
+});
+
+test("a declared group is required in every directory its rule reaches, and --rule selects its own check", async () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "espalier-declared-groups-"));
+  const put = (name: string, contents: string) => {
+    mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+    writeFileSync(path.join(root, name), contents);
+  };
+  try {
+    put("espalier.config.yaml", `pin: ${VERSION}\nignoreFiles: []\nskip: []\n`);
+    put("espalier/[area]/[num=0000][ord=00]_[group=a+].sql.mjs", `export const description = "a step"; export const guidance = "Per step.";
+export const groups = {
+  set: { by: ["num", "group"], description: "a set", guidance: "", lint({ path, emit }) { emit({ code: "set", message: path, severity: "info" }); } },
+};
+`);
+    put("espalier/[area]/0001[ord=00]_users.sql.mjs", `export const instanceOf = "[num=0000][ord=00]_[group=a+].sql.mjs";
+export const description = "create users"; export const guidance = "Users.";
+export function lint({ path, matches, emit }) { emit({ code: "users", message: path + " " + matches.length, severity: "info" }); }
+`);
+    for (const file of ["a/000101_users.sql", "a/000102_users.sql", "b/000101_orders.sql"]) put(file, "");
+    const messages = (issues: { code: string; message: string; path: string }[]) => issues.map((issue) => `${issue.code}: ${issue.path} ${issue.message.split(";")[0]}`).sort();
+    assert.deepEqual(messages(await check({ cwd: root, jobs: 1 })), [
+      "missing_required_group: b/ the declared set group `0001[ord=00]_users.sql` has no files here",
+      "set: a/ a/", "set: b/ b/",
+      "users: a/ a/ 2",
+    ]);
+    assert.deepEqual(messages(await check({ cwd: root, jobs: 1, rule: "[area]/0001[ord=00]_users.sql.mjs", paths: ["a"] })), [
+      "users: a/ a/ 2",
+    ]);
+    put("espalier/[area]/0001[ord=00]_users.sql.mjs", `export const instanceOf = "[num=0000][ord=00]_[group=a+].sql.mjs";
+export const optional = true; export const description = "create users"; export const guidance = "Users.";
+`);
+    assert.deepEqual(messages(await check({ cwd: root, jobs: 1 })), ["set: a/ a/", "set: b/ b/"]);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

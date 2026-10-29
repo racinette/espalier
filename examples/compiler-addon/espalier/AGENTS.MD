@@ -240,6 +240,14 @@ about the files together — numbering, completeness, agreement — and a per-fi
 `lint` when each file can be judged alone. A grouping that needs every file in
 the directory lists no captures: `by: []`.
 
+When one group has a purpose of its own, such as the migration set that
+creates the users table, declare it rather than writing that into each file.
+The declaring module sits beside the rule, at the rule's name with the
+grouping's captures written as values, `0001[ord=00]_users.sql.mjs`. It
+exports `instanceOf` naming the rule, `description` and `guidance`, and may
+export `lint`. A grouping with `abstract: true` requires every group to be
+declared. `espalier help instances` has the how-to.
+
 **A per-file constraint does not own files.** It checks files already owned
 by structural rules. Its path contains `[...name]`, which matches any depth
 of directories, including none. A rule file’s path may contain at most one

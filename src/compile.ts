@@ -26,6 +26,7 @@ import {
   parseSegment,
   parseStructuralLeaf,
   trieKey,
+  type CaptureValue,
   type Segment,
 } from "./pattern.js";
 
@@ -64,6 +65,25 @@ export interface Grouping {
   by: string[];
   description: string;
   guidance: string;
+  /** Every group must be a declared instance; an undeclared one is reported. docs/INSTANCES.MD. */
+  abstract: boolean;
+  /** Groups declared beside the rule, each with its own guidance, sorted by declaration. */
+  instances: GroupInstance[];
+}
+
+/**
+ * One group declared by a module at the rule's name with the grouping's
+ * captures written as values: `0001[ord=00]_users.sql.mjs` is the `0001`,
+ * `users` group of `[num=0000][ord=00]_[group=a+].sql.mjs`. It owns no file;
+ * its members stay the rule's. docs/INSTANCES.MD "Declaring a group".
+ */
+export interface GroupInstance {
+  modulePath: string;
+  /** The declaration as authored, e.g. `migrations/0001[ord=00]_users.sql`. */
+  pattern: string;
+  /** The values it binds, one per capture of the grouping's `by`. */
+  captures: Record<string, string>;
+  module: LoadedModule;
 }
 
 export interface LoadedModule {
@@ -89,8 +109,11 @@ export interface LoadedModule {
   groups: Grouping[];
 }
 
-/** The module kind determines requiredness defaults and valid exports. */
-type ModuleKind = "constraint" | "static" | "dynamic";
+/**
+ * The module kind determines requiredness defaults and valid exports. A
+ * `group` module is a dynamic name with `instanceOf`: a declared group.
+ */
+type ModuleKind = "constraint" | "static" | "dynamic" | "group";
 
 /**
  * What a rule reports as its `pattern`: the declaration exactly as authored,
@@ -374,9 +397,16 @@ async function loadModule(
       !Number.isSafeInteger(loaded.minMatches) || (loaded.minMatches as number) < 0)) {
     fail("module_invalid_export", `${modulePath}: minMatches must be a nonnegative safe integer on a dynamic leaf`);
   }
-  if (loaded.instanceOf !== undefined && (kind !== "static" ||
+  if (loaded.instanceOf !== undefined && ((kind !== "static" && kind !== "group") ||
       typeof loaded.instanceOf !== "string" || loaded.instanceOf.length === 0)) {
-    fail("module_invalid_export", `${modulePath}: instanceOf must name a contract on a static leaf`);
+    fail("module_invalid_export", `${modulePath}: instanceOf must name a contract on a static leaf or a group's name`);
+  }
+  if (kind === "group") {
+    for (const key of ["template", "referenceImplementation"] as const) {
+      if (loaded[key] !== undefined) {
+        fail("module_invalid_export", `${modulePath}: \`${key}\` describes one file, and a declared group is a set of files; it stays on the rule`);
+      }
+    }
   }
   if (loaded.aggregate !== undefined && typeof loaded.aggregate !== "boolean") {
     fail("module_invalid_export", `${modulePath}: \`aggregate\` must be a boolean`);
@@ -475,10 +505,17 @@ function parseGroups(raw: unknown, modulePath: string, kind: ModuleKind): Groupi
     if ("rule" in grouping) bad(`.${name}.rule was renamed to guidance; espalier migrate rewrites it`);
     if (typeof grouping["guidance"] !== "string") bad(`.${name}.guidance must be a string`);
     if (grouping["lint"] !== undefined && typeof grouping["lint"] !== "function") bad(`.${name}.lint must be a function`);
+    if (grouping["abstract"] !== undefined && typeof grouping["abstract"] !== "boolean") bad(`.${name}.abstract must be a boolean`);
+    if (grouping["abstract"] === true && (by as string[]).length === 0) {
+      bad(`.${name} groups by no captures, so its one group per directory has no name to declare it by; it cannot be abstract`);
+    }
     const key = JSON.stringify([...(by as string[])].sort());
     const twin = groups.find((other) => JSON.stringify([...other.by].sort()) === key);
     if (twin !== undefined) bad(`.${name} and .${twin.name} group by the same captures; one grouping can carry both rules`);
-    groups.push({ name, by: by as string[], description: (grouping["description"] as string).trim(), guidance: grouping["guidance"] as string });
+    groups.push({
+      name, by: by as string[], description: (grouping["description"] as string).trim(), guidance: grouping["guidance"] as string,
+      abstract: grouping["abstract"] === true, instances: [],
+    });
   }
   return groups;
 }
@@ -644,6 +681,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     nodes.set(at, { ...doc, source: leaf });
   }
   const literalDirectory = (parts: string[], depth: number): boolean => nodes.get(parts.slice(0, depth + 1).join("/"))?.literalName === true;
+  const groupDeclarations: GroupDeclaration[] = [];
 
   for (const modulePath of entries) {
     const segments = modulePath.split("/");
@@ -741,6 +779,14 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     // literal leaf still rejects a list: its requiredness would be ambiguous.
     const leafSegment = parsed[parsed.length - 1]!;
 
+    // A dynamic name naming a contract is not a rule of its own: it declares
+    // one group of that contract's files. docs/INSTANCES.MD "Declaring a group".
+    if (leafSegment.dynamic && imported.instanceOf !== undefined) {
+      const module = await loadModule(absoluteModule, modulePath, "group", root, imported);
+      groupDeclarations.push({ modulePath, directory: parsed.slice(0, -1), name: authored[last]!, module });
+      continue;
+    }
+
     const module = await loadModule(absoluteModule, modulePath, leafSegment.dynamic ? "dynamic" : "static", root, imported);
     for (const grouping of module.groups) {
       const unknown = grouping.by.find((name) => !names.includes(name));
@@ -760,6 +806,9 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     });
   }
 
+  // Before instances are cloned, so a contract inherited by a directory
+  // instance carries its declared groups with it.
+  for (const entry of groupDeclarations) attachGroup(trie, entry);
   markAbstract(trie, nodes);
   materializeInstances(trie, nodes);
   validateBindings(trie, new Set());
@@ -793,6 +842,13 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
   };
   await renderTree(trie);
   for (const constraint of constraints) await renderModule(constraint.modulePath, constraint.module, true);
+  for (const { module } of groupDeclarations) {
+    if (!module.guidanceRenderer && !module.descriptionRenderer) continue;
+    const instance = groupInstances.get(module)!;
+    const context: RuleGuidanceContext = { config, pattern: instance.pattern, path: null, captures: instance.captures };
+    module.guidance = (await renderRuleText(module.guidanceRenderer ?? module.guidance, context, instance.modulePath))!;
+    module.description = await renderRuleText(module.descriptionRenderer ?? module.description, context, instance.modulePath, "description");
+  }
 
   for (const [at, doc] of nodes) {
     if (!doc.render && !doc.renderDescription) continue;
@@ -947,6 +1003,113 @@ function validateBindings(node: TrieNode, bound: Set<string>): void {
     const next = validateSegments([child.baseSegment ?? child.segment], bound, child.rule?.modulePath ?? child.display);
     validateBindings(child, next);
   }
+}
+
+/** A module found at a dynamic name that names a contract, before it is resolved. */
+interface GroupDeclaration {
+  modulePath: string;
+  /** Its directory, as parsed; the contract is a sibling in the same one. */
+  directory: Segment[];
+  /** The authored name, e.g. `0001[ord=00]_users.sql`. */
+  name: string;
+  module: LoadedModule;
+}
+
+/** A dynamic name as authored, split into literal text and `[name…]` placeholders. */
+function nameTokens(name: string): Array<{ text: string; capture?: string }> {
+  const tokens: Array<{ text: string; capture?: string }> = [];
+  let last = 0;
+  for (const found of name.matchAll(/\[([A-Za-z_][A-Za-z0-9_]*)(?:=[^\]]*)?\]/g)) {
+    if (found.index! > last) tokens.push({ text: name.slice(last, found.index) });
+    tokens.push({ text: found[0], capture: found[1]! });
+    last = found.index! + found[0].length;
+  }
+  if (last < name.length) tokens.push({ text: name.slice(last) });
+  return tokens;
+}
+
+/** A contract's name with some captures written as values: the name that declares that group. */
+export function groupName(contract: string, values: Readonly<Record<string, CaptureValue>>): string {
+  return nameTokens(contract)
+    .map((token) => token.capture !== undefined && typeof values[token.capture] === "string" ? values[token.capture] : token.text)
+    .join("");
+}
+
+/** Where a group of `rule` is declared, as an espalier-relative module path. */
+export function groupModulePath(rule: StructuralRule, grouping: Grouping, captures: Readonly<Record<string, CaptureValue>>): string {
+  const cut = rule.pattern.lastIndexOf("/");
+  const values = Object.fromEntries(grouping.by.map((name) => [name, captures[name]!]));
+  return `${rule.pattern.slice(0, cut + 1)}${groupName(rule.pattern.slice(cut + 1), values)}.mjs`;
+}
+
+/** The declared group of `grouping` these captures name, if one is declared. */
+export function declaredGroup(grouping: Grouping, captures: Readonly<Record<string, CaptureValue>>): GroupInstance | undefined {
+  return grouping.instances.find((instance) => grouping.by.every((name) => instance.captures[name] === captures[name]));
+}
+
+/**
+ * Which captures `name` writes as values in place of `contract`'s
+ * placeholders, or null when it is not the contract's name with some of them
+ * filled in. Every other character must be the contract's own.
+ */
+function boundCaptures(contract: string, name: string): Record<string, string> | null {
+  const tokens = nameTokens(contract);
+  const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const source = tokens.map((token, index) => token.capture === undefined
+    ? escape(token.text)
+    : `(?:${escape(token.text)}|(?<v${index}>[^\\[\\]{}/]+))`).join("");
+  const found = new RegExp(`^${source}$`).exec(name);
+  if (found === null) return null;
+  const bound: Record<string, string> = {};
+  for (const [index, token] of tokens.entries()) {
+    const value = found.groups?.[`v${index}`];
+    if (token.capture !== undefined && value !== undefined) bound[token.capture] = value;
+  }
+  return bound;
+}
+
+/** The resolved group of each declaring module, for rendering its prose. */
+const groupInstances = new WeakMap<LoadedModule, GroupInstance>();
+
+/**
+ * Resolve a group declaration against its sibling contract and attach it to
+ * the grouping whose `by` it binds. Two groupings never share a capture set,
+ * so the captures written as values choose exactly one.
+ */
+function attachGroup(root: TrieNode, entry: GroupDeclaration): void {
+  const { modulePath, module } = entry;
+  let parent: TrieNode | undefined = root;
+  for (const segment of entry.directory) parent = parent?.children.get(trieKey(segment));
+  const reference = module.instanceOf!.replace(/^\.\//, "").replace(/\.mjs$/, "");
+  const contract = parent === undefined ? undefined
+    : [...parent.children.values()].find((child) => child.rule !== null && child.display === reference);
+  if (contract === undefined || !contract.segment.dynamic) {
+    fail("invalid_instance", `${modulePath}: instanceOf must name a sibling dynamic rule; ${reference} is not one beside it`);
+  }
+  const rule = contract.rule!;
+  if (rule.module.groups.length === 0) {
+    fail("invalid_instance", `${modulePath}: ${reference} declares no groupings, so a narrower name declares no group of it; a single file is declared at its full name`);
+  }
+  const bound = boundCaptures(reference, entry.name);
+  if (bound === null || Object.keys(bound).length === 0) {
+    fail("invalid_instance", `${modulePath}: a group of ${reference} is declared at that name with its grouping's captures written as values and every other character unchanged`);
+  }
+  for (const [name, value] of Object.entries(bound)) {
+    const placeholder = nameTokens(reference).find((token) => token.capture === name)!.text;
+    const admitted = matchSegment(parseSegment(placeholder, modulePath), value, {}) !== null
+      && !(contract.segment.dotlessCaptures === true && value.includes("."));
+    if (!admitted) fail("invalid_instance", `${modulePath}: "${value}" is not a value ${placeholder} admits`);
+  }
+  const names = Object.keys(bound).sort();
+  const grouping = rule.module.groups.find((candidate) => [...candidate.by].sort().join() === names.join());
+  if (grouping === undefined) {
+    const known = rule.module.groups.map((candidate) => `${candidate.name} by ${candidate.by.length === 0 ? "nothing" : candidate.by.join(", ")}`).join("; ");
+    fail("invalid_instance", `${modulePath}: binds ${names.join(", ")}, and no grouping of ${reference} groups by exactly those captures (${known})`);
+  }
+  const instance: GroupInstance = { modulePath, pattern: declaration(modulePath), captures: bound, module };
+  groupInstances.set(module, instance);
+  grouping.instances.push(instance);
+  grouping.instances.sort((left, right) => left.pattern.localeCompare(right.pattern));
 }
 
 /** An abstract directory module marks its dynamic node before instances are cloned from it. */

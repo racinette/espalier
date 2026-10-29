@@ -156,6 +156,17 @@ test('empty named directories are required and can be created from a guidance-on
   });
 });
 
+test('migration leaves a declared group\'s optional alone', async () => {
+  await scratch((root,put)=>{
+    put('espalier/[a=0+]_[b].ts.mjs','export const description="a step"; export const guidance=""; export const groups={ release: { by: ["a"], description: "a release", guidance: "" } };\n');
+    const declared='export const instanceOf="[a=0+]_[b].ts.mjs";\nexport const description="release 1";\nexport const guidance="";\nexport const optional = true;\n';
+    put('espalier/1_[b].ts.mjs',declared);
+    const migrated=run(root,['migrate']);
+    assert.equal(migrated.status,0,migrated.stdout+migrated.stderr);
+    assert.equal(readFileSync(path.join(root,'espalier/1_[b].ts.mjs'),'utf8'),declared);
+  });
+});
+
 test('migration ignores export-shaped prose and preserves literal collection semantics', async () => {
   await scratch((root,put)=>{
     const source='export const description="source";\nexport const guidance=`Example:\nexport const optional = false;\n`;\nexport const optional = false;\nexport function lint() {}\n';
@@ -175,6 +186,19 @@ test('migration ignores export-shaped prose and preserves literal collection sem
     const before=readFileSync(path.join(root,'espalier/ESPALIER.mjs'),'utf8');
     assert.equal(run(root,['migrate']).status,0);
     assert.equal(readFileSync(path.join(root,'espalier/ESPALIER.mjs'),'utf8'),before);
+  });
+});
+
+test('an abstract grouping refuses to create a member of an undeclared group and accepts a declared one', async () => {
+  await scratch(async (root, put) => {
+    put('espalier/migrations/[num=0000][ord=00]_[group=a+].sql.mjs', `${rule}export const groups = { set: { by: ["num", "group"], abstract: true, description: "a set", guidance: "" } };`);
+    const refused = run(root, ['create', 'migrations/000101_users.sql']);
+    assert.equal(refused.status, 2);
+    assert.match(refused.stdout, /set group `0001\[ord=00\]_users\.sql`.*espalier\/migrations\/0001\[ord=00\]_users\.sql\.mjs/);
+    assert.equal(existsSync(path.join(root, 'migrations/000101_users.sql')), false);
+    put('espalier/migrations/0001[ord=00]_users.sql.mjs', 'export const instanceOf = "[num=0000][ord=00]_[group=a+].sql.mjs"; export const description = "create users"; export const guidance = "";');
+    assert.equal(run(root, ['create', 'migrations/000101_users.sql']).status, 0);
+    assert.equal(run(root, ['create', 'migrations/000102_users.sql']).status, 0);
   });
 });
 

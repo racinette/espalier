@@ -1,0 +1,5 @@
+pin: 0.10.0
+name: declared migration groups
+root: espalier
+ignoreFiles: []
+skip: []

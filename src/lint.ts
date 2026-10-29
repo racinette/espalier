@@ -2,7 +2,7 @@
 
 import { statSync } from "node:fs";
 import path from "node:path";
-import type { Constraint, StructuralRule } from "./compile.js";
+import { declaredGroup, groupModulePath, groupName, type Constraint, type StructuralRule } from "./compile.js";
 import { loadConfig } from "./config.js";
 import { fail } from "./errors.js";
 import { startImplementations } from "./implementation.js";
@@ -305,15 +305,52 @@ async function lintOne(
     }
   }
   for (const group of groups.values()) {
-    if (options.rule !== undefined && options.rule !== group.rule.modulePath) continue;
     if (scope !== null && !group.matches.some((match) => inScope(match.path))) continue;
-    jobs.push([{
-      ...invocation(group.rule.modulePath, group.rule.module, group.rule.pattern, group.directory === "" ? "." : `${group.directory}/`, group.captures),
-      guidance: options.guidance ? group.grouping.guidance : null,
-      description: group.grouping.description,
-      group: group.grouping.name,
-      matches: group.matches.sort((left, right) => left.path.localeCompare(right.path)),
-    }]);
+    const at = group.directory === "" ? "." : `${group.directory}/`;
+    const matches = group.matches.sort((left, right) => left.path.localeCompare(right.path));
+    const declared = declaredGroup(group.grouping, group.captures);
+    // A group an abstract grouping does not see declared is reported where a
+    // missing member would be: on the directory that holds it.
+    if (declared === undefined && group.grouping.abstract) {
+      const name = groupName(group.rule.pattern.slice(group.rule.pattern.lastIndexOf("/") + 1), group.captures);
+      builtin(at, "undeclared_instance",
+        `the ${group.grouping.name} group \`${name}\` of the abstract grouping in \`${group.rule.pattern}\` is not declared; ${declareHint(groupModulePath(group.rule, group.grouping, group.captures))}`,
+        { contract: group.rule.pattern, group: group.grouping.name, captures: group.captures });
+    }
+    const job: Job = [];
+    if (options.rule === undefined || options.rule === group.rule.modulePath) {
+      job.push({
+        ...invocation(group.rule.modulePath, group.rule.module, group.rule.pattern, at, group.captures),
+        guidance: options.guidance ? group.grouping.guidance : null,
+        description: group.grouping.description,
+        group: group.grouping.name,
+        matches,
+      });
+    }
+    // A declared group's own check runs beside the grouping's, over the same members.
+    if (declared?.module.lint !== undefined && (options.rule === undefined || options.rule === declared.modulePath)) {
+      job.push({
+        ...invocation(declared.modulePath, declared.module, declared.pattern, at, group.captures),
+        group: group.grouping.name,
+        declaredGroup: true,
+        matches,
+      });
+    }
+    if (job.length > 0) jobs.push(job);
+  }
+  for (const required of requiredEntries.groups) {
+    const directory = required.path === "" ? "." : required.path;
+    if (repository.ungoverned(required.path, true) === "worktree" || !inScope(required.path)) continue;
+    const id = JSON.stringify([directory, required.rule.modulePath, required.grouping.name, required.grouping.by.map((name) => required.instance.captures[name])]);
+    if (groups.has(id)) continue;
+    const name = required.instance.pattern.slice(required.instance.pattern.lastIndexOf("/") + 1);
+    builtin(required.path === "" ? "." : `${required.path}/`, "missing_required_group",
+      `the declared ${required.grouping.name} group \`${name}\` has no files here; it is declared in \`${config.espalierRoot}/${required.instance.modulePath}\``, {
+        rule: required.rule.modulePath,
+        group: required.grouping.name,
+        captures: required.instance.captures,
+        declared: required.instance.modulePath,
+      });
   }
 
   for (const aggregate of aggregates.values()) {

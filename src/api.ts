@@ -358,26 +358,37 @@ export async function runAggregate(
   return issues;
 }
 
-/** Runs one grouping of a dynamic structural rule over the members a test supplies. */
+/**
+ * Runs one grouping of a dynamic structural rule over the members a test
+ * supplies, or a declared group's own `lint`, given the module that declares
+ * the group and the grouping's name. docs/API.MD "runGroup".
+ */
 export async function runGroup(module: RuleModule, context: GroupRuleContext): Promise<Issue[]> {
   if (module === null || typeof module !== "object") {
     fail("module_invalid_export", "runGroup expects a rule module");
   }
   if ("unobservedImplementationDependencies" in module) fail("module_invalid_export", "unobservedImplementationDependencies is not supported");
-  const groups = module.groups;
-  if (groups === null || typeof groups !== "object" || Array.isArray(groups)) {
-    fail("module_invalid_export", "runGroup expects a module exporting `groups`");
+  let grouping: unknown;
+  if (module.instanceOf !== undefined) {
+    // A declared group carries its prose and check at the top level.
+    grouping = module;
+  } else {
+    const groups = module.groups;
+    if (groups === null || typeof groups !== "object" || Array.isArray(groups)) {
+      fail("module_invalid_export", "runGroup expects a module exporting `groups`, or one declaring a group with `instanceOf`");
+    }
+    grouping = (groups as Record<string, unknown>)[context.group];
   }
-  const grouping = (groups as Record<string, unknown>)[context.group];
+  const where = module.instanceOf !== undefined ? "the declared group" : `\`groups.${context.group}\``;
   if (grouping === null || typeof grouping !== "object") {
-    fail("module_invalid_export", `runGroup: \`groups.${context.group}\` must be a grouping`);
+    fail("module_invalid_export", `runGroup: ${where} must be a grouping`);
   }
   const { description, guidance, lint } = grouping as { description?: unknown; guidance?: unknown; lint?: unknown };
   if (lint !== undefined && typeof lint !== "function") {
-    fail("module_invalid_export", `runGroup: \`groups.${context.group}.lint\` must be a function`);
+    fail("module_invalid_export", `runGroup: ${where}'s lint must be a function`);
   }
   if (typeof description !== "string" || typeof guidance !== "string") {
-    fail("module_invalid_export", `runGroup: \`groups.${context.group}\` needs a string description and guidance`);
+    fail("module_invalid_export", `runGroup: ${where} needs a string description and guidance`);
   }
   validateTemplate(module.template, "runGroup");
 

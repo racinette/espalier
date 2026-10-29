@@ -127,6 +127,8 @@ node prose                    the rendered ESPALIER.mjs guidance
 ## Governed elsewhere         child espaliers below this point, when any
 ## `<path>` — <description>   one per structural rule placed here
 ### Together, by … — …        one per grouping of that rule
+#### `<group>` — …             one per declared group of that grouping
+#### Adding new groups         closes a grouping that has declared groups or is abstract
 ### `<instance>` — …          one per declared instance of that contract
 ### Adding new instances      closes a contract that has instances or is abstract
 ## Constraints                when any constraint is placed here
@@ -447,6 +449,8 @@ carries the repository path from `referenceImplementation` and is omitted when
 the module exports none. Inline source is deliberately unsupported: an
 unvalidated duplicate inside the rule module could drift from real code.
 
+### Groupings
+
 A dynamic rule that exports `groups` has one sub-section per grouping under
 its own section. The heading says what the members share, and the grouping's
 guidance follows verbatim:
@@ -466,6 +470,33 @@ Steps are numbered from 01 with no gaps.
 A grouping with an empty `by` is headed "Together, all files in a directory".
 A rule whose own body is empty still gets its section when it declares a
 grouping, since the sub-section needs a parent.
+
+Declared groups nest under their grouping, as a contract's instances nest
+under the contract. Each is headed by the name that declares it, with the
+grouping's captures written in, and its own guidance follows. A closing note
+says whether a new group needs a declaration and points at
+`espalier help instances`:
+
+```markdown
+### Together, by `num` and `group` — a migration set
+
+A set changes one table.
+
+Declared groups, each bound by this grouping and by its own section:
+
+#### `0001[ord=00]_users.sql` — create users
+
+Creates the users table. Step 01 is the `CREATE TABLE`.
+
+#### Adding new groups
+
+Every `set` group here is declared, and an undeclared one is reported. See `espalier help instances`.
+```
+
+A grouping that is not abstract says a group needs no declaration, and that
+declaring one gives it its own guidance. An abstract grouping with no
+declared groups says "No groups are declared yet." in place of the list. See
+[INSTANCES.MD](../../INSTANCES.MD#declaring-a-group).
 
 ### Contracts
 

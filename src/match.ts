@@ -1,7 +1,7 @@
 // Ownership, requiredness, and the deepest recognized node.
 // docs/MATCHING.MD "Ownership", "What must exist", "The deepest recognized node".
 
-import type { Constraint, Espalier, StructuralRule, TrieNode } from "./compile.js";
+import type { Constraint, Espalier, GroupInstance, Grouping, StructuralRule, TrieNode } from "./compile.js";
 import { captureNames, isStrictSubset, matchSegment, resolveSegment, type CaptureValue } from "./pattern.js";
 
 // Defined beside the parser, because what a capture can hold is a fact about
@@ -184,6 +184,16 @@ export interface RequiredCollection {
   captures: Record<string, CaptureValue>;
 }
 
+/** A declared group that must have members in one concrete directory. docs/INSTANCES.MD "Declaring a group". */
+export interface RequiredGroup {
+  /** Concrete containing directory; empty at the repository root. */
+  path: string;
+  /** The rule that declares the grouping, which may be inherited. */
+  rule: StructuralRule;
+  grouping: Grouping;
+  instance: GroupInstance;
+}
+
 /**
  * Required named files and collections under a concrete directory.
  * Visible files instantiate dynamic directories using the ownership winner.
@@ -196,8 +206,9 @@ export function requirements(
   visible: ReadonlySet<string> = new Set(),
   directoryExists: (path: string) => boolean = () => false,
   includeOptionalFiles = false,
-): { files: RequiredFile[]; collections: RequiredCollection[]; directories: string[] } {
+): { files: RequiredFile[]; collections: RequiredCollection[]; directories: string[]; groups: RequiredGroup[] } {
   const files: RequiredFile[] = [];
+  const groups: RequiredGroup[] = [];
   const directories: string[] = [];
   const collections: RequiredCollection[] = [];
   const paths = [...visible];
@@ -212,6 +223,15 @@ export function requirements(
       if (here === null) continue;
       const at = prefix === "" ? here : `${prefix}/${here}`;
 
+      if (child.rule !== null && child.segment.dynamic) {
+        for (const rule of [...(child.rule.inherited ?? []), child.rule]) {
+          for (const grouping of rule.module.groups) {
+            for (const instance of grouping.instances) {
+              if (!instance.module.optional) groups.push({ path: prefix, rule, grouping, instance });
+            }
+          }
+        }
+      }
       if (child.rule !== null && (!child.rule.module.optional || includeOptionalFiles)) {
         if (child.segment.dynamic) {
           if (!child.rule.module.optional) collections.push({ path: prefix, declared: at, rule: child.rule, captures: { ...captures } });
@@ -252,7 +272,7 @@ export function requirements(
   };
 
   descend(node, prefix, captures);
-  return { files, collections, directories };
+  return { files, collections, directories, groups };
 }
 
 /** Required named leaves for creation, without inventing dynamic instances. */

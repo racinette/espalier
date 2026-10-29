@@ -708,8 +708,12 @@ file. A leaf marked `optional = true` never reports it.
 `missing_required_match` — a dynamic leaf with a positive `minMatches` owns too few
 files in an owning directory.
 
+`missing_required_group` — a declared group has no files in a directory its
+rule reaches. A group declared `optional = true` never reports it.
+
 `undeclared_instance` — an abstract contract admits this file or directory and
-no instance declares it. The path is still owned. See [INSTANCES.MD](INSTANCES.MD).
+no instance declares it, or an abstract grouping has a group no module
+declares. The path is still owned. See [INSTANCES.MD](INSTANCES.MD).
 
 Everything that makes the espalier itself invalid — ambiguous siblings, inconsistent capture names, more than one recursive placeholder in a path, a duplicate placeholder name, a contradiction between an exclusion and a required leaf — is an operational failure, not an issue. It exits `2` and no files are linted. Every code is listed in [ERRORS.MD](ERRORS.MD).
 

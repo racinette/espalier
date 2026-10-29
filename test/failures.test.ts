@@ -73,6 +73,8 @@ function write(root: string, relative: string, contents: string): void {
 
 /** A rule module that is valid and does nothing, for the cases about something else. */
 const INERT = 'export const description = "a file";\nexport const guidance = `Nothing.`;\nexport async function lint() {}\n';
+const GROUPED = 'export const groups = { release: { by: ["a"], abstract: true, description: "a release", guidance: "" } };\n';
+const DECLARE_GROUP = 'export const instanceOf = "[a=0+]_[b].ts.mjs";\nexport const description = "release 1";\nexport const guidance = "";\n';
 
 function templated(definition: string): string {
   return `import { createTemplate } from ${JSON.stringify(api)};
@@ -246,6 +248,46 @@ const cases: Case[] = [
     what: "a grouping naming every capture, so each group is one file",
     code: "module_invalid_export",
     espalier: { "src/[name].ts.mjs": `${INERT}export const groups = { one: { by: ["name"], description: "one", guidance: "", lint() {} } };\n` },
+  },
+  {
+    what: "a grouping whose abstract is not a boolean",
+    code: "module_invalid_export",
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}${GROUPED.replace("abstract: true", 'abstract: "yes"')}` },
+  },
+  {
+    what: "an abstract grouping by no captures, whose one group has no name",
+    code: "module_invalid_export",
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { all: { by: [], abstract: true, description: "all", guidance: "" } };\n` },
+  },
+  {
+    what: "a group declared beside a rule that has no groupings",
+    code: "invalid_instance",
+    espalier: { "src/[a=0+]_[b].ts.mjs": INERT, "src/1_[b].ts.mjs": DECLARE_GROUP },
+  },
+  {
+    what: "a group declared against a contract that is not beside it",
+    code: "invalid_instance",
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}${GROUPED}`, "src/1_[b].ts.mjs": DECLARE_GROUP.replace("[a=0+]_[b].ts.mjs", "[c].ts.mjs") },
+  },
+  {
+    what: "a group declared at a name that changes more than the captures",
+    code: "invalid_instance",
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}${GROUPED}`, "src/1-[b].ts.mjs": DECLARE_GROUP },
+  },
+  {
+    what: "a group declared with a value its placeholder does not admit",
+    code: "invalid_instance",
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}${GROUPED}`, "src/x_[b].ts.mjs": DECLARE_GROUP },
+  },
+  {
+    what: "a group declared by captures no grouping groups by",
+    code: "invalid_instance",
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}${GROUPED}`, "src/[a=0+]_users.ts.mjs": DECLARE_GROUP },
+  },
+  {
+    what: "a template on a declared group, which is a set of files",
+    code: "module_invalid_export",
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}${GROUPED}`, "src/1_[b].ts.mjs": `${DECLARE_GROUP}export const template = { schema: null, render() { return ""; } };\n` },
   },
   {
     what: "literalName that is not a boolean",

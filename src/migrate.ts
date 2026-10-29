@@ -441,8 +441,9 @@ function planGrammarMigration(root: string, rules: string, skip: string[], fold:
     const source = renameRuleExport(original, entry);
     const renamed = source !== original;
     // Constraints have nothing else to migrate; a literal name only looks
-    // dynamic, and its `optional` is a named file's.
-    if (entry.includes("[...") || /\bexport\s+const\s+literalName\s*=\s*true\b/.test(sourceCode(source))
+    // dynamic, and its `optional` is a named file's; a dynamic name with
+    // `instanceOf` declares a group, and its `optional` is the group's.
+    if (entry.includes("[...") || /\bexport\s+const\s+(literalName\s*=\s*true|instanceOf)\b/.test(sourceCode(source))
         || !parseStructuralLeaf(path.basename(entry).slice(0, -4), entry).dynamic) {
       if (renamed) changes.push({ path: absolute, contents: source });
       continue;

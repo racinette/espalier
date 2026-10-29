@@ -1,5 +1,6 @@
 // `espalier create`. docs/cli/create/README.MD.
 
+import { declaredGroup, groupModulePath } from "./compile.js";
 import {
   existsSync,
   mkdirSync,
@@ -625,6 +626,15 @@ export async function create(options: CreateOptions, reporter: Reporter): Promis
     const blocking = fileOwner.undeclared?.[0];
     if (blocking !== undefined) refuseUndeclared(`${blocking.contract}/`, `${blocking.path}/ESPALIER.mjs`);
     if (fileOwner.rule.module.abstract) refuseUndeclared(fileOwner.rule.pattern, `${target}.mjs`);
+    for (const { rule, captures } of structuralChecks(fileOwner.rule, target, fileOwner.captures)) {
+      for (const grouping of rule.module.groups) {
+        if (!grouping.abstract || declaredGroup(grouping, captures) !== undefined) continue;
+        const declare = groupModulePath(rule, grouping, captures);
+        fail("invalid_create_target", `${options.target} would be in the ${grouping.name} group \`${declare.slice(declare.lastIndexOf("/") + 1, -".mjs".length)}\`, which the abstract grouping in \`${rule.pattern}\` needs declared; declare it in \`${repository.config.espalierRoot}/${declare}\` first, or see \`espalier help instances\``, {
+          path: target, contract: rule.pattern, group: grouping.name, declare: `${repository.config.espalierRoot}/${declare}`,
+        });
+      }
+    }
     const excluded = repository.ungoverned(target);
     if (excluded !== null) {
       fail("invalid_create_target", `${options.target} is excluded by ${excluded}`, {

@@ -7,7 +7,8 @@
 
 import path from "node:path";
 import { fail } from "./errors.js";
-import type { ConstraintAnswer, RuleAnswer } from "./explainText.js";
+import type { ConstraintAnswer, DeclaredGroupAnswer, RuleAnswer } from "./explainText.js";
+import { declaredGroup, type GroupInstance } from "./compile.js";
 import {
   isDirectoryOwnership,
   structuralChecks,
@@ -143,6 +144,8 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
         required: required.has(visit.at),
         ...(visit.node.rule!.module.groups.length > 0 ? { groups: visit.node.rule!.module.groups.map((grouping) => ({
           name: grouping.name, by: grouping.by, description: grouping.description, guidance: grouping.guidance.trim(),
+          ...(grouping.abstract ? { abstract: true as const } : {}),
+          ...(grouping.instances.length > 0 ? { instances: grouping.instances.map(declaredAnswer) } : {}),
         })) } : {}),
       }));
 
@@ -228,10 +231,15 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
   // A file is in one group per grouping of each rule that checks it, keyed by
   // the shared captures. docs/cli/explain/README.MD "Groupings".
   const memberships = structuralChecks(owner.rule, target, owner.captures).flatMap(({ rule, captures }) =>
-    rule.module.groups.map((grouping) => ({
-      name: grouping.name, by: grouping.by, description: grouping.description, guidance: grouping.guidance.trim(),
-      captures: Object.fromEntries(grouping.by.map((name) => [name, captures[name]!])),
-    })));
+    rule.module.groups.map((grouping) => {
+      const declared = declaredGroup(grouping, captures);
+      return {
+        name: grouping.name, by: grouping.by, description: grouping.description, guidance: grouping.guidance.trim(),
+        ...(grouping.abstract ? { abstract: true as const } : {}),
+        captures: Object.fromEntries(grouping.by.map((name) => [name, captures[name]!])),
+        ...(declared === undefined ? {} : { instance: declaredAnswer(declared) }),
+      };
+    }));
 
   reporter.explanation({
     kind: "explanation",
@@ -252,4 +260,11 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
   });
 
   return 0;
+}
+
+function declaredAnswer(instance: GroupInstance): DeclaredGroupAnswer {
+  return {
+    rule: instance.modulePath, pattern: instance.pattern, captures: instance.captures,
+    description: instance.module.description, guidance: instance.module.guidance.trim(),
+  };
 }

@@ -8,9 +8,9 @@ already emitted can remain in CLI output, and other child projects may still
 run. Exit `2` means that output cannot establish conformance. Programmatic
 `check` rejects with `OperationalError` instead of returning partial findings.
 
-Five codes are **issues** rather than failures and are not listed here:
+Six codes are **issues** rather than failures and are not listed here:
 `unexpected_path`, `missing_required_file`, `missing_required_directory`,
-`missing_required_match` and `undeclared_instance`. They come from matching, exit `1`, and are documented in [MATCHING.MD](MATCHING.MD#built-in-issues) and [cli/lint/README.MD](cli/lint/README.MD#built-in-issues).
+`missing_required_match`, `missing_required_group` and `undeclared_instance`. They come from matching, exit `1`, and are documented in [MATCHING.MD](MATCHING.MD#built-in-issues) and [cli/lint/README.MD](cli/lint/README.MD#built-in-issues).
 
 Codes emitted by rule modules are free-form strings chosen by their authors. `espalier` neither validates nor namespaces them. Everything below is `espalier`'s own.
 
@@ -74,7 +74,7 @@ See [TYPES.MD](TYPES.MD).
 | `module_missing_export` | no `guidance`, or no `description` on a structural rule |
 | `module_invalid_export` | an export of the wrong type or on the wrong rule kind, `targets` together with a constraint filename extension, a `lint` that is not a function, or a `rule` export, which `espalier migrate` renames to `guidance` when it is a direct declaration and refuses when destructured or re-exported |
 | `invalid_reference_implementation` | a `referenceImplementation` that is absent, is not a governed file, or is not actually owned or covered by its rule |
-| `invalid_instance` | a specialization has a missing, incompatible, or cyclic base, introduces an unsupported child, or weakens inherited requirements |
+| `invalid_instance` | a specialization has a missing, incompatible, or cyclic base, introduces an unsupported child, or weakens inherited requirements; or a group declaration names no sibling rule with groupings, changes more than its captures, writes in a value its placeholder does not admit, or binds captures no grouping groups by |
 
 ## Configuration against the espalier
 

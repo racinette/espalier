@@ -290,7 +290,10 @@ captures.
 A dynamic rule can also judge its files in groups. `groups` names the
 captures a group shares, such as a migration set's number and name, and each
 grouping carries its own guidance and, optionally, a `lint` that runs once per
-group with the members. See [groups](docs/TYPES.MD#groups).
+group with the members. One group can be declared with guidance of its own,
+and an abstract grouping requires that of every group. See
+[groups](docs/TYPES.MD#groups) and
+[declaring a group](docs/INSTANCES.MD#declaring-a-group).
 
 Full grammar, matching precedence, and requiredness: [docs/MATCHING.MD](docs/MATCHING.MD) (`espalier help matching`).
 

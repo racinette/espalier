@@ -1,0 +1,103 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
+      { "kind": "written", "path": "migrations/AGENTS.MD" }
+    ]
+  },
+  "exit": 1,
+  "issues": [
+    {
+      "path": "migrations/",
+      "code": "undeclared_instance",
+      "severity": "error",
+      "rule": null,
+      "message": "the set group `0003[ord=00]_audit.sql` of the abstract grouping in `migrations/[num=0000][ord=00]_[group=a+].sql` is not declared; declare it in `espalier/migrations/0003[ord=00]_audit.sql.mjs`, or see `espalier help instances`",
+      "metadata": { "contract": "migrations/[num=0000][ord=00]_[group=a+].sql", "group": "set", "captures": { "num": "0003", "group": "audit" } }
+    },
+    {
+      "path": "migrations/",
+      "code": "missing_required_group",
+      "severity": "error",
+      "rule": null,
+      "message": "the declared release group `0002[ord=00]_[group=a+].sql` has no files here; it is declared in `espalier/migrations/0002[ord=00]_[group=a+].sql.mjs`",
+      "metadata": {
+        "rule": "migrations/[num=0000][ord=00]_[group=a+].sql.mjs",
+        "group": "release",
+        "captures": { "num": "0002" },
+        "declared": "migrations/0002[ord=00]_[group=a+].sql.mjs"
+      }
+    },
+    {
+      "path": "migrations/000101_users.sql",
+      "code": "set_purpose",
+      "severity": "error",
+      "rule": "migrations/0001[ord=00]_users.sql.mjs",
+      "group": "set",
+      "pattern": "migrations/0001[ord=00]_users.sql",
+      "captures": { "num": "0001", "group": "users" },
+      "guidance": "Creates the users table. Step 01 is the `CREATE TABLE`."
+    }
+  ],
+  "again": {
+    "apply": "after",
+    "delete": ["migrations/000301_audit.sql"],
+    "exit": 0,
+    "issues": []
+  },
+  "ownership": {
+    "migrations/000101_orders.sql": "migrations/[num=0000][ord=00]_[group=a+].sql.mjs",
+    "migrations/000101_users.sql": "migrations/[num=0000][ord=00]_[group=a+].sql.mjs",
+    "migrations/000102_users.sql": "migrations/[num=0000][ord=00]_[group=a+].sql.mjs",
+    "migrations/000301_audit.sql": "migrations/[num=0000][ord=00]_[group=a+].sql.mjs"
+  },
+  "explain": {
+    "migrations/000102_users.sql": {
+      "exit": 0,
+      "object": {
+        "rule": "migrations/[num=0000][ord=00]_[group=a+].sql.mjs",
+        "groups": [
+          {
+            "name": "set",
+            "abstract": true,
+            "captures": { "num": "0001", "group": "users" },
+            "instance": {
+              "rule": "migrations/0001[ord=00]_users.sql.mjs",
+              "pattern": "migrations/0001[ord=00]_users.sql",
+              "captures": { "num": "0001", "group": "users" },
+              "description": "create users"
+            }
+          },
+          { "name": "release", "captures": { "num": "0001" } }
+        ]
+      }
+    },
+    "migrations/": {
+      "exit": 0,
+      "object": {
+        "rules": [
+          {
+            "path": "migrations/[num=0000][ord=00]_[group=a+].sql",
+            "groups": [
+              {
+                "name": "set",
+                "abstract": true,
+                "instances": [
+                  { "rule": "migrations/0001[ord=00]_orders.sql.mjs", "captures": { "num": "0001", "group": "orders" } },
+                  { "rule": "migrations/0001[ord=00]_users.sql.mjs", "captures": { "num": "0001", "group": "users" } }
+                ]
+              },
+              {
+                "name": "release",
+                "instances": [
+                  { "rule": "migrations/0002[ord=00]_[group=a+].sql.mjs", "captures": { "num": "0002" } }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

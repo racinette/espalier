@@ -989,13 +989,35 @@ function ruleBody(point: Placement, at: string, module: LoadedModule): string[] 
 
 /**
  * Each grouping is a sub-section: what the members share is the heading, and
- * what the group as a whole must satisfy is the body.
+ * what the group as a whole must satisfy is the body. Declared groups nest
+ * under it as a contract's instances nest under the contract, named by the
+ * rule's name with their values written in. docs/cli/build/README.MD "Groupings".
  */
-function groupingSections(module: LoadedModule, level: number): string[] {
-  return module.groups.flatMap((grouping) => [
-    `${"#".repeat(level)} Together, ${grouping.by.length === 0 ? "all files in a directory" : `by ${listing(grouping.by.map((name) => codeSpan(name)))}`} — ${grouping.description}`,
-    ...(grouping.guidance.trim() === "" ? [] : [grouping.guidance.trim()]),
-  ]);
+function groupingSections(module: LoadedModule, shown: string, level: number): string[] {
+  const directory = shown.slice(0, shown.lastIndexOf("/") + 1);
+  return module.groups.flatMap((grouping) => {
+    const blocks = [
+      `${"#".repeat(level)} Together, ${grouping.by.length === 0 ? "all files in a directory" : `by ${listing(grouping.by.map((name) => codeSpan(name)))}`} — ${grouping.description}`,
+      ...(grouping.guidance.trim() === "" ? [] : [grouping.guidance.trim()]),
+    ];
+    if (grouping.instances.length === 0 && !grouping.abstract) return blocks;
+    blocks.push(grouping.instances.length === 0
+      ? "No groups are declared yet."
+      : "Declared groups, each bound by this grouping and by its own section:");
+    for (const instance of grouping.instances) {
+      const name = instance.pattern.slice(instance.pattern.lastIndexOf("/") + 1);
+      const described = instance.module.description === null ? "" : ` — ${instance.module.description}`;
+      blocks.push(`${"#".repeat(level + 1)} ${codeSpan(`${directory}${name}`)}${described}`);
+      if (instance.module.guidance.trim() !== "") blocks.push(instance.module.guidance.trim());
+    }
+    blocks.push(
+      `${"#".repeat(level + 1)} Adding new groups`,
+      grouping.abstract
+        ? `Every ${codeSpan(grouping.name)} group here is declared, and an undeclared one is reported. ${HELP_INSTANCES}`
+        : `A ${codeSpan(grouping.name)} group needs no declaration. Declaring one gives it its own guidance; ${HELP_INSTANCES.toLowerCase()}`,
+    );
+    return blocks;
+  });
 }
 
 /**
@@ -1073,7 +1095,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
 
     const heading = module.description === null ? "" : ` — ${module.description}`;
     blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${heading}`, ...body);
-    blocks.push(...groupingSections(module, level + 1));
+    blocks.push(...groupingSections(module, displayPath(point, section.at), level + 1));
 
     if (instances.length > 0 || module.abstract) {
       blocks.push(instances.length === 0
@@ -1084,7 +1106,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
         const own = ruleBody(point, instance.at, instance.rule.module);
         const described = instance.rule.module.description === null ? "" : ` — ${instance.rule.module.description}`;
         blocks.push(`${hashes}# ${codeSpan(displayPath(point, instance.at))}${described}`, ...own);
-        blocks.push(...groupingSections(instance.rule.module, level + 2));
+        blocks.push(...groupingSections(instance.rule.module, displayPath(point, instance.at), level + 2));
       }
       blocks.push(...addingInstances(node!.display, false, module.abstract, level + 1));
     }

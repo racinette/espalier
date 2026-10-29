@@ -27,14 +27,29 @@ export interface ConstraintAnswer {
   targets?: string[];
 }
 
+/** One declared group: a module at the rule's name with the grouping's captures written in. */
+export interface DeclaredGroupAnswer {
+  rule: string;
+  pattern: string;
+  captures: Record<string, string>;
+  description: string | null;
+  guidance: string;
+}
+
 /** One grouping a rule declares, as `explain` reports it. */
 export interface GroupAnswer {
   name: string;
   by: string[];
   description: string;
   guidance: string;
+  /** Every group must be declared. docs/INSTANCES.MD "Abstract groupings". */
+  abstract?: true;
   /** The group a file belongs to; absent in a prefix answer, where no file is in hand. */
   captures?: Record<string, CaptureValue>;
+  /** In a prefix answer, every declared group of this grouping. */
+  instances?: DeclaredGroupAnswer[];
+  /** In a file answer, the declaration of the file's group, when it has one. */
+  instance?: DeclaredGroupAnswer;
 }
 
 export interface RuleAnswer {
@@ -192,9 +207,19 @@ function body(
 function groupBlocks(groups: GroupAnswer[], concise: boolean): string[] {
   return groups.map((group) => {
     const by = group.by.length === 0 ? "the directory" : group.by.join(", ");
-    const lines = [`  Grouped as ${group.name} by ${by}  ${group.description}`];
+    const lines = [`  Grouped as ${group.name} by ${by}${group.abstract ? ", every group declared" : ""}  ${group.description}`];
     if (group.captures !== undefined) lines.push(...describeCaptures(group.captures, " ".repeat(12)));
     if (!concise && group.guidance !== "") lines.push("", ...group.guidance.split("\n").map((line) => `    ${line}`));
+    if (group.instance !== undefined) {
+      lines.push("", `  Declared as ${group.instance.pattern}${group.instance.description === null ? "" : `  ${group.instance.description}`}`);
+      if (!concise && group.instance.guidance !== "") lines.push("", ...group.instance.guidance.split("\n").map((line) => `    ${line}`));
+    }
+    if (group.abstract && group.captures !== undefined && group.instance === undefined) {
+      lines.push("", "  Undeclared: this group must be declared; see `espalier help instances`");
+    }
+    for (const instance of group.instances ?? []) {
+      lines.push(`    Declared ${instance.pattern}${instance.description === null ? "" : `  ${instance.description}`}`);
+    }
     return lines.join("\n");
   });
 }

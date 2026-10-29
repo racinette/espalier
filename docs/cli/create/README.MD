@@ -103,6 +103,11 @@ authoring, so `create` never writes into the espalier on your behalf: declare
 the instance, then create it as any declared path. See
 [INSTANCES.MD](../../INSTANCES.MD).
 
+A file whose group an abstract grouping has not declared is refused the same
+way, naming the module that declares the group. Once that module exists,
+every member of the group can be created. See
+[Abstract groupings](../../INSTANCES.MD#abstract-groupings).
+
 ## Creating a directory
 
 A concrete directory selects the structural directory node that declares its

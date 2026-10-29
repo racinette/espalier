@@ -87,6 +87,11 @@ grouping receives the whole group. Its issues carry the rule's module path,
 the grouping's name as `group`, the shared captures, and the grouping's own
 guidance text; the default issue path is the group's directory.
 
+A declared group's own `lint` runs beside its grouping's, once per directory
+holding the group, with the same context. Its issues carry the declaration's
+module path and guidance and the grouping's name. `--rule` selects either
+check by its module path. See [INSTANCES.MD](../../INSTANCES.MD#declaring-a-group).
+
 ## Scoping
 
 A path argument restricts the file set, at the cost of completeness:
@@ -232,11 +237,19 @@ Named specializations count toward their inherited collections. The path is its 
 The check uses the full governed file set, even during a partial run, but
 reports only collections whose containing directory is inside the scope.
 
+`missing_required_group` — a group declared by its own module has no files
+in a directory its rule reaches. The path is that directory with a trailing
+slash, or `.` at the root. Metadata names the `rule`, the `group`, its
+`captures`, and the `declared` module. A group declared `optional = true`
+never reports it. A partial run reports only directories inside the scope.
+
 `undeclared_instance` — an abstract contract admits this file, or this
 directory reported with a trailing slash, and no instance declares it. The
 message names the module to write; `metadata.contract` is the contract's
 declaration, `clients/[provider].ts` or `app/[route]/`. The path
-is owned, so the contract's own checks still run. See
+is owned, so the contract's own checks still run. An abstract grouping
+reports a group no module declares the same way, on the group's directory,
+with `metadata.group` and the group's `metadata.captures`. See
 [INSTANCES.MD](../../INSTANCES.MD).
 
 `unexpected_path` carries the **deepest recognized node** in `metadata`: how far the path was recognized by the espalier, and what is declared at that point. It is never a ranked guess at where the file belongs — see [MATCHING.MD](../../MATCHING.MD).
