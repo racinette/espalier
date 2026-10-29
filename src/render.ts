@@ -970,12 +970,44 @@ function heading(name: string | null, at: string): string[] {
 
 /**
  * A masked placeholder means nothing to a reader who has not seen the mask
- * vocabulary, so a map that shows one is followed by the vocabulary, once.
- * docs/MATCHING.MD "Masks"; docs/cli/build/README.MD "The map".
+ * vocabulary, so a map that shows one is followed by a legend of the symbols
+ * it uses — those and no others, since a legend for `X` under a map that
+ * never writes it is noise. docs/MATCHING.MD "Masks";
+ * docs/cli/build/README.MD "The map".
  */
 function maskLegend(entries: MapEntry[]): string | null {
-  if (!entries.some((entry) => /\[[A-Za-z_][A-Za-z0-9_]*=/.test(entry.path))) return null;
-  return `In a placeholder, \`=\` is followed by a mask or a list of names. Mask characters each match one character: \`0\` a digit, \`#\` an optional digit, \`A\` a letter, \`a\` a lowercase letter, \`X\` a letter or digit, \`x\` a lowercase letter or digit, and \`-\` or \`_\` itself. \`+\` repeats the element before it one or more times and \`(n)\` exactly n times. \`{a,b}\` accepts exactly the listed names. Use \`espalier help matching\` for the full grammar.`;
+  const used = new Set<string>();
+  let list = false;
+  for (const entry of entries) {
+    for (const [, constraint] of entry.path.matchAll(/\[[A-Za-z_][A-Za-z0-9_]*=([^\]]*)\]/g)) {
+      if (constraint!.startsWith("{")) list = true;
+      else for (const char of constraint!) used.add(char);
+    }
+  }
+  const meanings: [string, string][] = [
+    ["0", "a digit"],
+    ["#", "an optional digit"],
+    ["A", "a letter"],
+    ["a", "a lowercase letter"],
+    ["X", "a letter or digit"],
+    ["x", "a lowercase letter or digit"],
+    ["-", "a dash"],
+    ["_", "an underscore"],
+  ];
+  const classes = meanings.filter(([char]) => used.has(char)).map(([char, meaning]) => `${codeSpan(char)} ${meaning}`);
+  const sentences: string[] = [];
+  if (classes.length > 0) {
+    const repeats = [
+      ...(used.has("+") ? [`${codeSpan("+")} repeats the element before it one or more times`] : []),
+      ...(used.has("(") ? [`${codeSpan("(n)")} repeats the element before it exactly n times`] : []),
+    ];
+    sentences.push(`In a placeholder, ${codeSpan("=")} is followed by a mask in which each character matches one character of the name: ${classes.join(", ")}.`);
+    if (repeats.length > 0) sentences.push(`${repeats.join(", and ")}.`);
+  }
+  if (list) sentences.push(`${codeSpan("[name={a,b}]")} accepts exactly the listed names.`);
+  if (sentences.length === 0) return null;
+  sentences.push(`${codeSpan("espalier help matching")} has the full grammar.`);
+  return sentences.join(" ");
 }
 
 /** The body every document shares: prose, project layout, sections and other paths. */

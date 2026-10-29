@@ -10,7 +10,7 @@
     │
     └─ [name].sql                 ad-hoc scripts (zero or more matching files)
 
-In a placeholder, `=` is followed by a mask or a list of names. Mask characters each match one character: `0` a digit, `#` an optional digit, `A` a letter, `a` a lowercase letter, `X` a letter or digit, `x` a lowercase letter or digit, and `-` or `_` itself. `+` repeats the element before it one or more times and `(n)` exactly n times. `{a,b}` accepts exactly the listed names. Use `espalier help matching` for the full grammar.
+`[name={a,b}]` accepts exactly the listed names. `espalier help matching` has the full grammar.
 
 ## `[kind={tables,views}].sql` — the two catalog scripts
 

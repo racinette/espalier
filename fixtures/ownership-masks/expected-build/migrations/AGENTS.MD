@@ -14,7 +14,7 @@
     └─ [stem].tables.sql                other table scripts (zero or more
                                         matching files)
 
-In a placeholder, `=` is followed by a mask or a list of names. Mask characters each match one character: `0` a digit, `#` an optional digit, `A` a letter, `a` a lowercase letter, `X` a letter or digit, `x` a lowercase letter or digit, and `-` or `_` itself. `+` repeats the element before it one or more times and `(n)` exactly n times. `{a,b}` accepts exactly the listed names. Use `espalier help matching` for the full grammar.
+In a placeholder, `=` is followed by a mask in which each character matches one character of the name: `0` a digit, `x` a lowercase letter or digit. `+` repeats the element before it one or more times, and `(n)` repeats the element before it exactly n times. `espalier help matching` has the full grammar.
 
 ## `[seq=0(6)]_[name=x+].tables.sql` — padded table migrations
 
