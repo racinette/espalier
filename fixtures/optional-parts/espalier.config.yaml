@@ -1,0 +1,5 @@
+pin: 0.10.0
+name: optional name parts
+root: espalier
+ignoreFiles: []
+skip: []

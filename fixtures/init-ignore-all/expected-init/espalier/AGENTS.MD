@@ -152,6 +152,16 @@ A literal leaf such as `main.{ts,tsx}.mjs` cannot list alternatives: it would
 not say which file is required. Write separate literal rules if both are
 required.
 
+Alternatives may appear anywhere in a dynamic name, and an empty one makes a
+part optional. Keep files that belong together under one rule this way, so
+one grouping can judge them, rather than splitting them across sibling rules:
+
+```text
+[num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql.mjs
+```
+
+`role` is captured only when the name has it, and is absent otherwise.
+
 A placeholder can constrain the text it accepts. `[name=mask]` pictures the
 text one character at a time: `0` is a digit, `#` an optional digit, `A` a
 letter, `a` a lowercase letter, `X` a letter or digit, `x` a lowercase letter

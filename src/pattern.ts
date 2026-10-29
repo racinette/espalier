@@ -23,10 +23,17 @@ export type Constraint =
   | { kind: "mask"; source: string; elements: MaskElement[] }
   | { kind: "list"; source: string; values: string[] };
 
-export type Part =
+/** A part of one alternative: alternatives do not nest. */
+export type SimplePart =
   | { kind: "literal"; text: string }
   | { kind: "capture"; name: string; constraint?: Constraint }
   | { kind: "backref"; name: string };
+
+/**
+ * `{a,b}` in a name: exactly one alternative matches, and an empty one makes
+ * the part optional. docs/MATCHING.MD "Alternatives".
+ */
+export type Part = SimplePart | { kind: "alternatives"; branches: SimplePart[][] };
 
 export interface Segment {
   /** As authored: `clients`, `[provider]`, `test-[name].ts`, `[...path]`. */
@@ -152,30 +159,76 @@ export function parseSegment(
     return { source, parts: [{ kind: "literal", text: source }], recursive: null, dynamic: false, resolved: false, literal: true };
   }
   const backrefs = options.backrefs !== false;
-  const parts: Part[] = [];
-  let recursive: string | null = null;
-  let literal = "";
 
-  for (let i = 0; i < source.length; ) {
-    const char = source[i]!;
+  if (source.startsWith("[...")) {
+    const close = source.indexOf("]");
+    const name = source.slice(4, close === -1 ? undefined : close);
+    if (close === -1) fail("malformed_placeholder", `unclosed "[" in "${source}" (${context})`);
+    if (source !== `[...${name}]`) {
+      fail("malformed_placeholder", `"[...${name}]" must occupy a whole segment, but the segment is "${source}" (${context})`);
+    }
+    if (!CAPTURE_NAME.test(name)) fail("malformed_placeholder", `"...${name}" is not a valid capture name (${context})`);
+    return { source, parts: [], recursive: name, dynamic: true, resolved: false };
+  }
+
+  const parts = parseParts(source, source, context, backrefs, true);
+  const dynamic = parts.some((part) => part.kind === "capture"
+    || (part.kind === "alternatives" && part.branches.some((branch) => branch.some((inner) => inner.kind === "capture"))));
+  // A name with alternatives and no placeholder names several files, so
+  // whether it is required has no one answer.
+  if (!dynamic && parts.some((part) => part.kind === "alternatives")) {
+    fail(
+      "extension_list_on_structural_leaf",
+      `${context}: "${source}" lists alternatives without a placeholder, so it names several files and its requiredness is ambiguous; a single alternative without a comma, "{name}", is a back-reference`,
+    );
+  }
+
+  return {
+    source,
+    parts,
+    recursive: null,
+    dynamic,
+    resolved: !dynamic && parts.some((part) => part.kind === "backref"),
+    dotlessCaptures: options.dotlessCaptures === true,
+  };
+}
+
+/**
+ * Literals, placeholders, back-references and, at the top level only,
+ * alternatives. `{name}` is a back-reference and `{a,b}` alternatives: a
+ * comma outside brackets is what tells them apart.
+ */
+function parseParts(text: string, source: string, context: string, backrefs: boolean, top: boolean): Part[] {
+  const parts: Part[] = [];
+  let literal = "";
+  const flush = (): void => {
+    if (literal !== "") parts.push({ kind: "literal", text: literal });
+    literal = "";
+  };
+
+  for (let i = 0; i < text.length; ) {
+    const char = text[i]!;
 
     if (char === "]") {
       fail("malformed_placeholder", `unmatched "]" in "${source}" (${context})`);
     }
 
     if (backrefs && char === "{") {
-      const close = source.indexOf("}", i);
-      if (close === -1) {
-        fail("malformed_placeholder", `unclosed "{" in "${source}" (${context})`);
-      }
-      const inner = source.slice(i + 1, close);
-      // The mistake worth naming: braces holding a list, written where only a
-      // back-reference can go.
-      if (inner.includes(",")) {
-        fail(
-          "extension_list_on_structural_leaf",
-          `${context}: "{${inner}}" lists extensions on a literal structural leaf, where requiredness is ambiguous; "{name}" here is a back-reference`,
-        );
+      const close = closingBrace(text, i, source, context);
+      const inner = text.slice(i + 1, close);
+      const branches = splitBranches(inner);
+      if (branches.length > 1) {
+        if (!top) fail("malformed_placeholder", `"{${inner}}" is nested inside alternatives, which do not nest (${context})`);
+        if (new Set(branches).size !== branches.length) {
+          fail("malformed_placeholder", `"{${inner}}" repeats an alternative (${context})`);
+        }
+        flush();
+        parts.push({
+          kind: "alternatives",
+          branches: branches.map((branch) => parseParts(branch, source, context, backrefs, false) as SimplePart[]),
+        });
+        i = close + 1;
+        continue;
       }
       if (inner.includes("=")) {
         fail("malformed_placeholder", `"{${inner}}" is a back-reference, which repeats bound text and carries no mask (${context})`);
@@ -183,10 +236,7 @@ export function parseSegment(
       if (!CAPTURE_NAME.test(inner)) {
         fail("malformed_placeholder", `"{${inner}}" is not a valid capture name (${context})`);
       }
-      if (literal !== "") {
-        parts.push({ kind: "literal", text: literal });
-        literal = "";
-      }
+      flush();
       parts.push({ kind: "backref", name: inner });
       i = close + 1;
       continue;
@@ -198,53 +248,58 @@ export function parseSegment(
       continue;
     }
 
-    const close = source.indexOf("]", i);
+    const close = text.indexOf("]", i);
     if (close === -1) {
       fail("malformed_placeholder", `unclosed "[" in "${source}" (${context})`);
     }
-
-    const inner = source.slice(i + 1, close);
-
+    const inner = text.slice(i + 1, close);
     if (inner.startsWith("...")) {
-      const name = inner.slice(3);
-      if (source !== `[...${name}]`) {
-        fail(
-          "malformed_placeholder",
-          `"[...${name}]" must occupy a whole segment, but the segment is "${source}" (${context})`,
-        );
-      }
-      if (!CAPTURE_NAME.test(name)) {
-        fail("malformed_placeholder", `"${inner}" is not a valid capture name (${context})`);
-      }
-      recursive = name;
-      i = close + 1;
-      continue;
+      fail("malformed_placeholder", `"[${inner}]" must occupy a whole segment, but the segment is "${source}" (${context})`);
     }
-
-    const capture = parseCapture(inner, context);
-    if (literal !== "") {
-      parts.push({ kind: "literal", text: literal });
-      literal = "";
-    }
-    parts.push({ kind: "capture", ...capture });
+    flush();
+    parts.push({ kind: "capture", ...parseCapture(inner, context) });
     i = close + 1;
   }
+  flush();
+  return parts;
+}
 
-  if (recursive !== null) {
-    return { source, parts: [], recursive, dynamic: true, resolved: false };
+/** The `}` closing the brace at `open`; braces inside a placeholder are its list. */
+function closingBrace(text: string, open: number, source: string, context: string): number {
+  for (let i = open + 1; i < text.length; i += 1) {
+    if (text[i] === "[") {
+      const close = text.indexOf("]", i);
+      if (close === -1) break;
+      i = close;
+    } else if (text[i] === "{") {
+      // A back-reference inside an alternative is fine; alternatives inside one are not.
+      const inner = text.indexOf("}", i);
+      if (inner === -1 || text.slice(i + 1, inner).includes(",")) {
+        fail("malformed_placeholder", `"${source}" opens alternatives inside alternatives, which do not nest (${context})`);
+      }
+      i = inner;
+    } else if (text[i] === "}") {
+      return i;
+    }
   }
-  if (literal !== "") parts.push({ kind: "literal", text: literal });
+  return fail("malformed_placeholder", `unclosed "{" in "${source}" (${context})`);
+}
 
-  const dynamic = parts.some((part) => part.kind === "capture");
-
-  return {
-    source,
-    parts,
-    recursive: null,
-    dynamic,
-    resolved: !dynamic && parts.some((part) => part.kind === "backref"),
-    dotlessCaptures: options.dotlessCaptures === true,
-  };
+/** Split on commas outside brackets: `[kind={a,b}],x` is two alternatives. */
+function splitBranches(inner: string): string[] {
+  const branches: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const char of inner) {
+    if (char === "[" || char === "{") depth += 1;
+    if (char === "]" || char === "}") depth -= 1;
+    if (char === "," && depth === 0) {
+      branches.push(current);
+      current = "";
+    } else current += char;
+  }
+  branches.push(current);
+  return branches;
 }
 
 /** A dynamic structural filename has an exact full extension after its last placeholder. */
@@ -278,7 +333,8 @@ export function parseStructuralLeaf(source: string, context: string, options: { 
 
 /** The captures a segment refers back to, in order. */
 export function backrefNames(segment: Segment): string[] {
-  return segment.parts.flatMap((part) => (part.kind === "backref" ? [part.name] : []));
+  return segment.parts.flatMap((part) => part.kind === "backref" ? [part.name]
+    : part.kind === "alternatives" ? part.branches.flat().flatMap((inner) => inner.kind === "backref" ? [inner.name] : []) : []);
 }
 
 /**
@@ -295,8 +351,12 @@ export function trieKey(segment: Segment): string {
   if (segment.parts.some((part) => part.kind === "backref")) return segment.source;
   // A placeholder keys with a NUL, which no filename can contain, so a
   // literal name such as `[slug]` can never share a node with a capture.
+  const key = (part: SimplePart): string =>
+    part.kind === "literal" ? part.text : part.kind === "capture" && part.constraint ? `\0=${part.constraint.source}` : "\0*";
   const stem = segment.parts
-    .map((part) => part.kind === "literal" ? part.text : part.kind === "capture" && part.constraint ? `\0=${part.constraint.source}` : "\0*")
+    .map((part) => part.kind === "alternatives"
+      ? `\0{${part.branches.map((branch) => branch.map(key).join("")).join("\0|")}\0}`
+      : key(part))
     .join("");
   if (segment.fileExtensions === undefined) return stem;
   const { fileExtensions } = segment;
@@ -305,7 +365,18 @@ export function trieKey(segment: Segment): string {
 
 export function captureNames(segment: Segment): string[] {
   if (segment.recursive !== null) return [segment.recursive];
-  return segment.parts.flatMap((part) => (part.kind === "capture" ? [part.name] : []));
+  // A name in several alternatives is one capture, bound by whichever matched.
+  return segment.parts.flatMap((part) => part.kind === "capture" ? [part.name]
+    : part.kind === "alternatives" ? [...new Set(part.branches.flat().flatMap((inner) => inner.kind === "capture" ? [inner.name] : []))] : []);
+}
+
+/** Captures that some alternative leaves unbound, so a match may not have them. */
+export function optionalCaptureNames(segment: Segment): string[] {
+  return segment.parts.flatMap((part) => {
+    if (part.kind !== "alternatives") return [];
+    const names = new Set(part.branches.flat().flatMap((inner) => inner.kind === "capture" ? [inner.name] : []));
+    return [...names].filter((name) => part.branches.some((branch) => !branch.some((inner) => inner.kind === "capture" && inner.name === name)));
+  });
 }
 
 function escape(text: string): string {
@@ -368,7 +439,7 @@ export function resolveSegment(
       text += part.text;
       continue;
     }
-    if (part.kind === "capture") return null;
+    if (part.kind === "capture" || part.kind === "alternatives") return null;
     const value = bound[part.name];
     if (typeof value !== "string") return null;
     text += value;
@@ -406,15 +477,27 @@ export function matchSegment(
 
   const held = backrefNames(segment);
   const build = (): RegExp | null => {
+    const piece = (part: SimplePart): string | null => {
+      if (part.kind === "literal") return escape(part.text);
+      if (part.kind === "capture") return captureRegex(part.constraint, segment.dotlessCaptures === true);
+      const value = bound[part.name];
+      return typeof value === "string" ? escape(value) : null;
+    };
     const pieces: string[] = [];
     for (const part of segment.parts) {
-      if (part.kind === "literal") pieces.push(escape(part.text));
-      else if (part.kind === "capture") pieces.push(captureRegex(part.constraint, segment.dotlessCaptures === true));
-      else {
-        const value = bound[part.name];
-        if (typeof value !== "string") return null;
-        pieces.push(escape(value));
+      if (part.kind !== "alternatives") {
+        const one = piece(part);
+        if (one === null) return null;
+        pieces.push(one);
+        continue;
       }
+      const branches: string[] = [];
+      for (const branch of part.branches) {
+        const inner = branch.map(piece);
+        if (inner.includes(null)) return null;
+        branches.push(inner.join(""));
+      }
+      pieces.push(`(?:${branches.join("|")})`);
     }
     return new RegExp(`^${pieces.join("")}$`, "s");
   };
@@ -437,10 +520,18 @@ export function matchSegment(
   const found = matcher.exec(text);
   if (found === null) return null;
 
+  // Groups are numbered in source order. A capture in an alternative that
+  // did not match is left out, not bound to "".
   const captures: Record<string, string> = {};
   let index = 1;
+  const take = (part: SimplePart): void => {
+    if (part.kind !== "capture") return;
+    const value = found[index++];
+    if (value !== undefined) captures[part.name] = value;
+  };
   for (const part of segment.parts) {
-    if (part.kind === "capture") captures[part.name] = found[index++]!;
+    if (part.kind === "alternatives") for (const inner of part.branches.flat()) take(inner);
+    else take(part);
   }
   return captures;
 }
@@ -602,6 +693,13 @@ export function intersectSegments(left: Segment, right: Segment): boolean {
 /** The token sequences one part can be, with a list capture contributing one per alternative. */
 function partTokens(part: Part, dotless: boolean): Token[][] {
   const literal = (text: string): Token[] => [...text].map((char) => ({ kind: "literal", char }));
+  if (part.kind === "alternatives") {
+    // Each alternative is the product of its own parts; an empty one is the empty sequence.
+    return part.branches.flatMap((branch) => branch.reduce<Token[][]>(
+      (sequences, inner) => sequences.flatMap((sequence) => partTokens(inner, dotless).map((option) => [...sequence, ...option])),
+      [[]],
+    ));
+  }
   if (part.kind === "literal") return [literal(part.text)];
   if (part.kind === "backref") return [[wildcard(false, part.name)]];
   const constraint = part.constraint;
@@ -699,12 +797,9 @@ export interface AmbiguousSplit {
  * is one opaque character, fixed by the enclosing instance and matched by no
  * class. The search is the automaton's product with itself.
  */
-export function ambiguousSplit(segment: Segment): AmbiguousSplit | null {
-  const stem = segment.fileStem ?? segment;
-  if (stem.recursive !== null || !stem.dynamic) return null;
-  const dotless = stem.dotlessCaptures === true;
+function splitOf(simple: SimplePart[], dotless: boolean): AmbiguousSplit | null {
   const bound: string[] = [];
-  const parts = stem.parts.map((part): Token[][] => {
+  const parts = simple.map((part): Token[][] => {
     if (part.kind !== "backref") return partTokens(part, dotless);
     bound.push(part.name);
     return [[{ kind: "literal", char: `\0${bound.length}` }]];
@@ -767,7 +862,7 @@ export function ambiguousSplit(segment: Segment): AmbiguousSplit | null {
   // Enumerate the splits of the witness, two are enough to show. A bare
   // capture must not absorb a sentinel here, as no class did in the search.
   const show = (value: string): string => value.replace(/\0(\d+)/g, (_, index: string) => `{${bound[Number(index) - 1]}}`);
-  const regexes = stem.parts.map((part) => part.kind === "literal"
+  const regexes = simple.map((part) => part.kind === "literal"
     ? escape(part.text)
     : part.kind === "capture"
       ? captureRegex(part.constraint, dotless).replace("(.+?)", "([^\\0]+?)").replace("([^.]+?)", "([^.\\0]+?)")
@@ -775,11 +870,11 @@ export function ambiguousSplit(segment: Segment): AmbiguousSplit | null {
   const parses: Record<string, string>[] = [];
   const walk = (index: number, at: number, captures: Record<string, string>): void => {
     if (parses.length === 2) return;
-    if (index === stem.parts.length) {
+    if (index === simple.length) {
       if (at === text.length) parses.push(captures);
       return;
     }
-    const part = stem.parts[index]!;
+    const part = simple[index]!;
     const matcher = new RegExp(`^(?:${regexes[index]})$`, "s");
     for (let end = at + 1; end <= text.length; end += 1) {
       const piece = text.slice(at, end);
@@ -788,6 +883,95 @@ export function ambiguousSplit(segment: Segment): AmbiguousSplit | null {
     }
   };
   walk(0, 0, {});
+  return { text: show(text), parses };
+}
+
+/** The segment's parts once per combination of its alternatives. */
+function expansions(parts: Part[]): SimplePart[][] {
+  return parts.reduce<SimplePart[][]>((sequences, part) => part.kind === "alternatives"
+    ? sequences.flatMap((sequence) => part.branches.map((branch) => [...sequence, ...branch]))
+    : sequences.map((sequence) => [...sequence, part]), [[]]);
+}
+
+/** Tokens for a sequence of parts, a back-reference as a sentinel no class admits. */
+function sentinelTokens(parts: SimplePart[], dotless: boolean, bound: string[]): Token[][] {
+  return parts.reduce<Token[][]>((sequences, part) => {
+    let options: Token[][];
+    if (part.kind === "backref") {
+      if (!bound.includes(part.name)) bound.push(part.name);
+      options = [[{ kind: "literal", char: `\0${bound.indexOf(part.name) + 1}` }]];
+    } else options = partTokens(part, dotless);
+    return sequences.flatMap((sequence) => options.map((option) => [...sequence, ...option]));
+  }, [[]]);
+}
+
+/** The cheapest name both token unions accept, or null when they are disjoint. */
+function commonText(left: Token[][], right: Token[][]): string | null {
+  const a = machine(left);
+  const b = machine(right);
+  const symbols = alphabet([...left, ...right]);
+  const key = (x: number[], y: number[]): string => `${x.join(",")}|${y.join(",")}`;
+  const queue: [number[], number[], string][] = [[a.starts, b.starts, ""]];
+  const seen = new Set<string>([key(a.starts, b.starts)]);
+  for (let index = 0; index < queue.length; index += 1) {
+    const [x, y, text] = queue[index]!;
+    if (a.accepts(x) && b.accepts(y)) return text;
+    for (const char of symbols) {
+      const nextX = a.step(x, char);
+      if (nextX.length === 0) continue;
+      const nextY = b.step(y, char);
+      if (nextY.length === 0) continue;
+      const id = key(nextX, nextY);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      queue.push([nextX, nextY, text + char]);
+    }
+  }
+  return null;
+}
+
+/** The captures one sequence of parts binds in `text`, back-references as sentinels. */
+function capturesOf(parts: SimplePart[], text: string, dotless: boolean, bound: string[]): Record<string, string> {
+  const show = (value: string): string => value.replace(/\0(\d+)/g, (_, index: string) => `{${bound[Number(index) - 1]}}`);
+  const pattern = parts.map((part) => part.kind === "literal"
+    ? escape(part.text)
+    : part.kind === "capture"
+      ? captureRegex(part.constraint, dotless).replace("(.+?)", "([^\\0]+?)").replace("([^.]+?)", "([^.\\0]+?)")
+      : escape(`\0${bound.indexOf(part.name) + 1}`)).join("");
+  const found = new RegExp(`^${pattern}$`, "s").exec(text);
+  const captures: Record<string, string> = {};
+  let index = 1;
+  for (const part of parts) if (part.kind === "capture") captures[part.name] = show(found?.[index++] ?? "");
+  return captures;
+}
+
+/**
+ * docs/MATCHING.MD "Captures must be unambiguous" and "Alternatives". Every
+ * combination of alternatives must split one way, and no two combinations
+ * may match one name: the name would not say which alternative it took.
+ */
+export function ambiguousSplit(segment: Segment): AmbiguousSplit | null {
+  const stem = segment.fileStem ?? segment;
+  if (stem.recursive !== null || !stem.dynamic) return null;
+  const dotless = stem.dotlessCaptures === true;
   const extension = segment.fileExtensions === undefined ? "" : `.${segment.fileExtensions[0]}`;
-  return { text: show(text) + extension, parses };
+  const variants = expansions(stem.parts);
+  for (const parts of variants) {
+    const found = splitOf(parts, dotless);
+    if (found !== null) return { text: found.text + extension, parses: found.parses };
+  }
+  const bound: string[] = [];
+  const tokens = variants.map((parts) => sentinelTokens(parts, dotless, bound));
+  for (let i = 0; i < variants.length; i += 1) {
+    for (let j = i + 1; j < variants.length; j += 1) {
+      const text = commonText(tokens[i]!, tokens[j]!);
+      if (text === null) continue;
+      const show = text.replace(/\0(\d+)/g, (_, index: string) => `{${bound[Number(index) - 1]}}`);
+      return {
+        text: show + extension,
+        parses: [capturesOf(variants[i]!, text, dotless, bound), capturesOf(variants[j]!, text, dotless, bound)],
+      };
+    }
+  }
+  return null;
 }

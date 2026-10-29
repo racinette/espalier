@@ -539,6 +539,9 @@ const parentOf = (path: string): string => {
  * The tree is read back out of the paths, which are depth-first: an entry is
  * the last of its siblings when no later entry shares its parent.
  */
+/** The narrowest description column worth sharing a line with its name. */
+const MIN_DESCRIPTION = 30;
+
 export function drawMap(entries: MapEntry[], width: number): string[] {
   if (entries.length === 0) return [];
 
@@ -601,8 +604,10 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
 
   // Two spaces after the longest rendered line, counting the branch characters
   // and not the indent the caller adds, which reaches every line alike and so
-  // cannot change the alignment.
-  const column = Math.max(...rows.map((row) => row.line.length)) + 2;
+  // cannot change the alignment. A name too long to leave a readable column
+  // beside it does not set the column; its description hangs below it instead.
+  const fits = (row: Row): boolean => row.line.length + 2 <= width - MIN_DESCRIPTION;
+  const column = Math.max(0, ...rows.filter(fits).map((row) => row.line.length)) + 2;
   const room = width - column;
 
   const lines: string[] = [];
@@ -610,6 +615,9 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
   rows.forEach((row, index) => {
     if (row.text === null) {
       lines.push(row.line);
+    } else if (!fits(row)) {
+      lines.push(row.line);
+      for (const piece of wrap(row.text, width - row.under.length).split("\n")) lines.push(row.under + piece);
     } else {
       const [first, ...rest] = wrap(row.text, room).split("\n");
       lines.push(row.line.padEnd(column) + first);
@@ -1216,9 +1224,49 @@ function maskLegend(paths: string[]): string | null {
     if (repeats.length > 0) sentences.push(`${repeats.join(", and ")}.`);
   }
   if (listed !== null) sentences.push(`${codeSpan(listed)} accepts exactly the listed names.`);
+  // `{ts,tsx}` reads as brace expansion to anyone; an empty alternative does not.
+  const optional = paths.flatMap(alternativeGroups).find((group) => group.startsWith("{,") || group.endsWith(",}") || group.includes(",,"));
+  if (optional !== undefined) {
+    sentences.push(`${codeSpan(optional)} matches one of its comma-separated alternatives, and the empty one makes that part of the name optional.`);
+  }
   if (sentences.length === 0) return null;
   sentences.push(`${codeSpan("espalier help matching")} has the full grammar.`);
   return sentences.join(" ");
+}
+
+/** Each `{a,b}` in a name, outside placeholders; `{name}` is a back-reference, not a group. */
+function alternativeGroups(shown: string): string[] {
+  const groups: string[] = [];
+  let bracket = 0;
+  for (let i = 0; i < shown.length; i += 1) {
+    if (shown[i] === "[") bracket += 1;
+    else if (shown[i] === "]") bracket -= 1;
+    else if (shown[i] === "{" && bracket === 0) {
+      let depth = 0;
+      let end = i;
+      for (; end < shown.length; end += 1) {
+        if (shown[end] === "[" || shown[end] === "{") depth += 1;
+        if (shown[end] === "]" || shown[end] === "}") depth -= 1;
+        if (depth === 0) break;
+      }
+      const group = shown.slice(i, end + 1);
+      if (splitTop(group.slice(1, -1)) > 1) groups.push(group);
+      i = end;
+    }
+  }
+  return groups;
+}
+
+/** How many comma-separated alternatives a group's inside holds at its top level. */
+function splitTop(inner: string): number {
+  let depth = 0;
+  let count = 1;
+  for (const char of inner) {
+    if (char === "[" || char === "{") depth += 1;
+    else if (char === "]" || char === "}") depth -= 1;
+    else if (char === "," && depth === 0) count += 1;
+  }
+  return count;
 }
 
 /** `a`, `a and b`, `a, b and c`. */

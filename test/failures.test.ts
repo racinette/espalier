@@ -250,6 +250,31 @@ const cases: Case[] = [
     espalier: { "src/[name].ts.mjs": `${INERT}export const groups = { one: { by: ["name"], description: "one", guidance: "", lint() {} } };\n` },
   },
   {
+    what: "alternatives nested inside alternatives",
+    code: "malformed_placeholder",
+    espalier: { "src/[a]{x,{y,z}}.ts.mjs": INERT },
+  },
+  {
+    what: "an alternative written twice",
+    code: "malformed_placeholder",
+    espalier: { "src/[a]{x,x}.ts.mjs": INERT },
+  },
+  {
+    what: "alternatives without a placeholder, naming several files",
+    code: "extension_list_on_structural_leaf",
+    espalier: { "src/README{,.local}.MD.mjs": INERT },
+  },
+  {
+    what: "two alternatives that can match one name",
+    code: "ambiguous_captures",
+    espalier: { "src/{[x]-a,b-[x]}.ts.mjs": INERT },
+  },
+  {
+    what: "a grouping by a capture an alternative leaves out",
+    code: "module_invalid_export",
+    espalier: { "src/[t=a+]{,.[role=a+]}.sql.mjs": `${INERT}export const groups = { g: { by: ["role"], description: "g", guidance: "" } };\n` },
+  },
+  {
     what: "a grouping whose abstract is not a boolean",
     code: "module_invalid_export",
     espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}${GROUPED.replace("abstract: true", 'abstract: "yes"')}` },

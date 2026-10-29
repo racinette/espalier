@@ -59,7 +59,7 @@ repository linting begins.
 | `multiple_recursive_placeholders` | more than one `[...name]` in one path |
 | `duplicate_placeholder_name` | the same capture name twice in one path |
 | `unbound_backreference` | a `{name}` with no `[name]` earlier in the same path |
-| `extension_list_on_structural_leaf` | `{ts,tsx}` on a literal structural leaf, where it is unclear which alternative must exist; dynamic leaves may list extensions |
+| `extension_list_on_structural_leaf` | `{ts,tsx}` on a literal structural leaf, or alternatives in a name with no placeholder, such as `README{,.local}.MD`, where it is unclear which alternative must exist; a name with a placeholder may hold alternatives |
 | `ambiguous_siblings` | overlapping siblings in one tier without a provably strictly narrower winner |
 | `inconsistent_capture_names` | one dynamic directory described under two names |
 | `duplicate_structural_rule` | two modules governing the same path |

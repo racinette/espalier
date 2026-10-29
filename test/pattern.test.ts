@@ -4,7 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ambiguousSplit, intersectSegments, isStrictSubset, matchSegment, parseSegment, parseStructuralLeaf, resolveSegment, trieKey } from "../src/pattern.js";
+import { ambiguousSplit, captureNames, intersectSegments, isStrictSubset, matchSegment, optionalCaptureNames, parseSegment, parseStructuralLeaf, resolveSegment, trieKey } from "../src/pattern.js";
 
 const overlaps = (a: string, b: string): boolean => intersectSegments(parseSegment(a, "test"), parseSegment(b, "test"));
 
@@ -315,4 +315,49 @@ test("a literal name keeps its brackets as text and matches nothing else", () =>
   assert.deepEqual(matchSegment(page, "[[...slug]].tsx"), {});
   assert.equal(page.fileExtensions, undefined, "a literal filename has no extension selector");
   assert.throws(() => parseStructuralLeaf("[[...slug]].tsx", "test"), /capture name/);
+});
+
+test("alternatives match exactly one branch, and an empty one makes a part optional", () => {
+  const leaf = parseStructuralLeaf("[num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql", "test");
+  assert.deepEqual(matchSegment(leaf, "0000900_user.tables.sql"), { num: "00009", ord: "00", table: "user", kind: "tables" });
+  assert.deepEqual(matchSegment(leaf, "0000902_user.grants.admin.sql"), { num: "00009", ord: "02", table: "user", kind: "grants", role: "admin" });
+  assert.equal(matchSegment(leaf, "0000902_user.grants.admin.extra.sql"), null, "captures stay dot-free in a filename with an extension");
+  assert.equal(matchSegment(leaf, "0000902_user.grants..sql"), null);
+  // A capture in an untaken branch is absent, not "".
+  assert.equal("role" in matchSegment(leaf, "0000901_user.indexes.sql")!, false);
+});
+
+test("a capture is optional when some alternative leaves it out, and one name across branches is one capture", () => {
+  const optional = parseSegment("[name]{,-[tag]}", "test");
+  assert.deepEqual(captureNames(optional), ["name", "tag"]);
+  assert.deepEqual(optionalCaptureNames(optional), ["tag"]);
+  const both = parseSegment("{[x=a+]-a,b-[x=0+]}", "test");
+  assert.deepEqual(captureNames(both), ["x"]);
+  assert.deepEqual(optionalCaptureNames(both), []);
+  assert.deepEqual(matchSegment(both, "q-a"), { x: "q" });
+  assert.deepEqual(matchSegment(both, "b-12"), { x: "12" });
+});
+
+test("alternatives may hold back-references, and the trie keys them by what they admit", () => {
+  const segment = parseSegment("{x,{team}-[n=0+]}", "test");
+  assert.deepEqual(matchSegment(segment, "core-12", { team: "core" }), { n: "12" });
+  assert.equal(matchSegment(segment, "other-1", { team: "core" }), null);
+  assert.equal(trieKey(parseSegment("[a]{,.[b]}", "test")), trieKey(parseSegment("[c]{,.[d]}", "test")));
+  assert.notEqual(trieKey(parseSegment("[a]{,.[b]}", "test")), trieKey(parseSegment("[a]{.[b],}", "test")));
+});
+
+test("alternatives take part in overlap and containment like any other branch", () => {
+  const narrow = parseStructuralLeaf("[n=a+].x.md", "test");
+  const broad = parseStructuralLeaf("[n=a+]{,.x}.md", "test");
+  assert.equal(isStrictSubset(narrow, broad), true);
+  assert.equal(isStrictSubset(broad, narrow), false);
+  assert.equal(overlaps("[a]{,.x}.md", "[a]{.x,}.md"), true);
+  assert.equal(isStrictSubset(parseSegment("[a]{,.x}.md", "test"), parseSegment("[a]{.x,}.md", "test")), false);
+});
+
+test("two alternatives that can match one name are an ambiguous split", () => {
+  const split = ambiguousSplit(parseStructuralLeaf("{[x]-a,b-[x]}.md", "test"));
+  assert.equal(split?.text, "b-a.md");
+  assert.deepEqual(split?.parses, [{ x: "b" }, { x: "a" }]);
+  assert.equal(ambiguousSplit(parseStructuralLeaf("[t=a+].[k={a,b}]{,.[r=a+]}.sql", "test")), null);
 });

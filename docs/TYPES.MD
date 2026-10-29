@@ -471,7 +471,9 @@ Each key is the grouping's name, an identifier that appears in guidance, in
 `by` may be empty, which groups every file the rule owns in one directory.
 It may not name every capture, since each group would then hold one file,
 and two groupings may not name the same set of captures. A capture `by`
-names must be one the rule's path declares. Any of these is
+names must be one the rule's path declares, and one every match binds: a
+capture inside an [alternative](MATCHING.MD#alternatives) that can be left
+out has no value on some files. Any of these is
 `module_invalid_export`, as is `groups` on a static leaf or a constraint,
 which have no captures to group by.
 

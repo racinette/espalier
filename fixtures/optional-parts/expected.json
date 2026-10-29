@@ -1,0 +1,51 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
+      { "kind": "written", "path": "db/AGENTS.MD" }
+    ]
+  },
+  "exit": 1,
+  "issues": [
+    {
+      "path": "db/0001002_order.indexes.admin.sql",
+      "code": "role_without_grants",
+      "severity": "error",
+      "rule": "db/[num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql.mjs",
+      "captures": { "num": "00010", "ord": "02", "table": "order", "kind": "indexes", "role": "admin" },
+      "message": "this indexes step names the role admin; only grants do"
+    },
+    {
+      "path": "db/",
+      "code": "set_gap",
+      "severity": "error",
+      "group": "set",
+      "captures": { "num": "00010", "table": "order" },
+      "message": "set 00010 order has steps 0, 2"
+    }
+  ],
+  "again": {
+    "apply": "after",
+    "delete": ["db/0001002_order.indexes.admin.sql"],
+    "exit": 0,
+    "issues": []
+  },
+  "ownership": {
+    "db/0000900_user.tables.sql": "db/[num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql.mjs",
+    "db/0000901_user.indexes.sql": "db/[num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql.mjs",
+    "db/0000902_user.grants.admin.sql": "db/[num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql.mjs",
+    "db/0000903_user.grants.reporting.sql": "db/[num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql.mjs",
+    "db/0001000_order.tables.sql": "db/[num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql.mjs",
+    "db/0001002_order.indexes.admin.sql": "db/[num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql.mjs"
+  },
+  "explain": {
+    "db/0000902_user.grants.admin.sql": {
+      "exit": 0,
+      "object": {
+        "captures": { "num": "00009", "ord": "02", "table": "user", "kind": "grants", "role": "admin" },
+        "groups": [{ "name": "set", "captures": { "num": "00009", "table": "user" } }]
+      }
+    }
+  }
+}

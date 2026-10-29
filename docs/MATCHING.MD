@@ -111,6 +111,10 @@ Segments may follow it. `backend/[...path]/handlers/no-fetch.ts` selects files w
 
 `{name}` matches the text a `[name]` earlier in the same path already captured. It is a back-reference, not a placeholder: it captures nothing and introduces no name of its own. See [Back-references](#back-references).
 
+`{a,b}`, with a comma, matches exactly one of its alternatives, and an empty
+alternative makes that part of the name optional. See
+[Alternatives](#alternatives).
+
 Placeholder names must be unique within a single path. `[provider]/[provider].ts` is rejected — the second one is either a mistake or a back-reference, and `[provider]/{provider}.ts` says which.
 
 Two different placeholders never constrain each other. Both `stripe/stripe.ts` and `stripe/client.ts` match `[provider]/[implementation].ts`, because `[implementation]` is a fresh name that captures whatever is there. When two parts of a path must agree, that is what `{name}` is for.
@@ -207,6 +211,15 @@ check is exact: it decides whether any name admits two parses, not whether the
 pattern looks ambiguous. The remedy is a mask that excludes the separator, or
 a separator that no neighbouring capture can contain.
 
+A segment with [alternatives](#alternatives) is checked once per combination
+of them, and is also rejected when two combinations can match one name, since
+the name would not say which alternative it took:
+
+```text
+{[x]-a,b-[x]}.md    rejected — "b-a.md" is x="b" by the first or x="a" by the second
+[a]{,.x}.md         accepted — the second alternative is the first plus ".x"
+```
+
 A back-reference inside such a segment is treated as text that no capture can
 absorb, because its value is fixed by the enclosing instance before the
 segment is matched. A name that could be split differently around that bound
@@ -240,7 +253,7 @@ Patterns use `/` as separator on every platform, match case-sensitively even on 
 
 ### Captures
 
-`[name]` produces a string. `[...name]` produces an array of segments, possibly empty. A path with no placeholders produces an empty object.
+`[name]` produces a string. `[...name]` produces an array of segments, possibly empty. A path with no placeholders produces an empty object. A placeholder inside an alternative the name did not take is absent from the captures, not an empty string: no value and an empty value are different facts.
 
 Matching `clients/stripe/stripe.ts` against `clients/[provider]/[implementation].ts`:
 
@@ -349,19 +362,63 @@ even if more than one branch or target glob could admit it.
 
 Per-file and aggregate constraint leaves may both list extensions. Each listed suffix may contain dots: `migration-order.{up.sql,down.sql}.mjs` selects both migration file kinds. Dynamic structural leaves may do the same. A literal structural leaf names one required file, however, so `main.{ts,tsx}.mjs` would leave requiredness ambiguous. It is rejected as `extension_list_on_structural_leaf`; write two literal rules or a dynamic rule, whichever reflects the intended structure.
 
-Braces therefore mean two things, and never in the same place:
+Braces therefore mean three things, and which one is decided by place and by
+a comma:
 
 ```text
-braces after the stem of a dynamic structural file leaf  an extension union
 braces after the rule name in a constraint leaf          an extension list
-braces elsewhere                                         a back-reference
+braces holding a comma, in a structural path             alternatives
+braces holding one name, in a structural path            a back-reference
 ```
+
+An extension union is alternatives at the end of a dynamic filename.
 
 A constraint leaf is a rule name plus an optional selector rather than a segment
 that matches a file, so a back-reference has nothing to refer to there. A
 literal structural filename cannot list alternatives; a dynamic one can. A
 single `{name}` in a structural path remains a back-reference, including in a
 filename such as `[file].{provider}.ts`; a comma marks the extension union.
+
+### Alternatives
+
+Braces holding a comma, anywhere in a structural path, match exactly one of
+the alternatives between the commas. An empty alternative makes that part of
+the name optional. Migration steps that are tables, indexes or grants, where a
+grant also names the role it is for, are one rule:
+
+```text
+[num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql
+
+0000900_user.tables.sql           num 00009, ord 00, table user, kind tables
+0000902_user.grants.admin.sql     num 00009, ord 02, table user, kind grants, role admin
+```
+
+`{,.[role=a+]}` is either nothing or a dot and a role. Because all three kinds
+are one rule's files, one [grouping](TYPES.MD#groups) by `num` and `table`
+judges a table's whole set. That a role belongs only on a grant is the rule's
+`lint` to check, in one line.
+
+An alternative holds literal text, placeholders and back-references. A
+placeholder in an alternative the name did not take is absent from the
+captures. One name may appear in several alternatives and is then one capture,
+bound by whichever matched. A grouping may not group by a capture that some
+alternative leaves out, since some files would have no value for it; that is
+`module_invalid_export`.
+
+Alternatives do not nest, and none may be written twice; either is
+`malformed_placeholder`. A name whose only variable part is a set of
+alternatives, such as `README{,.local}.MD`, names several files with no
+placeholder to tell them apart, so whether it is required has no one answer:
+it is rejected as `extension_list_on_structural_leaf`, as an extension list on
+a literal filename is. Two alternatives that could match one name are
+`ambiguous_captures`; see [Captures must be unambiguous](#captures-must-be-unambiguous).
+
+Inside a filename with an extension, captures in an alternative stay free of
+dots, as every capture there does, so the dots of `{,.[role=a+]}` are the
+literal text that separates the parts. Alternatives take part in ownership like
+any other part of a pattern: `[n=a+].x.md` is strictly narrower than
+`[n=a+]{,.x}.md` and wins beside it. Generated guidance explains an empty
+alternative in the document's legend.
 
 ### Target selectors
 

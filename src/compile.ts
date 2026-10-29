@@ -17,6 +17,7 @@ import {
 } from "./template.js";
 import {
   matchSegment,
+  optionalCaptureNames,
   resolveSegment,
   ambiguousSplit,
   backrefNames,
@@ -792,6 +793,10 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
       const unknown = grouping.by.find((name) => !names.includes(name));
       if (unknown !== undefined) {
         fail("module_invalid_export", `${modulePath}: \`groups.${grouping.name}.by\` names "${unknown}", which this path does not capture; it captures ${names.map((name) => `"${name}"`).join(", ")}`);
+      }
+      const optional = grouping.by.find((name) => parsed.some((segment) => optionalCaptureNames(segment).includes(name)));
+      if (optional !== undefined) {
+        fail("module_invalid_export", `${modulePath}: \`groups.${grouping.name}.by\` names "${optional}", which an alternative leaves out, so some files would have no value for it; group by captures every match binds`);
       }
       if (grouping.by.length === names.length) {
         fail("module_invalid_export", `${modulePath}: \`groups.${grouping.name}.by\` names every capture, so each group would hold one file; leave at least one capture to vary`);

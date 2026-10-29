@@ -179,7 +179,14 @@ In `[num=0000]`, the text after `=` is a mask: each character matches one charac
 ```
 
 The legend is stated once per document, not once per section. A document
-with no masked or listed name says nothing about masks.
+with no masked or listed name says nothing about masks. A name with an empty
+[alternative](../../MATCHING.MD#alternatives), such as `{,.[role=a+]}`, adds
+one sentence saying the empty one makes that part optional. Ordinary
+alternatives such as `{ts,tsx}` read as brace expansion and are not explained.
+
+A name too long to leave a readable column beside it, under 30 characters,
+does not set the description column. Its description hangs on the lines
+below it instead, so one long pattern does not squeeze every other row.
 
 Structural rule headings are relative to the placement point that contains
 them. A document headed `src/` therefore describes `context.ts`, not
