@@ -205,8 +205,8 @@ export async function runRule(module: RuleModule, context: RuleContext): Promise
     fail("module_invalid_export", "runRule expects a rule module");
   }
   if ("unobservedImplementationDependencies" in module) fail("module_invalid_export", "unobservedImplementationDependencies is not supported");
-  if (typeof module.lint !== "function") {
-    fail("module_missing_export", "the module must export a `lint` function");
+  if (module.lint !== undefined && typeof module.lint !== "function") {
+    fail("module_invalid_export", "`lint` must be a function");
   }
   validateTargets(module.targets, "runRule");
   validateTemplate(module.template, "runRule");
@@ -257,6 +257,7 @@ export async function runRule(module: RuleModule, context: RuleContext): Promise
     record: (issue) => void issues.push(issue),
   });
 
+  if (module.lint === undefined) return issues;
   try {
     await (module.lint as (context: unknown) => unknown)({
       path: context.path,
@@ -286,8 +287,8 @@ export async function runAggregate(
     fail("module_invalid_export", "runAggregate expects a rule module");
   }
   if ("unobservedImplementationDependencies" in module) fail("module_invalid_export", "unobservedImplementationDependencies is not supported");
-  if (typeof module.lint !== "function") {
-    fail("module_missing_export", "the module must export a `lint` function");
+  if (module.lint !== undefined && typeof module.lint !== "function") {
+    fail("module_invalid_export", "`lint` must be a function");
   }
   validateTargets(module.targets, "runAggregate");
   validateTemplate(module.template, "runAggregate");
@@ -341,6 +342,7 @@ export async function runAggregate(
     record: (issue) => void issues.push(issue),
   });
 
+  if (module.lint === undefined) return issues;
   try {
     await (module.lint as (context: unknown) => unknown)({
       matches,
@@ -369,10 +371,13 @@ export async function runGroup(module: RuleModule, context: GroupRuleContext): P
     fail("module_invalid_export", "runGroup expects a module exporting `groups`");
   }
   const grouping = (groups as Record<string, unknown>)[context.group];
-  if (grouping === null || typeof grouping !== "object" || typeof (grouping as Record<string, unknown>)["lint"] !== "function") {
-    fail("module_invalid_export", `runGroup: \`groups.${context.group}\` must be a grouping with a lint function`);
+  if (grouping === null || typeof grouping !== "object") {
+    fail("module_invalid_export", `runGroup: \`groups.${context.group}\` must be a grouping`);
   }
-  const { description, rule, lint } = grouping as { description?: unknown; rule?: unknown; lint: (context: unknown) => unknown };
+  const { description, rule, lint } = grouping as { description?: unknown; rule?: unknown; lint?: unknown };
+  if (lint !== undefined && typeof lint !== "function") {
+    fail("module_invalid_export", `runGroup: \`groups.${context.group}.lint\` must be a function`);
+  }
   if (typeof description !== "string" || typeof rule !== "string") {
     fail("module_invalid_export", `runGroup: \`groups.${context.group}\` needs a string description and rule`);
   }
@@ -419,8 +424,9 @@ export async function runGroup(module: RuleModule, context: GroupRuleContext): P
     record: (issue) => void issues.push(issue),
   });
 
+  if (lint === undefined) return issues;
   try {
-    await lint({ group: context.group, path: at, pattern, captures, matches, read, files, emit, addons: context.addons ?? {} });
+    await (lint as (context: unknown) => unknown)({ group: context.group, path: at, pattern, captures, matches, read, files, emit, addons: context.addons ?? {} });
   } catch (cause) {
     if (cause instanceof OperationalError) throw cause;
     fail("rule_threw", `${whose} threw while linting group ${context.group} at ${at}: ${(cause as Error).message}`);

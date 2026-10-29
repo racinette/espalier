@@ -68,7 +68,8 @@ export interface LoadedModule {
   descriptionRenderer?: (context: RuleGuidanceContext) => unknown;
   rule: string;
   ruleRenderer?: (context: RuleGuidanceContext) => unknown;
-  lint: (context: unknown) => unknown;
+  /** Absent when the module has nothing to check; guidance alone is a rule. */
+  lint?: (context: unknown) => unknown;
   referenceImplementation: string | null;
   /** Named absence policy; on collections, derived from the minimum for rendering. */
   optional: boolean;
@@ -315,8 +316,8 @@ async function loadModule(
   if (typeof loaded.rule !== "string" && typeof loaded.rule !== "function") {
     fail("module_missing_export", `${modulePath} must export a string or function \`rule\``);
   }
-  if (typeof loaded.lint !== "function") {
-    fail("module_missing_export", `${modulePath} must export a \`lint\` function`);
+  if (loaded.lint !== undefined && typeof loaded.lint !== "function") {
+    fail("module_invalid_export", `${modulePath}: \`lint\` must be a function`);
   }
   if (structural && typeof loaded.description !== "string" && typeof loaded.description !== "function") {
     fail("module_missing_export", `${modulePath} must export a string or function \`description\``);
@@ -413,7 +414,7 @@ async function loadModule(
     rule: typeof loaded.rule === "string" ? loaded.rule : "",
     ...(typeof loaded.rule === "function"
       ? { ruleRenderer: loaded.rule as (context: RuleGuidanceContext) => unknown } : {}),
-    lint: loaded.lint as (context: unknown) => unknown,
+    ...(loaded.lint === undefined ? {} : { lint: loaded.lint as (context: unknown) => unknown }),
     referenceImplementation:
       typeof loaded.referenceImplementation === "string"
         ? loaded.referenceImplementation
@@ -445,7 +446,7 @@ function parseGroups(raw: unknown, modulePath: string, kind: ModuleKind): Groupi
   const groups: Grouping[] = [];
   for (const [name, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!GROUP_NAME.test(name)) bad(`names a grouping "${name}", which is not an identifier`);
-    if (value === null || typeof value !== "object" || Array.isArray(value)) bad(`.${name} must be an object with by, description, rule and lint`);
+    if (value === null || typeof value !== "object" || Array.isArray(value)) bad(`.${name} must be an object with by, description and rule`);
     const grouping = value as Record<string, unknown>;
     const by = grouping["by"];
     if (!Array.isArray(by) || by.some((entry) => typeof entry !== "string") || new Set(by).size !== by.length) {
@@ -453,7 +454,7 @@ function parseGroups(raw: unknown, modulePath: string, kind: ModuleKind): Groupi
     }
     if (typeof grouping["description"] !== "string" || grouping["description"].trim() === "") bad(`.${name}.description must be a non-empty string`);
     if (typeof grouping["rule"] !== "string") bad(`.${name}.rule must be a string`);
-    if (typeof grouping["lint"] !== "function") bad(`.${name}.lint must be a function`);
+    if (grouping["lint"] !== undefined && typeof grouping["lint"] !== "function") bad(`.${name}.lint must be a function`);
     const key = JSON.stringify([...(by as string[])].sort());
     const twin = groups.find((other) => JSON.stringify([...other.by].sort()) === key);
     if (twin !== undefined) bad(`.${name} and .${twin.name} group by the same captures; one grouping can carry both rules`);

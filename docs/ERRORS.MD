@@ -70,7 +70,7 @@ See [TYPES.MD](TYPES.MD).
 | Code | |
 |---|---|
 | `module_import_failed` | the module could not be parsed or threw while being imported |
-| `module_missing_export` | no `rule`, no `lint`, or no `description` on a structural rule |
+| `module_missing_export` | no `rule`, or no `description` on a structural rule |
 | `module_invalid_export` | an export of the wrong type or on the wrong rule kind, or `targets` together with a constraint filename extension |
 | `invalid_reference_implementation` | a `referenceImplementation` that is absent, is not a governed file, or is not actually owned or covered by its rule |
 

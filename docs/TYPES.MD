@@ -43,7 +43,7 @@ aggregate form.
 |---|---|---|
 | `description` | structural only | string or sync/async function briefly describing the file or a constraint's requirement |
 | `rule` | yes | Markdown string or function returning the natural-language conventions |
-| `lint` | yes | deterministic validation |
+| `lint` | no | deterministic validation; a module with nothing to check exports none |
 | `referenceImplementation` | no | a path to a canonical conforming file |
 | `optional` | no | whether a named file may be absent |
 | `instanceOf` | no | matching inherited contract for a named member |
@@ -52,7 +52,7 @@ aggregate form.
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
 | `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
-| `groups` | no | named groupings of a dynamic rule's files by shared captures, each with its own rule and `lint` |
+| `groups` | no | named groupings of a dynamic rule's files by shared captures, each with its own rule and optional `lint` |
 
 ### `description`
 

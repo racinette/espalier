@@ -278,9 +278,9 @@ const cases: Case[] = [
     espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { x: { by: ["a"], description: "x", rule: "", lint() {} }, y: { by: ["a"], description: "y", rule: "", lint() {} } };\n` },
   },
   {
-    what: "a grouping without a lint function",
+    what: "a grouping whose lint is not a function",
     code: "module_invalid_export",
-    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { x: { by: ["a"], description: "x", rule: "" } };\n` },
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { x: { by: ["a"], description: "x", rule: "", lint: 1 } };\n` },
   },
   {
     what: "a filename extension and targets together",
@@ -369,10 +369,10 @@ const cases: Case[] = [
     },
   },
   {
-    what: "a module with no `lint`",
-    code: "module_missing_export",
+    what: "a `lint` that is not a function",
+    code: "module_invalid_export",
     espalier: {
-      "src/[name].ts.mjs": 'export const description = "a file";\nexport const rule = `R`;\n',
+      "src/[name].ts.mjs": 'export const description = "a file";\nexport const rule = `R`;\nexport const lint = true;\n',
     },
   },
   {

@@ -124,8 +124,11 @@ export async function executeJob(data: WorkerInputs, job: Job, addons: Record<st
     const context = inputs(data.sources, invocation.modulePath);
     const emit = createEmit({ ...invocation, record });
     try {
+      // A module, or a grouping, may carry guidance and nothing to check.
+      const check = invocation.group === undefined ? module.lint : module.groups[invocation.group].lint;
+      if (typeof check !== "function") continue;
       if (invocation.group !== undefined) {
-        await module.groups[invocation.group].lint({
+        await check({
           group: invocation.group, path: invocation.path, pattern: invocation.pattern, captures: invocation.captures,
           matches: invocation.matches, files: context.files, emit, addons,
           read: (target?: string) => {
@@ -134,7 +137,7 @@ export async function executeJob(data: WorkerInputs, job: Job, addons: Record<st
           },
         });
       } else if (invocation.matches !== undefined) {
-        await module.lint({
+        await check({
           matches: invocation.matches, patterns: invocation.patterns, files: context.files, emit, addons,
           read: (target?: string) => {
             if (target === undefined) fail("read_failed", `${invocation.modulePath}: an aggregate constraint must name the file to read`);
@@ -142,7 +145,7 @@ export async function executeJob(data: WorkerInputs, job: Job, addons: Record<st
           },
         });
       } else {
-        await module.lint({ path: invocation.path, pattern: invocation.pattern, captures: invocation.captures,
+        await check({ path: invocation.path, pattern: invocation.pattern, captures: invocation.captures,
           read: (target?: string) => context.read(target ?? invocation.path), files: context.files, emit, addons });
       }
     } catch (cause) {

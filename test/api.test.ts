@@ -268,8 +268,9 @@ test("runRule treats a throwing lint as a bug in the rule", async () => {
   await rejects(() => runRule(module, { path: "a.ts" }), "rule_threw");
 });
 
-test("runRule rejects something that is not a rule module", async () => {
-  await rejects(() => runRule({ rule: "anything" } as never, { path: "a.ts" }), "module_missing_export");
+test("runRule rejects a lint that is not a function, and runs a module without one", async () => {
+  await rejects(() => runRule({ rule: "anything", lint: 1 } as never, { path: "a.ts" }), "module_invalid_export");
+  assert.deepEqual(await runRule({ rule: "anything" } as never, { path: "a.ts" }), []);
 });
 
 test("runRule rejects unsupported persistent-cache declarations", async () => {
