@@ -8,7 +8,9 @@
     ├─ features/
     └─ shared/
 
-## type-errors
+## Constraints
+
+### type-errors
 
 Each file with exactly `.ts` as its extension under `src/` must follow this
 rule.

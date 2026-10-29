@@ -9,19 +9,21 @@
 
 Export the application implementation.
 
-## no-untyped-exports
+## Constraints
+
+### no-untyped-exports
 
 Each path matching `**/*.@(ts|tsx)` in this project must follow this rule.
 
 Public exports declare their types.
 
-## public-api
+### public-api
 
 Together, paths matching `**/*.+(ts|tsx)` in this project must follow this rule.
 
 Public export names are unique across the application.
 
-## typescript
+### typescript
 
 Each file whose name ends in `.ts` in this project must follow this rule.
 

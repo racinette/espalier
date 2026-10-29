@@ -7,15 +7,19 @@
     │
     └─ [provider].ts  a payment provider client (zero or more declared files)
 
-## `stripe.ts` — the Stripe client
-
-Shared contract: `clients/[provider].ts`. Inherited requirements still apply.
-
-Uses payment intents, never charges.
-
 ## `[provider].ts` — a payment provider client
 
 Wraps one provider's HTTP API behind the shared PaymentClient interface.
+
+Concrete instances, each bound by this contract and by its own section:
+
+### `stripe.ts` — the Stripe client
+
+Uses payment intents, never charges.
+
+### Adding new instances
+
+Every `[provider].ts` here is declared, and an undeclared one is reported. See `espalier help instances`.
 
 ## Other repository paths
 

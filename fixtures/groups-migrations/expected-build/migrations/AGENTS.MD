@@ -10,25 +10,21 @@
     └─ [num=0000][ord=00]_[group=a+].sql  a migration step (zero or more
                                           matching files)
 
-In a placeholder, `=` is followed by a mask in which each character matches one character of the name: `0` a digit, `a` a lowercase letter. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
-
 ## `RELEASES.txt` — the release manifest
 
 One `<num> <group>` line per group.
 
 ## `[num=0000][ord=00]_[group=a+].sql` — a migration step
 
+In a placeholder, `=` is followed by a mask in which each character matches one character of the name: `0` a digit, `a` a lowercase letter. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
+
 One statement per step.
 
-### set — a migration set
-
-Together, the files in one directory with the same `num` and `group` must follow this rule.
+### Together, by `num` and `group` — a migration set
 
 Steps are numbered from 01 with no gaps.
 
-### release — one release's migrations
-
-Together, the files in one directory with the same `num` must follow this rule.
+### Together, by `num` — one release's migrations
 
 Every group in a release is listed in RELEASES.txt as `<num> <group>`.
 

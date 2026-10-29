@@ -309,6 +309,7 @@ function planFor(
         nested,
         settings.espalierGuidance,
         settings.guidanceMode,
+        settings.filename,
       ),
     });
   }

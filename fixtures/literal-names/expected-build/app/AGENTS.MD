@@ -14,6 +14,15 @@ Every directory under `app/` is a route. A bracketed directory name is a dynamic
        │
        └─ page.tsx     the route's page (required)
 
+## `[route]/` — a route
+
+Concrete instances:
+- `[slug]/` — the dynamic post route, in `[slug]/AGENTS.MD`
+
+### Adding new instances
+
+A `[route]/` directory needs no declaration. Declaring one gives it its own guidance; see `espalier help instances`.
+
 ## `[route]/loading.tsx` — the route's loading state
 
 Renders a skeleton while the route loads.

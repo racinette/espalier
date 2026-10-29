@@ -14,6 +14,15 @@
        │
        └─ [module].ts   shared operation (fixed) (zero or more matching files)
 
+## `[group]/` — operation group (fixed)
+
+Concrete instances:
+- `flights/` — flight operations (fixed), in `flights/AGENTS.MD`
+
+### Adding new instances
+
+A `[group]/` directory needs no declaration. Declaring one gives it its own guidance; see `espalier help instances`.
+
 ## `[group]/{group}.json` — group manifest
 
 Manifest [group]/{group}.json; path=null; captures={}.
@@ -22,7 +31,9 @@ Manifest [group]/{group}.json; path=null; captures={}.
 
 Base [group]/[module].ts; path=null; captures={}; fixed.
 
-## collection — collection (fixed)
+## Constraints
+
+### collection — collection (fixed)
 
 Together, files with exactly `.ts` or `.json` as their extension in this project
 must follow this rule.

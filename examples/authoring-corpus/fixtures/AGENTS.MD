@@ -16,7 +16,9 @@ exercise in the corpus.
 
 Reference implementation: fixtures/alpha/case.json
 
-## corpus-mix — the fixture corpus stays mixed enough
+## Constraints
+
+### corpus-mix — the fixture corpus stays mixed enough
 
 Together, paths matching `*/case.json` under `fixtures/` must follow this rule.
 
@@ -24,7 +26,7 @@ The selected fixture cases together keep a mixed corpus:
 at least three cases, at least 25% and at most 75% of cases are mutations,
 mean depth at least 1.5, and mean args at least 1.5.
 
-## well-formed — each fixture case is locally well-formed
+### well-formed — each fixture case is locally well-formed
 
 Each file with exactly `.json` as its extension under `fixtures/` must follow
 this rule.

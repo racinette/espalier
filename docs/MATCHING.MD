@@ -791,10 +791,11 @@ before those callbacks run during compilation; computed prose cannot change it.
 Legacy `ESPALIER.MD` is accepted
 for migration; declaring both formats in one directory is an error.
 
-Inherited prose is documented at the shared contract. A named instance's
-output identifies that contract and presents its own domain guidance and
-concrete layout without repeating inherited guidance. Folding continues to
-control placement. `explain` exposes the full inherited rule chain.
+In generated guidance an instance reads under its contract: the contract's
+guidance is stated once in the document that lists the instances, and each
+instance adds its own. An instance directory's document opens by naming its
+contract and restating that contract's guidance. Folding continues to control
+placement. `explain` exposes the full inherited rule chain.
 
 ### Abstract contracts
 

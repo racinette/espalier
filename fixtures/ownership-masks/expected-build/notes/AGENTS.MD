@@ -8,9 +8,9 @@
     └─ [day=0(4)-0(2)-0(2)]_[title].md  dated notes (zero or more matching
                                         files)
 
-In a placeholder, `=` is followed by a mask in which each character matches one character of the name: `0` a digit, `-` a dash. `(n)` repeats the element before it exactly n times. `espalier help matching` has the full grammar.
-
 ## `[day=0(4)-0(2)-0(2)]_[title].md` — dated notes
+
+In a placeholder, `=` is followed by a mask in which each character matches one character of the name: `0` a digit, `-` a dash. `(n)` repeats the element before it exactly n times. `espalier help matching` has the full grammar.
 
 A note is dated.
 

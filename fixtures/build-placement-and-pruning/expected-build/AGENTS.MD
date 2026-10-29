@@ -20,7 +20,9 @@ renders.
 
 Wire up the application and start it. No business logic here.
 
-## no-as-any — applies to TypeScript files throughout the project
+## Constraints
+
+### no-as-any — applies to TypeScript files throughout the project
 
 Each file with exactly `.ts` or `.tsx` as its extension in this project must
 follow this rule.

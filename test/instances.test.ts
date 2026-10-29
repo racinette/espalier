@@ -43,10 +43,10 @@ test('named directory creation uses inherited template captures, and guidance st
     assert.equal(build.status, 0, build.stdout + build.stderr);
     const local = readFileSync(path.join(root, 'flights/AGENTS.MD'), 'utf8');
     assert.match(local, /DOMAIN flights flights evolving/);
-    assert.match(local, /Shared contract/);
+    assert.match(local, /An instance of `\[group\]\/`, whose guidance applies here:\n\nCOMMON CONTRACT/);
     assert.match(local, /flights\.ts/);
     assert.doesNotMatch(local, /\{group\}\.ts/);
-    assert.doesNotMatch(local, /COMMON CONTRACT|Shared obligation/);
+    assert.doesNotMatch(local, /Shared obligation/);
     assert.match(readFileSync(path.join(root, 'AGENTS.MD'), 'utf8'), /COMMON CONTRACT/);
     assert.equal(run(root, ['build','--check']).status, 0);
     put('espalier.config.yaml', `pin: ${VERSION}\nignoreFiles: []\nskip: []\nbuild: {guidanceMode: fixed}\n`);

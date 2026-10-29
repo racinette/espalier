@@ -33,7 +33,9 @@ Every feature uses explicit state.
 
 Keep this file scoped to its owner.
 
-### safe
+### Constraints
+
+#### safe
 
 Each file with exactly `.ts` as its extension under `src/features/` must follow
 this rule.

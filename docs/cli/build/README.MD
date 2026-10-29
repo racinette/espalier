@@ -126,9 +126,13 @@ node prose                    the rendered ESPALIER.mjs guidance
 ## Project layout             the tree
 ## Governed elsewhere         child espaliers below this point, when any
 ## `<path>` — <description>   one per structural rule placed here
-## <rule name> — <description>  one per constraint placed here; selection and
-                               individual or group scope precede its body
-## `<directory>/`             folded placement prose and level-three rule sections
+### Together, by … — …        one per grouping of that rule
+### `<instance>` — …          one per declared instance of that contract
+### Adding new instances      closes a contract that has instances or is abstract
+## Constraints                when any constraint is placed here
+### <rule name> — …           one per constraint; selection and individual or
+                               group scope precede its body
+## `<directory>/`             folded placement prose, with its sections one level deeper
 ## Other repository paths     one Paths/Purpose table, then the complete account
 ## Working with Espalier      outer-root file only
 ```
@@ -435,41 +439,99 @@ A directory below the placement point may have prose too — a dynamic directory
 Sections appear in map order, so the map doubles as a table of contents, and a
 directory's section precedes the sections of everything inside it. The heading
 is relative to the placement point, like its path in that document's map:
-`[provider]/client.ts` under `src/clients/`. The `Reference implementation:` line
+`[provider]/client.ts` under `src/clients/`. A name that holds a mask is
+followed by a legend for the symbols it uses, before the guidance. The
+`Reference implementation:` line
 carries the repository path from `referenceImplementation` and is omitted when
 the module exports none. Inline source is deliberately unsupported: an
 unvalidated duplicate inside the rule module could drift from real code.
 
 A dynamic rule that exports `groups` has one sub-section per grouping under
-its own section, headed by the grouping's name and description. The sentence
-after the heading says what the members share, then the grouping's rule
-follows verbatim:
+its own section. The heading says what the members share, and the grouping's
+guidance follows verbatim:
 
 ```markdown
 ## `[num=0000][ord=00]_[group=a+].sql` — a migration step
 
+In a placeholder, `=` is followed by a mask in which each character matches one character of the name: `0` a digit, `a` a lowercase letter. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
+
 One statement per step.
 
-### set — a migration set
-
-Together, the files in one directory with the same `num` and `group` must
-follow this rule.
+### Together, by `num` and `group` — a migration set
 
 Steps are numbered from 01 with no gaps.
 ```
 
-A grouping with an empty `by` says "all such files in one directory". A rule
-whose own body is empty still gets its section when it declares a grouping,
-since the sub-section needs a parent.
+A grouping with an empty `by` is headed "Together, all files in a directory".
+A rule whose own body is empty still gets its section when it declares a
+grouping, since the sub-section needs a parent.
 
-Each constraint gets its own heading at the placement point, alongside the
-structural rule sections. Constraints are ordered by their rule-file paths,
-regardless of whether they check one file at a time or a group. There are no
-constraint-kind or file-kind headings. The sentence immediately after a rule's
-heading says which files it governs and whether each file or the whole selected
-group must follow the rule:
+### Contracts
+
+A dynamic rule with declared instances beside it is a contract, and its
+instances read under it rather than beside it. The contract's guidance is
+stated once, a sentence introduces the instances, each instance is a
+sub-section carrying only what is specific to it, and a closing sub-section
+says whether a new member needs a declaration. The mechanism itself is on
+one help page, which the closing sentence names, so no document repeats it:
 
 ```markdown
+## `[module].ts` — a shared module
+
+Every module contains BASE.
+
+Concrete instances, each bound by this contract and by its own section:
+
+### `search.ts` — flight search
+
+Search contains DOMAIN.
+
+### Adding new instances
+
+A `[module].ts` needs no declaration. Declaring one gives it its own guidance; see `espalier help instances`.
+```
+
+An abstract contract reads "Every `[module].ts` here is declared, and an
+undeclared one is reported." and, with no instances yet, "No instances are
+declared yet." in place of the introduction. A contract inherited into an
+instance directory gets this section in that directory's document when
+something there is declared an instance of it, so the document that names
+the instances also states what they share. The instances appear in map order,
+static before dynamic, even though they read under the contract.
+
+A dynamic directory with declared instances is a contract too. Its section
+lists the instances, each with its description and, when it has a document of
+its own, where that document is:
+
+```markdown
+## `[group]/` — a shared group
+
+Shared group contract, documented once.
+
+Concrete instances:
+- `flights/` — flight planning, in `flights/AGENTS.MD`
+
+### Adding new instances
+
+A `[group]/` directory needs no declaration. Declaring one gives it its own guidance; see `espalier help instances`.
+```
+
+A file declared in an instance directory that takes over an inherited static
+file has no dynamic contract to nest under. Its section states the inherited
+guidance first, introduced by "Inherits `app/[route]/loading.tsx`:", then its
+own. An instance directory's own document opens with "An instance of
+`[group]/`, whose guidance applies here:" followed by the contract's guidance,
+so neither document sends the reader up a level.
+
+Constraints come last, under one `Constraints` heading, one sub-section each.
+They are ordered by their rule-file paths, regardless of whether they check
+one file at a time or a group. The sentence immediately after a constraint's
+heading says which files it governs and whether each file or the whole
+selected group must follow the rule:
+
+```markdown
+## Constraints
+
 ### no-as-any — no `as any`
 
 Each file with exactly `.ts` as its extension under `src/` must follow this rule.
@@ -502,7 +564,7 @@ directory and `targets = ["**/create.ts"]` says:
 
 ```markdown
 Each path matching `backend/**/create.ts` within
-`backend/**/handlers/*` must follow this rule.
+`backend/[...path]/handlers/` must follow this rule.
 ```
 
 Generated documents and default descriptions in `explain` use the same
@@ -869,9 +931,10 @@ Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).
 ## Named instances
 
 A directory declaring `instanceOf` has inherited structure and locally authored
-domain guidance. Its concrete layout includes inherited files, while inherited
-guidance stays at the shared contract. The local document names its contract.
-Local file specializations document their additional obligations and identify
-the inherited rule. `fold` still controls placement. Optional named directory instances receive their local generated documents
+domain guidance. Its concrete layout includes inherited files. Its document
+opens by naming its contract and restating the contract's guidance, and a
+contract inherited into it gets a section there when something inside is
+declared an instance of it, as described under [Contracts](#contracts).
+`fold` still controls placement. Optional named directory instances receive their local generated documents
 only once their source directory exists. Building guidance does not create an
 absent optional instance. The ancestor map still describes its declaration.

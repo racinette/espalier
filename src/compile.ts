@@ -795,10 +795,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
   for (const constraint of constraints) await renderModule(constraint.modulePath, constraint.module, true);
 
   for (const [at, doc] of nodes) {
-    if (!doc.render && !doc.renderDescription) {
-      if (doc.instanceOf) doc.body = `Shared contract: \`${path.posix.normalize(path.posix.join(at, doc.instanceOf))}/\`. Read the ancestor guidance for inherited requirements.\n\n${doc.body}`;
-      continue;
-    }
+    if (!doc.render && !doc.renderDescription) continue;
     let node = trie;
     const captures: Record<string, string> = {};
     let concrete = true;
@@ -821,7 +818,18 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
       if (field === "description") doc.description = result;
       else doc.body = result;
     }
-    if (doc.instanceOf) doc.body = `Shared contract: \`${path.posix.normalize(path.posix.join(at, doc.instanceOf))}/\`. Read the ancestor guidance for inherited requirements.\n\n${doc.body}`;
+  }
+  // An instance's document states the contract it belongs to, with the
+  // contract's own guidance, so the reader is not sent up a level for it.
+  // Prefaces are added once every body is rendered, whichever came first.
+  for (const [at, doc] of nodes) {
+    if (!doc.instanceOf) continue;
+    const reference = path.posix.normalize(path.posix.join(at, doc.instanceOf));
+    const contract = nodes.get(reference)?.body.trim() ?? "";
+    const preface = contract === ""
+      ? `An instance of \`${reference}/\`.`
+      : `An instance of \`${reference}/\`, whose guidance applies here:\n\n${contract}`;
+    doc.body = doc.body === "" ? preface : `${preface}\n\n${doc.body}`;
   }
   return { root: trie, constraints, nodes };
 }

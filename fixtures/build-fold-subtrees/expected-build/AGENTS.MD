@@ -24,7 +24,9 @@ Read the documentation inside it.
 
 Audit guidance.
 
-### safe
+### Constraints
+
+#### safe
 
 Each file with exactly `.ts` as its extension under `audits/` must follow this
 rule.

@@ -44,7 +44,9 @@ uses these IDs directly and does not render HTML from catalog values.
 Each domain catalog is a JSON object from message IDs to
 non-empty strings. Its filename is the domain identifier used by the storefront.
 
-### checkout-keys — checkout message IDs agree across locales
+### Constraints
+
+#### checkout-keys — checkout message IDs agree across locales
 
 Together, paths matching `*/checkout.json` under `catalogs/` must follow this
 rule.
@@ -52,7 +54,7 @@ rule.
 All checkout catalogs expose the same message IDs.
 Values differ by locale, but the checkout UI can use one stable key set.
 
-### domain-coverage — every locale covers the same domains
+#### domain-coverage — every locale covers the same domains
 
 Together, files with exactly `.json` as their extension under `catalogs/` must
 follow this rule.
@@ -60,14 +62,14 @@ follow this rule.
 Every locale represented in the catalog tree has the same
 set of domain files. A missing domain leaves part of the storefront untranslated.
 
-### legal-no-markup — legal copy stays plain text
+#### legal-no-markup — legal copy stays plain text
 
 Each path matching `*/legal-*.json` under `catalogs/` must follow this rule.
 
 Every legal-* catalog contains plain-text legal copy,
 never HTML markup. Legal screens render its values without HTML parsing.
 
-### no-placeholder-copy — shipped copy has no editorial placeholders
+#### no-placeholder-copy — shipped copy has no editorial placeholders
 
 Each file with exactly `.json` as its extension under `catalogs/` must follow
 this rule.
@@ -93,7 +95,9 @@ Each numbered revision has an up script and a down script.
 Keep the revision number in both filenames; the pair check verifies that both
 directions are present.
 
-### bootstrap-idempotent — standalone SQL can be reapplied safely
+### Constraints
+
+#### bootstrap-idempotent — standalone SQL can be reapplied safely
 
 Each file with exactly `.sql` as its extension under `migrations/` must follow
 this rule.
@@ -102,7 +106,7 @@ Standalone SQL scripts, such as the initial baseline,
 use CREATE TABLE IF NOT EXISTS so rerunning setup does not fail. Numbered
 up and down migrations have different lifecycle rules.
 
-### migration-pairs — every schema revision has both directions
+#### migration-pairs — every schema revision has both directions
 
 Together, files whose names end in `.down.sql` or `.up.sql` under `migrations/`
 must follow this rule.
@@ -111,7 +115,7 @@ Every numbered schema revision ships exactly one forward
 script and one rollback script. A release without either direction cannot be
 applied and reverted reliably.
 
-### no-destructive-up — forward migrations preserve existing tables
+#### no-destructive-up — forward migrations preserve existing tables
 
 Each file with exactly `.up.sql` as its extension under `migrations/` must
 follow this rule.
@@ -119,7 +123,7 @@ follow this rule.
 Forward migrations must not drop a table. If a release
 retires data, use a separately reviewed cleanup after readers have moved.
 
-### no-sql-placeholders — release SQL has no unfinished edits
+#### no-sql-placeholders — release SQL has no unfinished edits
 
 Each file whose name ends in `.sql` under `migrations/` must follow this rule.
 
@@ -127,7 +131,7 @@ No SQL shipped in this release bundle contains a TODO or
 TBD marker. This applies to the standalone baseline and to both directions
 of every numbered migration.
 
-### transaction-boundaries — numbered migrations run in a transaction
+#### transaction-boundaries — numbered migrations run in a transaction
 
 Each file with exactly `.up.sql` or `.down.sql` as its extension under
 `migrations/` must follow this rule.

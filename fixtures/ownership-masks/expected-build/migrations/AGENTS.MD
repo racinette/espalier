@@ -14,13 +14,15 @@
     └─ [stem].tables.sql                other table scripts (zero or more
                                         matching files)
 
-In a placeholder, `=` is followed by a mask in which each character matches one character of the name: `0` a digit, `x` a lowercase letter or digit. `+` repeats the element before it one or more times, and `(n)` repeats the element before it exactly n times. `espalier help matching` has the full grammar.
-
 ## `[seq=0(6)]_[name=x+].tables.sql` — padded table migrations
+
+In a placeholder, `=` is followed by a mask in which each character matches one character of the name: `0` a digit, `x` a lowercase letter or digit. `+` repeats the element before it one or more times, and `(n)` repeats the element before it exactly n times. `espalier help matching` has the full grammar.
 
 Create or alter tables; six-digit sequence, lowercase slug.
 
 ## `[seq=0+]_[name].tables.sql` — unpadded table migrations
+
+In a placeholder, `=` is followed by a mask in which each character matches one character of the name: `0` a digit. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
 
 Legacy migrations whose sequence is not padded or whose slug is not a lowercase slug.
 

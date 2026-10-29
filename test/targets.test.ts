@@ -210,8 +210,9 @@ export async function lint({ matches, emit }) {
     assert.equal(built.status, 0, built.stdout + built.stderr);
     const guidance = readFileSync(path.join(root, "AGENTS.MD"), "utf8");
     assert.doesNotMatch(guidance, /## Per-file constraints|## Aggregate constraints|^### Files with complete extension/m);
-    assert.match(guidance, /^## filename/m);
-    assert.match(guidance, /^## exported/m);
+    assert.match(guidance, /^## Constraints/m);
+    assert.match(guidance, /^### filename/m);
+    assert.match(guidance, /^### exported/m);
     assert.match(guidance, /Each file whose name ends in `\.json` in this project must\s+follow this rule\./);
     assert.match(guidance.replace(/\s+/g, " "), /Each file with exactly `\.json` as its extension in this project must follow this rule\./);
   } finally {

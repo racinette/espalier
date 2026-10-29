@@ -25,7 +25,9 @@ Keep this file.
 
 Keep this file.
 
-## dot-policy
+## Constraints
+
+### dot-policy
 
 Each path matching `.github/**/*.yml` in this project must follow this rule.
 

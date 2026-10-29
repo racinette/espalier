@@ -17,6 +17,14 @@
 
 Shared group contract, documented once.
 
+Concrete instances:
+- `flights/` — flight planning, in `flights/AGENTS.MD`
+- `trains/` — rail planning
+
+### Adding new instances
+
+A `[group]/` directory needs no declaration. Declaring one gives it its own guidance; see `espalier help instances`.
+
 ## `[group]/[module].ts` — a shared module
 
 Every module contains BASE.

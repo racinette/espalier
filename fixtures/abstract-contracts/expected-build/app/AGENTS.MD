@@ -13,6 +13,13 @@
 
 Every route is declared in the espalier with its own purpose.
 
+Concrete instances:
+- `about/` — the about page, in `about/AGENTS.MD`
+
+### Adding new instances
+
+Every `[route]/` directory here is declared, and an undeclared one is reported. See `espalier help instances`.
+
 ## `[route]/page.tsx` — the route's page
 
 Default-exports a React component.

@@ -190,7 +190,9 @@ Keep addon instances local to one worker. Serialize job handling and disposal; r
 
 Schedule file and aggregate jobs only after every worker initializes. Report findings centrally and clean up all workers on success or failure. Nested project pools do not overlap.
 
-## module-header — every implementation module opens with a header
+## Constraints
+
+### module-header — every implementation module opens with a header
 
 Each file with exactly `.ts` as its extension under `src/` must follow this
 rule.

@@ -5,7 +5,7 @@
 // disk — a renderer that could read a file could produce output that depends
 // on something other than the espalier.
 
-import type { Constraint, Espalier, NodeDoc, StructuralRule, TrieNode } from "./compile.js";
+import type { Constraint, Espalier, LoadedModule, NodeDoc, StructuralRule, TrieNode } from "./compile.js";
 import type { GuidanceMode } from "./config.js";
 import { PROVENANCE } from "./files.js";
 import { matchSegment, resolveSegment, type CaptureValue, backrefNames, isStrictSubset, parseSegment, parseStructuralLeaf, type Segment } from "./pattern.js";
@@ -296,6 +296,28 @@ export function isFolded(espalier: Espalier, at: string): boolean {
   return false;
 }
 
+/** The sibling contract a reference names: `../[group]` is `[group]`, `[module].ts.mjs` is `[module].ts`. */
+function contractName(reference: string | undefined): string | null {
+  if (reference === undefined) return null;
+  return reference.slice(reference.lastIndexOf("/") + 1).replace(/\.mjs$/, "");
+}
+
+/** The siblings declared as instances of this dynamic node, in map order. */
+function instancesOf(parent: TrieNode, contract: TrieNode): TrieNode[] {
+  if (!contract.segment.dynamic) return [];
+  const directory = contract.rule === null;
+  return ordered(parent).filter((sibling) =>
+    (sibling.rule === null) === directory
+    && contractName(directory ? sibling.instanceOf : sibling.rule!.module.instanceOf) === contract.display);
+}
+
+/** A dynamic node that documents its members: abstract, or with a declared instance beside it. */
+function isContract(parent: TrieNode, node: TrieNode): boolean {
+  if (!node.segment.dynamic) return false;
+  if (node.rule === null ? node.abstract === true : node.rule.module.abstract) return true;
+  return instancesOf(parent, node).length > 0;
+}
+
 /**
  * Walks the static spine for placement points and assigns every rule to the
  * longest static prefix of its directory. Sections are pushed during the walk,
@@ -328,7 +350,11 @@ export function plan(espalier: Espalier): Placement[] {
       const directory = isDirectory(child);
       const onSpine = spine && directory && !child.segment.dynamic && !child.segment.resolved;
 
-      if (child.rule !== null && child.rule.modulePath === `${path}.mjs`) {
+      // A rule authored here gets a section. So does a contract inherited into
+      // this directory, when something here is declared an instance of it:
+      // the instances nest under it, and a document that names them has to
+      // state the contract they share. docs/cli/build/README.MD "Contracts".
+      if (child.rule !== null && (child.rule.modulePath === `${path}.mjs` || isContract(node, child))) {
         ensure(point, null).sections.push({ kind: "rule", at: path, rule: child.rule });
       }
 
@@ -342,6 +368,8 @@ export function plan(espalier: Espalier): Placement[] {
         // A dynamic directory is never a placement point, so its prose has
         // nowhere of its own to go.
         ensure(point, null).sections.push({ kind: "directory", at: path, doc });
+      } else if (isContract(node, child)) {
+        ensure(point, null).sections.push({ kind: "directory", at: path, doc: doc ?? { fold: false, description: null, body: "" } });
       }
 
       walk(child, path, onSpine ? path : point, onSpine);
@@ -913,57 +941,162 @@ function displayPath(point: Placement, at: string): string {
   return at.startsWith(prefix) ? at.slice(prefix.length) : at;
 }
 
-function renderSections(espalier: Espalier, point: Placement, level: number): string[] {
+/** The node a placement-relative section path names, walked by display name. */
+function nodeAt(point: Placement, at: string): TrieNode | null {
+  let node = point.node;
+  const relative = at === point.at ? "" : displayPath(point, at);
+  for (const part of relative.split("/").filter(Boolean)) {
+    node = node === null ? null : [...node.children.values()].find((child) => child.display === part) ?? null;
+  }
+  return node;
+}
+
+function parentOfSection(point: Placement, at: string): TrieNode | null {
+  const cut = at.lastIndexOf("/");
+  return nodeAt(point, cut === -1 ? "" : at.slice(0, cut));
+}
+
+const HELP_INSTANCES = `See ${codeSpan("espalier help instances")}.`;
+
+/**
+ * How a contract's members are added. The mechanism is explained once, on
+ * the instances page; the note says only whether a declaration is needed.
+ * docs/cli/build/README.MD "Contracts".
+ */
+function addingInstances(name: string, directory: boolean, abstract: boolean, level: number): string[] {
+  const member = directory ? `${codeSpan(`${name}/`)} directory` : codeSpan(name);
+  return [
+    `${"#".repeat(level)} Adding new instances`,
+    abstract
+      ? `Every ${member} here is declared, and an undeclared one is reported. ${HELP_INSTANCES}`
+      : `A ${member} needs no declaration. Declaring one gives it its own guidance; ${HELP_INSTANCES.toLowerCase()}`,
+  ];
+}
+
+/**
+ * One rule's body: the legend for its masks, its guidance, its reference.
+ * docs/cli/build/README.MD "Rule sections".
+ */
+function ruleBody(point: Placement, at: string, module: LoadedModule): string[] {
+  const body: string[] = [];
+  const legend = maskLegend([{ path: displayPath(point, at), description: null, required: null }]);
+  if (legend !== null) body.push(legend);
+  if (module.guidance.trim() !== "") body.push(module.guidance.trim());
+  // The reference is a repository path and therefore reads as one line.
+  if (module.referenceImplementation !== null) body.push(`Reference implementation: ${module.referenceImplementation}`);
+  return body;
+}
+
+/**
+ * Each grouping is a sub-section: what the members share is the heading, and
+ * what the group as a whole must satisfy is the body.
+ */
+function groupingSections(module: LoadedModule, level: number): string[] {
+  return module.groups.flatMap((grouping) => [
+    `${"#".repeat(level)} Together, ${grouping.by.length === 0 ? "all files in a directory" : `by ${listing(grouping.by.map((name) => codeSpan(name)))}`} — ${grouping.description}`,
+    ...(grouping.guidance.trim() === "" ? [] : [grouping.guidance.trim()]),
+  ]);
+}
+
+/**
+ * Sections, in map order. A contract's declared instances nest under it, so
+ * the contract's guidance is stated once and each instance adds its own;
+ * constraints follow under one heading. docs/cli/build/README.MD "Rendering".
+ */
+interface Documents {
+  /** Placements below this document that get a document of their own. */
+  below: readonly string[];
+  filename: string;
+}
+
+function renderSections(espalier: Espalier, point: Placement, level: number, documents: Documents): string[] {
   const hashes = "#".repeat(level);
   const blocks: string[] = [];
 
+  // An instance precedes its contract in map order, static before dynamic,
+  // but reads under it. Its section is claimed before anything is rendered.
+  const instanceSections = new Map<Section, Section[]>();
+  const nested = new Set<Section>();
   for (const section of point.sections) {
+    if (section.kind !== "rule") continue;
+    const node = nodeAt(point, section.at);
+    const parent = parentOfSection(point, section.at);
+    const members = node === null || parent === null ? [] : instancesOf(parent, node).flatMap((instance) =>
+      point.sections.filter((other) => other.kind === "rule" && other.rule === instance.rule));
+    instanceSections.set(section, members);
+    for (const member of members) nested.add(member);
+  }
+
+  for (const section of point.sections) {
+    if (nested.has(section)) continue;
+
     if (section.kind === "directory") {
+      const node = nodeAt(point, section.at);
+      const parent = parentOfSection(point, section.at);
+      const instances = node === null || parent === null ? [] : instancesOf(parent, node);
+      const abstract = node?.abstract === true;
       const heading = section.doc.description === null ? "" : ` — ${section.doc.description}`;
-      blocks.push(`${hashes} ${codeSpan(`${displayPath(point, section.at)}/`)}${heading}`, section.doc.body);
+      blocks.push(`${hashes} ${codeSpan(`${displayPath(point, section.at)}/`)}${heading}`);
+      if (section.doc.body !== "") blocks.push(section.doc.body);
+      if (instances.length > 0 || abstract) {
+        const prefix = section.at.includes("/") ? section.at.slice(0, section.at.lastIndexOf("/") + 1) : "";
+        const items = instances.map((instance) => {
+          const at = `${prefix}${instance.display}`;
+          const doc = espalier.nodes.get(at);
+          const described = doc?.description == null ? "" : ` — ${doc.description}`;
+          const own = documents.below.includes(at) ? `, in ${codeSpan(`${displayPath(point, at)}/${documents.filename}`)}` : "";
+          return `- ${codeSpan(`${displayPath(point, at)}/`)}${described}${own}`;
+        });
+        blocks.push(items.length === 0 ? "No instances are declared yet." : `Concrete instances:\n${items.join("\n")}`);
+        blocks.push(...addingInstances(node!.display, true, abstract, level + 1));
+      }
       continue;
     }
 
     const { module } = section.rule;
-    const body: string[] = [];
-
-    if (section.rule.inherited?.length) body.push(`Shared contract: ${section.rule.inherited.map((rule) => codeSpan(rule.modulePath.replace(/\.mjs$/, ""))).join(", ")}. Inherited requirements still apply.`);
-    if (module.guidance.trim() !== "") body.push(module.guidance.trim());
-
-    // The reference is a repository path and therefore reads as one line.
-    // docs/cli/build/README.MD "Rule sections".
-    if (module.referenceImplementation !== null) {
-      body.push(`Reference implementation: ${module.referenceImplementation}`);
+    const node = nodeAt(point, section.at);
+    const instances = instanceSections.get(section) ?? [];
+    const body = ruleBody(point, section.at, module);
+    // A local file that takes over an inherited one, without a dynamic
+    // contract to nest under, carries the inherited guidance itself.
+    const base = section.rule.inherited?.at(-1);
+    if (base !== undefined) {
+      body.unshift(...(base.module.guidance.trim() === ""
+        ? [`Inherits ${codeSpan(base.pattern)}.`]
+        : [`Inherits ${codeSpan(base.pattern)}:`, base.module.guidance.trim()]));
     }
 
     // A section with nothing to say is omitted entirely, along with its
     // heading. docs/cli/build/README.MD "Rendering". `adopt` writes an empty
-    // `rule` as a TODO, so a freshly adopted project hits this on every node.
-    if (body.length === 0 && module.groups.length === 0) continue;
+    // guidance as a TODO, so a freshly adopted project hits this on every node.
+    if (body.length === 0 && module.groups.length === 0 && instances.length === 0 && !module.abstract) continue;
 
     const heading = module.description === null ? "" : ` — ${module.description}`;
     blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${heading}`, ...body);
+    blocks.push(...groupingSections(module, level + 1));
 
-    // Each grouping is a sub-section: what identifies a group, then what the
-    // group as a whole must satisfy. docs/cli/build/README.MD "Rule sections".
-    for (const grouping of module.groups) {
-      const shared = grouping.by.length === 0
-        ? "Together, all such files in one directory"
-        : `Together, the files in one directory with the same ${listing(grouping.by.map((name) => codeSpan(name)))}`;
-      blocks.push(
-        `${hashes}# ${grouping.name} — ${grouping.description}`,
-        `${shared} must follow this rule.`,
-        ...(grouping.guidance.trim() === "" ? [] : [grouping.guidance.trim()]),
-      );
+    if (instances.length > 0 || module.abstract) {
+      blocks.push(instances.length === 0
+        ? "No instances are declared yet."
+        : "Concrete instances, each bound by this contract and by its own section:");
+      for (const instance of instances) {
+        if (instance.kind !== "rule") continue;
+        const own = ruleBody(point, instance.at, instance.rule.module);
+        const described = instance.rule.module.description === null ? "" : ` — ${instance.rule.module.description}`;
+        blocks.push(`${hashes}# ${codeSpan(displayPath(point, instance.at))}${described}`, ...own);
+        blocks.push(...groupingSections(instance.rule.module, level + 2));
+      }
+      blocks.push(...addingInstances(node!.display, false, module.abstract, level + 1));
     }
   }
 
   if (point.constraints.length > 0) {
     const placed = new Set(point.constraints.map((constraint) => constraint.modulePath));
     const groups = constraintGroups(espalier).filter((group) => placed.has(group.rule));
+    blocks.push(`${hashes} Constraints`);
     for (const group of groups) {
       blocks.push(
-        ...constraintHeading(group, level),
+        ...constraintHeading(group, level + 1),
         ...constraintSelection(group),
         ...constraintBody(group),
       );
@@ -1049,8 +1182,10 @@ function core(
   nested = false,
   espalierGuidance = true,
   guidanceMode: GuidanceMode = "evolving",
+  filename = "AGENTS.MD",
 ): string[] {
   const blocks: string[] = [];
+  const documents: Documents = { below: stopAt, filename };
 
   if (point.doc !== null && point.doc.body !== "") blocks.push(point.doc.body);
   if (espalierGuidance && nested && point.at === "") {
@@ -1066,16 +1201,18 @@ ${architectureGuidance(guidanceMode)}`);
 
   if (map !== null) {
     blocks.push(`${"#".repeat(level)} Project layout`, map);
-    const legend = maskLegend(mapEntries(espalier, point.node!, point.at, stopAt));
+    // A file's mask is explained beside the rule that uses it; a directory's
+    // has no section of its own, so the map explains it.
+    const legend = maskLegend(mapEntries(espalier, point.node!, point.at, stopAt).filter((entry) => entry.path.endsWith("/")));
     if (legend !== null) blocks.push(legend);
   }
 
   blocks.push(...renderChildren(point.at, named, level));
-  blocks.push(...renderSections(espalier, point, level));
+  blocks.push(...renderSections(espalier, point, level, documents));
   for (const folded of point.folded) {
     const body: string[] = [];
     if (folded.doc !== null && folded.doc.body !== "") body.push(folded.doc.body);
-    body.push(...renderSections(espalier, folded, level + 1));
+    body.push(...renderSections(espalier, folded, level + 1, documents));
     if (body.length === 0) continue;
     const description = folded.doc?.description == null ? "" : ` — ${folded.doc.description}`;
     blocks.push(`${"#".repeat(level)} ${codeSpan(`${displayPath(point, folded.at)}/`)}${description}`, ...body);
@@ -1096,6 +1233,7 @@ export function renderDocument(
   nested = false,
   espalierGuidance = true,
   guidanceMode: GuidanceMode = "evolving",
+  filename = "AGENTS.MD",
 ): string {
   const prefix = point.at === "" ? "" : `${point.at}/`;
   const stopAt = points
@@ -1104,7 +1242,7 @@ export function renderDocument(
   const blocks = [
     marker(espalierRoot, point.at),
     ...heading(name, point.at),
-    ...core(espalier, point, 2, named, outside, stopAt, nested, espalierGuidance, guidanceMode),
+    ...core(espalier, point, 2, named, outside, stopAt, nested, espalierGuidance, guidanceMode, filename),
   ];
   if (espalierGuidance && point.at === "" && !nested) blocks.push(workingGuidance(guidanceMode));
   return `${blocks.join("\n\n")}\n`;
