@@ -696,6 +696,10 @@ function checkLint(dir: string, expected: Expected): void {
 for (const name of fixtures) {
   test(name, async () => {
     const dir = path.join(fixturesDir, name);
+    // Each fixture names the sentence it pins, so a reader can find the
+    // document behind it without reading the harness.
+    const purpose = path.join(dir, "FIXTURE.MD");
+    assert.ok(existsSync(purpose) && readFileSync(purpose, "utf8").startsWith("# "), `${name}: needs a FIXTURE.MD opening with a level-one heading`);
     const expected = JSON.parse(
       readFileSync(path.join(dir, "expected.json"), "utf8"),
     ) as Expected;

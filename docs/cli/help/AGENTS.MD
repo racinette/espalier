@@ -2,20 +2,12 @@
 
 # espalier — `docs/cli/help/`
 
+An instance of `docs/cli/[command]/`, whose guidance in `../AGENTS.MD` applies here.
+
 ## Project layout
 
     docs/cli/help/
-    └─ README.MD  the reference page (required)
-
-## `README.MD` — the reference page
-
-Opens with the invocation as its level-one heading, then a
-`## Usage` block listing every flag `espalier help` accepts. A reader
-looking up a command should not have to read the parser.
-
-The page and the implementation are two halves of one claim. `src/help.ts`
-is what this page describes, and a page for a command nobody wrote is this tree
-lying about what the tool does.
+    └─ README.MD  the command's reference page (required)
 
 ## Other repository paths
 

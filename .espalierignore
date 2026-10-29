@@ -15,7 +15,6 @@
 .tool-versions
 
 # Continuous integration.
-.github/
 .gitlab/
 .gitlab-ci.yml
 .circleci/
@@ -88,11 +87,6 @@ babel.config.*
 # Espalier's conformance fixtures are test data, including deliberately invalid
 # configurations. The test harness runs them independently of the root lint.
 fixtures/**
-
-# Shipped authoring contract. `espalier init` copies it to the espalier root so
-# agents editing rules load it by convention. It is data, like `ignores/`, not
-# a file this repository's architecture places.
-authoring/**
 
 # Worked examples `espalier examples` prints. Packed with the CLI; not a file
 # this repository's architecture places.

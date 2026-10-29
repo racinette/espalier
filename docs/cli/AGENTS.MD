@@ -2,46 +2,83 @@
 
 # espalier — `docs/cli/`
 
+Each command has a reference page here, and the commands are an abstract
+contract: `[command]/` states what every page holds to, and each command is
+declared as its instance. `espalier create docs/cli/<command>/README.MD`
+starts a page once the command is declared.
 
-One directory per command, named for the command, and `src/<command>.ts`
-implements it. The set is enumerated here rather than matched by a pattern:
-adding a command is a decision about what the tool is, so it is made in the
-espalier and not let through quietly by a placeholder that would have accepted
-any name.
-
-Both halves are checked, from both ends. A page says which module implements it
-and reports `undocumented_command` when that module is not there; each command
-module opens with a header naming its page, and reports
-`header_names_missing_document` when the page is not there. A page for a command
-nobody wrote and a command whose page was never written are the two ways this
-tree can lie about what the tool does, and neither survives a `lint`.
-
-Every page carries the same shape — the invocation as its heading, a `## Usage`
-block listing every flag, then the reasoning. The flag list is the one part
-duplicated from `src/cli.ts`, and it is duplicated on purpose: a reader looking
-up a command should not have to read the parser.
-
+Both halves of a command are checked, from both ends. A page reports
+`undocumented_command` when `src/<command>.ts` is not there, and each
+command module opens with a header naming its page, which reports
+`header_names_missing_document` when the page is not there.
 
 ## Project layout
 
     docs/cli/
-    ├─ adopt/     bringing an existing directory under the espalier
+    ├─ adopt/        bringing an existing directory under the espalier
+    │                (required, instance of [command]/)
     │
-    ├─ build/     generating the agent-facing documentation
+    ├─ build/        generating the agent-facing documentation (required,
+    │                instance of [command]/)
     │
-    ├─ create/    creating a structurally declared file or directory
+    ├─ create/       creating a structurally declared file or directory
+    │                (required, instance of [command]/)
     │
-    ├─ examples/  locating and copying worked examples
+    ├─ examples/     locating and copying worked examples (required, instance of
+    │                [command]/)
     │
-    ├─ explain/   answering what the espalier says about a path
+    ├─ explain/      answering what the espalier says about a path (required,
+    │                instance of [command]/)
     │
-    ├─ help/      printing this version's reference
+    ├─ help/         printing this version's reference (required, instance of
+    │                [command]/)
     │
-    ├─ init/      bootstrapping a repository
+    ├─ init/         bootstrapping a repository (required, instance of
+    │                [command]/)
     │
-    ├─ lint/      validating the repository against the espalier
+    ├─ lint/         validating the repository against the espalier (required,
+    │                instance of [command]/)
     │
-    └─ migrate/   updating the configuration for this CLI version
+    ├─ migrate/      updating the configuration for this CLI version (required,
+    │                instance of [command]/)
+    │
+    └─ [command]/    one command (zero or more declared directories)
+       │
+       └─ README.MD  the command's reference page (required)
+
+## `[command]/` — one command
+
+A directory per command, named for it, and `src/<command>.ts` implements it.
+Every command is declared here as an instance, because adding one is a
+decision about what the tool is: an undeclared directory is reported rather
+than let through by a placeholder that would have accepted any name.
+
+Concrete instances:
+- `adopt/` — bringing an existing directory under the espalier, in `adopt/AGENTS.MD`
+- `build/` — generating the agent-facing documentation, in `build/AGENTS.MD`
+- `create/` — creating a structurally declared file or directory, in `create/AGENTS.MD`
+- `examples/` — locating and copying worked examples, in `examples/AGENTS.MD`
+- `explain/` — answering what the espalier says about a path, in `explain/AGENTS.MD`
+- `help/` — printing this version's reference, in `help/AGENTS.MD`
+- `init/` — bootstrapping a repository, in `init/AGENTS.MD`
+- `lint/` — validating the repository against the espalier, in `lint/AGENTS.MD`
+- `migrate/` — updating the configuration for this CLI version, in `migrate/AGENTS.MD`
+
+### Adding new instances
+
+Every `[command]/` directory here is declared, and an undeclared one is reported. See `espalier help instances`.
+
+## `[command]/README.MD` — the command's reference page
+
+Opens with the invocation as its level-one heading, then a
+`## Usage` block listing every flag the command accepts, then the reasoning.
+The flag list is the one part duplicated from `src/cli.ts`, on purpose: a
+reader looking up a command should not have to read the parser. Lint holds the
+two to each other, in both directions.
+
+The page and `src/<command>.ts` are two halves of one claim, and the module's
+header names the page. A page for a command nobody wrote, or a module whose
+page was never written, is this tree lying about what the tool does.
 
 ## Other repository paths
 

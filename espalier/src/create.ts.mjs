@@ -1,3 +1,4 @@
+export const instanceOf = "[module].ts.mjs";
 export const description = "the create command";
 
 export const guidance = `Creates only absent files or directories declared by
@@ -9,5 +10,3 @@ directory help names the structural directory, included files, and selectable op
 Preview renders the same templates and arguments, then reports all source
 without creating target files or directories. A render failure produces no
 partial preview.`;
-
-export async function lint() {}

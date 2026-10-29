@@ -37,5 +37,8 @@ jobs:
       - name: Run test suite
         run: npm test
 
+      - name: Lint repository architecture
+        run: node dist/src/cli.js lint
+
       - name: Check generated guidance
         run: node dist/src/cli.js build --check

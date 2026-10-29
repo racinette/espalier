@@ -872,7 +872,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
       }
       if (typeof result !== "string") fail("malformed_node_description", `${at}/${NODE_DESCRIPTION}: ${field} must return a string`);
       if (field === "description") doc.description = result;
-      else doc.body = result;
+      else doc.body = result.trim();
     }
   }
   return { root: trie, constraints, nodes };
@@ -963,7 +963,7 @@ async function readDirectoryModule(
   }
   return {
     description: typeof module.description === "string" ? module.description : null,
-    fold: module.fold === true, body: typeof module.guidance === "string" ? module.guidance : "",
+    fold: module.fold === true, body: typeof module.guidance === "string" ? module.guidance.trim() : "",
     instanceOf: module.instanceOf as string | undefined, optional: module.optional === true,
     ...(module.literalName === true ? { literalName: true } : {}),
     ...(module.abstract === true ? { abstract: true } : {}),

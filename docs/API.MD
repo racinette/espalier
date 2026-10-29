@@ -74,6 +74,13 @@ contract and its CLI mapping are specified in
 [TYPES.MD](TYPES.MD#template); path selection and write safety are specified in
 [`espalier create`](cli/create/README.MD).
 
+The types that describe a template are exported for annotating one:
+`TemplateDefinition`, which `createTemplate` returns; `TemplateSchema`, a map
+of `TemplateOption`s, each a `StringTemplateOption` or a
+`FlagTemplateOption`; `TemplateArguments`, the values inferred from a schema;
+`TemplateContext`, the creation context; and `TemplateResult`, what a
+renderer returns.
+
 ## `check(options)`
 
 Runs the same lint the CLI runs, over a real repository, and returns what it found.
@@ -88,6 +95,8 @@ test("the repository conforms", async () => {
   assert.deepEqual(issues.filter((issue) => issue.severity === "error"), []);
 });
 ```
+
+`options` is a `CheckOptions`:
 
 | Option | Default | |
 |---|---|---|
@@ -156,6 +165,8 @@ test("a component must be named after its file", async () => {
 The first argument is the module — whatever `import` gave you. It is not looked up, compiled, or matched against the espalier: `runRule` is for testing the `lint` function, and a module's position in the tree is the matcher's business, pinned by conformance fixtures rather than by unit tests.
 
 ### The context
+
+`context` is a `RuleContext`:
 
 | Field | Default | |
 |---|---|---|
@@ -263,6 +274,8 @@ const issues = await runAggregate(rule, {
 });
 ```
 
+`context` is an `AggregateRuleContext`:
+
 | Field | Default | |
 |---|---|---|
 | `matches` | required | complete `{ path, captures }` set; sorted before `lint` runs |
@@ -307,6 +320,8 @@ const issues = await runGroup(rule, {
   at: "migrations/",
 });
 ```
+
+`context` is a `GroupRuleContext`:
 
 | Field | Default | |
 |---|---|---|

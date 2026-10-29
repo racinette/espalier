@@ -2,20 +2,12 @@
 
 # espalier — `docs/cli/create/`
 
+An instance of `docs/cli/[command]/`, whose guidance in `../AGENTS.MD` applies here.
+
 ## Project layout
 
     docs/cli/create/
-    └─ README.MD  the reference page (required)
-
-## `README.MD` — the reference page
-
-Opens with the invocation as its level-one heading, then a
-`## Usage` block spelling the path-first create, help, and preview forms for files and
-directories. A reader looking up a command should not have to read the parser.
-
-The page and the implementation are two halves of one claim. `src/create.ts`
-is what this page describes, and a page for a command nobody wrote is this tree
-lying about what the tool does.
+    └─ README.MD  the command's reference page (required)
 
 ## Other repository paths
 

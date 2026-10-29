@@ -2,7 +2,6 @@
 
 # espalier — `src/`
 
-
 One direction of dependency, and it is worth knowing before editing anything.
 `config.ts` finds and validates the configuration, `files.ts` walks the tree,
 `ignore.ts` decides what that walk may enter, and `compile.ts` reads the
@@ -17,88 +16,179 @@ The rest is shared machinery, and what each piece must hold to is written on
 the module itself rather than here — a list of module invariants kept in one
 place is a list that stops matching the modules.
 
-
 ## Project layout
 
     src/
-    ├─ adopt.ts           the adopt command (required)
+    ├─ adopt.ts           the adopt command (required, instance of [module].ts)
     │
-    ├─ api.ts             the programmatic surface (required)
+    ├─ api.ts             the programmatic surface (required, instance of
+    │                     [module].ts)
     │
-    ├─ artifacts.ts       the target-neutral generated artifact model (required)
+    ├─ artifacts.ts       the target-neutral generated artifact model (required,
+    │                     instance of [module].ts)
     │
-    ├─ build.ts           the build command (required)
+    ├─ build.ts           the build command (required, instance of [module].ts)
     │
-    ├─ children.ts        finding where one espalier's authority ends (required)
+    ├─ children.ts        finding where one espalier's authority ends (required,
+    │                     instance of [module].ts)
     │
-    ├─ cli.ts             argument parsing and dispatch (required)
+    ├─ cli.ts             argument parsing and dispatch (required, instance of
+    │                     [module].ts)
     │
-    ├─ compile.ts         reading the espalier tree into a matcher (required)
+    ├─ compile.ts         reading the espalier tree into a matcher (required,
+    │                     instance of [module].ts)
     │
-    ├─ config.ts          finding and validating the configuration (required)
+    ├─ config.ts          finding and validating the configuration (required,
+    │                     instance of [module].ts)
     │
-    ├─ context.ts         the lint context handed to rules (required)
+    ├─ context.ts         the lint context handed to rules (required, instance
+    │                     of [module].ts)
     │
-    ├─ create.ts          the create command (required)
+    ├─ create.ts          the create command (required, instance of [module].ts)
     │
-    ├─ errors.ts          operational failures (required)
+    ├─ errors.ts          operational failures (required, instance of
+    │                     [module].ts)
     │
-    ├─ examples.ts        the examples command (required)
+    ├─ examples.ts        the examples command (required, instance of
+    │                     [module].ts)
     │
     ├─ execution.ts       addon lifecycle and isolated lint invocations
-    │                     (required)
+    │                     (required, instance of [module].ts)
     │
-    ├─ explain.ts         the explain command (required)
+    ├─ explain.ts         the explain command (required, instance of
+    │                     [module].ts)
     │
-    ├─ explainText.ts     the human layout for explain (required)
+    ├─ explainText.ts     the human layout for explain (required, instance of
+    │                     [module].ts)
     │
-    ├─ files.ts           walking the repository (required)
+    ├─ files.ts           walking the repository (required, instance of
+    │                     [module].ts)
     │
-    ├─ help.ts            the help command (required)
+    ├─ help.ts            the help command (required, instance of [module].ts)
     │
-    ├─ ignore.ts          gitignore-syntax matching (required)
+    ├─ ignore.ts          gitignore-syntax matching (required, instance of
+    │                     [module].ts)
     │
-    ├─ implementation.ts  fresh rule implementations (required)
+    ├─ implementation.ts  fresh rule implementations (required, instance of
+    │                     [module].ts)
     │
-    ├─ init.ts            the init command (required)
+    ├─ init.ts            the init command (required, instance of [module].ts)
     │
-    ├─ lint.ts            the lint command (required)
+    ├─ lint.ts            the lint command (required, instance of [module].ts)
     │
-    ├─ linter.ts          contextual typing helpers for rule linters (required)
+    ├─ linter.ts          contextual typing helpers for rule linters (required,
+    │                     instance of [module].ts)
     │
     ├─ match.ts           ownership, requiredness, and the deepest recognized
-    │                     node (required)
+    │                     node (required, instance of [module].ts)
     │
-    ├─ migrate.ts         the migrate command (required)
+    ├─ migrate.ts         the migrate command (required, instance of
+    │                     [module].ts)
     │
-    ├─ nested.ts          running the espaliers below this one (required)
+    ├─ nested.ts          running the espaliers below this one (required,
+    │                     instance of [module].ts)
     │
-    ├─ output.ts          formats and destinations (required)
+    ├─ output.ts          formats and destinations (required, instance of
+    │                     [module].ts)
     │
-    ├─ pattern.ts         path segments and what they match (required)
+    ├─ pattern.ts         path segments and what they match (required, instance
+    │                     of [module].ts)
     │
-    ├─ render.ts          turning the espalier into documentation (required)
+    ├─ render.ts          turning the espalier into documentation (required,
+    │                     instance of [module].ts)
     │
-    ├─ repository.ts      what lint and explain both work from (required)
+    ├─ repository.ts      what lint and explain both work from (required,
+    │                     instance of [module].ts)
     │
-    ├─ targets.ts         constraint target selection (required)
+    ├─ targets.ts         constraint target selection (required, instance of
+    │                     [module].ts)
     │
-    ├─ template.ts        file-creation template definitions (required)
+    ├─ template.ts        file-creation template definitions (required, instance
+    │                     of [module].ts)
     │
-    ├─ version.ts         the running package version (required)
+    ├─ version.ts         the running package version (required, instance of
+    │                     [module].ts)
     │
     ├─ visibility.ts      filesystem visibility from external ignore files
-    │                     (required)
+    │                     (required, instance of [module].ts)
     │
-    ├─ worker.ts          the lint worker entry point (required)
+    ├─ worker.ts          the lint worker entry point (required, instance of
+    │                     [module].ts)
     │
-    └─ workers.ts         the bounded lint worker pool (required)
+    ├─ workers.ts         the bounded lint worker pool (required, instance of
+    │                     [module].ts)
+    │
+    └─ [module].ts        an implementation module (zero or more declared files)
 
-## `artifacts.ts` — the target-neutral generated artifact model
+## `[module].ts` — an implementation module
+
+Every module is declared beside this contract, with what it must hold to. An
+undeclared one is reported: a new module is a decision about the shape of the
+implementation, made where that shape is written down. Declare it first, then
+`espalier create src/<module>.ts` starts it with its header.
+
+Concrete instances, each bound by this contract and by its own section:
+
+### `adopt.ts` — the adopt command
+
+Produces structure, never meaning. Stubs stay mechanical, with `TODO` markers
+and descriptions that read as placeholders, because a plausible guess is the
+one that survives review unread. It never overwrites an existing rule module
+and never edits `.espalierignore`. A target inside a child espalier is handed
+to that child, and paths this espalier does not govern are neither declared
+nor counted as evidence of a shape. Every refusal is decided before the first
+write, and `--dry-run` differs only at the write calls. Unlike `init` and
+`migrate`, it opens the repository, so it sees what `lint` and `build` see,
+including which documentation paths the configured build owns. The
+inference, refusals and output are specified in `docs/cli/adopt/README.MD`.
+
+### `api.ts` — the programmatic surface
+
+The package's public entrypoint: `package.json` exports resolve here, so
+every export is public surface documented in `docs/API.MD` and
+`docs/TYPES.MD`, and lint reports one that neither names. `check` is
+`lint.ts` run behind a collecting reporter, not a second runner. It discards
+warnings and the exit code, and holds a child's failure until the siblings
+finish, then throws the first one. `runRule`, `runAggregate` and `runGroup`
+build `emit` with `context.ts`'s `createEmit`, so a rule fails under test for
+the reason it fails in production. A callback that throws becomes
+`rule_threw`, and a read outside the supplied tree is `read_failed`, never an
+empty string. These helpers take no config or espalier tree: a module's
+position is the matcher's business, pinned by conformance fixtures, so do not
+add a repository here.
+
+### `artifacts.ts` — the target-neutral generated artifact model
 
 Define generated outputs independently of filesystem application so multiple targets can share one atomic build transaction.
 
-## `cli.ts` — argument parsing and dispatch
+### `build.ts` — the build command
+
+Renders every espalier's documents in memory before touching the filesystem,
+and `apply` is the only function that writes. If planning fails anywhere,
+in a child as well, nothing is written, though `--check` still reports the
+drift it found. This is the deliberate difference from `lint`, which visits
+children through the same `eachChild` but whose output ends with the run.
+Existing documents come from the raw candidate walk, not
+`repository.visible`, because that hides generated files by design. Child
+subtrees are skipped, the unmarked-file refusal runs before any write, and only
+marked files that the configuration governs may be swept as orphans. Document
+content comes from `render.ts`, and the report carries only what happened to
+the filesystem. See `docs/cli/build/README.MD` "Nested espaliers",
+"Ownership", "Output" and "`--check`".
+
+### `children.ts` — finding where one espalier's authority ends
+
+Decides where one espalier's authority ends, for `repository.ts` and for
+`migrate.ts`, which finds children without opening a repository. Keeping that
+decision in this one function is what stops the two from disagreeing about a
+boundary. Ignore rules are consulted first, so an ignored config is plain
+content rather than a boundary; that is how this repository keeps its
+`fixtures/` configs. Only the nearest children are returned, and the function
+relies on candidates arriving sorted. Depth comes from each child's own run
+finding its children the same way, so do not recurse here. See
+`docs/CONFIG.MD` "Nested espaliers" and "Suppressing discovery".
+
+### `cli.ts` — argument parsing and dispatch
 
 Carries each command's grammar, and each one is also written into that
 command's page under `docs/cli/`. The duplication is deliberate: a reader
@@ -106,13 +196,47 @@ looking up a command should not have to read the parser. Create reserves the
 positional `help` and `preview` actions; flags after -- belong to the selected template.
 `help` and `examples` read this package and do not load a repository.
 
-## `context.ts` — the lint context handed to rules
+### `compile.ts` — reading the espalier tree into a matcher
+
+Turns the rule tree into the trie, constraints and directory metadata every
+command reads, and refuses anything ambiguous before a repository file is
+walked. `docs/MATCHING.MD` "Node kinds", "Classification" and "Ambiguity is
+rejected" say what it accepts; `docs/INSTANCES.MD` says what instances and
+declared groups compose into. Its passes are ordered. Every `ESPALIER.mjs` is
+read before any rule module. Each module is imported before its path is parsed,
+because `literalName` decides what its brackets are. Groups attach before
+instances are cloned, so an inherited contract carries them, and sibling
+ambiguity is checked only on the materialized tree. Function-valued
+`guidance` and `description` render once per declaration, never per
+instance. It walks the rule tree through `files.ts` under `skip` alone, never
+`.espalierignore` or `ignoreFiles`. `match.ts` and `pattern.ts` match
+without checking again, so every condition they would get wrong is rejected
+here, through `fail`.
+
+### `config.ts` — finding and validating the configuration
+
+Finds `espalier.config.yaml`, validates it, and returns the `Config` every
+other module reads. `docs/CONFIG.MD` specifies discovery and each key, and
+`docs/AUTHORING.MD` specifies the authoring contract that `init` and
+`migrate` vendor. Validation is strict and happens before any walk or
+compile. Every rejection is an OperationalError raised through `fail`. A key
+this module does not know is rejected, so a new key needs a parser here and a
+section in that document. `migrate` is the one command that must read a
+config this version rejects. It reuses `locateConfig`, `readConfigFile` and
+the exported value parsers instead of `loadConfig`, so keep each value's
+validation in one exported parser rather than copying it. `root` is
+normalized to the plain repository-relative form other modules compare paths
+against, so its spelling cannot change what is matched. This module reads
+`.espalierignore` only as lines. Compiling it, and reading `ignoreFiles`, is
+left to `repository.ts`.
+
+### `context.ts` — the lint context handed to rules
 
 Built once and used by both the runner and the programmatic API, because
 `docs/API.MD` promises a rule fails under test for the reason it fails in
 production. Two implementations would make that a coincidence.
 
-## `create.ts` — the create command
+### `create.ts` — the create command
 
 Creates only absent files or directories declared by
 structural rules. A directory contains every recursively required static or
@@ -124,32 +248,206 @@ Preview renders the same templates and arguments, then reports all source
 without creating target files or directories. A render failure produces no
 partial preview.
 
-## `errors.ts` — operational failures
+### `errors.ts` — operational failures
 
 Holds `fail()`, which every operational failure goes through. A code it raises
 that `docs/ERRORS.MD` does not list fails the suite, and so does a documented
 code nothing raises.
 
-## `execution.ts` — addon lifecycle and isolated lint invocations
+### `examples.ts` — the examples command
+
+Locates or copies the trees in the installed package's `examples/`
+directory, beside `docs/`, and never loads a repository or configuration.
+Stdout carries only a path, or the catalog for `--help`. Every diagnostic goes
+to stderr, so an agent can use the output as a path. `--copy` reserves its
+destination exclusively and copies entry by entry into absent paths, so
+nothing existing is merged into or overwritten. On failure it removes only the
+destination this run created. The command is specified in
+`docs/cli/examples/README.MD`.
+
+### `execution.ts` — addon lifecycle and isolated lint invocations
 
 Prepare shared data once from governed inputs. Set up and dispose worker-local addons, and execute independent invocations against the same source snapshot.
 
-## `implementation.ts` — fresh rule implementations
+### `explain.ts` — the explain command
+
+Answers from the same functions `build` and `lint` use, so it cannot
+disagree with either about matching. Those are `mapEntries`, `closedSet`,
+`constraintGroups`, `requiredUnder` and `subtree` from `render.ts`, and
+ownership and admission from `repository.ts`, `match.ts` and `targets.ts`.
+Never decide here something one of those already decides. The path picks the
+espalier that answers, not the working directory: a path inside a child is
+asked again of that child through `nested.ts`'s `delegated`, and children are
+never visited otherwise. Every query ends in exactly one
+`reporter.explanation` call, carrying the payload `explainText.ts` types.
+Exclusion is checked before declaration for a prefix just as for a file, so
+the two spellings of one question cannot answer differently. See
+`docs/cli/explain/README.MD` "Usage", "Nested espaliers" and "Exit codes".
+
+### `explainText.ts` — the human layout for explain
+
+Formats an `Explanation` and computes nothing. Its interfaces are the
+`--format jsonl` payload, which `explain.ts` builds and `output.ts` writes
+with `JSON.stringify`. A field the human layout needs is added to the answer,
+where JSONL carries it too. `--concise` is presentation only: it drops prose
+here, never from the payload. The map comes from `render.ts`'s `drawMap` and
+the governed-elsewhere sentence from its `readInside`, so a prefix reads as
+the generated document does; do not reimplement either. Column, rule and wrap
+widths, and the rule that author text is indented but never re-wrapped, are
+fixed by `docs/cli/explain/README.MD` "Human layout".
+
+### `files.ts` — walking the repository
+
+Walks the repository and supplies the entry primitives that `compile.ts` walks
+the rule tree with. The decisions of `docs/CONFIG.MD` "What counts as a file",
+"Symlinks" and "Linked worktrees" are made here once, for every command. It
+does not decide which ignore files exist: the rules it applies in each
+directory come from loaders its callers pass. Visibility is loaded before
+governance, so a hidden `.espalierignore` governs nothing. Exclusion is
+decided before a link is resolved, so a broken link can still be excluded, and
+an excluded directory is never opened. Ignored files are still returned, so
+`explain` can name the rule. `inspect` and `readEntries` fail with
+`unreadable_path`, because a path that cannot be read cannot be pronounced
+correct. `probe` is the tolerant counterpart for `init` and `adopt`, which
+propose rather than pronounce. `matchGlob` is the one implementation of the
+dialect in `docs/MATCHING.MD` "Glob syntax", and `targets.ts` and the API
+both use it.
+
+### `help.ts` — the help command
+
+Prints pages from the installed package, resolved against `PACKAGE_ROOT`. It
+never loads a repository or configuration, because the running binary's own
+copy is what `pin` promises. `PAGES` is the catalog, and lint holds it to
+`docs/`: every listed file exists, and every reference page is listed. Page
+names are an interface: the authoring contract and the generated **Working
+with Espalier** section tell agents to run them. It writes stdout and stderr
+directly because it takes no `--format` or `--out`. The command is specified
+in `docs/cli/help/README.MD`.
+
+### `ignore.ts` — gitignore-syntax matching
+
+Reads the gitignore-syntax lists of `.espalierignore`, nested ones included,
+and of `skip`. It reads them rule by rule, so `explain` can name the pattern,
+file and comment that excluded a path, and `build` can quote the comment.
+`docs/CONFIG.MD` "`.espalierignore`" and "`skip`" specify the syntax.
+Patterns go through the same case-sensitive `ignore` package that
+`visibility.ts` uses for `ignoreFiles`, so one line means one thing in every
+file. The two remain separate modules because visibility and governance are
+separate layers. In `excludedBy`, an exclusion settled at an ancestor
+directory is final. That keeps its answer equal to what `files.ts` walked,
+since the walk never enters an excluded directory. It is pure, raises nothing,
+and never invents a comment: an entry's reason is what its author wrote, or
+null.
+
+### `implementation.ts` — fresh rule implementations
 
 Load fresh ES rule and addon implementations for coordinator runs while preserving shared module identity within each run. Worker implementations have their own isolated lifetime.
 
-## `linter.ts` — contextual typing helpers for rule linters
+### `init.ts` — the init command
+
+Writes the configuration, `.espalierignore` and the espalier root, and
+describes nothing; inferring shape is `adopt`'s job. Every refusal happens
+before the first write, and an existing configuration is never merged into.
+The lists under `ignores/` are read from the installed package and copied
+verbatim, comments included: `build` renders those comments as the reason a
+path is not described, and nothing reads the package's lists at lint time, so
+upgrading cannot change what a repository governs. `vendorAuthoring` is shared
+with `migrate`, so its sentinel and `skip` conditions are one rule for both
+commands (`docs/AUTHORING.MD`). It neither loads a repository nor imports rule
+modules. The command is specified in `docs/cli/init/README.MD`.
+
+### `lint.ts` — the lint command
+
+The one lint implementation: `cli.ts` calls it, and `api.ts`'s `check` runs
+it behind a collecting reporter. Anything said only through
+`reporter.warning` or the exit code therefore never reaches an API caller.
+Findings belong in issues, and failures belong in thrown `OperationalError`s.
+Ownership, built-in issues and job assembly happen here in the coordinator.
+Rule callbacks run only in workers through `workers.ts`, so the issue set
+must not depend on how jobs are split across workers. Path arguments are
+resolved to absolute paths once, here, and passed to children unchanged. A
+child the scope does not reach is never started, and an aggregate or group
+with any member in scope still gets its complete match set. See
+`docs/cli/lint/README.MD` "Scoping", "Parallel execution", "Nested espaliers"
+and "Exit codes", and `docs/API.MD` "`check(options)`".
+
+### `linter.ts` — contextual typing helpers for rule linters
 
 Exports identity helpers and the context types they apply.
 Plain lint functions remain valid; typing helpers must not introduce a second
 runtime protocol.
 
-## `output.ts` — formats and destinations
+### `match.ts` — ownership, requiredness, and the deepest recognized node
 
-Owns every format and every destination, so no other module writes to a stream
-itself.
+Answers ownership, requiredness and how far a path was recognized, over an
+espalier that `compile.ts` has already accepted. `docs/MATCHING.MD`
+"Ownership", "What must exist" and "The deepest recognized node" specify the
+answers, and `docs/INSTANCES.MD` "Declaring a group" specifies required groups.
+It is pure and imports the compiler for types only. One `selectChild` chooses
+the winner for files, directories and requirements alike, which keeps lint,
+explain, create and the API in agreement about who owns a path. Keep it the
+only place a child is chosen. It never backtracks to a broader sibling and
+raises no failures. Ambiguity was compile's to reject, and a path that does not
+resolve comes back as a `Recognition`, not an error. `structuralChecks` is
+the one list of the checks a file answers to, inherited ones included. Each
+check gets only the captures its own declaration names.
 
-## `render.ts` — turning the espalier into documentation
+### `migrate.ts` — the migrate command
+
+The one command that must read a configuration pinned to another version, so it
+never calls `loadConfig` or opens a repository. It edits the configuration and
+rule sources as text, which keeps comments and key order, and never imports
+authored code or compiles the espalier. Within each project, every check on
+what it rewrites runs before the first write, so a refusal leaves that
+project's files untouched. `--dry-run` takes the same path as a real run and
+differs only at the write calls, and discovers children from the planned
+`.espalierignore`. The dry-run notice comes from `cli.ts` once per
+invocation, never from here, because this function recurses into every child.
+What it rewrites and refuses is specified in `docs/cli/migrate/README.MD`.
+
+### `nested.ts` — running the espaliers below this one
+
+Starts child runs in order and re-roots what they report. It never reads a
+child's configuration, espalier or addons, because each child is a complete
+separate run. `delegated` rewrites every path and the `espalier` origin into
+the invoking frame, and the views compose, so a grandchild is named by its
+whole path. A new `Reporter` method that carries a path must be re-rooted here
+too. `eachChild` is the one place a failure does not end the run: it reports
+the failure through the child's view, carries on, and returns the worst exit
+code. `lint.ts`, `build.ts` and `migrate.ts` walk children through it, while
+`explain.ts`, `create.ts` and `adopt.ts` use `delegated` to answer from the
+one governing espalier. See `docs/cli/lint/README.MD` "Nested espaliers".
+
+### `output.ts` — formats and destinations
+
+Owns both encodings and every destination. Once `cli.ts` has built a
+Reporter, everything the run says goes through it: issues, records, warnings
+and operational failures. Only `help`, `examples`, `--version`, and argument
+errors raised before a Reporter exists write to process streams directly,
+since none of them has a format or destination to honour. JSONL is a stream
+of events whose completion is the exit code. The human formatter buffers and
+writes the summaries itself, which is why it takes a `Mode` and commands only
+record entries. `nested.ts` re-roots every path a Reporter carries for a child
+espalier, so a new path-bearing field must be translated there too. The
+encodings are specified under "Output" in `docs/cli/lint/README.MD` and
+`docs/cli/build/README.MD`.
+
+### `pattern.ts` — path segments and what they match
+
+Parses one path segment and answers what it matches. It transcribes
+`docs/MATCHING.MD` "Placeholders" and its subsections, so a change to the
+grammar starts in that document. It is pure: it uses no filesystem, trie or
+repository, so `compile.ts`, `match.ts`, `targets.ts`, `render.ts` and
+`migrate.ts` share one reading of a segment. The overlap and containment tests
+decide whether compilation rejects two siblings, so they may err in one
+direction only. An overlap may be over-reported but never missed, and
+`isStrictSubset` is true only when containment is proven. `matchSegment`
+relies on compilation having proven that every segment splits one way
+("Captures must be unambiguous"). `trieKey` is internal identity, not a glob:
+a placeholder keys with a NUL, so a literal bracketed name never shares a node
+with a capture.
+
+### `render.ts` — turning the espalier into documentation
 
 Generated documents state each piece of guidance once. Text an
 author writes — a rule's `guidance`, a directory's, a grouping's, a declared
@@ -171,20 +469,20 @@ longer, and even so it appears once per document, not once per section.
 Before rendering the same text into a second place, decide which kind it is.
 Author text is never the exception.
 
-## `repository.ts` — what lint and explain both work from
+### `repository.ts` — what lint and explain both work from
 
 Joins the config, the walk and the compiled espalier into one object: the
 visible set, what excluded everything else, and who owns each path. Nothing
 below it reaches back up, and a change that would need it to is a change to
 think about twice.
 
-## `targets.ts` — constraint target selection
+### `targets.ts` — constraint target selection
 
 Derive narrowed target patterns from the compiled constraint and
 apply them identically in lint and explain. Target selection filters candidates; it
 does not change structural ownership.
 
-## `template.ts` — file-creation template definitions
+### `template.ts` — file-creation template definitions
 
 Owns the public template schema and factory independently
 of command dispatch. The schema is flat because it maps to flat CLI flags;
@@ -192,25 +490,29 @@ examples document invocations but never become runtime defaults. Renderers
 receive the concrete owned path and its structural captures so they can derive
 names from the destination instead of asking callers to repeat them.
 
-## `version.ts` — the running package version
+### `version.ts` — the running package version
 
 Read the exact running version from the installed package manifest.
 The CLI, configuration validation and generated pins must share that one source of
 truth.
 
-## `visibility.ts` — filesystem visibility from external ignore files
+### `visibility.ts` — filesystem visibility from external ignore files
 
 Model what the repository exposes to Espalier through external
 ignore files. Apply sources in discovery order so deeper rules may override earlier
 ones, and keep visibility distinct from governance exclusions.
 
-## `worker.ts` — the lint worker entry point
+### `worker.ts` — the lint worker entry point
 
 Keep addon instances local to one worker. Serialize job handling and disposal; return findings and operational failures through the coordinator protocol.
 
-## `workers.ts` — the bounded lint worker pool
+### `workers.ts` — the bounded lint worker pool
 
 Schedule file and aggregate jobs only after every worker initializes. Report findings centrally and clean up all workers on success or failure. Nested project pools do not overlap.
+
+### Adding new instances
+
+Every `[module].ts` here is declared, and an undeclared one is reported. See `espalier help instances`.
 
 ## Constraints
 

@@ -50,6 +50,9 @@ test("the shipped contract, this repository's copy, and the sentinel agree", () 
   const shipped = shippedAuthoring();
   assert.equal(shipped.startsWith(AUTHORING_SENTINEL), true);
   assert.equal(readFileSync(path.join(repo, "espalier", "AGENTS.MD"), "utf8"), shipped);
+  // The example an agent copies with `espalier examples --copy` ships the
+  // contract as init would have written it.
+  assert.equal(readFileSync(path.join(repo, "examples", "compiler-addon", "espalier", "AGENTS.MD"), "utf8"), shipped);
   assert.equal(skipCoversAuthoring(["AGENTS.MD"]), true);
   assert.equal(skipCoversAuthoring([]), false);
 });

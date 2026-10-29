@@ -2,7 +2,6 @@
 
 # espalier
 
-
 `espalier` turns a tree of rule modules into per-directory documentation agents
 read, and into a linter that enforces the same rules deterministically.
 
@@ -10,25 +9,56 @@ The documents under `docs/` are the specification. Where the code and a
 document disagree, the document is right — so most of the rules here check that
 the two still point at each other, rather than checking style.
 
-
 ## Project layout
 
     ./
-    ├─ docs/      the specification
+    ├─ .github/      continuous integration and releasing
     │
-    ├─ ignores/   the ignore lists espalier ships
+    ├─ authoring/    the shipped authoring contract
+    │  │
+    │  └─ AGENTS.MD  the authoring contract init copies into every espalier root
+    │                (required)
     │
-    ├─ src/       the implementation
+    ├─ docs/         the specification
     │
-    ├─ test/      the argument that the tool works
+    ├─ ignores/      the ignore lists espalier ships
     │
-    └─ README.MD  the front page (required)
+    ├─ src/          the implementation
+    │
+    ├─ test/         the argument that the tool works
+    │
+    └─ README.MD     the front page (required)
 
 ## `README.MD` — the front page
 
 Opens with a level-one heading, and links into `docs/` for
 anything it only summarizes. The front page is allowed to be shorter than the
 specification; it is not allowed to be a second, drifting copy of it.
+
+## Constraints
+
+### links — every relative link resolves
+
+Each file with exactly `.MD` or `.md` as its extension in this project must
+follow this rule.
+
+A relative link names a file or directory that is here, and an anchor names a
+heading that target has. Documents link into each other constantly, and
+headings are renamed as often as files; a link that resolves nowhere sends
+the reader to a page that no longer says what the link promised. Code spans
+and fenced blocks are not links and are not checked. External links are
+not checked either, since nothing here can see whether they still resolve.
+
+## `authoring/` — the shipped authoring contract
+
+### `AGENTS.MD` — the authoring contract init copies into every espalier root
+
+Handwritten, not generated: `espalier init` copies it to the espalier root,
+where agents editing rule modules load it by convention. A change here is a
+change to every copy this repository ships, and each must stay byte-identical:
+`espalier/AGENTS.MD` and the compiler example's, which
+`test/authoring.test.ts` compares, and the `init` fixtures' expected copies,
+which the conformance suite compares.
 
 ## Other repository paths
 
@@ -38,12 +68,10 @@ These paths are part of the repository but serve specific purposes outside the p
 | --- | --- |
 | `.git` | Version control metadata. Remove an entry to govern it explicitly. |
 | `.gitignore` | Repository metadata. Tracked on purpose, and dictated by the tool that reads them rather than by this project's architecture. |
-| `.github/` | Continuous integration. |
 | `LICENSE` | Licence and legal. |
 | `package.json`<br>`package-lock.json` | Manifests and lockfiles. |
 | `tsconfig.json` | Tool configuration. The tool decides the filename; the project only decides the contents. |
 | `fixtures/**` | Espalier's conformance fixtures are test data, including deliberately invalid configurations. The test harness runs them independently of the root lint. |
-| `authoring/**` | Shipped authoring contract. `espalier init` copies it to the espalier root so agents editing rules load it by convention. It is data, like `ignores/`, not a file this repository's architecture places. |
 | `examples/**` | Worked examples `espalier examples` prints. Packed with the CLI; not a file this repository's architecture places. |
 | `.espalierignore`<br>`.gitignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
 | `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](espalier/ESPALIER.mjs) to change this document's persistent guidance. |

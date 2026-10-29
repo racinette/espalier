@@ -1,3 +1,4 @@
+export const instanceOf = "[module].ts.mjs";
 export const description = "turning the espalier into documentation";
 
 export const guidance = `Generated documents state each piece of guidance once. Text an
@@ -19,5 +20,3 @@ longer, and even so it appears once per document, not once per section.
 
 Before rendering the same text into a second place, decide which kind it is.
 Author text is never the exception.`;
-
-export async function lint() {}

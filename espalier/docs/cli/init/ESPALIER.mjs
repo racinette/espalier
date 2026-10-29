@@ -1,6 +1,3 @@
-// ---
-// description: bootstrapping a repository
-// ---
+export const instanceOf = "../[command]";
 export const description = "bootstrapping a repository";
-export const fold = false;
 export const guidance = ``;

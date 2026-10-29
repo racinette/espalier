@@ -2,7 +2,6 @@
 
 # espalier — `test/`
 
-
 Two kinds of test, and the division is not stylistic.
 
 `fixtures.test.ts` runs the conformance suite: every directory under
@@ -19,7 +18,6 @@ to reach past it. If a case can be a fixture, it should be.
 A test that passes is not the same as a test that guards. Break the code and
 watch the new test fail before believing it — this suite has shipped cases that
 passed with the fix reverted.
-
 
 ## Project layout
 

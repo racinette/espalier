@@ -2,7 +2,6 @@
 
 # espalier — `docs/`
 
-
 These are not notes about the implementation. They are the specification, and
 where the code and one of them disagree the document is right — so a behaviour
 change is a change here first, and a document that is ambiguous or
@@ -25,7 +24,6 @@ The reasoning is not the history. "One walk, in one language, is what a linter
 can explain" is an argument and belongs here. "Earlier releases shelled out to
 git" is a changelog and does not. When cutting a passage of the second kind,
 keep the first kind that was buried in it.
-
 
 ## Project layout
 

@@ -1,3 +1,5 @@
+import { createTemplate } from "espalier";
+
 export const description = "a test module";
 
 export const guidance = `Opens with a comment saying what this file covers and why
@@ -16,3 +18,13 @@ export async function lint({ read, emit }) {
     });
   }
 }
+
+export const template = createTemplate(({ captures }) => `// TODO: what ${captures.name} covers, and why as a unit test rather than a fixture.
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+
+test("TODO", () => {
+  assert.fail("write the test");
+});
+`);
