@@ -73,6 +73,8 @@ export interface PrefixAnswer {
   espalier?: string | null;
   description: string | null;
   body: string;
+  /** For a named instance directory, its contract, e.g. \`[group]/\`; its guidance is the contract's to state. */
+  instanceOf?: string;
   captures: Record<string, CaptureValue>;
   rules: RuleAnswer[];
   /** The same subtree `build` draws, as data. */
@@ -270,6 +272,7 @@ export function renderExplanation(answer: Explanation, concise = false): string 
     const shown = answer.prefix === "" ? "./" : answer.prefix;
     blocks.push(head(shown, answer.description));
     if (answeredBy !== null) blocks.push(answeredBy);
+    if (answer.instanceOf !== undefined) blocks.push(`  An instance of ${answer.instanceOf}`);
     if (!concise && answer.body !== "") blocks.push(answer.body);
     if (concise && Object.keys(answer.captures).length > 0) {
       blocks.push(["  Captures:", ...describeCaptures(answer.captures, "    ")].join("\n"));

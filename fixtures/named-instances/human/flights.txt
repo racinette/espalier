@@ -1,5 +1,7 @@
 flights/                                 flight planning
 
+  An instance of [group]/
+
   Captures:
     group = "flights"
 

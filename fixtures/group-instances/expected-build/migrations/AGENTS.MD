@@ -8,9 +8,9 @@
     └─ [num=0000][ord=00]_[group=a+].sql  a migration step (zero or more
                                           matching files)
 
-## `[num=0000][ord=00]_[group=a+].sql` — a migration step
+In `[num=0000]`, the text after `=` is a mask: each character matches one character of the name. `0` matches a digit and `a` a lowercase letter. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
 
-In a placeholder, `=` is followed by a mask in which each character matches one character of the name: `0` a digit, `a` a lowercase letter. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
+## `[num=0000][ord=00]_[group=a+].sql` — a migration step
 
 One statement per step.
 

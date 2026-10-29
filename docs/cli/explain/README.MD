@@ -313,10 +313,10 @@ reachable without inventing dynamic directory instances. It is false for
 optional named files, collections that may be empty, and declarations beneath
 uninstantiated dynamic directories. For a required dynamic leaf, the requirement is a minimum number of owned
 matches rather than a literal filename. `description` and
-`body` come from the directory's `ESPALIER.mjs`; for a named instance
-directory, `body` opens with "An instance of `[group]/`, whose guidance
-applies here:" and the contract's guidance, and `captures` holds the
-instance's bindings. A rule entry whose contract is abstract carries
+`body` come from the directory's `ESPALIER.mjs`. For a named instance
+directory, `instanceOf` names the contract, such as `[group]/`, and
+`captures` holds the instance's bindings. `body` is the instance's own
+guidance only. Human output names the contract in both forms. A rule entry whose contract is abstract carries
 `"abstract":true`.
 
 It is called `rules` rather than `declared` because `declared` already means something narrower and is already in the output above: the names of a node's immediate children, which is what `lint` attaches to `unexpected_path`. One key, one shape.

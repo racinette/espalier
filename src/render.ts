@@ -7,6 +7,7 @@
 
 import type { Constraint, Espalier, LoadedModule, NodeDoc, StructuralRule, TrieNode } from "./compile.js";
 import type { GuidanceMode } from "./config.js";
+import path from "node:path";
 import { PROVENANCE } from "./files.js";
 import { matchSegment, resolveSegment, type CaptureValue, backrefNames, isStrictSubset, parseSegment, parseStructuralLeaf, type Segment } from "./pattern.js";
 import { admissionGlobs } from "./targets.js";
@@ -974,13 +975,11 @@ function addingInstances(name: string, directory: boolean, abstract: boolean, le
 }
 
 /**
- * One rule's body: the legend for its masks, its guidance, its reference.
- * docs/cli/build/README.MD "Rule sections".
+ * One rule's body: its guidance and its reference. The mask legend is the
+ * document's, stated once under the map. docs/cli/build/README.MD "Rule sections".
  */
-function ruleBody(point: Placement, at: string, module: LoadedModule): string[] {
+function ruleBody(module: LoadedModule): string[] {
   const body: string[] = [];
-  const legend = maskLegend([{ path: displayPath(point, at), description: null, required: null }]);
-  if (legend !== null) body.push(legend);
   if (module.guidance.trim() !== "") body.push(module.guidance.trim());
   // The reference is a repository path and therefore reads as one line.
   if (module.referenceImplementation !== null) body.push(`Reference implementation: ${module.referenceImplementation}`);
@@ -1029,6 +1028,30 @@ interface Documents {
   /** Placements below this document that get a document of their own. */
   below: readonly string[];
   filename: string;
+  /** The placement this document is written for. */
+  current: string;
+  /** Which document renders the section at an authored path. */
+  homes: ReadonlyMap<string, string>;
+}
+
+/**
+ * Where the section for an authored path is rendered, relative to this
+ * document, so guidance stated there is pointed to rather than repeated.
+ * Null when no section carries it. src/render.ts guidance; docs/cli/build/README.MD
+ * "Stated once".
+ */
+function renderedIn(documents: Documents, at: string): string | null {
+  const home = documents.homes.get(at);
+  if (home === undefined) return null;
+  if (home === documents.current) return "this document";
+  const relative = path.posix.relative(documents.current === "" ? "." : documents.current, home === "" ? "." : home);
+  return `${codeSpan(relative === "" ? documents.filename : `${relative}/${documents.filename}`)}`;
+}
+
+/** "Inherits `x`, whose guidance in `../AGENTS.MD` applies here." or, with nothing to point to, "Inherits `x`." */
+function pointer(lead: string, documents: Documents, at: string, hasGuidance: boolean): string {
+  const where = hasGuidance ? renderedIn(documents, at) : null;
+  return where === null ? `${lead}.` : `${lead}, whose guidance in ${where} applies here.`;
 }
 
 function renderSections(espalier: Espalier, point: Placement, level: number, documents: Documents): string[] {
@@ -1078,14 +1101,17 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
     const { module } = section.rule;
     const node = nodeAt(point, section.at);
     const instances = instanceSections.get(section) ?? [];
-    const body = ruleBody(point, section.at, module);
+    // A contract inherited into an instance directory is stated where it is
+    // authored; here it is named, so its instances have a section to nest under.
+    const inherited = section.rule.modulePath !== `${section.at}.mjs`;
+    const body = inherited
+      ? [pointer(`Inherited from ${codeSpan(section.rule.pattern)}`, documents, section.rule.pattern, module.guidance.trim() !== "")]
+      : ruleBody(module);
     // A local file that takes over an inherited one, without a dynamic
-    // contract to nest under, carries the inherited guidance itself.
-    const base = section.rule.inherited?.at(-1);
+    // contract to nest under, names the rule it inherits and where that is stated.
+    const base = inherited ? undefined : section.rule.inherited?.at(-1);
     if (base !== undefined) {
-      body.unshift(...(base.module.guidance.trim() === ""
-        ? [`Inherits ${codeSpan(base.pattern)}.`]
-        : [`Inherits ${codeSpan(base.pattern)}:`, base.module.guidance.trim()]));
+      body.unshift(pointer(`Inherits ${codeSpan(base.pattern)}`, documents, base.pattern, base.module.guidance.trim() !== ""));
     }
 
     // A section with nothing to say is omitted entirely, along with its
@@ -1095,7 +1121,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
 
     const heading = module.description === null ? "" : ` — ${module.description}`;
     blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${heading}`, ...body);
-    blocks.push(...groupingSections(module, displayPath(point, section.at), level + 1));
+    if (!inherited) blocks.push(...groupingSections(module, displayPath(point, section.at), level + 1));
 
     if (instances.length > 0 || module.abstract) {
       blocks.push(instances.length === 0
@@ -1103,7 +1129,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
         : "Concrete instances, each bound by this contract and by its own section:");
       for (const instance of instances) {
         if (instance.kind !== "rule") continue;
-        const own = ruleBody(point, instance.at, instance.rule.module);
+        const own = ruleBody(instance.rule.module);
         const described = instance.rule.module.description === null ? "" : ` — ${instance.rule.module.description}`;
         blocks.push(`${hashes}# ${codeSpan(displayPath(point, instance.at))}${described}`, ...own);
         blocks.push(...groupingSections(instance.rule.module, displayPath(point, instance.at), level + 2));
@@ -1152,13 +1178,17 @@ function heading(name: string | null, at: string): string[] {
  * never writes it is noise. docs/MATCHING.MD "Masks";
  * docs/cli/build/README.MD "The map".
  */
-function maskLegend(entries: MapEntry[]): string | null {
+function maskLegend(paths: string[]): string | null {
   const used = new Set<string>();
-  let list = false;
-  for (const entry of entries) {
-    for (const [, constraint] of entry.path.matchAll(/\[[A-Za-z_][A-Za-z0-9_]*=([^\]]*)\]/g)) {
-      if (constraint!.startsWith("{")) list = true;
-      else for (const char of constraint!) used.add(char);
+  let masked: string | null = null;
+  let listed: string | null = null;
+  for (const shown of paths) {
+    for (const [placeholder, constraint] of shown.matchAll(/\[[A-Za-z_][A-Za-z0-9_]*=([^\]]*)\]/g)) {
+      if (constraint!.startsWith("{")) listed ??= placeholder;
+      else {
+        masked ??= placeholder;
+        for (const char of constraint!) used.add(char);
+      }
     }
   }
   const meanings: [string, string][] = [
@@ -1173,15 +1203,19 @@ function maskLegend(entries: MapEntry[]): string | null {
   ];
   const classes = meanings.filter(([char]) => used.has(char)).map(([char, meaning]) => `${codeSpan(char)} ${meaning}`);
   const sentences: string[] = [];
-  if (classes.length > 0) {
+  if (masked !== null) {
+    // Shown on a placeholder the reader has just seen in the map.
+    sentences.push(`In ${codeSpan(masked)}, the text after ${codeSpan("=")} is a mask: each character matches one character of the name.`);
+    // "`0` matches a digit, `a` a lowercase letter and `-` a dash."
+    const [first, ...rest] = classes;
+    sentences.push(`${listing([first!.replace(" ", " matches "), ...rest])}.`);
     const repeats = [
       ...(used.has("+") ? [`${codeSpan("+")} repeats the element before it one or more times`] : []),
-      ...(used.has("(") ? [`${codeSpan("(n)")} repeats the element before it exactly n times`] : []),
+      ...(used.has("(") ? [`${used.has("+") ? codeSpan("(n)") + " repeats it" : codeSpan("(n)") + " repeats the element before it"} exactly n times`] : []),
     ];
-    sentences.push(`In a placeholder, ${codeSpan("=")} is followed by a mask in which each character matches one character of the name: ${classes.join(", ")}.`);
     if (repeats.length > 0) sentences.push(`${repeats.join(", and ")}.`);
   }
-  if (list) sentences.push(`${codeSpan("[name={a,b}]")} accepts exactly the listed names.`);
+  if (listed !== null) sentences.push(`${codeSpan(listed)} accepts exactly the listed names.`);
   if (sentences.length === 0) return null;
   sentences.push(`${codeSpan("espalier help matching")} has the full grammar.`);
   return sentences.join(" ");
@@ -1191,6 +1225,31 @@ function maskLegend(entries: MapEntry[]): string | null {
 function listing(items: string[]): string {
   if (items.length <= 1) return items.join("");
   return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+}
+
+/**
+ * A directory's own prose. An instance directory opens by naming its contract
+ * and the document that states the contract's guidance, which is not repeated.
+ * docs/cli/build/README.MD "Stated once".
+ */
+function directoryProse(espalier: Espalier, point: Placement, documents: Documents): string[] {
+  const doc = point.doc;
+  if (doc === null) return [];
+  const blocks: string[] = [];
+  if (doc.instanceOf !== undefined) {
+    const contract = path.posix.normalize(path.posix.join(point.at, doc.instanceOf));
+    const guided = (espalier.nodes.get(contract)?.body.trim() ?? "") !== "" || contractRules(espalier, contract);
+    blocks.push(pointer(`An instance of ${codeSpan(`${contract}/`)}`, documents, contract, guided));
+  }
+  if (doc.body !== "") blocks.push(doc.body);
+  return blocks;
+}
+
+/** Whether a directory contract's files carry guidance of their own. */
+function contractRules(espalier: Espalier, contract: string): boolean {
+  let node: TrieNode | undefined = espalier.root;
+  for (const part of contract.split("/")) node = node && [...node.children.values()].find((child) => child.display === part && child.rule === null);
+  return node !== undefined && [...subtree(node)].some((visit) => visit.node.rule !== null && visit.node.rule.module.guidance.trim() !== "");
 }
 
 /** The body every document shares: prose, project layout, sections and other paths. */
@@ -1205,11 +1264,12 @@ function core(
   espalierGuidance = true,
   guidanceMode: GuidanceMode = "evolving",
   filename = "AGENTS.MD",
+  homes: ReadonlyMap<string, string> = new Map(),
 ): string[] {
   const blocks: string[] = [];
-  const documents: Documents = { below: stopAt, filename };
+  const documents: Documents = { below: stopAt, filename, current: point.at, homes };
 
-  if (point.doc !== null && point.doc.body !== "") blocks.push(point.doc.body);
+  blocks.push(...directoryProse(espalier, point, documents));
   if (espalierGuidance && nested && point.at === "") {
     blocks.push(BOUNDARY, `## Architecture changes
 
@@ -1221,19 +1281,23 @@ ${architectureGuidance(guidanceMode)}`);
   const map = renderMap(espalier, point, stopAt);
   const closed = renderClosedSet(point);
 
-  if (map !== null) {
-    blocks.push(`${"#".repeat(level)} Project layout`, map);
-    // A file's mask is explained beside the rule that uses it; a directory's
-    // has no section of its own, so the map explains it.
-    const legend = maskLegend(mapEntries(espalier, point.node!, point.at, stopAt).filter((entry) => entry.path.endsWith("/")));
-    if (legend !== null) blocks.push(legend);
-  }
+  // One legend per document, for every mask it shows, under the map where
+  // masks first appear. docs/cli/build/README.MD "The map".
+  const shown = [
+    ...(map === null ? [] : mapEntries(espalier, point.node!, point.at, stopAt).map((entry) => entry.path)),
+    ...[point, ...point.folded].flatMap((each) => each.sections.flatMap((section) => [
+      section.at,
+      ...(section.kind === "rule" ? section.rule.module.groups.flatMap((grouping) => grouping.instances.map((instance) => instance.pattern)) : []),
+    ])),
+  ];
+  const legend = maskLegend(shown);
+  if (map !== null) blocks.push(`${"#".repeat(level)} Project layout`, map);
+  if (legend !== null) blocks.push(legend);
 
   blocks.push(...renderChildren(point.at, named, level));
   blocks.push(...renderSections(espalier, point, level, documents));
   for (const folded of point.folded) {
-    const body: string[] = [];
-    if (folded.doc !== null && folded.doc.body !== "") body.push(folded.doc.body);
+    const body: string[] = [...directoryProse(espalier, folded, documents)];
     body.push(...renderSections(espalier, folded, level + 1, documents));
     if (body.length === 0) continue;
     const description = folded.doc?.description == null ? "" : ` — ${folded.doc.description}`;
@@ -1261,10 +1325,16 @@ export function renderDocument(
   const stopAt = points
     .filter((candidate) => candidate.at !== point.at && candidate.at.startsWith(prefix))
     .map((candidate) => candidate.at);
+  const homes = new Map<string, string>();
+  for (const candidate of points) {
+    for (const each of [candidate, ...candidate.folded]) {
+      for (const section of each.sections) homes.set(section.at, candidate.at);
+    }
+  }
   const blocks = [
     marker(espalierRoot, point.at),
     ...heading(name, point.at),
-    ...core(espalier, point, 2, named, outside, stopAt, nested, espalierGuidance, guidanceMode, filename),
+    ...core(espalier, point, 2, named, outside, stopAt, nested, espalierGuidance, guidanceMode, filename, homes),
   ];
   if (espalierGuidance && point.at === "" && !nested) blocks.push(workingGuidance(guidanceMode));
   return `${blocks.join("\n\n")}\n`;

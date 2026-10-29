@@ -168,11 +168,18 @@ Every other directory also carries a trailing `/`. Dynamic names retain their
 authored form, such as `[provider]/` or `[button].tsx`. Back-references whose
 bindings are known in a named instance appear as concrete names.
 
-A map whose directory names hold a masked or listed placeholder, such as
-`[seq=0(6)]/`, is followed by one paragraph explaining the symbols those
-names use and no others, so a reader who has never seen a mask can read the
-map without leaving it. A masked filename is explained in its own rule
-section instead. A map without a masked directory says nothing about masks.
+A document that shows a masked or listed placeholder, in its map or in a
+section heading, has one legend directly under the map. The legend takes the
+first such placeholder as its example and explains the symbols the document
+uses and no others, so a reader who has never seen a mask can read the
+document without leaving it:
+
+```markdown
+In `[num=0000]`, the text after `=` is a mask: each character matches one character of the name. `0` matches a digit and `a` a lowercase letter. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
+```
+
+The legend is stated once per document, not once per section. A document
+with no masked or listed name says nothing about masks.
 
 Structural rule headings are relative to the placement point that contains
 them. A document headed `src/` therefore describes `context.ts`, not
@@ -442,8 +449,7 @@ A directory below the placement point may have prose too — a dynamic directory
 Sections appear in map order, so the map doubles as a table of contents, and a
 directory's section precedes the sections of everything inside it. The heading
 is relative to the placement point, like its path in that document's map:
-`[provider]/client.ts` under `src/clients/`. A name that holds a mask is
-followed by a legend for the symbols it uses, before the guidance. The
+`[provider]/client.ts` under `src/clients/`. The
 `Reference implementation:` line
 carries the repository path from `referenceImplementation` and is omitted when
 the module exports none. Inline source is deliberately unsupported: an
@@ -457,8 +463,6 @@ guidance follows verbatim:
 
 ```markdown
 ## `[num=0000][ord=00]_[group=a+].sql` — a migration step
-
-In a placeholder, `=` is followed by a mask in which each character matches one character of the name: `0` a digit, `a` a lowercase letter. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
 
 One statement per step.
 
@@ -529,9 +533,12 @@ an undeclared one is reported. See `espalier help instances`.", or "Every
 instances yet says "No instances are declared yet." in place of the
 introduction. A contract inherited into an
 instance directory gets this section in that directory's document when
-something there is declared an instance of it, so the document that names
-the instances also states what they share. The instances appear in map order,
-static before dynamic, even though they read under the contract.
+something there is declared an instance of it, so its instances have a
+section to nest under. The section does not repeat the contract's guidance.
+It says where that guidance is stated: "Inherited from
+`[group]/[module].ts`, whose guidance in `../AGENTS.MD` applies here." The
+instances appear in map order, static before dynamic, even though they read
+under the contract.
 
 A dynamic directory with declared instances is a contract too. Its section
 lists the instances, each with its description and, when it has a document of
@@ -551,13 +558,25 @@ A `[group]/` directory needs no declaration. Declaring one gives it its own guid
 ```
 
 A file declared in an instance directory that takes over an inherited static
-file has no dynamic contract to nest under. Its section states the inherited
-guidance first, introduced by "Inherits `app/[route]/loading.tsx`:", then its
-own. An instance directory's own document opens with "An instance of
-`[group]/`, whose guidance applies here:" followed by the contract's guidance,
-or just "An instance of `[group]/`." when the contract has none, so neither
-document sends the reader up a level. The contract is named by its path from
-the repository root.
+file has no dynamic contract to nest under. Its section opens with "Inherits
+`app/[route]/loading.tsx`, whose guidance in `../AGENTS.MD` applies here.",
+then gives its own guidance. An instance directory's own document opens the
+same way: "An instance of `[group]/`, whose guidance in `../AGENTS.MD` applies
+here." The contract is named by its path from the repository root. When there
+is no guidance to point to, the sentence ends after the name: "An instance of
+`[group]/`." When the guidance is in the same document, as after folding, it
+says "in this document".
+
+### Stated once
+
+Guidance an author writes is rendered in exactly one place. Wherever it also
+applies, the generated text names where it is stated rather than repeating
+it, because guidance is arbitrarily long and every repetition costs every
+reader. A reader who needs it follows the reference, and an agent that loads
+ancestor documents already has it. Fixed text the tool writes, such as the
+mask legend or the closing account, may repeat when it is short and a
+reference would cost more to follow, but the legend still appears once per
+document.
 
 Constraints come last, under one `Constraints` heading, one sub-section each.
 They are ordered by their rule-file paths, regardless of whether they check

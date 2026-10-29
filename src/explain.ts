@@ -155,6 +155,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
       prefix,
       description: doc?.description ?? null,
       body: doc?.body ?? "",
+      ...(doc?.instanceOf === undefined ? {} : { instanceOf: `${path.posix.normalize(path.posix.join(found.path, doc.instanceOf))}/` }),
       captures: found.captures,
       rules,
       map: mapEntries(espalier, found.node, found.path),

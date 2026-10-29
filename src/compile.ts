@@ -875,18 +875,6 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
       else doc.body = result;
     }
   }
-  // An instance's document states the contract it belongs to, with the
-  // contract's own guidance, so the reader is not sent up a level for it.
-  // Prefaces are added once every body is rendered, whichever came first.
-  for (const [at, doc] of nodes) {
-    if (!doc.instanceOf) continue;
-    const reference = path.posix.normalize(path.posix.join(at, doc.instanceOf));
-    const contract = nodes.get(reference)?.body.trim() ?? "";
-    const preface = contract === ""
-      ? `An instance of \`${reference}/\`.`
-      : `An instance of \`${reference}/\`, whose guidance applies here:\n\n${contract}`;
-    doc.body = doc.body === "" ? preface : `${preface}\n\n${doc.body}`;
-  }
   return { root: trie, constraints, nodes };
 }
 

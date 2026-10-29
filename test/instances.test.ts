@@ -43,7 +43,8 @@ test('named directory creation uses inherited template captures, and guidance st
     assert.equal(build.status, 0, build.stdout + build.stderr);
     const local = readFileSync(path.join(root, 'flights/AGENTS.MD'), 'utf8');
     assert.match(local, /DOMAIN flights flights evolving/);
-    assert.match(local, /An instance of `\[group\]\/`, whose guidance applies here:\n\nCOMMON CONTRACT/);
+    assert.match(local, /An instance of `\[group\]\/`, whose guidance in `\.\.\/AGENTS\.MD` applies here\./);
+    assert.doesNotMatch(local, /COMMON CONTRACT/);
     assert.match(local, /flights\.ts/);
     assert.doesNotMatch(local, /\{group\}\.ts/);
     assert.doesNotMatch(local, /Shared obligation/);

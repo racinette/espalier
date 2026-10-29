@@ -10,9 +10,9 @@
     │
     └─ [name].sql                 ad-hoc scripts (zero or more matching files)
 
-## `[kind={tables,views}].sql` — the two catalog scripts
+`[kind={tables,views}]` accepts exactly the listed names. `espalier help matching` has the full grammar.
 
-`[name={a,b}]` accepts exactly the listed names. `espalier help matching` has the full grammar.
+## `[kind={tables,views}].sql` — the two catalog scripts
 
 One script per catalog kind.
 

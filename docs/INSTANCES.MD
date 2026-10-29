@@ -55,8 +55,9 @@ composition and requiredness rules in full.
   that, and `create` makes it like any declared file or directory.
 - In generated guidance a file gets its own sub-section under its contract,
   with the contract's guidance stated once above. A directory gets a line
-  under the contract and its own document, which opens with the contract's
-  guidance. `explain` lists the inherited chain.
+  under the contract and its own document, which opens by naming the
+  contract and the document that states its guidance. That guidance is not
+  repeated. `explain` lists the inherited chain.
 - Every inherited check still runs, and findings keep the module that
   produced them.
 - It stays a member of the contract's groupings, with the captures the
