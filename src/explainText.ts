@@ -40,6 +40,8 @@ export interface GroupAnswer {
 export interface RuleAnswer {
   inherited?: Array<Omit<InheritedAnswer, "captures">>;
   groups?: GroupAnswer[];
+  /** Every match must be a declared instance. docs/INSTANCES.MD. */
+  abstract?: true;
   path: string;
   pattern: string;
   rule: string;
@@ -73,6 +75,8 @@ export interface InheritedAnswer {
 export interface OwnedAnswer {
   inherited?: InheritedAnswer[];
   groups?: GroupAnswer[];
+  /** The owner is abstract and this path is not declared. docs/INSTANCES.MD. */
+  abstract?: true;
   kind: "explanation";
   path: string;
   /** The espalier that answered, or null for the one the command loaded. */
@@ -326,6 +330,7 @@ export function renderExplanation(answer: Explanation, concise = false): string 
     [
       `  Owned by  ${answer.rule.replace(/\.mjs$/, "")}`,
       ...describeCaptures(answer.captures, " ".repeat(12)),
+      ...(answer.abstract === true ? ["  Undeclared  the contract is abstract; declare this path, or see `espalier help instances`"] : []),
     ].join("\n"),
   );
   blocks.push(

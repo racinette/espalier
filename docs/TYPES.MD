@@ -49,6 +49,7 @@ aggregate form.
 | `instanceOf` | no | matching inherited contract for a named member |
 | `minMatches` | no | minimum membership of a dynamic collection |
 | `literalName` | no | the filename's brackets or braces are the name, not placeholders |
+| `abstract` | no | on a dynamic leaf, every match must be a declared instance |
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
 | `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
@@ -330,6 +331,21 @@ a constraint, and is rejected on a filename with no bracket or brace. The same
 export on a directory module makes the directory's name literal.
 See [Literal names](MATCHING.MD#literal-names).
 
+### `abstract`
+
+```js
+// espalier/clients/[provider].ts.mjs
+export const abstract = true;
+```
+
+A dynamic leaf that admits no anonymous member. Every file the pattern
+matches must be declared as an instance with its own module, or `lint`
+reports it as `undeclared_instance` and `create` refuses to make it. The
+contract keeps its `description`, `guidance`, `lint`, `template`, `groups`
+and `minMatches`; instances inherit them as always. A boolean, valid only on
+a dynamic leaf. The same export on a dynamic directory's `ESPALIER.mjs` makes
+every matching directory a declared instance. See [INSTANCES.MD](INSTANCES.MD).
+
 ### `targets`
 
 ```js
@@ -492,6 +508,7 @@ structural `guidance`, `lint`, or `template`. Its exports are:
 | `instanceOf` | absent | a matching sibling dynamic directory contract, such as `"../[feature]"` |
 | `optional` | `false` | permit a named directory instance to be absent; valid only with `instanceOf` |
 | `literalName` | `false` | the directory's brackets or braces are its name, as in a Next.js `[slug]` route; see [Literal names](MATCHING.MD#literal-names) |
+| `abstract` | `false` | on a dynamic directory, every matching directory must be a declared instance; see [INSTANCES.MD](INSTANCES.MD) |
 
 For example, computed guidance can follow the configured architecture mode:
 

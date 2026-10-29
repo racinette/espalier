@@ -298,7 +298,8 @@ Named directory and file instances can specialize dynamic contracts with
 `instanceOf`. They retain inherited structure and checks while supplying
 domain-specific guidance and additional requirements. Named members are
 required by default; `optional` controls their presence and `minMatches`
-controls dynamic collection size. See [named instances](docs/MATCHING.MD#named-instances)
+controls dynamic collection size. A contract exporting `abstract = true`
+insists on declarations, reporting any member that lacks one. See [named instances](docs/MATCHING.MD#named-instances)
 for the complete contract and [migration](docs/cli/migrate/README.MD) for
 converting Markdown directory guidance to `ESPALIER.mjs`.
 

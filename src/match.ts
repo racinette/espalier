@@ -9,9 +9,19 @@ import { captureNames, isStrictSubset, matchSegment, resolveSegment, type Captur
 // issue reaches for it through this module.
 export type { CaptureValue } from "./pattern.js";
 
+/** A concrete directory an abstract dynamic directory matched without a declaration. */
+export interface UndeclaredDirectory {
+  /** Concrete repository path, e.g. `app/blog`. */
+  path: string;
+  /** The authored contract it matched, e.g. `app/[route]`. */
+  contract: string;
+}
+
 export interface Ownership {
   rule: StructuralRule;
   captures: Record<string, CaptureValue>;
+  /** Directories on the way down that an abstract contract matched anonymously. */
+  undeclared?: UndeclaredDirectory[];
 }
 
 export interface DirectoryOwnership {
@@ -19,6 +29,8 @@ export interface DirectoryOwnership {
   /** Authored directory path, e.g. `clients/[provider]`; empty at the root. */
   path: string;
   captures: Record<string, CaptureValue>;
+  /** Directories on the way down, this one included, that an abstract contract matched anonymously. */
+  undeclared?: UndeclaredDirectory[];
 }
 
 /** How far the espalier recognized a path before it stopped. */
@@ -87,6 +99,7 @@ export function resolve(espalier: Espalier, filePath: string): Ownership | Recog
   const segments = filePath.split("/");
   const walked: string[] = [];
   const captures: Record<string, CaptureValue> = {};
+  const undeclared: UndeclaredDirectory[] = [];
   let node = espalier.root;
 
   for (const [index, segment] of segments.entries()) {
@@ -106,7 +119,10 @@ export function resolve(espalier: Espalier, filePath: string): Ownership | Recog
 
     if (last) {
       if (node.rule === null) return stopped(node, walked, captures);
-      return { rule: node.rule, captures };
+      return { rule: node.rule, captures, ...(undeclared.length === 0 ? {} : { undeclared }) };
+    }
+    if (node.abstract === true && node.segment.dynamic) {
+      undeclared.push({ path: segments.slice(0, index + 1).join("/"), contract: walked.join("/") });
     }
   }
 
@@ -130,17 +146,21 @@ export function resolveDirectory(
   const segments = directoryPath.split("/");
   const walked: string[] = [];
   const captures: Record<string, CaptureValue> = {};
+  const undeclared: UndeclaredDirectory[] = [];
   let node = espalier.root;
 
-  for (const segment of segments) {
+  for (const [index, segment] of segments.entries()) {
     const next = selectChild(node, segment, captures, true);
     if (next === null) return stopped(node, walked, captures);
     node = next.node;
     walked.push(node.display);
     Object.assign(captures, next.captures);
+    if (node.abstract === true && node.segment.dynamic) {
+      undeclared.push({ path: segments.slice(0, index + 1).join("/"), contract: walked.join("/") });
+    }
   }
 
-  return { node, path: walked.join("/"), captures };
+  return { node, path: walked.join("/"), captures, ...(undeclared.length === 0 ? {} : { undeclared }) };
 }
 
 export function isDirectoryOwnership(

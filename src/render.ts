@@ -399,6 +399,8 @@ export interface MapEntry {
   instanceOf?: string;
   /** The name's brackets or braces are the name: the module declared `literalName`. */
   literal?: true;
+  /** Every match must be a declared instance. */
+  abstract?: true;
 }
 
 export function mapEntries(
@@ -448,6 +450,7 @@ export function mapEntries(
       ...(visit.node.segment.dynamic && (visit.node.rule?.module.minMatches ?? 0) > 1 ? { minMatches: visit.node.rule!.module.minMatches } : {}),
       ...(contract === undefined ? {} : { instanceOf: directory ? `${contract}/` : contract.replace(/\.mjs$/, "") }),
       ...(visit.node.segment.literal === true ? { literal: true } : {}),
+      ...((directory ? visit.node.abstract === true : visit.node.rule?.module.abstract === true) ? { abstract: true } : {}),
       required:
         visit.node.instanceOf !== undefined ? !visit.node.optional : directory || (visit.node.segment.dynamic && visit.node.rule?.module.optional !== false)
           ? null
@@ -474,9 +477,12 @@ function suffixes(entry: MapEntry): string[] {
 
   if (!segment.dynamic && entry.required !== null) marks.push(entry.required ? "required" : "optional");
   if (entry.literal === true) marks.push("literal name");
+  // "declared" rather than "matching" when the contract is abstract: a match
+  // without a declaration is reported, so the count is of declared instances.
+  const kind = entry.abstract === true ? "declared" : "matching";
   if (segment.dynamic) marks.push(entry.path.endsWith("/")
-    ? "zero or more matching directories"
-    : (entry.minMatches ?? 0) > 1 ? `at least ${entry.minMatches} matching files` : entry.required === true ? "one or more matching files" : "zero or more matching files");
+    ? `zero or more ${kind} directories`
+    : (entry.minMatches ?? 0) > 1 ? `at least ${entry.minMatches} ${kind} files` : entry.required === true ? `one or more ${kind} files` : `zero or more ${kind} files`);
   if (entry.instanceOf !== undefined) marks.push(`instance of ${entry.instanceOf}`);
 
   // What the capture holds, not what the segment was: under

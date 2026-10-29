@@ -47,6 +47,7 @@ export interface RuleModule {
   template?: unknown;
   groups?: unknown;
   literalName?: unknown;
+  abstract?: unknown;
 }
 
 /** Brackets or braces, which a path segment otherwise reads as placeholders. */
@@ -72,6 +73,8 @@ export interface LoadedModule {
   guidanceRenderer?: (context: RuleGuidanceContext) => unknown;
   /** Absent when the module has nothing to check; guidance alone is a rule. */
   lint?: (context: unknown) => unknown;
+  /** Every match must be a declared instance; an anonymous one is reported. docs/INSTANCES.MD. */
+  abstract: boolean;
   referenceImplementation: string | null;
   /** Named absence policy; on collections, derived from the minimum for rendering. */
   optional: boolean;
@@ -122,6 +125,8 @@ export interface TrieNode {
   baseSegment?: Segment;
   instanceOf?: string;
   optional?: boolean;
+  /** A dynamic directory whose every match must be a declared instance. */
+  abstract?: boolean;
 }
 
 export interface Constraint {
@@ -152,6 +157,8 @@ export interface NodeDoc {
   optional?: boolean;
   /** The directory's name is literal, placeholder syntax and all. */
   literalName?: boolean;
+  /** Every directory this pattern matches must be a declared instance. */
+  abstract?: boolean;
 }
 
 export interface Espalier {
@@ -313,6 +320,12 @@ async function loadModule(
   if (loaded.literalName === true && !PLACEHOLDER_SYNTAX.test(leafName)) {
     fail("module_invalid_export", `${modulePath}: \`literalName\` applies to a name containing placeholder syntax; "${leafName}" has none`);
   }
+  if (loaded.abstract !== undefined && typeof loaded.abstract !== "boolean") {
+    fail("module_invalid_export", `${modulePath}: \`abstract\` must be a boolean`);
+  }
+  if (loaded.abstract === true && kind !== "dynamic") {
+    fail("module_invalid_export", `${modulePath}: \`abstract\` applies to a dynamic structural rule, whose every match must then be a declared instance`);
+  }
 
   if ("unobservedImplementationDependencies" in loaded) fail("module_invalid_export", `${modulePath}: unobservedImplementationDependencies is not supported`);
   if ("rule" in loaded) {
@@ -420,6 +433,7 @@ async function loadModule(
     ...(typeof loaded.guidance === "function"
       ? { guidanceRenderer: loaded.guidance as (context: RuleGuidanceContext) => unknown } : {}),
     ...(loaded.lint === undefined ? {} : { lint: loaded.lint as (context: unknown) => unknown }),
+    abstract: loaded.abstract === true,
     referenceImplementation:
       typeof loaded.referenceImplementation === "string"
         ? loaded.referenceImplementation
@@ -746,6 +760,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     });
   }
 
+  markAbstract(trie, nodes);
   materializeInstances(trie, nodes);
   validateBindings(trie, new Set());
   for (const constraint of constraints) validateSegments(constraint.directory, new Set(), constraint.modulePath);
@@ -873,7 +888,7 @@ async function readDirectoryModule(
   if (module.instanceOf !== undefined && (typeof module.instanceOf !== "string" || !module.instanceOf)) {
     fail("malformed_node_description", `${source}: instanceOf must be a nonempty string`);
   }
-  for (const key of ["fold", "optional", "literalName"] as const) {
+  for (const key of ["fold", "optional", "literalName", "abstract"] as const) {
     if (module[key] !== undefined && typeof module[key] !== "boolean") {
       fail("malformed_node_description", `${source}: ${key} must be a boolean`);
     }
@@ -899,6 +914,7 @@ async function readDirectoryModule(
     fold: module.fold === true, body: typeof module.guidance === "string" ? module.guidance : "",
     instanceOf: module.instanceOf as string | undefined, optional: module.optional === true,
     ...(module.literalName === true ? { literalName: true } : {}),
+    ...(module.abstract === true ? { abstract: true } : {}),
     ...(typeof module.guidance === "function" ? { render: module.guidance as (context: DirectoryGuidanceContext) => unknown } : {}),
     ...(typeof module.description === "function" ? { renderDescription: module.description as (context: DirectoryGuidanceContext) => unknown } : {}),
   };
@@ -922,6 +938,21 @@ function validateBindings(node: TrieNode, bound: Set<string>): void {
   for (const child of node.children.values()) {
     const next = validateSegments([child.baseSegment ?? child.segment], bound, child.rule?.modulePath ?? child.display);
     validateBindings(child, next);
+  }
+}
+
+/** An abstract directory module marks its dynamic node before instances are cloned from it. */
+function markAbstract(root: TrieNode, docs: Map<string, NodeDoc>): void {
+  for (const [at, doc] of docs) {
+    if (!doc.abstract) continue;
+    if (at === "") fail("malformed_node_description", "abstract applies to a dynamic directory, not the espalier root");
+    let node: TrieNode | undefined = root;
+    for (const part of at.split("/")) {
+      node = node === undefined ? undefined : [...node.children.values()].find((child) => child.display === part && child.rule === null);
+    }
+    if (node === undefined) fail("malformed_node_description", `${at}: abstract applies to a dynamic directory that declares contents; this one declares none`);
+    if (!node.segment.dynamic) fail("malformed_node_description", `${at}: only a dynamic directory such as \`[name]/\` can be abstract`);
+    node.abstract = true;
   }
 }
 

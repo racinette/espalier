@@ -237,7 +237,9 @@ their inherited contents.
 **`zero or more matching files`** or **`one or more matching files`** marks a file pattern containing a `[name]`
 placeholder, such as `[button].tsx` or `test-[name].ts`. A directory pattern
 uses **`zero or more matching directories`**. These counts preserve the restrictions expressed by the pattern; none
-promises that an arbitrary name is accepted.
+promises that an arbitrary name is accepted. An abstract contract counts
+**`declared`** rather than `matching` members, because a match without a
+declaration is reported, not accepted.
 
 **`instance of <contract>`** identifies a named specialization alongside its
 requiredness: `Flights/` can read `(required, instance of [feature]/)`, and

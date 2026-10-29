@@ -528,6 +528,12 @@ directory exports `instanceOf = "../[group]"` from `ESPALIER.mjs`; a named file
 exports `instanceOf = "[module].ts.mjs"` to specialize a matching dynamic leaf
 in its inherited directory. These references name contracts, not JS imports.
 
+A contract may export `abstract = true` to refuse anonymous members: every
+path it admits must then be declared as an instance, and `espalier lint`
+reports one that is not. Use it where the set of members is itself part of
+the architecture, such as the providers a system integrates with.
+`espalier help instances` has the how-to.
+
 Every inherited check still runs. Local rules add checks and domain guidance;
 they cannot admit unsupported paths, remove required members, or suppress base
 checks. Unmentioned children remain inherited. Named instances are required

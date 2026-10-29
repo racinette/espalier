@@ -689,7 +689,7 @@ What is declared at a node is every child it has, files and directories together
 
 ## Built-in issues
 
-Three issue codes come from matching rather than from a rule module. Their `rule` field is null, because no module produced them, and their severity is fixed at `error`.
+These issue codes come from matching rather than from a rule module. Their `rule` field is null, because no module produced them, and their severity is fixed at `error`.
 
 `unexpected_path` — the file is not owned by any structural rule.
 
@@ -698,6 +698,9 @@ file. A leaf marked `optional = true` never reports it.
 
 `missing_required_match` — a dynamic leaf with a positive `minMatches` owns too few
 files in an owning directory.
+
+`undeclared_instance` — an abstract contract admits this file or directory and
+no instance declares it. The path is still owned. See [INSTANCES.MD](INSTANCES.MD).
 
 Everything that makes the espalier itself invalid — ambiguous siblings, inconsistent capture names, more than one recursive placeholder in a path, a duplicate placeholder name, a contradiction between an exclusion and a required leaf — is an operational failure, not an issue. It exits `2` and no files are linted. Every code is listed in [ERRORS.MD](ERRORS.MD).
 
@@ -792,3 +795,12 @@ Inherited prose is documented at the shared contract. A named instance's
 output identifies that contract and presents its own domain guidance and
 concrete layout without repeating inherited guidance. Folding continues to
 control placement. `explain` exposes the full inherited rule chain.
+
+### Abstract contracts
+
+A dynamic rule, or a dynamic directory's `ESPALIER.mjs`, may export
+`abstract = true`. Matching is unchanged: the pattern still admits the same
+names, with the same precedence, and a declared instance still wins as a
+static sibling. What changes is the verdict on a match that no instance
+declares. It is reported as `undeclared_instance` rather than accepted, and
+`create` refuses to make it. [INSTANCES.MD](INSTANCES.MD) is the how-to.

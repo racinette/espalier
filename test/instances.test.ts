@@ -178,6 +178,30 @@ test('migration ignores export-shaped prose and preserves literal collection sem
   });
 });
 
+test('an abstract contract refuses to create an undeclared member and accepts a declared one', async () => {
+  await scratch(async (root, put) => {
+    put('espalier/clients/[provider].ts.mjs', `${rule}export const abstract = true;`);
+    put('espalier/app/[route]/ESPALIER.mjs', 'export const abstract = true; export const description = "a route";');
+    put('espalier/app/[route]/page.tsx.mjs', rule);
+    const file = run(root, ['create', 'clients/adyen.ts']);
+    assert.equal(file.status, 2);
+    assert.match(file.stdout, /abstract contract `clients\/\[provider\]\.ts`.*espalier\/clients\/adyen\.ts\.mjs/);
+    assert.equal(existsSync(path.join(root, 'clients/adyen.ts')), false);
+    const directory = run(root, ['create', 'app/blog']);
+    assert.equal(directory.status, 2);
+    assert.match(directory.stdout, /abstract contract `app\/\[route\]\/`.*espalier\/app\/blog\/ESPALIER\.mjs/);
+    const inside = run(root, ['create', 'app/blog/page.tsx']);
+    assert.equal(inside.status, 2);
+    assert.match(inside.stdout, /app\/\[route\]\//);
+    put('espalier/clients/adyen.ts.mjs', `${rule}export const instanceOf = "[provider].ts.mjs";`);
+    put('espalier/app/blog/ESPALIER.mjs', 'export const instanceOf = "../[route]"; export const description = "the blog";');
+    assert.equal(run(root, ['create', 'clients/adyen.ts']).status, 0);
+    assert.equal(run(root, ['create', 'app/blog']).status, 0);
+    assert.equal(existsSync(path.join(root, 'app/blog/page.tsx')), true);
+    assert.deepEqual(await check({ cwd: root, jobs: 1 }), []);
+  });
+});
+
 test('migration renames rule to guidance on modules and groupings, and refuses a destructured one', async () => {
   await scratch((root,put)=>{
     const old='rule';

@@ -9,7 +9,7 @@ import { startImplementations } from "./implementation.js";
 import { prepareAddons, snapshot, type Invocation, type Job } from "./execution.js";
 import { jobLimit, runJobs, type Jobs } from "./workers.js";
 import { admitConstraint, admissionGlobs } from "./targets.js";
-import { isOwnership, requirements, structuralChecks, type CaptureValue } from "./match.js";
+import { isOwnership, requirements, structuralChecks, type CaptureValue, type UndeclaredDirectory } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
 import { eachChild } from "./nested.js";
 import { openConfig, type Repository } from "./repository.js";
@@ -106,7 +106,7 @@ async function lintOne(
     });
   };
 
-  const owned: { path: string; rule: StructuralRule; captures: Record<string, CaptureValue> }[] = [];
+  const owned: { path: string; rule: StructuralRule; captures: Record<string, CaptureValue>; undeclared?: UndeclaredDirectory[] }[] = [];
   const allOwned: typeof owned = [];
 
   let considered = 0;
@@ -114,7 +114,7 @@ async function lintOne(
   for (const target of repository.visible) {
     const found = repository.resolve(target);
     if (isOwnership(found)) {
-      const file = { path: target, rule: found.rule, captures: found.captures };
+      const file = { path: target, rule: found.rule, captures: found.captures, ...(found.undeclared === undefined ? {} : { undeclared: found.undeclared }) };
       allOwned.push(file);
       if (inScope(target)) owned.push(file);
       if (inScope(target)) considered += 1;
@@ -127,6 +127,24 @@ async function lintOne(
       captures: found.captures,
       declared: found.declared,
     });
+  }
+
+  // An abstract contract admits a path, so the path is not unexpected, but it
+  // asks every member to be declared. docs/INSTANCES.MD.
+  const undeclaredDirectories = new Map<string, string>();
+  const declareHint = (module: string): string => `declare it in \`${config.espalierRoot}/${module}\`, or see \`espalier help instances\``;
+  for (const file of allOwned) {
+    for (const entry of file.undeclared ?? []) undeclaredDirectories.set(entry.path, entry.contract);
+    if (!file.rule.module.abstract || !inScope(file.path)) continue;
+    builtin(file.path, "undeclared_instance",
+      `this file matches the abstract contract \`${file.rule.pattern}\` and is not declared; ${declareHint(`${file.path}.mjs`)}`,
+      { contract: file.rule.modulePath, captures: file.captures });
+  }
+  for (const [directory, contract] of [...undeclaredDirectories].sort(([a], [b]) => a.localeCompare(b))) {
+    if (!inScope(directory)) continue;
+    builtin(`${directory}/`, "undeclared_instance",
+      `this directory matches the abstract contract \`${contract}/\` and is not declared; ${declareHint(`${directory}/ESPALIER.mjs`)}`,
+      { contract: `${contract}/` });
   }
 
   const requiredEntries = requirements(espalier.root, "", {}, repository.visibleSet, (at) => {

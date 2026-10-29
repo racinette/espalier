@@ -95,6 +95,14 @@ runtime defaults. A flag that is absent supplies `false` to the renderer and
 one that is present supplies `true`, without the help text presenting that
 implementation detail as a configurable default.
 
+## Abstract contracts
+
+A path admitted by an abstract contract and not declared as an instance is
+refused with `invalid_create_target`, naming the module to write. Declaring is
+authoring, so `create` never writes into the espalier on your behalf: declare
+the instance, then create it as any declared path. See
+[INSTANCES.MD](../../INSTANCES.MD).
+
 ## Creating a directory
 
 A concrete directory selects the structural directory node that declares its

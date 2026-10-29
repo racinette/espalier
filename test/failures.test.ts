@@ -268,6 +268,36 @@ const cases: Case[] = [
     espalier: { "src/ESPALIER.mjs": "export const literalName = true;\n" },
   },
   {
+    what: "abstract that is not a boolean",
+    code: "module_invalid_export",
+    espalier: { "src/[name].ts.mjs": `${INERT}export const abstract = "yes";\n` },
+  },
+  {
+    what: "abstract on a static leaf, which has nothing to instantiate",
+    code: "module_invalid_export",
+    espalier: { "src/main.ts.mjs": `${INERT}export const abstract = true;\n` },
+  },
+  {
+    what: "abstract on a constraint",
+    code: "module_invalid_export",
+    espalier: { "src/[...path]/no-as-any.ts.mjs": `${INERT}export const abstract = true;\n` },
+  },
+  {
+    what: "abstract on a static directory",
+    code: "malformed_node_description",
+    espalier: { "src/ESPALIER.mjs": "export const abstract = true;\n", "src/main.ts.mjs": INERT },
+  },
+  {
+    what: "abstract on a dynamic directory that declares nothing",
+    code: "malformed_node_description",
+    espalier: { "[area]/ESPALIER.mjs": "export const abstract = true;\n", "main.ts.mjs": INERT },
+  },
+  {
+    what: "abstract on the espalier root",
+    code: "malformed_node_description",
+    espalier: { "ESPALIER.mjs": "export const abstract = true;\n", "main.ts.mjs": INERT },
+  },
+  {
     what: "literalName on the espalier root, which has no name",
     code: "malformed_node_description",
     espalier: { "ESPALIER.mjs": "export const literalName = true;\n" },

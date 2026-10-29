@@ -1,0 +1,55 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
+      { "kind": "written", "path": "app/AGENTS.MD" },
+      { "kind": "written", "path": "app/about/AGENTS.MD" },
+      { "kind": "written", "path": "clients/AGENTS.MD" }
+    ]
+  },
+  "exit": 1,
+  "issues": [
+    {
+      "path": "app/blog/",
+      "code": "undeclared_instance",
+      "severity": "error",
+      "rule": null,
+      "metadata": { "contract": "app/[route]/" }
+    },
+    {
+      "path": "clients/adyen.ts",
+      "code": "undeclared_instance",
+      "severity": "error",
+      "rule": null,
+      "metadata": { "contract": "clients/[provider].ts.mjs", "captures": { "provider": "adyen" } }
+    }
+  ],
+  "ownership": {
+    "app/about/page.tsx": "app/[route]/page.tsx.mjs",
+    "app/blog/page.tsx": "app/[route]/page.tsx.mjs",
+    "clients/stripe.ts": "clients/stripe.ts.mjs",
+    "clients/adyen.ts": "clients/[provider].ts.mjs"
+  },
+  "explain": {
+    "clients/adyen.ts": {
+      "exit": 0,
+      "object": { "rule": "clients/[provider].ts.mjs", "abstract": true, "captures": { "provider": "adyen" } }
+    },
+    "clients/stripe.ts": {
+      "exit": 0,
+      "object": { "rule": "clients/stripe.ts.mjs", "inherited": [{ "rule": "clients/[provider].ts.mjs" }] }
+    },
+    "app/": {
+      "exit": 0,
+      "object": {
+        "map": [
+          { "path": "about/", "instanceOf": "[route]/", "required": true },
+          { "path": "about/page.tsx", "required": true },
+          { "path": "[route]/", "abstract": true, "required": null },
+          { "path": "[route]/page.tsx", "required": true }
+        ]
+      }
+    }
+  }
+}

@@ -616,7 +616,15 @@ export async function create(options: CreateOptions, reporter: Reporter): Promis
   const directory = isDirectoryOwnership(directoryAnswer) ? directoryAnswer : null;
   const directorySpelling = /[\\/]$/.test(displayTarget);
 
+  const refuseUndeclared = (contract: string, declare: string): never =>
+    fail("invalid_create_target", `${options.target} matches the abstract contract \`${contract}\` and is not declared; declare it in \`${repository.config.espalierRoot}/${declare}\` first, or see \`espalier help instances\``, {
+      path: target, contract, declare: `${repository.config.espalierRoot}/${declare}`,
+    });
+
   if (fileOwner !== null && (directory === null || !directorySpelling)) {
+    const blocking = fileOwner.undeclared?.[0];
+    if (blocking !== undefined) refuseUndeclared(`${blocking.contract}/`, `${blocking.path}/ESPALIER.mjs`);
+    if (fileOwner.rule.module.abstract) refuseUndeclared(fileOwner.rule.pattern, `${target}.mjs`);
     const excluded = repository.ungoverned(target);
     if (excluded !== null) {
       fail("invalid_create_target", `${options.target} is excluded by ${excluded}`, {
@@ -628,6 +636,8 @@ export async function create(options: CreateOptions, reporter: Reporter): Promis
   }
 
   if (directory !== null) {
+    const blocking = directory.undeclared?.[0];
+    if (blocking !== undefined) refuseUndeclared(`${blocking.contract}/`, `${blocking.path}/ESPALIER.mjs`);
     const excluded = repository.ungoverned(target, true);
     if (excluded !== null) {
       fail("invalid_create_target", `${options.target} is excluded by ${excluded}`, {

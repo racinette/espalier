@@ -232,6 +232,12 @@ Named specializations count toward their inherited collections. The path is its 
 The check uses the full governed file set, even during a partial run, but
 reports only collections whose containing directory is inside the scope.
 
+`undeclared_instance` — an abstract contract admits this file, or this
+directory reported with a trailing slash, and no instance declares it. The
+message names the module to write; `metadata` names the `contract`. The path
+is owned, so the contract's own checks still run. See
+[INSTANCES.MD](../../INSTANCES.MD).
+
 `unexpected_path` carries the **deepest recognized node** in `metadata`: how far the path was recognized by the espalier, and what is declared at that point. It is never a ranked guess at where the file belongs — see [MATCHING.MD](../../MATCHING.MD).
 
 ```json
