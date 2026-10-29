@@ -5,14 +5,13 @@
 ## Project layout
 
     migrations/
-    ├─ [seq=0(6)]_[name=x+].tables.sql  padded table migrations (zero or more
-    │                                   matching files)
+    ├─ [seq=0(6)]_[name=x+].tables.sql 0+  padded table migrations
     │
-    ├─ [seq=0+]_[name].tables.sql       unpadded table migrations (zero or more
-    │                                   matching files)
+    ├─ [seq=0+]_[name].tables.sql 0+       unpadded table migrations
     │
-    └─ [stem].tables.sql                other table scripts (zero or more
-                                        matching files)
+    └─ [stem].tables.sql 0+                other table scripts
+
+A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 In `[seq=0(6)]`, the text after `=` is a mask: each character matches one character of the name. `0` matches a digit and `x` a lowercase letter or digit. `+` repeats the element before it one or more times, and `(n)` repeats it exactly n times. `espalier help matching` has the full grammar.
 

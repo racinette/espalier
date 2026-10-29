@@ -3,12 +3,14 @@
 ## Project layout
 
     clients/
-    └─ [provider]/       (zero or more matching directories)
+    └─ [provider]/ 0+
        │
-       ├─ {provider}.ts  the provider's entry point (required, {provider}
-       │                 repeats what [provider] matched)
+       ├─ {provider}.ts ❗  the provider's entry point ({provider} repeats what
+       │                    [provider] matched)
        │
-       └─ [helper].ts    a helper (zero or more matching files)
+       └─ [helper].ts 0+    a helper
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[provider]/{provider}.ts` — the provider's entry point
 

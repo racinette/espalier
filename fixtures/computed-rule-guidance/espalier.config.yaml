@@ -3,4 +3,3 @@ ignoreFiles: []
 skip: []
 build:
   espalierGuidance: false
-  guidanceMode: fixed

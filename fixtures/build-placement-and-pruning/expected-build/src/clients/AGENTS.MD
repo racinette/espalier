@@ -8,16 +8,17 @@ Every upstream provider gets its own directory. Nothing outside
 ## Project layout
 
     src/clients/
-    └─ [provider]/          one directory per upstream provider (zero or more
-                            matching directories)
+    └─ [provider]/ 0+          one directory per upstream provider
        │
        ├─ handlers/
        │  │
-       │  └─ webhook.ts     an inbound webhook handler (required)
+       │  └─ webhook.ts ❗     an inbound webhook handler
        │
-       ├─ client.ts         an integration with an external API (required)
+       ├─ client.ts ❗         an integration with an external API
        │
-       └─ requestModels.ts  request payload types (required)
+       └─ requestModels.ts ❗  request payload types
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[provider]/` — one directory per upstream provider
 

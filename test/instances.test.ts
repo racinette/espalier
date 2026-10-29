@@ -34,7 +34,7 @@ test('named directory creation uses inherited template captures, and guidance st
   await scratch(async (root, put) => {
     put('espalier/[group]/ESPALIER.mjs', 'export const guidance="COMMON CONTRACT";');
     put('espalier/[group]/{group}.ts.mjs', `${rule}import {createTemplate} from ${JSON.stringify(api)};\nexport const template=createTemplate(({captures})=> '// '+captures.group);`);
-    put('espalier/flights/ESPALIER.mjs', 'export const instanceOf="../[group]"; export async function guidance({config,path,captures}) { return `DOMAIN ${path} ${captures.group} ${config.build.guidanceMode}`; }');
+    put('espalier/flights/ESPALIER.mjs', 'export const instanceOf="../[group]"; export async function guidance({path,captures,locked}) { return `DOMAIN ${path} ${captures.group} ${locked ? "locked" : "unlocked"}`; }');
     const created = run(root, ['create', 'flights']);
     assert.equal(created.status, 0, created.stdout + created.stderr);
     assert.equal(readFileSync(path.join(root, 'flights/flights.ts'), 'utf8'), '// flights');
@@ -42,7 +42,7 @@ test('named directory creation uses inherited template captures, and guidance st
     const build = run(root, ['build']);
     assert.equal(build.status, 0, build.stdout + build.stderr);
     const local = readFileSync(path.join(root, 'flights/AGENTS.MD'), 'utf8');
-    assert.match(local, /DOMAIN flights flights evolving/);
+    assert.match(local, /DOMAIN flights flights unlocked/);
     assert.match(local, /An instance of `\[group\]\/`, whose guidance in `\.\.\/AGENTS\.MD` applies here\./);
     assert.doesNotMatch(local, /COMMON CONTRACT/);
     assert.match(local, /flights\.ts/);
@@ -50,11 +50,11 @@ test('named directory creation uses inherited template captures, and guidance st
     assert.doesNotMatch(local, /Shared obligation/);
     assert.match(readFileSync(path.join(root, 'AGENTS.MD'), 'utf8'), /COMMON CONTRACT/);
     assert.equal(run(root, ['build','--check']).status, 0);
-    put('espalier.config.yaml', `pin: ${VERSION}\nignoreFiles: []\nskip: []\nbuild: {guidanceMode: fixed}\n`);
+    put('espalier/ESPALIER.mjs', 'export const locked = true;');
     assert.equal(run(root, ['build','--check']).status, 1);
     assert.equal(readFileSync(path.join(root, 'flights/AGENTS.MD'), 'utf8'), local);
     assert.equal(run(root, ['build']).status, 0);
-    assert.match(readFileSync(path.join(root, 'flights/AGENTS.MD'), 'utf8'), /DOMAIN flights flights fixed/);
+    assert.match(readFileSync(path.join(root, 'flights/AGENTS.MD'), 'utf8'), /DOMAIN flights flights locked/);
     rmSync(path.join(root, 'espalier/flights'), {recursive:true});
     assert.deepEqual(await check({cwd:root, jobs:2}), []);
   });

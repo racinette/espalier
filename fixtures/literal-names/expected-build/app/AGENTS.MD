@@ -5,14 +5,16 @@ Every directory under `app/` is a route. A bracketed directory name is a dynamic
 ## Project layout
 
     app/
-    ├─ [slug]/         the dynamic post route (required, literal name, instance
-    │                  of [route]/)
+    ├─ [slug]/ ❗      the dynamic post route (literal name, instance of
+    │                  [route]/)
     │
-    └─ [route]/        a route (zero or more matching directories)
+    └─ [route]/ 0+     a route
        │
-       ├─ loading.tsx  the route's loading state (optional)
+       ├─ loading.tsx  the route's loading state
        │
-       └─ page.tsx     the route's page (required)
+       └─ page.tsx ❗  the route's page
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[route]/` — a route
 

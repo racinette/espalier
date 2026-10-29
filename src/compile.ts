@@ -50,6 +50,7 @@ export interface RuleModule {
   groups?: unknown;
   literalName?: unknown;
   abstract?: unknown;
+  locked?: unknown;
 }
 
 /** Brackets or braces, which a path segment otherwise reads as placeholders. */
@@ -108,6 +109,35 @@ export interface LoadedModule {
   template: TemplateDefinition | null;
   /** Named groupings, available only on dynamic structural rules. */
   groups: Grouping[];
+  /** The module's own `locked` export, when it has one. docs/LOCKS.MD. */
+  lockExport?: boolean;
+  /** Whether the module is locked, its own export or its directory's. */
+  locked: boolean;
+  /** The module whose `locked` export decided it; null when nothing did. */
+  lockedBy: string | null;
+}
+
+/** A module's lock and the module that set it. docs/LOCKS.MD "Which lock applies". */
+export interface Lock {
+  locked: boolean;
+  /** Espalier-relative path of the module whose export decided it; null for the unlocked default. */
+  by: string | null;
+}
+
+/** The lock of an espalier directory: its own module's export, else the nearest enclosing one's. */
+export function directoryLock(nodes: ReadonlyMap<string, NodeDoc>, at: string): Lock {
+  for (let directory = at; ; directory = directory.includes("/") ? directory.slice(0, directory.lastIndexOf("/")) : "") {
+    const lock = nodes.get(directory)?.lockExport;
+    if (lock !== undefined) return { locked: lock, by: directory === "" ? NODE_DESCRIPTION : `${directory}/${NODE_DESCRIPTION}` };
+    if (directory === "") return { locked: false, by: null };
+  }
+}
+
+/** The lock of a module file: its own export, else its directory's. */
+export function moduleLock(nodes: ReadonlyMap<string, NodeDoc>, modulePath: string, own: boolean | undefined): Lock {
+  if (own !== undefined) return { locked: own, by: modulePath };
+  const cut = modulePath.lastIndexOf("/");
+  return directoryLock(nodes, cut === -1 ? "" : modulePath.slice(0, cut));
 }
 
 /**
@@ -183,11 +213,34 @@ export interface NodeDoc {
   literalName?: boolean;
   /** Every directory this pattern matches must be a declared instance. */
   abstract?: boolean;
+  /** The directory module's own `locked` export. docs/LOCKS.MD. */
+  lockExport?: boolean;
+}
+
+/**
+ * One module as the lock check sees it: what it says about locks, and what it
+ * belongs to. docs/LOCKS.MD "Enforcing locks".
+ */
+export interface ModuleRecord {
+  /** Espalier-relative path, e.g. `clients/[provider].ts.mjs` or `app/ESPALIER.mjs`. */
+  path: string;
+  /** Its own `locked` export, if any. */
+  lockExport?: boolean;
+  locked: boolean;
+  lockedBy: string | null;
+  /** The module path of the contract it declares an instance or group of. */
+  contract?: string;
+  /** Every match must be declared: its member list is part of what it declares. */
+  abstract: boolean;
+  /** Groupings whose declared groups are part of what it declares. */
+  abstractGroupings: string[];
 }
 
 export interface Espalier {
   root: TrieNode;
   constraints: Constraint[];
+  /** Every module read, by espalier-relative path. */
+  modules: Map<string, ModuleRecord>;
   /**
    * Espalier-relative directory path to its directory metadata, with `""` for the
    * root. Kept beside the trie rather than on it: a directory may have prose
@@ -351,6 +404,10 @@ async function loadModule(
     fail("module_invalid_export", `${modulePath}: \`abstract\` applies to a dynamic structural rule, whose every match must then be a declared instance`);
   }
 
+  if (loaded.locked !== undefined && typeof loaded.locked !== "boolean") {
+    fail("module_invalid_export", `${modulePath}: \`locked\` must be a boolean`);
+  }
+
   if ("unobservedImplementationDependencies" in loaded) fail("module_invalid_export", `${modulePath}: unobservedImplementationDependencies is not supported`);
   if ("rule" in loaded) {
     fail("module_invalid_export", `${modulePath}: \`rule\` was renamed to \`guidance\`; espalier migrate rewrites it`);
@@ -479,6 +536,10 @@ async function loadModule(
         : [...new Set(loaded.targets as string[])].sort((left, right) => left.localeCompare(right)),
     template: isTemplateDefinition(loaded.template) ? loaded.template : null,
     groups,
+    ...(loaded.locked === undefined ? {} : { lockExport: loaded.locked as boolean }),
+    // Resolved once every directory module is read. docs/LOCKS.MD.
+    locked: false,
+    lockedBy: null,
   };
 }
 
@@ -683,6 +744,42 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
   }
   const literalDirectory = (parts: string[], depth: number): boolean => nodes.get(parts.slice(0, depth + 1).join("/"))?.literalName === true;
   const groupDeclarations: GroupDeclaration[] = [];
+  // Every directory module is read by now, so a module's lock is decidable
+  // the moment it loads.
+  const modules = new Map<string, ModuleRecord>();
+  const settleLock = (module: LoadedModule, modulePath: string): LoadedModule => {
+    const lock = moduleLock(nodes, modulePath, module.lockExport);
+    module.locked = lock.locked;
+    module.lockedBy = lock.by;
+    const cut = modulePath.lastIndexOf("/");
+    modules.set(modulePath, {
+      path: modulePath,
+      ...(module.lockExport === undefined ? {} : { lockExport: module.lockExport }),
+      locked: lock.locked,
+      lockedBy: lock.by,
+      ...(module.instanceOf === undefined ? {} : {
+        contract: `${modulePath.slice(0, cut + 1)}${module.instanceOf.replace(/^\.\//, "").replace(/\.mjs$/, "")}.mjs`,
+      }),
+      abstract: module.abstract,
+      abstractGroupings: module.groups.filter((grouping) => grouping.abstract).map((grouping) => grouping.name),
+    });
+    return module;
+  };
+  for (const [at, doc] of nodes) {
+    const modulePath = at === "" ? (doc.source ?? NODE_DESCRIPTION) : `${at}/${doc.source ?? NODE_DESCRIPTION}`;
+    const lock = directoryLock(nodes, at);
+    modules.set(modulePath, {
+      path: modulePath,
+      ...(doc.lockExport === undefined ? {} : { lockExport: doc.lockExport }),
+      locked: lock.locked,
+      lockedBy: lock.by,
+      ...(doc.instanceOf === undefined ? {} : {
+        contract: `${path.posix.normalize(path.posix.join(at, doc.instanceOf))}/${NODE_DESCRIPTION}`,
+      }),
+      abstract: doc.abstract === true,
+      abstractGroupings: [],
+    });
+  }
 
   for (const modulePath of entries) {
     const segments = modulePath.split("/");
@@ -754,7 +851,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     if (recursive.length === 1) {
       const directory = parsed.slice(0, -1);
       const leaf = authored[authored.length - 1]!;
-      const module = await loadModule(absoluteModule, modulePath, "constraint", root, imported);
+      const module = settleLock(await loadModule(absoluteModule, modulePath, "constraint", root, imported), modulePath);
 
       const { name, extensions } = splitConstraintLeaf(leaf, modulePath);
       if (extensions === null && module.targets === null) {
@@ -783,12 +880,12 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     // A dynamic name naming a contract is not a rule of its own: it declares
     // one group of that contract's files. docs/INSTANCES.MD "Declaring a group".
     if (leafSegment.dynamic && imported.instanceOf !== undefined) {
-      const module = await loadModule(absoluteModule, modulePath, "group", root, imported);
+      const module = settleLock(await loadModule(absoluteModule, modulePath, "group", root, imported), modulePath);
       groupDeclarations.push({ modulePath, directory: parsed.slice(0, -1), name: authored[last]!, module });
       continue;
     }
 
-    const module = await loadModule(absoluteModule, modulePath, leafSegment.dynamic ? "dynamic" : "static", root, imported);
+    const module = settleLock(await loadModule(absoluteModule, modulePath, leafSegment.dynamic ? "dynamic" : "static", root, imported), modulePath);
     for (const grouping of module.groups) {
       const unknown = grouping.by.find((name) => !names.includes(name));
       if (unknown !== undefined) {
@@ -826,7 +923,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
   const renderModule = async (modulePath: string, module: LoadedModule, constraint = false): Promise<void> => {
     if (!module.guidanceRenderer && !module.descriptionRenderer) return;
     if (!renderedRules.has(modulePath)) {
-      const context = ruleGuidanceContext(trie, config, declaration(modulePath), constraint);
+      const context = ruleGuidanceContext(trie, config, declaration(modulePath), constraint, module.locked);
       renderedRules.set(modulePath, {
         guidance: (await renderRuleText(module.guidanceRenderer ?? module.guidance, context, modulePath))!,
         description: await renderRuleText(module.descriptionRenderer ?? module.description, context, modulePath, "description"),
@@ -850,7 +947,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
   for (const { module } of groupDeclarations) {
     if (!module.guidanceRenderer && !module.descriptionRenderer) continue;
     const instance = groupInstances.get(module)!;
-    const context: RuleGuidanceContext = { config, pattern: instance.pattern, path: null, captures: instance.captures };
+    const context: RuleGuidanceContext = { config, pattern: instance.pattern, path: null, captures: instance.captures, locked: module.locked };
     module.guidance = (await renderRuleText(module.guidanceRenderer ?? module.guidance, context, instance.modulePath))!;
     module.description = await renderRuleText(module.descriptionRenderer ?? module.description, context, instance.modulePath, "description");
   }
@@ -867,7 +964,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
       if (child.baseSegment && !child.segment.dynamic && !child.segment.resolved) Object.assign(captures, matchSegment(child.baseSegment, part, captures));
       node = child;
     }
-    const context: DirectoryGuidanceContext = { config, pattern: at, path: concrete ? at : null, captures };
+    const context: DirectoryGuidanceContext = { config, pattern: at, path: concrete ? at : null, captures, locked: directoryLock(nodes, at).locked };
     for (const [field, renderer] of [["description", doc.renderDescription], ["guidance", doc.render]] as const) {
       if (!renderer) continue;
       let result: unknown;
@@ -880,7 +977,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
       else doc.body = result.trim();
     }
   }
-  return { root: trie, constraints, nodes };
+  return { root: trie, constraints, nodes, modules };
 }
 
 export interface DirectoryGuidanceContext {
@@ -888,6 +985,8 @@ export interface DirectoryGuidanceContext {
   pattern: string;
   path: string | null;
   captures: Readonly<Record<string, string>>;
+  /** Whether this directory is locked. docs/LOCKS.MD. */
+  locked: boolean;
 }
 
 /** Compile-time declaration context, independent of individual lint matches. */
@@ -898,9 +997,11 @@ export interface RuleGuidanceContext {
   /** Concrete structural path when known; always null for constraints. */
   path: string | null;
   captures: Readonly<Record<string, string>>;
+  /** Whether the declaring module is locked. docs/LOCKS.MD. */
+  locked: boolean;
 }
 
-function ruleGuidanceContext(root: TrieNode, config: Config, pattern: string, constraint: boolean): RuleGuidanceContext {
+function ruleGuidanceContext(root: TrieNode, config: Config, pattern: string, constraint: boolean, locked: boolean): RuleGuidanceContext {
   let node = root;
   let concrete = !constraint;
   const captures: Record<string, string> = {};
@@ -917,7 +1018,7 @@ function ruleGuidanceContext(root: TrieNode, config: Config, pattern: string, co
     }
     node = child;
   }
-  return { config, pattern, path: concrete ? resolved.join("/") : null, captures };
+  return { config, pattern, path: concrete ? resolved.join("/") : null, captures, locked };
 }
 
 /** Shared by compilation and standalone rule tests; neither guesses a context. */
@@ -945,7 +1046,7 @@ async function readDirectoryModule(
   if (module.instanceOf !== undefined && (typeof module.instanceOf !== "string" || !module.instanceOf)) {
     fail("malformed_node_description", `${source}: instanceOf must be a nonempty string`);
   }
-  for (const key of ["fold", "optional", "literalName", "abstract"] as const) {
+  for (const key of ["fold", "optional", "literalName", "abstract", "locked"] as const) {
     if (module[key] !== undefined && typeof module[key] !== "boolean") {
       fail("malformed_node_description", `${source}: ${key} must be a boolean`);
     }
@@ -972,6 +1073,7 @@ async function readDirectoryModule(
     instanceOf: module.instanceOf as string | undefined, optional: module.optional === true,
     ...(module.literalName === true ? { literalName: true } : {}),
     ...(module.abstract === true ? { abstract: true } : {}),
+    ...(typeof module.locked === "boolean" ? { lockExport: module.locked } : {}),
     ...(typeof module.guidance === "function" ? { render: module.guidance as (context: DirectoryGuidanceContext) => unknown } : {}),
     ...(typeof module.description === "function" ? { renderDescription: module.description as (context: DirectoryGuidanceContext) => unknown } : {}),
   };

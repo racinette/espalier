@@ -1,4 +1,4 @@
-export function description({ config, pattern, path, captures }) {
+export function description({ config, pattern, path, captures, locked }) {
   if (pattern !== "[group]" || path !== null || Object.keys(captures).length) throw new Error("dynamic directory context");
-  return `operation group (${config.build.guidanceMode})`;
+  return `operation group (${locked ? "locked" : "unlocked"})`;
 }

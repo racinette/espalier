@@ -308,7 +308,6 @@ function planFor(
         outside.get(point.at) ?? { exclusions: [], toolOwned: [] },
         nested,
         settings.espalierGuidance,
-        settings.guidanceMode,
         settings.filename,
       ),
     });

@@ -3,9 +3,11 @@
 ## Project layout
 
     src/
-    ├─ registry.ts  the module registry (required)
+    ├─ registry.ts ❗  the module registry
     │
-    └─ [module].ts  a module (zero or more matching files)
+    └─ [module].ts 0+  a module
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `registry.ts` — the module registry
 

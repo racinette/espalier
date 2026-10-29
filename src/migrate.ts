@@ -13,7 +13,7 @@ import {
   IGNORE_FILENAME,
   SHIPPED_SKIP,
   locateConfig,
-  parseGuidanceMode,
+  parseLegacyGuidanceMode,
   parseLintConfig,
   readConfigFile,
 } from "./config.js";
@@ -69,10 +69,15 @@ export function rewriteConfigText(
 ): string {
   parseLintConfig(values["lint"]);
   const inline = legacyInline(values);
+  const mode = legacyGuidanceMode(values);
   const skip = skipAfterRewrite(values, version);
-  if (inline !== undefined || ("skip" in values && JSON.stringify(skip) !== JSON.stringify(values["skip"]))) {
+  if (inline !== undefined || mode !== undefined || ("skip" in values && JSON.stringify(skip) !== JSON.stringify(values["skip"]))) {
     const document = parseDocument(text);
     if (inline !== undefined) document.deleteIn(["build", "inline"]);
+    // The mode moved into the espalier; migrateOne writes it there.
+    if (mode !== undefined) document.deleteIn(["build", "guidanceMode"]);
+    const build = document.get("build");
+    if (isMap(build) && build.items.length === 0) document.delete("build");
     if ("skip" in values) {
       for (const entry of skip.slice((values["skip"] as string[]).length)) {
         document.addIn(["skip"], entry);
@@ -106,6 +111,32 @@ export function rewriteConfigText(
   return `${body}\n`;
 }
 
+/** The removed `build.guidanceMode`, validated; undefined when the config has none. */
+function legacyGuidanceMode(values: Record<string, unknown>): "evolving" | "fixed" | undefined {
+  const build = values["build"];
+  if (build === null || typeof build !== "object" || Array.isArray(build)) return undefined;
+  const entries = build as Record<string, unknown>;
+  return "guidanceMode" in entries ? parseLegacyGuidanceMode(entries["guidanceMode"]) : undefined;
+}
+
+/**
+ * A fixed guidance mode is a lock on the whole espalier: `locked = true` on
+ * its root directory module, created when there is none. docs/LOCKS.MD.
+ */
+function lockRoot(root: string, espalierRoot: string, changes: Array<{ path: string; contents: string; remove?: string }>): void {
+  const destination = path.join(root, espalierRoot, "ESPALIER.mjs");
+  const planned = changes.find((change) => change.path === destination);
+  const declares = (source: string): boolean => /\bexport\s+const\s+locked\b/.test(sourceCode(source));
+  if (planned !== undefined) {
+    if (!declares(planned.contents)) planned.contents += "export const locked = true;\n";
+    return;
+  }
+  const current = existsSync(destination) ? readFileSync(destination, "utf8") : null;
+  if (current !== null && declares(current)) return;
+  const contents = current === null ? "" : `${current}${current.endsWith("\n") || current === "" ? "" : "\n"}`;
+  changes.push({ path: destination, contents: `${contents}export const locked = true;\n` });
+}
+
 /** Validate the obsolete setting before planning either migration write. */
 function legacyInline(values: Record<string, unknown>): boolean | undefined {
   const build = values["build"];
@@ -119,7 +150,7 @@ function legacyInline(values: Record<string, unknown>): boolean | undefined {
       fail("config_unknown_key", `unknown configuration key "build.${key}"`);
     }
   }
-  if ("guidanceMode" in entries) parseGuidanceMode(entries["guidanceMode"]);
+  if ("guidanceMode" in entries) parseLegacyGuidanceMode(entries["guidanceMode"]);
   if (!("inline" in entries)) return undefined;
   if (typeof entries["inline"] !== "boolean") {
     fail("config_invalid_value", "build.inline must be a boolean");
@@ -248,6 +279,7 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
     reviewDotEntries(path.join(root, espalierRoot), espalierRoot, skip, reporter);
   }
   const changes = planGrammarMigration(root, espalierRoot, skip, inline === true);
+  if (legacyGuidanceMode(values) === "fixed") lockRoot(root, espalierRoot, changes);
   for (const change of changes) {
     if (!options.dryRun) {
       mkdirSync(path.dirname(change.path), { recursive: true });

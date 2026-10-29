@@ -19,106 +19,103 @@ place is a list that stops matching the modules.
 ## Project layout
 
     src/
-    ├─ adopt.ts           the adopt command (required, instance of [module].ts)
+    ├─ adopt.ts ❗           the adopt command (instance of [module].ts)
     │
-    ├─ api.ts             the programmatic surface (required, instance of
-    │                     [module].ts)
+    ├─ api.ts ❗             the programmatic surface (instance of [module].ts)
     │
-    ├─ artifacts.ts       the target-neutral generated artifact model (required,
-    │                     instance of [module].ts)
+    ├─ artifacts.ts ❗       the target-neutral generated artifact model
+    │                        (instance of [module].ts)
     │
-    ├─ build.ts           the build command (required, instance of [module].ts)
+    ├─ build.ts ❗           the build command (instance of [module].ts)
     │
-    ├─ children.ts        finding where one espalier's authority ends (required,
-    │                     instance of [module].ts)
+    ├─ children.ts ❗        finding where one espalier's authority ends
+    │                        (instance of [module].ts)
     │
-    ├─ cli.ts             argument parsing and dispatch (required, instance of
-    │                     [module].ts)
+    ├─ cli.ts ❗             argument parsing and dispatch (instance of
+    │                        [module].ts)
     │
-    ├─ compile.ts         reading the espalier tree into a matcher (required,
-    │                     instance of [module].ts)
+    ├─ compile.ts ❗         reading the espalier tree into a matcher (instance
+    │                        of [module].ts)
     │
-    ├─ config.ts          finding and validating the configuration (required,
-    │                     instance of [module].ts)
+    ├─ config.ts ❗          finding and validating the configuration (instance
+    │                        of [module].ts)
     │
-    ├─ context.ts         the lint context handed to rules (required, instance
-    │                     of [module].ts)
+    ├─ context.ts ❗         the lint context handed to rules (instance of
+    │                        [module].ts)
     │
-    ├─ create.ts          the create command (required, instance of [module].ts)
+    ├─ create.ts ❗          the create command (instance of [module].ts)
     │
-    ├─ errors.ts          operational failures (required, instance of
-    │                     [module].ts)
+    ├─ errors.ts ❗          operational failures (instance of [module].ts)
     │
-    ├─ examples.ts        the examples command (required, instance of
-    │                     [module].ts)
+    ├─ examples.ts ❗        the examples command (instance of [module].ts)
     │
-    ├─ execution.ts       addon lifecycle and isolated lint invocations
-    │                     (required, instance of [module].ts)
+    ├─ execution.ts ❗       addon lifecycle and isolated lint invocations
+    │                        (instance of [module].ts)
     │
-    ├─ explain.ts         the explain command (required, instance of
-    │                     [module].ts)
+    ├─ explain.ts ❗         the explain command (instance of [module].ts)
     │
-    ├─ explainText.ts     the human layout for explain (required, instance of
-    │                     [module].ts)
+    ├─ explainText.ts ❗     the human layout for explain (instance of
+    │                        [module].ts)
     │
-    ├─ files.ts           walking the repository (required, instance of
-    │                     [module].ts)
+    ├─ files.ts ❗           walking the repository (instance of [module].ts)
     │
-    ├─ help.ts            the help command (required, instance of [module].ts)
+    ├─ help.ts ❗            the help command (instance of [module].ts)
     │
-    ├─ ignore.ts          gitignore-syntax matching (required, instance of
-    │                     [module].ts)
+    ├─ ignore.ts ❗          gitignore-syntax matching (instance of [module].ts)
     │
-    ├─ implementation.ts  fresh rule implementations (required, instance of
-    │                     [module].ts)
+    ├─ implementation.ts ❗  fresh rule implementations (instance of
+    │                        [module].ts)
     │
-    ├─ init.ts            the init command (required, instance of [module].ts)
+    ├─ init.ts ❗            the init command (instance of [module].ts)
     │
-    ├─ lint.ts            the lint command (required, instance of [module].ts)
+    ├─ lint.ts ❗            the lint command (instance of [module].ts)
     │
-    ├─ linter.ts          contextual typing helpers for rule linters (required,
-    │                     instance of [module].ts)
+    ├─ linter.ts ❗          contextual typing helpers for rule linters
+    │                        (instance of [module].ts)
     │
-    ├─ match.ts           ownership, requiredness, and the deepest recognized
-    │                     node (required, instance of [module].ts)
+    ├─ locks.ts ❗           checking a change to the espalier against a base
+    │                        checkout's locks (instance of [module].ts)
     │
-    ├─ migrate.ts         the migrate command (required, instance of
-    │                     [module].ts)
+    ├─ match.ts ❗           ownership, requiredness, and the deepest recognized
+    │                        node (instance of [module].ts)
     │
-    ├─ nested.ts          running the espaliers below this one (required,
-    │                     instance of [module].ts)
+    ├─ migrate.ts ❗         the migrate command (instance of [module].ts)
     │
-    ├─ output.ts          formats and destinations (required, instance of
-    │                     [module].ts)
+    ├─ nested.ts ❗          running the espaliers below this one (instance of
+    │                        [module].ts)
     │
-    ├─ pattern.ts         path segments and what they match (required, instance
-    │                     of [module].ts)
+    ├─ output.ts ❗          formats and destinations (instance of [module].ts)
     │
-    ├─ render.ts          turning the espalier into documentation (required,
-    │                     instance of [module].ts)
+    ├─ pattern.ts ❗         path segments and what they match (instance of
+    │                        [module].ts)
     │
-    ├─ repository.ts      what lint and explain both work from (required,
-    │                     instance of [module].ts)
+    ├─ render.ts ❗          turning the espalier into documentation (instance
+    │                        of [module].ts)
     │
-    ├─ targets.ts         constraint target selection (required, instance of
-    │                     [module].ts)
+    ├─ repository.ts ❗      what lint and explain both work from (instance of
+    │                        [module].ts)
     │
-    ├─ template.ts        file-creation template definitions (required, instance
-    │                     of [module].ts)
+    ├─ targets.ts ❗         constraint target selection (instance of
+    │                        [module].ts)
     │
-    ├─ version.ts         the running package version (required, instance of
-    │                     [module].ts)
+    ├─ template.ts ❗        file-creation template definitions (instance of
+    │                        [module].ts)
     │
-    ├─ visibility.ts      filesystem visibility from external ignore files
-    │                     (required, instance of [module].ts)
+    ├─ version.ts ❗         the running package version (instance of
+    │                        [module].ts)
     │
-    ├─ worker.ts          the lint worker entry point (required, instance of
-    │                     [module].ts)
+    ├─ visibility.ts ❗      filesystem visibility from external ignore files
+    │                        (instance of [module].ts)
     │
-    ├─ workers.ts         the bounded lint worker pool (required, instance of
-    │                     [module].ts)
+    ├─ worker.ts ❗          the lint worker entry point (instance of
+    │                        [module].ts)
     │
-    └─ [module].ts        an implementation module (zero or more declared files)
+    ├─ workers.ts ❗         the bounded lint worker pool (instance of
+    │                        [module].ts)
+    │
+    └─ [module].ts 📋 0+     an implementation module
+
+📋 marks an abstract contract: every match must be declared in the espalier, and an undeclared one is reported. ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[module].ts` — an implementation module
 
@@ -376,6 +373,17 @@ and "Exit codes", and `docs/API.MD` "`check(options)`".
 Exports identity helpers and the context types they apply.
 Plain lint functions remain valid; typing helpers must not introduce a second
 runtime protocol.
+
+### `locks.ts` — checking a change to the espalier against a base checkout's locks
+
+Judges every change by the locks in force at the base, so a change cannot
+unlock what it edits; `docs/LOCKS.MD` "Enforcing locks" is the specification.
+A module is compared together with every repository file it imports, read with
+`es-module-lexer`, never with patterns over source text: a guessed import
+graph is a lock with a hole in it. The compiled espalier's `modules` registry
+supplies what each module declares; nothing here re-derives a lock or a
+contract. The base must be read by this same version, and a different pin
+stops the run rather than comparing two readings.
 
 ### `match.ts` — ownership, requiredness, and the deepest recognized node
 

@@ -5,11 +5,13 @@ Other guidance.
 ## Project layout
 
     other/
-    ├─ [item]/     (zero or more matching directories)
+    ├─ [item]/ 0+
     │  │
-    │  └─ item.ts  an item (required)
+    │  └─ item.ts ❗  an item
     │
-    └─ main.ts     a source file (required)
+    └─ main.ts ❗     a source file
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[item]/`
 

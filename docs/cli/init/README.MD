@@ -61,11 +61,10 @@ upgrade therefore cannot silently change how this repository is interpreted.
 `name` is the repository directory's own name. It heads every document `build`
 writes. Rename it to the project's name, or remove it to omit the heading.
 
-`init` omits `build.guidanceMode`, so the project starts with `evolving`
-guidance. To direct ordinary feature work into an established architecture,
-set `build.guidanceMode: fixed` in the configuration and run `espalier build`.
-See [guidance modes](../../CONFIG.MD#architecture-guidance-modes) for how agents
-report gaps and obtain authorization for architecture work.
+`init` locks nothing, so every part of the new espalier is unlocked. To
+direct ordinary feature work into an established architecture, lock the
+modules that hold it, or the espalier root's `ESPALIER.mjs` for all of it,
+and run `espalier build`. See [LOCKS.MD](../../LOCKS.MD).
 
 It also writes a `.espalierignore` beside the configuration:
 

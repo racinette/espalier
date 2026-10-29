@@ -1,0 +1,37 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      { "kind": "written", "path": "AGENTS.MD" },
+      { "kind": "written", "path": "clients/AGENTS.MD" },
+      { "kind": "written", "path": "src/core/AGENTS.MD" },
+      { "kind": "written", "path": "src/core/plugins/AGENTS.MD" }
+    ]
+  },
+  "exit": 0,
+  "issues": [],
+  "ownership": {
+    "clients/stripe.ts": "clients/stripe.ts.mjs",
+    "src/core/http.ts": "src/core/http.ts.mjs",
+    "src/core/plugins/slack.ts": "src/core/plugins/[plugin].ts.mjs"
+  },
+  "explain": {
+    "src/core/http.ts": {
+      "exit": 0,
+      "object": { "rule": "src/core/http.ts.mjs", "locked": true, "lockedBy": "src/core/ESPALIER.mjs" }
+    },
+    "src/core/": {
+      "exit": 0,
+      "object": { "locked": true, "lockedBy": "src/core/ESPALIER.mjs" }
+    },
+    "clients/": {
+      "exit": 0,
+      "object": {
+        "rules": [
+          { "path": "clients/stripe.ts", "rule": "clients/stripe.ts.mjs" },
+          { "path": "clients/[provider].ts", "locked": true, "abstract": true }
+        ]
+      }
+    }
+  }
+}

@@ -3,9 +3,11 @@
 ## Project layout
 
     src/
-    ├─ important.log  the retained log example (required)
+    ├─ important.log ❗  the retained log example
     │
-    └─ main.ts        the source entry point (required)
+    └─ main.ts ❗        the source entry point
+
+❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## `important.log` — the retained log example
 

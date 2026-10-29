@@ -3,5 +3,4 @@ root: espalier
 ignoreFiles: []
 skip: []
 build:
-  guidanceMode: fixed
   espalierGuidance: false

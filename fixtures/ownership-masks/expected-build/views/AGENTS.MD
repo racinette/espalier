@@ -5,10 +5,11 @@
 ## Project layout
 
     views/
-    ├─ [kind={tables,views}].sql  the two catalog scripts (zero or more matching
-    │                             files)
+    ├─ [kind={tables,views}].sql 0+  the two catalog scripts
     │
-    └─ [name].sql                 ad-hoc scripts (zero or more matching files)
+    └─ [name].sql 0+                 ad-hoc scripts
+
+A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 `[kind={tables,views}]` accepts exactly the listed names. `espalier help matching` has the full grammar.
 

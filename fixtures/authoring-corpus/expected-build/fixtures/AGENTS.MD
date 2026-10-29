@@ -5,9 +5,11 @@
 ## Project layout
 
     fixtures/
-    └─ [name]/       (zero or more matching directories)
+    └─ [name]/ 0+
        │
-       └─ case.json  a fixture case (required)
+       └─ case.json ❗  a fixture case
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[name]/case.json` — a fixture case
 

@@ -64,6 +64,7 @@ const USAGE = `espalier <command> [options]
   --rule <module>       run one rule module only
   --no-guidance         omit guidance bodies from output
   --jobs <n|auto>       maximum workers (default: lint.jobs, otherwise auto)
+  --base <dir>          check the espalier's locks against a base checkout
 
   explain only:
   --concise             show a human summary without authored prose
@@ -150,7 +151,7 @@ async function main(): Promise<number> {
         "dry-run": { type: "boolean" },
         rule: { type: "string" },
         "no-guidance": { type: "boolean" },
-        ...(command === "lint" ? { jobs: { type: "string" as const } } : {}),
+        ...(command === "lint" ? { jobs: { type: "string" as const }, base: { type: "string" as const } } : {}),
         ...(command === "explain" ? { concise: { type: "boolean" as const } } : {}),
       },
     }) as { values: Record<string, unknown>; positionals: string[] });
@@ -250,6 +251,7 @@ async function main(): Promise<number> {
         guidance: values["no-guidance"] !== true,
         jobs: values["jobs"] === undefined ? undefined : values["jobs"] === "auto" ? "auto"
           : /^\d+$/.test(String(values["jobs"])) ? Number(values["jobs"]) : NaN,
+        ...(values["base"] === undefined ? {} : { base: values["base"] as string }),
       },
       reporter,
     );

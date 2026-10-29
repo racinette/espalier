@@ -3,11 +3,13 @@
 ## Project layout
 
     app/
-    ├─ about/       the about page (required, instance of [route]/)
+    ├─ about/ ❗       the about page (instance of [route]/)
     │
-    └─ [route]/     a route (zero or more declared directories)
+    └─ [route]/ 📋 0+  a route
        │
-       └─ page.tsx  the route's page (required)
+       └─ page.tsx ❗  the route's page
+
+📋 marks an abstract contract: every match must be declared in the espalier, and an undeclared one is reported. ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[route]/` — a route
 

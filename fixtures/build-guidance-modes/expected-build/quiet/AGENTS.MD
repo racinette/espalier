@@ -4,10 +4,12 @@ Preserve this authored child policy.
 
 ## Project layout
 
-    ./
-    └─ main.ts  source (required)
+    ./ 🔒
+    └─ main.ts 🔒❗  source
 
-## `main.ts` — source
+🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent.
+
+## `main.ts` 🔒 — source
 
 Keep application policy here.
 
@@ -17,7 +19,7 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](espalier/ESPALIER.mjs) to change this document's persistent guidance. |
 | `espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
 
 Every path in this directory must fit the project layout or a documented

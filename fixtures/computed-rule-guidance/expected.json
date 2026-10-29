@@ -4,17 +4,17 @@
     {
       "path": "flights/search.ts",
       "code": "shared",
-      "guidance": "Base [group]/[module].ts; path=null; captures={}; fixed."
+      "guidance": "Base [group]/[module].ts; path=null; captures={}; locked."
     },
     {
       "path": "hotels/list.ts",
       "code": "shared",
-      "guidance": "Base [group]/[module].ts; path=null; captures={}; fixed."
+      "guidance": "Base [group]/[module].ts; path=null; captures={}; locked."
     },
     {
       "path": "flights/search.ts",
       "code": "local",
-      "guidance": "Local flights/search.ts; path=flights/search.ts; captures={\"group\":\"flights\",\"module\":\"search\"}; fixed."
+      "guidance": "Local flights/search.ts; path=flights/search.ts; captures={\"group\":\"flights\",\"module\":\"search\"}; locked."
     },
     {
       "path": "flights/flights.json",
@@ -23,36 +23,36 @@
     },
     {
       "code": "collection",
-      "guidance": "Collection [...files]/collection.{ts,json}; path=null; captures={}; fixed."
+      "guidance": "Collection [...files]/collection.{ts,json}; path=null; captures={}; locked."
     },
     {
       "path": "flights/search.ts",
       "code": "policy",
-      "guidance": "Policy flights/[...files]/policy.ts; path=null; captures={\"group\":\"flights\"}; fixed."
+      "guidance": "Policy flights/[...files]/policy.ts; path=null; captures={\"group\":\"flights\"}; locked."
     }
   ],
   "explain": {
     "flights/search.ts": {
       "exit": 0,
       "object": {
-        "guidance": "Local flights/search.ts; path=flights/search.ts; captures={\"group\":\"flights\",\"module\":\"search\"}; fixed.",
+        "guidance": "Local flights/search.ts; path=flights/search.ts; captures={\"group\":\"flights\",\"module\":\"search\"}; locked.",
         "inherited": [
           {
             "rule": "[group]/[module].ts.mjs",
-            "guidance": "Base [group]/[module].ts; path=null; captures={}; fixed."
+            "guidance": "Base [group]/[module].ts; path=null; captures={}; locked."
           }
         ],
         "constraints": [
           {
             "rule": "[...files]/collection.{ts,json}.mjs",
-            "guidance": "Collection [...files]/collection.{ts,json}; path=null; captures={}; fixed."
+            "guidance": "Collection [...files]/collection.{ts,json}; path=null; captures={}; locked."
           },
           {
             "rule": "flights/[...files]/policy.ts.mjs",
-            "guidance": "Policy flights/[...files]/policy.ts; path=null; captures={\"group\":\"flights\"}; fixed."
+            "guidance": "Policy flights/[...files]/policy.ts; path=null; captures={\"group\":\"flights\"}; locked."
           }
         ],
-        "description": "flight search (fixed)"
+        "description": "flight search (locked)"
       }
     }
   },

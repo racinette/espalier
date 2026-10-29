@@ -5,15 +5,17 @@ Source guidance.
 ## Project layout
 
     src/
-    └─ features/       feature modules
+    └─ features/          feature modules
        │
-       ├─ shared/      shared feature code
+       ├─ shared/         shared feature code
        │  │
-       │  └─ util.ts   a source file (required)
+       │  └─ util.ts ❗   a source file
        │
-       └─ [feature]/   a feature (zero or more matching directories)
+       └─ [feature]/ 0+   a feature
           │
-          └─ model.ts  a source file (required)
+          └─ model.ts ❗  a source file
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## Governed elsewhere
 

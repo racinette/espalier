@@ -18,7 +18,9 @@ underscore is what keeps it out of the `--lang` names.
 ## Project layout
 
     ignores/
-    └─ [language].gitignore  a shipped ignore list (zero or more matching files)
+    └─ [language].gitignore 0+  a shipped ignore list
+
+A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[language].gitignore` — a shipped ignore list
 

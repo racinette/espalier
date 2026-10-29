@@ -7,7 +7,9 @@ Company history and the team. No marketing copy.
 ## Project layout
 
     app/about/
-    └─ page.tsx  the route's page (required)
+    └─ page.tsx ❗  the route's page
+
+❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## Other repository paths
 

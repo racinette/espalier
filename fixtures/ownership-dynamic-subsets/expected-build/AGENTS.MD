@@ -7,78 +7,67 @@
     ./
     ├─ files/
     │  │
-    │  ├─ test-special-[case].ts        special simulation tests (zero or more
-    │  │                                matching files)
+    │  ├─ test-special-[case].ts 0+        special simulation tests
     │  │
-    │  ├─ test-[name].ts                simulation tests (zero or more matching
-    │  │                                files)
+    │  ├─ test-[name].ts 0+                simulation tests
     │  │
-    │  └─ [file].ts                     simulation implementation (zero or more
-    │                                   matching files)
+    │  └─ [file].ts 0+                     simulation implementation
     │
     ├─ prefixes/
-    │  │
-    │  ├─ prefix1-[first]/              (zero or more matching directories)
+    │  ├─ prefix1-[first]/ 0+
     │  │  │
-    │  │  └─ checks.sql                 first-source checks (required)
+    │  │  └─ checks.sql ❗                 first-source checks
     │  │
-    │  ├─ prefix2-[second]/             (zero or more matching directories)
+    │  ├─ prefix2-[second]/ 0+
     │  │  │
-    │  │  └─ checks.sql                 second-source checks (required)
+    │  │  └─ checks.sql ❗                 second-source checks
     │  │
-    │  └─ [name]/                       (zero or more matching directories)
+    │  └─ [name]/ 0+
     │     │
-    │     └─ world.json                 a standard world (required)
+    │     └─ world.json ❗                 a standard world
     │
     ├─ providers/
-    │  │
-    │  └─ [provider]/                   (zero or more matching directories)
+    │  └─ [provider]/ 0+
     │     │
-    │     ├─ {provider}-[kind]/         (zero or more matching directories,
-    │     │                             {provider} repeats what [provider]
-    │     │                             matched)
+    │     ├─ {provider}-[kind]/ 0+         ({provider} repeats what [provider]
+    │     │                                matched)
     │     │  │
-    │     │  └─ checks.sql              provider checks (required)
+    │     │  └─ checks.sql ❗              provider checks
     │     │
-    │     ├─ [name]/                    (zero or more matching directories)
+    │     ├─ [name]/ 0+
     │     │  │
-    │     │  └─ world.json              provider world configuration (required)
+    │     │  └─ world.json ❗              provider world configuration
     │     │
-    │     ├─ {provider}-test-[case].ts  provider operation tests (zero or more
-    │     │                             matching files, {provider} repeats what
-    │     │                             [provider] matched)
+    │     ├─ {provider}-test-[case].ts 0+  provider operation tests ({provider}
+    │     │                                repeats what [provider] matched)
     │     │
-    │     └─ {provider}-[kind].ts       provider operations (zero or more
-    │                                   matching files, {provider} repeats what
-    │                                   [provider] matched)
+    │     └─ {provider}-[kind].ts 0+       provider operations ({provider}
+    │                                      repeats what [provider] matched)
     │
     ├─ unions/
     │  │
-    │  ├─ [notes].md                    simulation design notes (zero or more
-    │  │                                matching files)
+    │  ├─ [notes].md 0+                    simulation design notes
     │  │
-    │  ├─ [script].ts                   simulation logic (zero or more matching
-    │  │                                files)
+    │  ├─ [script].ts 0+                   simulation logic
     │  │
-    │  └─ [code].{ts,tsx}               simulation code (zero or more matching
-    │                                   files)
+    │  └─ [code].{ts,tsx} 0+               simulation code
     │
     └─ worlds/
-       │
-       ├─ [name]-special-checksonly/    (zero or more matching directories)
+       ├─ [name]-special-checksonly/ 0+
        │  │
-       │  └─ special.sql                special arrival checks (required)
+       │  └─ special.sql ❗                special arrival checks
        │
-       ├─ [name]-checksonly/            (zero or more matching directories)
+       ├─ [name]-checksonly/ 0+
        │  │
-       │  ├─ checks.sql                 arrival consistency checks (required)
+       │  ├─ checks.sql ❗                 arrival consistency checks
        │  │
-       │  └─ [note].md                  check documentation (zero or more
-       │                                matching files)
+       │  └─ [note].md 0+                  check documentation
        │
-       └─ [world]/                      (zero or more matching directories)
+       └─ [world]/ 0+
           │
-          └─ world.json                 a simulation world (required)
+          └─ world.json ❗                 a simulation world
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `files/`
 
@@ -215,14 +204,16 @@ naming distinct roles. Keep fixed parts of a repeated structure static. For
 example, `messages/languages/[language].ts` varies the language while keeping
 its architectural location explicit.
 
-A feature task can require architecture changes even when it does not mention
-rule files. Before changing the architecture, explain the gap in the current
-structure, present the reasonable placement options and their tradeoffs, and
-recommend an approach. Get agreement on that approach before changing
-architectural policy in rules, guidance, or configuration. A feature request authorizes
-implementing the feature; it does not by itself settle its architectural
-design. Raise a missing architectural role before placing the work in a
-catch-all.
+A feature task can require changes to the espalier even when it does not
+mention rule files. When a change follows directly from the task, such as the
+declaration a new member needs or a rule for a file the task names, make it as
+part of the task and say so when reporting the work. When the design is open,
+because several places or roles are reasonable or an existing rule would
+require or permit something different, explain the gap, present the options
+and their tradeoffs, recommend one, and get agreement before changing rules,
+guidance, or configuration. A feature request authorizes implementing the
+feature; it does not by itself settle an open architectural design. Raise a
+missing architectural role before placing the work in a catch-all.
 
 Include changes to constraint selectors, exclusions, and requiredness in that
 discussion. Explain which files become permitted, required, checked, or

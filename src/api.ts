@@ -60,6 +60,8 @@ export interface CheckOptions {
   rule?: string;
   /** Maximum lint workers; defaults to each project's lint.jobs setting. */
   jobs?: Jobs;
+  /** A base checkout of this repository whose locks the espalier is checked against. docs/LOCKS.MD. */
+  base?: string;
 }
 
 /**
@@ -101,6 +103,7 @@ export async function check(options: CheckOptions): Promise<Issue[]> {
       rule: options.rule,
       guidance: true,
       jobs: options.jobs,
+      ...(options.base === undefined ? {} : { base: options.base }),
     },
     collector(issues, failures),
   );

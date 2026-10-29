@@ -3,7 +3,9 @@
 ## Project layout
 
     docs/
-    └─ guide.md  the user guide (required)
+    └─ guide.md ❗  the user guide
+
+❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## `guide.md` — the user guide
 

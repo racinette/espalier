@@ -3,7 +3,9 @@
 ## Project layout
 
     generated/
-    └─ manifest.json  the reviewed generated manifest (required)
+    └─ manifest.json ❗  the reviewed generated manifest
+
+❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## `manifest.json` — the reviewed generated manifest
 

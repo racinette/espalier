@@ -3,9 +3,11 @@
 ## Project layout
 
     pages/
-    ├─ [id].tsx   the dynamic page of the pages router (required, literal name)
+    ├─ [id].tsx ❗   the dynamic page of the pages router (literal name)
     │
-    └─ index.tsx  the home page (required)
+    └─ index.tsx ❗  the home page
+
+❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## `[id].tsx` — the dynamic page of the pages router
 

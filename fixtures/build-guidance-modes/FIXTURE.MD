@@ -1,12 +1,13 @@
-# build: fixed guidance and independent nested modes
+# build: locked and unlocked espaliers, nested
 
-Pins CONFIG.MD "Architecture guidance modes" and build "Operational guidance".
-The fixed outer root uses a custom output filename and root folding. Its
-architectural prose and structural rules remain present. Its fixed child
-states the same authorization boundary, its default child uses evolving
-policy, and its suppressed child emits only authored and structural guidance.
-Children retain their own mode when built as part of the parent.
+Pins LOCKS.MD and build "Operational guidance". The outer espalier locks its
+root, uses a custom output filename, and folds its subtree into the root
+document; its authored prose and structural rules remain present. Its locked
+child states the same authorization boundary, its unlocked child carries only
+the unlocked guidance, and its suppressed child emits only authored and
+structural guidance. Each child keeps its own lock when built as part of the
+parent: locks are not inherited across an espalier boundary.
 
-The golden documents pin the complete text, including permission for explicit
-architecture work and routine creation/build operations. Fixed guidance must
-not carry the evolving invitation to add a new architectural role.
+The golden documents pin the complete text, including what locked modules
+still permit and how a lock is changed. Every locked module carries 🔒 in the
+map, and the legend explains it.

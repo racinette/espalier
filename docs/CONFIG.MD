@@ -27,7 +27,6 @@ lint:
 build:
   filename: AGENTS.MD
   espalierGuidance: true
-  guidanceMode: evolving
 ```
 
 ```
@@ -444,7 +443,6 @@ such as compiler libraries, remain their own implementation resources.
 |---|---|---|
 | `filename` | `AGENTS.MD` | name of the generated documentation file |
 | `espalierGuidance` | `true` | include Espalier's operational guidance in generated root documents |
-| `guidanceMode` | `evolving` | architectural initiative in generated guidance: `evolving` or `fixed` |
 
 `filename` exists because tools disagree about what to call the file they read — `AGENTS.MD` is converging, but a project whose tooling wants `CLAUDE.md` changes one string rather than gaining a second output format.
 
@@ -462,43 +460,15 @@ sections from a nested Espalier root. It does not remove provenance, project
 structure, exclusions, guidance text, persistent `ESPALIER.mjs` prose, or guidance
 about the generated document's edit target.
 
-### Architecture guidance modes
+### Architecture changes
 
-```yaml
-build:
-  guidanceMode: fixed
-```
-
-`evolving` is the default. Agents identify architectural gaps, present options
-and tradeoffs, obtain agreement, and implement the agreed design. `fixed`
-directs ordinary feature work into the existing architecture. When no declared
-location fits the work's purpose, the agent reports the required path and role
-and pauses the affected work until architecture work is explicitly authorized.
-It must not hide the gap in a catch-all or alter policy to make the work fit.
-
-Explicit authorization permits architecture work in either mode. The agent
-agrees on any unsettled design, follows the project's review workflow, and
-implements the authorized change without repeatedly requesting approval.
-Changing the mode is itself an architectural policy decision; it is not an
-agent-controlled way around fixed guidance.
-
-Both modes preserve architectural guarantees and allow `create`, `lint`, and
-`build` during routine development. The setting changes generated instructions;
-it does not lock files, alter matching or lint checks, or install a commit gate.
-Projects define their own protected paths and enforcement mechanisms.
-
-The outer root's working instructions and each nested Espalier's boundary
-instructions state the applicable policy. Each Espalier reads its own setting;
-children do not inherit a parent's mode. Deeper placement documents use their
-Espalier root's guidance. `espalierGuidance: false` suppresses the canned text
-for either mode, while the selected mode remains available in configuration
-to the rule-authoring contract. Authored `ESPALIER.mjs` prose is preserved.
-
-The shipped authoring contract tells rule authors to consult this setting
-before architectural work. It is the same contract in both modes. `init`
-uses the default, `adopt` preserves the chosen mode, and `migrate` preserves an
-explicit selection. Unknown mode names or non-string values fail with
-`config_invalid_value`, including when canned guidance is disabled.
+Whether an agent may change a part of the espalier on its own judgment, or
+needs explicit authorization first, is not configuration. It is declared in
+the espalier itself, with `locked` on the modules it covers; a lock on the
+root directory module covers everything. See [LOCKS.MD](LOCKS.MD).
+`build.guidanceMode` is rejected with migration guidance: `espalier migrate`
+removes it, and turns `fixed` into `locked = true` on the espalier root's
+`ESPALIER.mjs`.
 
 ### Ownership
 

@@ -2,5 +2,3 @@ pin: 0.10.0
 root: espalier
 ignoreFiles: []
 skip: []
-build:
-  guidanceMode: fixed

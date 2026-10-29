@@ -5,7 +5,9 @@
 ## Project layout
 
     components/buttons/
-    └─ [button].tsx  a button component (zero or more matching files)
+    └─ [button].tsx 0+  a button component
+
+A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[button].tsx` — a button component
 

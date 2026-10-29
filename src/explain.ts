@@ -8,7 +8,7 @@
 import path from "node:path";
 import { fail } from "./errors.js";
 import type { ConstraintAnswer, DeclaredGroupAnswer, RuleAnswer } from "./explainText.js";
-import { declaredGroup, type GroupInstance } from "./compile.js";
+import { declaredGroup, directoryLock, type GroupInstance, type Lock } from "./compile.js";
 import {
   isDirectoryOwnership,
   structuralChecks,
@@ -138,6 +138,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
         })) } : {}),
         rule: visit.node.rule!.modulePath,
         ...(visit.node.rule!.module.abstract ? { abstract: true } : {}),
+        ...(visit.node.rule!.module.locked ? { locked: true as const } : {}),
         description: visit.node.rule!.module.description,
         guidance: visit.node.rule!.module.guidance.trim(),
         referenceImplementation: visit.node.rule!.module.referenceImplementation,
@@ -156,6 +157,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
       description: doc?.description ?? null,
       body: doc?.body ?? "",
       ...(doc?.instanceOf === undefined ? {} : { instanceOf: `${path.posix.normalize(path.posix.join(found.path, doc.instanceOf))}/` }),
+      ...lockAnswer(directoryLock(espalier.nodes, found.path)),
       captures: found.captures,
       rules,
       map: mapEntries(espalier, found.node, found.path),
@@ -252,6 +254,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     ...(memberships.length > 0 ? { groups: memberships } : {}),
     rule: owner.rule.modulePath,
     ...(owner.rule.module.abstract ? { abstract: true } : {}),
+    ...lockAnswer({ locked: owner.rule.module.locked, by: owner.rule.module.lockedBy }),
     pattern: owner.rule.pattern,
     captures: owner.captures,
     description: owner.rule.module.description,
@@ -268,4 +271,9 @@ function declaredAnswer(instance: GroupInstance): DeclaredGroupAnswer {
     rule: instance.modulePath, pattern: instance.pattern, captures: instance.captures,
     description: instance.module.description, guidance: instance.module.guidance.trim(),
   };
+}
+
+/** A lock as explain reports it: present only when the module is locked. docs/LOCKS.MD. */
+function lockAnswer(lock: Lock): { locked?: true; lockedBy?: string } {
+  return lock.locked && lock.by !== null ? { locked: true, lockedBy: lock.by } : {};
 }

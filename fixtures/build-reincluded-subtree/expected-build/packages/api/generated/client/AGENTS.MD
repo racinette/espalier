@@ -3,7 +3,9 @@
 ## Project layout
 
     packages/api/generated/client/
-    └─ index.ts  the generated API client entry point (required)
+    └─ index.ts ❗  the generated API client entry point
+
+❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## `index.ts` — the generated API client entry point
 

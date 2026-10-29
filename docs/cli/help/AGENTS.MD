@@ -7,7 +7,9 @@ An instance of `docs/cli/[command]/`, whose guidance in `../AGENTS.MD` applies h
 ## Project layout
 
     docs/cli/help/
-    └─ README.MD  the command's reference page (required)
+    └─ README.MD ❗  the command's reference page
+
+❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## Other repository paths
 

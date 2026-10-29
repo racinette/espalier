@@ -5,8 +5,7 @@
 // disk — a renderer that could read a file could produce output that depends
 // on something other than the espalier.
 
-import type { Constraint, Espalier, LoadedModule, NodeDoc, StructuralRule, TrieNode } from "./compile.js";
-import type { GuidanceMode } from "./config.js";
+import { directoryLock, type Constraint, type Espalier, type LoadedModule, type NodeDoc, type StructuralRule, type TrieNode } from "./compile.js";
 import path from "node:path";
 import { PROVENANCE } from "./files.js";
 import { matchSegment, resolveSegment, type CaptureValue, backrefNames, isStrictSubset, parseSegment, parseStructuralLeaf, type Segment } from "./pattern.js";
@@ -42,7 +41,7 @@ Use this loop:
 
 Generated guidance files are outputs, not edit targets.`;
 
-const EVOLVING = `A catch-all such as \`modules/[module].ts\` is appropriate for general-purpose
+const UNLOCKED = `A catch-all such as \`modules/[module].ts\` is appropriate for general-purpose
 code that fits its documented purpose. Passing lint alone does not establish
 that a concept belongs there. Repeated file structure, a shared contract, or a
 distinct dependency policy can indicate a role that needs explicit placement
@@ -57,14 +56,16 @@ naming distinct roles. Keep fixed parts of a repeated structure static. For
 example, \`messages/languages/[language].ts\` varies the language while keeping
 its architectural location explicit.
 
-A feature task can require architecture changes even when it does not mention
-rule files. Before changing the architecture, explain the gap in the current
-structure, present the reasonable placement options and their tradeoffs, and
-recommend an approach. Get agreement on that approach before changing
-architectural policy in rules, guidance, or configuration. A feature request authorizes
-implementing the feature; it does not by itself settle its architectural
-design. Raise a missing architectural role before placing the work in a
-catch-all.
+A feature task can require changes to the espalier even when it does not
+mention rule files. When a change follows directly from the task, such as the
+declaration a new member needs or a rule for a file the task names, make it as
+part of the task and say so when reporting the work. When the design is open,
+because several places or roles are reasonable or an existing rule would
+require or permit something different, explain the gap, present the options
+and their tradeoffs, recommend one, and get agreement before changing rules,
+guidance, or configuration. A feature request authorizes implementing the
+feature; it does not by itself settle an open architectural design. Raise a
+missing architectural role before placing the work in a catch-all.
 
 Include changes to constraint selectors, exclusions, and requiredness in that
 discussion. Explain which files become permitted, required, checked, or
@@ -88,40 +89,40 @@ const FORCE_GUIDANCE = `Use \`espalier build --force\` only to restore a generat
 marker was removed; it authorizes overwriting an unmarked document at a
 planned output path.`;
 
-const FIXED = `This project uses fixed architecture guidance. Implement ordinary feature
-work within the existing tree, choosing locations by documented purpose.
-When no declared location fits, report the gap to the person directing the
-work, naming the path and architectural role it needs. Pause the affected
-work until architecture work is explicitly authorized; other work that fits
-can continue.
+const LOCKED = `Modules marked 🔒 in **Project layout** are locked. Work inside them is
+ordinary: editing, creating, and deleting files the espalier already admits
+needs nothing more. A change to the espalier that alters what a locked module
+declares needs explicit authorization naming that change, however obvious it
+is: the module's own guidance, checks, or requirements, the modules in a
+locked directory, or the members of a locked abstract contract. Report the
+path and architectural role the work needs, pause the affected work, and
+continue with anything else that fits. Do not design around the lock, place
+the work in a catch-all, or widen an unlocked pattern to admit it.
 
-Keep rule declarations, authored architectural guidance, architectural checks,
-and governance configuration unchanged during ordinary feature work. Do not
-widen patterns, loosen checks, add exemptions, or hide a missing role in a
-catch-all. Do not change the guidance mode to bypass this boundary.
-Project-specific protected paths and review requirements remain part of the
-project's own workflow.
+Adding, removing, or changing a \`locked\` export is itself a policy change and
+always needs explicit authorization. Once a change to a locked module is
+authorized, agree on any open design, preserve existing guarantees unless
+changing them is part of that agreement, and follow the project's review
+workflow. \`espalier help locks\` says exactly what each lock covers and how a
+project can enforce locks in review.`;
 
-Creating declared files with \`espalier create\`, running \`espalier lint\`, and
-regenerating guidance with \`espalier build\` remain ordinary development work.
-Generated documents are outputs; change their sources only within the task's
-authorized scope.
-
-Explicitly authorized architecture work may proceed in fixed mode. Explain
-any unsettled design, its options and tradeoffs, and get agreement before
-implementation. Identify changes to placement, requiredness, checks and
-exclusions, including guarantees they remove. Preserve existing guarantees
-unless changing them is part of that agreement. Update rules and
-\`ESPALIER.mjs\` together, regenerate guidance, and follow the project's review
-workflow. Implement the agreed design without repeatedly requesting approval;
-reopen discussion if a materially different design becomes necessary.`;
-
-function architectureGuidance(mode: GuidanceMode): string {
-  return mode === "fixed" ? FIXED : EVOLVING;
+/** The locked part is stated only for an espalier that has a lock. docs/LOCKS.MD. */
+function architectureGuidance(locks: boolean): string {
+  return locks ? `${UNLOCKED}\n\n${LOCKED}` : UNLOCKED;
 }
 
-function workingGuidance(mode: GuidanceMode): string {
-  return [WORKFLOW, architectureGuidance(mode), FORCE_GUIDANCE].join("\n\n");
+function workingGuidance(locks: boolean): string {
+  return [WORKFLOW, architectureGuidance(locks), FORCE_GUIDANCE].join("\n\n");
+}
+
+/** Whether any module of this espalier is locked. */
+export function hasLocks(espalier: Espalier): boolean {
+  const locked = (node: TrieNode): boolean =>
+    node.rule?.module.locked === true || [...node.children.values()].some(locked);
+  return [...espalier.nodes.values()].some((doc) => doc.lockExport === true)
+    || locked(espalier.root)
+    || espalier.constraints.some((constraint) => constraint.module.locked)
+    || [...subtree(espalier.root)].some((visit) => visit.node.rule?.module.groups.some((grouping) => grouping.instances.some((instance) => instance.module.locked)) === true);
 }
 
 export const BOUNDARY = `## Governance boundary
@@ -430,6 +431,8 @@ export interface MapEntry {
   literal?: true;
   /** Every match must be a declared instance. */
   abstract?: true;
+  /** The node's module, or its directory's, is locked. docs/LOCKS.MD. */
+  locked?: true;
 }
 
 export function mapEntries(
@@ -480,6 +483,7 @@ export function mapEntries(
       ...(contract === undefined ? {} : { instanceOf: directory ? `${contract}/` : contract.replace(/\.mjs$/, "") }),
       ...(visit.node.segment.literal === true ? { literal: true } : {}),
       ...((directory ? visit.node.abstract === true : visit.node.rule?.module.abstract === true) ? { abstract: true } : {}),
+      ...((directory ? directoryLock(espalier.nodes, absolute).locked : visit.node.rule?.module.locked === true) ? { locked: true } : {}),
       required:
         visit.node.instanceOf !== undefined ? !visit.node.optional : directory || (visit.node.segment.dynamic && visit.node.rule?.module.optional !== false)
           ? null
@@ -496,22 +500,37 @@ export function mapEntries(
  * directory or which depth is being talked about.
  * docs/cli/build/README.MD "Suffixes".
  */
-function suffixes(entry: MapEntry): string[] {
-  const marks: string[] = [];
+/** The parsed name of a map entry's last segment. */
+function entrySegment(entry: MapEntry): Segment {
   const name = entry.path.endsWith("/") ? entry.path.slice(0, -1) : entry.path;
   const leaf = name.slice(name.lastIndexOf("/") + 1);
-  const segment = entry.path.endsWith("/")
+  return entry.path.endsWith("/")
     ? parseSegment(leaf, "map", { literal: entry.literal })
     : parseStructuralLeaf(leaf, "map", { literal: entry.literal });
+}
 
-  if (!segment.dynamic && entry.required !== null) marks.push(entry.required ? "required" : "optional");
+/**
+ * The compact marks that follow a name: 🔒 locked, 📋 abstract, ❗ required,
+ * and for a pattern the fewest matches that must exist. The legend under the
+ * map explains the ones a document uses. docs/cli/build/README.MD "Marks".
+ */
+export function entryMarks(entry: MapEntry): string {
+  const dynamic = entrySegment(entry).dynamic;
+  const symbols = [
+    ...(entry.locked === true ? ["🔒"] : []),
+    ...(entry.abstract === true ? ["📋"] : []),
+    ...(!dynamic && entry.required === true ? ["❗"] : []),
+  ].join("");
+  const count = dynamic ? `${(entry.minMatches ?? 0) > 1 ? entry.minMatches : entry.required === true ? 1 : 0}+` : "";
+  return [symbols, count].filter((piece) => piece !== "").join(" ");
+}
+
+/** Annotations that need words: an instance's contract, a literal name, a back-reference. */
+function suffixes(entry: MapEntry): string[] {
+  const marks: string[] = [];
+  const segment = entrySegment(entry);
+
   if (entry.literal === true) marks.push("literal name");
-  // "declared" rather than "matching" when the contract is abstract: a match
-  // without a declaration is reported, so the count is of declared instances.
-  const kind = entry.abstract === true ? "declared" : "matching";
-  if (segment.dynamic) marks.push(entry.path.endsWith("/")
-    ? `zero or more ${kind} directories`
-    : (entry.minMatches ?? 0) > 1 ? `at least ${entry.minMatches} ${kind} files` : entry.required === true ? `one or more ${kind} files` : `zero or more ${kind} files`);
   if (entry.instanceOf !== undefined) marks.push(`instance of ${entry.instanceOf}`);
 
   // What the capture holds, not what the segment was: under
@@ -539,6 +558,21 @@ const parentOf = (path: string): string => {
  * The tree is read back out of the paths, which are depth-first: an entry is
  * the last of its siblings when no later entry shares its parent.
  */
+/**
+ * Columns a line occupies in a monospace font: an emoji mark takes two,
+ * whether JavaScript counts it as one code unit (❗) or two (🔒, 📋).
+ */
+function displayWidth(text: string): number {
+  let width = 0;
+  for (const char of text) {
+    const code = char.codePointAt(0)!;
+    width += code >= 0x1f000 || (code >= 0x2600 && code <= 0x27bf) ? 2 : 1;
+  }
+  return width;
+}
+
+const padTo = (text: string, width: number): string => text + " ".repeat(Math.max(0, width - displayWidth(text)));
+
 /** The narrowest description column worth sharing a line with its name. */
 const MIN_DESCRIPTION = 30;
 
@@ -590,8 +624,9 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
       .filter((piece) => piece !== null)
       .join(" ");
 
+    const compact = entryMarks(entry);
     rows.push({
-      line: bars + (last[index] ? "└─ " : "├─ ") + name.slice(name.lastIndexOf("/") + 1) + (entry.path.endsWith("/") ? "/" : ""),
+      line: bars + (last[index] ? "└─ " : "├─ ") + name.slice(name.lastIndexOf("/") + 1) + (entry.path.endsWith("/") ? "/" : "") + (compact === "" ? "" : ` ${compact}`),
       under: beneath,
       // A directory's guide row descends to the branch its first visible child
       // hangs from. A distributed map can stop at a directory whose contents
@@ -606,8 +641,8 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
   // and not the indent the caller adds, which reaches every line alike and so
   // cannot change the alignment. A name too long to leave a readable column
   // beside it does not set the column; its description hangs below it instead.
-  const fits = (row: Row): boolean => row.line.length + 2 <= width - MIN_DESCRIPTION;
-  const column = Math.max(0, ...rows.filter(fits).map((row) => row.line.length)) + 2;
+  const fits = (row: Row): boolean => displayWidth(row.line) + 2 <= width - MIN_DESCRIPTION;
+  const column = Math.max(0, ...rows.filter(fits).map((row) => displayWidth(row.line))) + 2;
   const room = width - column;
 
   const lines: string[] = [];
@@ -620,7 +655,7 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
       for (const piece of wrap(row.text, width - row.under.length).split("\n")) lines.push(row.under + piece);
     } else {
       const [first, ...rest] = wrap(row.text, room).split("\n");
-      lines.push(row.line.padEnd(column) + first);
+      lines.push(padTo(row.line, column) + first);
       for (const piece of rest) lines.push(row.under.padEnd(column) + piece);
     }
 
@@ -643,7 +678,7 @@ function renderMap(
   // A map without its root is a forest. The espalier root has no authored
   // directory name, so `./` names it without confusing the config's project
   // name for a path; every deeper point can name its repository-relative path.
-  const root = point.at === "" ? "./" : `${point.at}/`;
+  const root = (point.at === "" ? "./" : `${point.at}/`) + (directoryLock(espalier.nodes, point.at).locked ? " 🔒" : "");
   return [root, ...lines].map((line) => `    ${line}`.trimEnd()).join("\n");
 }
 /**
@@ -919,7 +954,7 @@ export { isDirectory, subtree };
 function constraintHeading(group: ConstraintGroup, level: number): string[] {
   const description = group.members[0]!.module.description;
   const heading = description === null ? "" : ` — ${description}`;
-  return [`${"#".repeat(level)} ${group.name}${heading}`];
+  return [`${"#".repeat(level)} ${group.name}${lockMark(group.members[0]!.module.locked)}${heading}`];
 }
 
 function constraintBody(group: ConstraintGroup): string[] {
@@ -966,6 +1001,9 @@ function parentOfSection(point: Placement, at: string): TrieNode | null {
 }
 
 const HELP_INSTANCES = `See ${codeSpan("espalier help instances")}.`;
+
+/** The lock mark a section heading carries after its name. */
+const lockMark = (locked: boolean): string => locked ? " 🔒" : "";
 
 /**
  * How a contract's members are added. The mechanism is explained once, on
@@ -1014,7 +1052,7 @@ function groupingSections(module: LoadedModule, shown: string, level: number): s
     for (const instance of grouping.instances) {
       const name = instance.pattern.slice(instance.pattern.lastIndexOf("/") + 1);
       const described = instance.module.description === null ? "" : ` — ${instance.module.description}`;
-      blocks.push(`${"#".repeat(level + 1)} ${codeSpan(`${directory}${name}`)}${described}`);
+      blocks.push(`${"#".repeat(level + 1)} ${codeSpan(`${directory}${name}`)}${lockMark(instance.module.locked)}${described}`);
       if (instance.module.guidance.trim() !== "") blocks.push(instance.module.guidance.trim());
     }
     blocks.push(
@@ -1089,7 +1127,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
       const instances = node === null || parent === null ? [] : instancesOf(parent, node);
       const abstract = node?.abstract === true;
       const heading = section.doc.description === null ? "" : ` — ${section.doc.description}`;
-      blocks.push(`${hashes} ${codeSpan(`${displayPath(point, section.at)}/`)}${heading}`);
+      blocks.push(`${hashes} ${codeSpan(`${displayPath(point, section.at)}/`)}${lockMark(directoryLock(espalier.nodes, section.at).locked)}${heading}`);
       if (section.doc.body !== "") blocks.push(section.doc.body);
       if (instances.length > 0 || abstract) {
         const prefix = section.at.includes("/") ? section.at.slice(0, section.at.lastIndexOf("/") + 1) : "";
@@ -1128,7 +1166,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
     if (body.length === 0 && module.groups.length === 0 && instances.length === 0 && !module.abstract) continue;
 
     const heading = module.description === null ? "" : ` — ${module.description}`;
-    blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${heading}`, ...body);
+    blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${lockMark(module.locked)}${heading}`, ...body);
     if (!inherited) blocks.push(...groupingSections(module, displayPath(point, section.at), level + 1));
 
     if (instances.length > 0 || module.abstract) {
@@ -1139,7 +1177,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
         if (instance.kind !== "rule") continue;
         const own = ruleBody(instance.rule.module);
         const described = instance.rule.module.description === null ? "" : ` — ${instance.rule.module.description}`;
-        blocks.push(`${hashes}# ${codeSpan(displayPath(point, instance.at))}${described}`, ...own);
+        blocks.push(`${hashes}# ${codeSpan(displayPath(point, instance.at))}${lockMark(instance.rule.module.locked)}${described}`, ...own);
         blocks.push(...groupingSections(instance.rule.module, displayPath(point, instance.at), level + 2));
       }
       blocks.push(...addingInstances(node!.display, false, module.abstract, level + 1));
@@ -1234,6 +1272,28 @@ function maskLegend(paths: string[]): string | null {
   return sentences.join(" ");
 }
 
+/**
+ * One sentence for each mark a document's map uses, and none for the rest.
+ * docs/cli/build/README.MD "Marks".
+ */
+export function marksLegend(entries: readonly MapEntry[], rootLocked = false): string | null {
+  const marks = entries.map(entryMarks);
+  const sentences: string[] = [];
+  if (rootLocked || marks.some((mark) => mark.includes("🔒"))) {
+    sentences.push(`🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (${codeSpan("espalier help locks")}).`);
+  }
+  if (marks.some((mark) => mark.includes("📋"))) {
+    sentences.push("📋 marks an abstract contract: every match must be declared in the espalier, and an undeclared one is reported.");
+  }
+  if (marks.some((mark) => mark.includes("❗"))) {
+    sentences.push("❗ marks a named file or directory that must exist; one without it may be absent.");
+  }
+  if (marks.some((mark) => /\d\+$/.test(mark))) {
+    sentences.push(`A count after a pattern, such as ${codeSpan("0+")} or ${codeSpan("1+")}, is the fewest matching names that must exist.`);
+  }
+  return sentences.length === 0 ? null : sentences.join(" ");
+}
+
 /** Each `{a,b}` in a name, outside placeholders; `{name}` is a back-reference, not a group. */
 function alternativeGroups(shown: string): string[] {
   const groups: string[] = [];
@@ -1310,7 +1370,6 @@ function core(
   stopAt: readonly string[] = [],
   nested = false,
   espalierGuidance = true,
-  guidanceMode: GuidanceMode = "evolving",
   filename = "AGENTS.MD",
   homes: ReadonlyMap<string, string> = new Map(),
 ): string[] {
@@ -1321,9 +1380,7 @@ function core(
   if (espalierGuidance && nested && point.at === "") {
     blocks.push(BOUNDARY, `## Architecture changes
 
-This Espalier uses ${guidanceMode} guidance within this subtree.
-
-${architectureGuidance(guidanceMode)}`);
+${architectureGuidance(hasLocks(espalier))}`);
   }
 
   const map = renderMap(espalier, point, stopAt);
@@ -1339,7 +1396,9 @@ ${architectureGuidance(guidanceMode)}`);
     ])),
   ];
   const legend = maskLegend(shown);
+  const marks = map === null ? null : marksLegend(mapEntries(espalier, point.node!, point.at, stopAt), directoryLock(espalier.nodes, point.at).locked);
   if (map !== null) blocks.push(`${"#".repeat(level)} Project layout`, map);
+  if (marks !== null) blocks.push(marks);
   if (legend !== null) blocks.push(legend);
 
   blocks.push(...renderChildren(point.at, named, level));
@@ -1349,7 +1408,7 @@ ${architectureGuidance(guidanceMode)}`);
     body.push(...renderSections(espalier, folded, level + 1, documents));
     if (body.length === 0) continue;
     const description = folded.doc?.description == null ? "" : ` — ${folded.doc.description}`;
-    blocks.push(`${"#".repeat(level)} ${codeSpan(`${displayPath(point, folded.at)}/`)}${description}`, ...body);
+    blocks.push(`${"#".repeat(level)} ${codeSpan(`${displayPath(point, folded.at)}/`)}${lockMark(directoryLock(espalier.nodes, folded.at).locked)}${description}`, ...body);
   }
   blocks.push(...renderOutside(outside, level));
   if (closed !== null) blocks.push(closed);
@@ -1366,7 +1425,6 @@ export function renderDocument(
   outside: Outside = { exclusions: [], toolOwned: [] },
   nested = false,
   espalierGuidance = true,
-  guidanceMode: GuidanceMode = "evolving",
   filename = "AGENTS.MD",
 ): string {
   const prefix = point.at === "" ? "" : `${point.at}/`;
@@ -1382,8 +1440,8 @@ export function renderDocument(
   const blocks = [
     marker(espalierRoot, point.at),
     ...heading(name, point.at),
-    ...core(espalier, point, 2, named, outside, stopAt, nested, espalierGuidance, guidanceMode, filename, homes),
+    ...core(espalier, point, 2, named, outside, stopAt, nested, espalierGuidance, filename, homes),
   ];
-  if (espalierGuidance && point.at === "" && !nested) blocks.push(workingGuidance(guidanceMode));
+  if (espalierGuidance && point.at === "" && !nested) blocks.push(workingGuidance(hasLocks(espalier)));
   return `${blocks.join("\n\n")}\n`;
 }

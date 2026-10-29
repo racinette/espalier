@@ -122,7 +122,7 @@ provenance marker
 # <name> — `<path>/`          the heading, when the config names the project
 node prose                    the rendered ESPALIER.mjs guidance
 ## Governance boundary       nested Espalier root only
-## Architecture changes      nested Espalier root's own guidance mode
+## Architecture changes      nested Espalier root's own architecture guidance
 ## Project layout             the tree
 ## Governed elsewhere         child espaliers below this point, when any
 ## `<path>` — <description>   one per structural rule placed here
@@ -168,8 +168,10 @@ Every other directory also carries a trailing `/`. Dynamic names retain their
 authored form, such as `[provider]/` or `[button].tsx`. Back-references whose
 bindings are known in a named instance appear as concrete names.
 
-A document that shows a masked or listed placeholder, in its map or in a
-section heading, has one legend directly under the map. The legend takes the
+Directly under the map comes the legend for the [marks](#marks) the map uses,
+one sentence for each mark it shows and none for the rest. A document that
+shows a masked or listed placeholder, in its map or in a section heading, then
+has one legend for those too. The legend takes the
 first such placeholder as its example and explains the symbols the document
 uses and no others, so a reader who has never seen a mask can read the
 document without leaving it:
@@ -207,18 +209,18 @@ Branches are drawn with box-drawing characters: `├─ ` for an entry with sibl
 
 ```text
     ./
-    ├─ clients/                external API providers
+    ├─ clients/                   external API providers
     │  │
-    │  └─ [provider]/          (zero or more matching directories)
+    │  └─ [provider]/ 0+
     │     │
-    │     ├─ requestModels.ts  request shapes (required)
+    │     ├─ requestModels.ts ❗  request shapes
     │     │
-    │     └─ {provider}.ts     the client (required, {provider} repeats what
-    │                          [provider] matched)
+    │     └─ {provider}.ts ❗     the client ({provider} repeats what [provider]
+    │                             matched)
     │
-    ├─ main.ts                 the entry point (required)
+    ├─ main.ts 🔒❗               the entry point
     │
-    └─ notes.md                developer notes (optional)
+    └─ notes.md                   developer notes
 ```
 
 Indentation alone would say the same thing in less space, and say it less well: text long enough to wrap leaves a reader deciding whether the next line continues the entry above or begins a new one, and a branch answers that before the question is asked.
@@ -232,47 +234,62 @@ from it. A directory where a deeper generated document takes over is a leaf in
 this map, so its guide row carries no child-depth bar. A `└─` with nothing above
 it is a corner with no line to turn.
 
-**Text starts at one column across the whole map:** two spaces after the longest rendered line, counting the branch characters and not the four spaces of the code block, which are added to every line afterwards and so cannot change the alignment. Text too long for the remaining width wraps into that column and hangs there, under the branch characters of its own line.
+**Text starts at one column across the whole map:** two spaces after the longest rendered line, counting the branch characters and the marks and not the four spaces of the code block, which are added to every line afterwards and so cannot change the alignment. A mark is two columns wide, as a terminal draws it. Text too long for the remaining width wraps into that column and hangs there, under the branch characters of its own line.
 
-A line's text is the node's description, then its suffixes in parentheses. A file's description is the rule module's `description`; a directory's is the `description` in its `ESPALIER.mjs` exports. A node with neither a description nor a suffix gets no text rather than a blank column.
+A name is followed by its marks, and a line's text is the node's description, then its suffixes in parentheses. A file's description is the rule module's `description`; a directory's is the `description` in its `ESPALIER.mjs` exports. A node with neither a description nor a suffix gets no text rather than a blank column.
 
-**The parentheses are what separate the two voices.** The description is a sentence somebody wrote; the suffixes are the espalier's annotation of it. Joined by a comma they read as one clause, and a description that already contains commas — `ownership, requiredness, and the deepest recognized node` — swallows the annotation entirely. They are parenthesized on a line that carries no description too, so the count remains visibly generated.
+**The marks and the parentheses are what separate the voices.** The description is a sentence somebody wrote; marks and suffixes are the espalier's annotation of it. Marks sit with the name they describe, so they never land on a wrapped line, and the rarer annotations that need words stay parenthesized after the description, where a comma would otherwise join them to it as one clause.
 
 Constraints do not appear. They declare no file and permit none, so a map that listed them would be answering a question nobody asked of it. Each renders as a rule section below the map, beside the structural rule sections at its placement point.
 
+### Marks
+
+Four marks follow a name, each true of that line and of nothing else, and the
+legend under the map explains the ones the map uses:
+
+| Mark | Means |
+|---|---|
+| 🔒 | the node's module is locked: changing what it declares needs explicit authorization; see [LOCKS.MD](../../LOCKS.MD) |
+| 📋 | an abstract contract: every match must be declared in the espalier, and an undeclared one is reported |
+| ❗ | a named file or named directory instance that must exist |
+| `0+`, `1+`, `3+` | on a pattern, the fewest matching names that must exist |
+
+**❗ marks what must exist, and its absence on a named file means it may be
+absent.** Every static and resolved leaf the espalier names is one or the
+other, and the legend says so, so requiredness is never left to inference. It
+reads against the line's own position: `requestModels.ts ❗` drawn inside
+`[provider]/` is required in a `[provider]/` directory. Ordinary directories
+carry no ❗, because their existence follows from their contents; a named
+directory instance does, when it is required.
+
+**A pattern carries a count instead.** `0+` by default, `1+` for
+`minMatches = 1`, and the minimum itself above that. The trailing `/` says
+whether the pattern names files or directories. Named specializations count
+toward their base collections; independent static siblings do not. These
+counts preserve the restrictions expressed by the pattern; none promises that
+an arbitrary name is accepted. On a 📋 contract the count is of declared
+members, since an undeclared match is reported rather than accepted.
+
+**🔒 marks every locked node**, whether its own export or a directory above it
+locked it, so a missing lock always means unlocked and no reader has to work
+out inheritance from the map. The first row carries it too when the
+document's own directory is locked, and a locked module's section heading
+carries it after the name.
+
 ### Suffixes
 
-There are four kinds, and each is true of the line it sits on and of nothing else. That is the rule they are written to: a suffix whose subject the reader has to locate — which directory, how far up the tree — has spent more attention than it saved.
+Three annotations need words, and stay in parentheses after the description.
 
-**`required` and `optional`** mark every leaf the espalier names — every static and resolved one — and neither is a default. A named file carrying no such suffix is not a file whose requiredness is left to inference; there is no such file. Both read against the line's own position, so `requestModels.ts` drawn inside `[provider]/` is required in a `[provider]/` directory, which is where the reader is looking.
+**`instance of <contract>`** identifies a named specialization: `Flights/ ❗`
+can read `(instance of [feature]/)`, and `search.ts ❗` can read `(instance of
+[operation].ts)`. The contract is the sibling name in the effective inherited
+tree, with a trailing `/` for a directory and without the rule module's `.mjs`
+suffix for a file. This remains visible on a directory where the map stops at a
+deeper generated document. Ordinary inherited children without their own
+`instanceOf` declaration do not acquire this annotation; they follow the
+containing directory's contract.
 
-A dynamic leaf carries neither. Its count suffix is `zero or more matching
-files` by default, `one or more matching files` for `minMatches = 1`, and
-`at least N matching files` for larger minimums. Named specializations count
-toward their base collections; independent static siblings do not.
-
-Ordinary directories carry neither. Named directory instances carry `required`
-or `optional`, because they have their own existence policy in addition to
-their inherited contents.
-
-**`zero or more matching files`** or **`one or more matching files`** marks a file pattern containing a `[name]`
-placeholder, such as `[button].tsx` or `test-[name].ts`. A directory pattern
-uses **`zero or more matching directories`**. These counts preserve the restrictions expressed by the pattern; none
-promises that an arbitrary name is accepted. An abstract contract counts
-**`declared`** rather than `matching` members, because a match without a
-declaration is reported, not accepted.
-
-**`instance of <contract>`** identifies a named specialization alongside its
-requiredness: `Flights/` can read `(required, instance of [feature]/)`, and
-`search.ts` can read `(required, instance of [operation].ts)`. The contract is
-the sibling name in the effective inherited tree, with a trailing `/` for a
-directory and without the rule module's `.mjs` suffix for a file. This remains
-visible on a directory where the map stops at a deeper generated document.
-Optional instances carry the same relationship with `optional`. Ordinary
-inherited children without their own `instanceOf` declaration do not acquire
-this annotation; they follow the containing directory's contract.
-
-**`literal name`** marks a node whose brackets or braces are its name, declared with `literalName`: a Next.js `[slug]/` route directory reads `(required, literal name, instance of [route]/)`. Without the suffix, a bracketed name on the map is a placeholder.
+**`literal name`** marks a node whose brackets or braces are its name, declared with `literalName`: a Next.js `[slug]/` route directory reads `[slug]/ ❗` with `(literal name, instance of [route]/)`. Without the suffix, a bracketed name on the map is a placeholder.
 
 **`{provider} repeats what [provider] matched`** marks every node whose name holds a back-reference, one clause per placeholder, comma-joined inside the parentheses. It describes what the capture holds rather than what the segment was, which is the only phrasing that survives an affix: under `[provider]-provider/`, a `{provider}Impl.ts` in the directory named `stripe-provider` is `stripeImpl.ts`, and a suffix promising "the same name as the directory" would be wrong three times out of four.
 
@@ -636,10 +653,11 @@ retain their globs instead of being described as a broader file kind.
 
 ### Operational guidance
 
-The repository root document ends with an operational introduction.
-`build.guidanceMode` selects its architecture-change policy; the default
-`evolving` text is shown below. The introduction names `espalier help` as this
-CLI version's manual: the working loop is not the whole reference.
+The repository root document ends with an operational introduction. Its
+architecture paragraphs describe changes in unlocked modules, shown below, and
+add the [locked](../../LOCKS.MD) behaviour whenever the espalier has a lock.
+The introduction names `espalier help` as this CLI version's manual: the
+working loop is not the whole reference.
 
 ```markdown
 ## Working with Espalier
@@ -687,14 +705,16 @@ naming distinct roles. Keep fixed parts of a repeated structure static. For
 example, `messages/languages/[language].ts` varies the language while keeping
 its architectural location explicit.
 
-A feature task can require architecture changes even when it does not mention
-rule files. Before changing the architecture, explain the gap in the current
-structure, present the reasonable placement options and their tradeoffs, and
-recommend an approach. Get agreement on that approach before changing
-architectural policy in rules, guidance, or configuration. A feature request authorizes
-implementing the feature; it does not by itself settle its architectural
-design. Raise a missing architectural role before placing the work in a
-catch-all.
+A feature task can require changes to the espalier even when it does not
+mention rule files. When a change follows directly from the task, such as the
+declaration a new member needs or a rule for a file the task names, make it as
+part of the task and say so when reporting the work. When the design is open,
+because several places or roles are reasonable or an existing rule would
+require or permit something different, explain the gap, present the options
+and their tradeoffs, recommend one, and get agreement before changing rules,
+guidance, or configuration. A feature request authorizes implementing the
+feature; it does not by itself settle an open architectural design. Raise a
+missing architectural role before placing the work in a catch-all.
 
 Include changes to constraint selectors, exclusions, and requiredness in that
 discussion. Explain which files become permitted, required, checked, or
@@ -736,20 +756,20 @@ govern only paths beneath this directory; it cannot redefine its parent or
 sibling subtrees.
 ```
 
-The boundary is followed by an `Architecture changes` section for that child's
-own mode, including an explicit mode label. This lets a fixed child report
-gaps under an evolving parent, or an evolving child propose changes under a
-fixed parent, within its own governance boundary.
+The boundary is followed by an `Architecture changes` section with the same
+architecture paragraphs, stated for that child's own locks: a child's root
+starts unlocked whatever its parent locks, so a locked child can sit under an
+unlocked parent and the other way around.
 
-In `fixed` mode the working loop is retained, while the architecture-change
-paragraphs instruct the agent to use existing declared roles, report the path
-and role of a gap, and pause affected work until architecture work is explicitly
-authorized. They prohibit policy changes to force a fit and preserve routine
-`create` and `build`. An explicit architecture task permits changes without
-switching modes. See [guidance modes](../../CONFIG.MD#architecture-guidance-modes).
+When the espalier has a lock, a further paragraph follows the unlocked ones.
+Work inside locked modules stays ordinary; a change to what a locked module
+declares needs explicit authorization naming it, however obvious, and the
+agent reports the path and role the work needs and pauses that part of the
+work. Changing a `locked` export always needs authorization. The paragraph
+points to `espalier help locks` rather than restating what each lock covers.
 
-Set `build.espalierGuidance: false` to omit the canned operational and mode
-sections, including the nested governance boundary. The setting does not
+Set `build.espalierGuidance: false` to omit the canned operational and
+architecture sections, including the nested governance boundary. The setting does not
 suppress provenance, structural maps, exclusions, guidance bodies, or authored
 `ESPALIER.mjs` guidance.
 
@@ -793,16 +813,17 @@ Every upstream provider gets its own directory. Nothing outside
 ## Project layout
 
     src/clients/
-    └─ [provider]/          one directory per upstream provider (zero or more
-                            matching directories)
+    └─ [provider]/ 0+          one directory per upstream provider
        │
        ├─ handlers/
        │  │
-       │  └─ webhook.ts     an inbound webhook handler (required)
+       │  └─ webhook.ts ❗     an inbound webhook handler
        │
-       ├─ client.ts         an integration with an external API (required)
+       ├─ client.ts ❗         an integration with an external API
        │
-       └─ requestModels.ts  request payload types (required)
+       └─ requestModels.ts ❗  request payload types
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[provider]/` — one directory per upstream provider
 

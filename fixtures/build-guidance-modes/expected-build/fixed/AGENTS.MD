@@ -16,42 +16,75 @@ sibling subtrees.
 
 ## Architecture changes
 
-This Espalier uses fixed guidance within this subtree.
+A catch-all such as `modules/[module].ts` is appropriate for general-purpose
+code that fits its documented purpose. Passing lint alone does not establish
+that a concept belongs there. Repeated file structure, a shared contract, or a
+distinct dependency policy can indicate a role that needs explicit placement
+and guidance. Use an existing node that expresses that role, or add one when
+needed; every helper does not need its own node. Add checks for enforceable
+invariants and templates where they help create the files correctly.
 
-This project uses fixed architecture guidance. Implement ordinary feature
-work within the existing tree, choosing locations by documented purpose.
-When no declared location fits, report the gap to the person directing the
-work, naming the path and architectural role it needs. Pause the affected
-work until architecture work is explicitly authorized; other work that fits
-can continue.
+Prefer explicit static nodes for known architectural roles. Introduce a
+dynamic pattern when multiple instances share a defined responsibility and
+contract, rather than to accommodate hypothetical future variation or avoid
+naming distinct roles. Keep fixed parts of a repeated structure static. For
+example, `messages/languages/[language].ts` varies the language while keeping
+its architectural location explicit.
 
-Keep rule declarations, authored architectural guidance, architectural checks,
-and governance configuration unchanged during ordinary feature work. Do not
-widen patterns, loosen checks, add exemptions, or hide a missing role in a
-catch-all. Do not change the guidance mode to bypass this boundary.
-Project-specific protected paths and review requirements remain part of the
-project's own workflow.
+A feature task can require changes to the espalier even when it does not
+mention rule files. When a change follows directly from the task, such as the
+declaration a new member needs or a rule for a file the task names, make it as
+part of the task and say so when reporting the work. When the design is open,
+because several places or roles are reasonable or an existing rule would
+require or permit something different, explain the gap, present the options
+and their tradeoffs, recommend one, and get agreement before changing rules,
+guidance, or configuration. A feature request authorizes implementing the
+feature; it does not by itself settle an open architectural design. Raise a
+missing architectural role before placing the work in a catch-all.
 
-Creating declared files with `espalier create`, running `espalier lint`, and
-regenerating guidance with `espalier build` remain ordinary development work.
-Generated documents are outputs; change their sources only within the task's
-authorized scope.
+Include changes to constraint selectors, exclusions, and requiredness in that
+discussion. Explain which files become permitted, required, checked, or
+excluded, and identify any guarantees the proposal removes. Moving a file
+outside a check's scope changes enforcement even if the check stays intact.
 
-Explicitly authorized architecture work may proceed in fixed mode. Explain
-any unsettled design, its options and tradeoffs, and get agreement before
-implementation. Identify changes to placement, requiredness, checks and
-exclusions, including guarantees they remove. Preserve existing guarantees
-unless changing them is part of that agreement. Update rules and
-`ESPALIER.mjs` together, regenerate guidance, and follow the project's review
-workflow. Implement the agreed design without repeatedly requesting approval;
-reopen discussion if a materially different design becomes necessary.
+Once an approach is agreed, update the corresponding `ESPALIER.mjs` for guidance
+and the structural rule modules for structure, then run `espalier build`.
+Implement the agreed design without repeatedly requesting approval. Reopen
+the discussion if implementation requires a materially different design.
+Ordinary code changes that follow the agreed architecture can proceed.
+
+Preserve existing architectural guarantees unless changing them is part of
+the task's agreed design. Loosening checks, widening patterns, or adding
+exemptions merely to make the implementation pass weakens those guarantees.
+A new node can also bypass existing restrictions; check which rules will
+apply. When the work conflicts with the intended architecture, report the
+design gap instead of hiding it in a catch-all or relaxing the rules.
+
+Modules marked 🔒 in **Project layout** are locked. Work inside them is
+ordinary: editing, creating, and deleting files the espalier already admits
+needs nothing more. A change to the espalier that alters what a locked module
+declares needs explicit authorization naming that change, however obvious it
+is: the module's own guidance, checks, or requirements, the modules in a
+locked directory, or the members of a locked abstract contract. Report the
+path and architectural role the work needs, pause the affected work, and
+continue with anything else that fits. Do not design around the lock, place
+the work in a catch-all, or widen an unlocked pattern to admit it.
+
+Adding, removing, or changing a `locked` export is itself a policy change and
+always needs explicit authorization. Once a change to a locked module is
+authorized, agree on any open design, preserve existing guarantees unless
+changing them is part of that agreement, and follow the project's review
+workflow. `espalier help locks` says exactly what each lock covers and how a
+project can enforce locks in review.
 
 ## Project layout
 
-    ./
-    └─ main.ts  source (required)
+    ./ 🔒
+    └─ main.ts 🔒❗  source
 
-## `main.ts` — source
+🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent.
+
+## `main.ts` 🔒 — source
 
 Keep application policy here.
 
@@ -61,7 +94,7 @@ These paths are part of the repository but serve specific purposes outside the p
 
 | Paths | Purpose |
 | --- | --- |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.MD`](espalier/ESPALIER.MD) to change this document's persistent guidance. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](espalier/ESPALIER.mjs) to change this document's persistent guidance. |
 | `espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
 
 Every path in this directory must fit the project layout or a documented

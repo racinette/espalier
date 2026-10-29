@@ -2,32 +2,34 @@
 
 An instance of `[group]/`, whose guidance in `../AGENTS.MD` applies here.
 
-Local directory guidance (fixed).
+Local directory guidance (locked).
 
 ## Project layout
 
-    flights/
-    ├─ search.ts     flight search (fixed) (required, instance of [module].ts)
+    flights/ 🔒
+    ├─ search.ts 🔒❗     flight search (locked) (instance of [module].ts)
     │
-    ├─ flights.json  flight manifest (required)
+    ├─ flights.json 🔒❗  flight manifest
     │
-    └─ [module].ts   shared operation (fixed) (zero or more matching files)
+    └─ [module].ts 🔒 0+  shared operation (locked)
 
-## `{group}.json` — flight manifest
+🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+
+## `{group}.json` 🔒 — flight manifest
 
 Inherits `[group]/{group}.json`, whose guidance in `../AGENTS.MD` applies here.
 
 Resolved flights/{group}.json; path=flights/flights.json; captures={"group":"flights"}.
 
-## `[module].ts` — shared operation (fixed)
+## `[module].ts` 🔒 — shared operation (locked)
 
 Inherited from `[group]/[module].ts`, whose guidance in `../AGENTS.MD` applies here.
 
 Concrete instances, each bound by this contract and by its own section:
 
-### `search.ts` — flight search (fixed)
+### `search.ts` 🔒 — flight search (locked)
 
-Local flights/search.ts; path=flights/search.ts; captures={"group":"flights","module":"search"}; fixed.
+Local flights/search.ts; path=flights/search.ts; captures={"group":"flights","module":"search"}; locked.
 
 ### Adding new instances
 
@@ -35,12 +37,12 @@ A `[module].ts` needs no declaration. Declaring one gives it its own guidance; s
 
 ## Constraints
 
-### policy
+### policy 🔒
 
 Each file with exactly `.ts` as its extension under `flights/` must follow this
 rule.
 
-Policy flights/[...files]/policy.ts; path=null; captures={"group":"flights"}; fixed.
+Policy flights/[...files]/policy.ts; path=null; captures={"group":"flights"}; locked.
 
 ## Other repository paths
 

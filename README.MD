@@ -424,7 +424,7 @@ example:
     │  └─ layouts/
     ├─ endpoints/
     ├─ models/
-    └─ main.ts      the application entry point (required)
+    └─ main.ts ❗    the application entry point
 ```
 
 Espalier handles document placement and presentation. Authors declare the
@@ -443,12 +443,13 @@ espalier build --check
 
 ## Who changes the espalier
 
-`build.guidanceMode` selects the agent's architectural initiative. The default,
-`evolving`, invites proposals for agreement. `fixed` directs ordinary feature
-work into the existing architecture and asks the agent to report gaps until
-architecture work is explicitly authorized. Both modes allow authorized
-changes and routine `create` and `build` operations. See
-[guidance modes](docs/CONFIG.MD#architecture-guidance-modes).
+Any module of the espalier can be locked with `export const locked = true`,
+a directory module for its whole subtree. A locked module needs explicit
+authorization before anything it declares changes; an unlocked one takes the
+changes a task implies, and proposals for open designs. Locks never apply to
+the project's files, and `espalier lint --base <dir>` reports every change
+that touches a lock, so a project can require approval for it. See
+[locks](docs/LOCKS.MD).
 
 Authorized architecture changes are design decisions to discuss. Before changing rules,
 architectural guidance, or configuration policy, the agent explains the gap,

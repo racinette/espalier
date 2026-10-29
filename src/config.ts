@@ -13,10 +13,11 @@ import { VERSION } from "./version.js";
 export const CONFIG_FILENAME = "espalier.config.yaml";
 export const IGNORE_FILENAME = ".espalierignore";
 
-export type GuidanceMode = "evolving" | "fixed";
-
-/** Shared by normal configuration loading and migration validation. */
-export function parseGuidanceMode(value: unknown): GuidanceMode {
+/**
+ * The removed `build.guidanceMode`, read only by migrate: `fixed` becomes
+ * `locked = true` on the espalier root's ESPALIER.mjs. docs/LOCKS.MD.
+ */
+export function parseLegacyGuidanceMode(value: unknown): "evolving" | "fixed" {
   if (value !== "evolving" && value !== "fixed") {
     fail("config_invalid_value", "build.guidanceMode must be evolving or fixed");
   }
@@ -46,11 +47,11 @@ export interface Config {
   /** Repo-relative path to the addons module, or null. */
   addons: string | null;
   lint: { jobs: number | "auto" };
-  build: { filename: string; espalierGuidance: boolean; guidanceMode: GuidanceMode };
+  build: { filename: string; espalierGuidance: boolean };
 }
 
 const KNOWN = new Set(["pin", "name", "root", "ignoreFiles", "skip", "addons", "build", "lint"]);
-const KNOWN_BUILD = new Set(["filename", "espalierGuidance", "guidanceMode"]);
+const KNOWN_BUILD = new Set(["filename", "espalierGuidance"]);
 
 /** Instruction files `init` and `migrate` write into `skip`. docs/CONFIG.MD "`skip`". */
 export const SHIPPED_SKIP = ["AGENTS.MD", "AGENTS.md", "CLAUDE.md", ".git", ".gitkeep"];
@@ -243,7 +244,6 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
 
   let filename = "AGENTS.MD";
   let espalierGuidance = true;
-  let guidanceMode: GuidanceMode = "evolving";
   if ("build" in values && values["build"] !== null) {
     const build = values["build"];
     if (typeof build !== "object" || Array.isArray(build)) {
@@ -252,6 +252,9 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     const entries = build as Record<string, unknown>;
     if ("inline" in entries) {
       fail("config_unknown_key", "build.inline has been removed; run espalier migrate to use the ESPALIER.mjs fold export");
+    }
+    if ("guidanceMode" in entries) {
+      fail("config_unknown_key", "build.guidanceMode has been removed; run espalier migrate, which turns fixed into `locked = true` on the espalier root's ESPALIER.mjs");
     }
     for (const key of Object.keys(entries)) {
       if (!KNOWN_BUILD.has(key)) {
@@ -262,7 +265,6 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     if ("espalierGuidance" in entries) {
       espalierGuidance = asBoolean(entries["espalierGuidance"], "build.espalierGuidance");
     }
-    if ("guidanceMode" in entries) guidanceMode = parseGuidanceMode(entries["guidanceMode"]);
   }
 
   const espalierAbsolute = path.join(root, espalierRoot);
@@ -281,7 +283,7 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
     ignore,
     addons,
     lint: parseLintConfig(values["lint"]),
-    build: { filename, espalierGuidance, guidanceMode },
+    build: { filename, espalierGuidance },
   };
 }
 

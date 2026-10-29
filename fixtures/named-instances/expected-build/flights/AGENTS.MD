@@ -2,16 +2,18 @@
 
 An instance of `[group]/`, whose guidance in `../AGENTS.MD` applies here.
 
-Flight domain decisions for flights; group=flights; mode=evolving.
+Flight domain decisions for flights; group=flights; mode=undefined.
 
 ## Project layout
 
     flights/
-    ├─ offline.ts   offline flight lookup (optional, instance of [module].ts)
+    ├─ offline.ts      offline flight lookup (instance of [module].ts)
     │
-    ├─ search.ts    flight search (required, instance of [module].ts)
+    ├─ search.ts ❗    flight search (instance of [module].ts)
     │
-    └─ [module].ts  a shared module (one or more matching files)
+    └─ [module].ts 1+  a shared module
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[module].ts` — a shared module
 

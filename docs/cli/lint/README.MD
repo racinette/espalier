@@ -21,6 +21,7 @@ espalier lint [paths...]
   --config <path>       use this config file instead of discovering one
   --no-guidance        omit guidance bodies from output
   --jobs <n|auto>       maximum workers (default: lint.jobs, otherwise auto)
+  --base <dir>          check the espalier's locks against a base checkout
 ```
 
 ## What it does
@@ -72,6 +73,18 @@ the constraint's static prefix to decide whether it intersects the scope.
 
 Choosing whether an obligation is per-file or aggregate is
 [`espalier help authoring`](../help/README.MD).
+
+## Locks
+
+`--base <dir>` names a checkout of the same repository at the base of the
+change, such as a pull request's target branch. Lint then also compares that
+checkout's espalier with this one and reports every change a lock in force at
+the base covers: `locked_module_changed`, `locked_directory_changed`,
+`locked_contract_changed`, `lock_changed` and `untraceable_import`. A locked
+module is compared together with every repository file it imports. Each
+child espalier is compared with the same relative path in the base. What each
+lock covers, and what the check can and cannot see, is
+[LOCKS.MD](../../LOCKS.MD#enforcing-locks).
 
 ## Groupings
 

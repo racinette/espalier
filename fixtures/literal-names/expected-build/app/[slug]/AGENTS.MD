@@ -7,10 +7,12 @@ An instance of `app/[route]/`, whose guidance in `../AGENTS.MD` applies here.
 ## Project layout
 
     app/[slug]/
-    ├─ loading.tsx  the post route's loading state, which a post route must have
-    │               (required)
+    ├─ loading.tsx ❗  the post route's loading state, which a post route must
+    │                  have
     │
-    └─ page.tsx     the route's page (required)
+    └─ page.tsx ❗     the route's page
+
+❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## `loading.tsx` — the post route's loading state, which a post route must have
 

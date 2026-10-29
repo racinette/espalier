@@ -7,11 +7,14 @@ A component used by exactly one screen belongs beside that screen instead.
   Declared here:
     ├─ buttons/
     │  │
-    │  └─ [button].tsx  a button component (zero or more matching files)
+    │  └─ [button].tsx 0+  a button component
     │
     └─ layouts/
        │
-       └─ [layout].tsx  a layout component (zero or more matching files)
+       └─ [layout].tsx 0+  a layout component
+
+  A count after a pattern, such as `0+` or `1+`, is the fewest matching names
+  that must exist.
 
   Every path under components/ must fit the project layout or a documented
   repository-specific purpose.

@@ -5,11 +5,13 @@ billing/invoices/
     module = "invoices"
 
   Declared here:
-    ├─ index.ts            the module index (required)
+    ├─ index.ts ❗            the module index
     │
-    └─ {area}-{module}.ts  the module entry point (required, {area} repeats what
-                           [area] matched, {module} repeats what [module]
-                           matched)
+    └─ {area}-{module}.ts ❗  the module entry point ({area} repeats what [area]
+                              matched, {module} repeats what [module] matched)
+
+  ❗ marks a named file or directory that must exist; one without it may be
+  absent.
 
   Every path under billing/invoices/ must fit the project layout or a documented
   repository-specific purpose.

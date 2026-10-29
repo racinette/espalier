@@ -1,21 +1,25 @@
 ./
 
   Declared here:
-    ├─ flights/        flight planning (required, instance of [group]/)
+    ├─ flights/ ❗        flight planning (instance of [group]/)
     │  │
-    │  ├─ offline.ts   offline flight lookup (optional, instance of [module].ts)
+    │  ├─ offline.ts      offline flight lookup (instance of [module].ts)
     │  │
-    │  ├─ search.ts    flight search (required, instance of [module].ts)
+    │  ├─ search.ts ❗    flight search (instance of [module].ts)
     │  │
-    │  └─ [module].ts  a shared module (one or more matching files)
+    │  └─ [module].ts 1+  a shared module
     │
-    ├─ trains/         rail planning (optional, instance of [group]/)
+    ├─ trains/            rail planning (instance of [group]/)
     │  │
-    │  └─ [module].ts  a shared module (one or more matching files)
+    │  └─ [module].ts 1+  a shared module
     │
-    └─ [group]/        a shared group (zero or more matching directories)
+    └─ [group]/ 0+        a shared group
        │
-       └─ [module].ts  a shared module (one or more matching files)
+       └─ [module].ts 1+  a shared module
+
+  ❗ marks a named file or directory that must exist; one without it may be
+  absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching
+  names that must exist.
 
   Every path in this directory must fit the project layout or a documented
   repository-specific purpose.

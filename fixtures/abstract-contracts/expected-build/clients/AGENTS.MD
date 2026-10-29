@@ -3,9 +3,11 @@
 ## Project layout
 
     clients/
-    ├─ stripe.ts      the Stripe client (required, instance of [provider].ts)
+    ├─ stripe.ts ❗         the Stripe client (instance of [provider].ts)
     │
-    └─ [provider].ts  a payment provider client (zero or more declared files)
+    └─ [provider].ts 📋 0+  a payment provider client
+
+📋 marks an abstract contract: every match must be declared in the espalier, and an undeclared one is reported. ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[provider].ts` — a payment provider client
 

@@ -2,43 +2,43 @@
 
 ## Project layout
 
-    ./
-    ├─ flights/         flight operations (fixed) (required, instance of
-    │                   [group]/)
+    ./ 🔒
+    ├─ flights/ 🔒❗         flight operations (locked) (instance of [group]/)
     │
-    └─ [group]/         operation group (fixed) (zero or more matching
-                        directories)
+    └─ [group]/ 🔒 0+        operation group (locked)
        │
-       ├─ {group}.json  group manifest (required, {group} repeats what [group]
-       │                matched)
+       ├─ {group}.json 🔒❗  group manifest ({group} repeats what [group]
+       │                     matched)
        │
-       └─ [module].ts   shared operation (fixed) (zero or more matching files)
+       └─ [module].ts 🔒 0+  shared operation (locked)
 
-## `[group]/` — operation group (fixed)
+🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+
+## `[group]/` 🔒 — operation group (locked)
 
 Concrete instances:
-- `flights/` — flight operations (fixed), in `flights/AGENTS.MD`
+- `flights/` — flight operations (locked), in `flights/AGENTS.MD`
 
 ### Adding new instances
 
 A `[group]/` directory needs no declaration. Declaring one gives it its own guidance; see `espalier help instances`.
 
-## `[group]/{group}.json` — group manifest
+## `[group]/{group}.json` 🔒 — group manifest
 
 Manifest [group]/{group}.json; path=null; captures={}.
 
-## `[group]/[module].ts` — shared operation (fixed)
+## `[group]/[module].ts` 🔒 — shared operation (locked)
 
-Base [group]/[module].ts; path=null; captures={}; fixed.
+Base [group]/[module].ts; path=null; captures={}; locked.
 
 ## Constraints
 
-### collection — collection (fixed)
+### collection 🔒 — collection (locked)
 
 Together, files with exactly `.ts` or `.json` as their extension in this project
 must follow this rule.
 
-Collection [...files]/collection.{ts,json}; path=null; captures={}; fixed.
+Collection [...files]/collection.{ts,json}; path=null; captures={}; locked.
 
 ## Other repository paths
 
@@ -47,7 +47,7 @@ These paths are part of the repository but serve specific purposes outside the p
 | Paths | Purpose |
 | --- | --- |
 | `.espalierignore`<br>`espalier`<br>`espalier.config.yaml` | Sources used to generate and check this repository guidance. |
-| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Create [`ESPALIER.mjs`](espalier/ESPALIER.mjs) to add persistent guidance to this document. |
+| `AGENTS.MD` | Generated repository guidance; edits here will be overwritten. Modify [`ESPALIER.mjs`](espalier/ESPALIER.mjs) to change this document's persistent guidance. |
 
 Every path in this directory must fit the project layout or a documented
 repository-specific purpose.

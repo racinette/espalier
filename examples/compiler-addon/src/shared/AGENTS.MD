@@ -5,8 +5,9 @@
 ## Project layout
 
     src/shared/
-    └─ [name].ts  shared model types and computations (zero or more matching
-                  files)
+    └─ [name].ts 0+  shared model types and computations
+
+A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[name].ts` — shared model types and computations
 

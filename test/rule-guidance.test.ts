@@ -28,25 +28,25 @@ test("guidance is fresh per compilation and shared by serial and parallel findin
     const sorted = (issues: typeof first) => issues.map(({path, code, guidance, description}) =>
       JSON.stringify({path, code, guidance, description})).sort();
     assert.deepEqual(sorted(await check({ cwd: root, jobs: 3 })), sorted(first));
-    assert.ok(first.some(({guidance}) => guidance?.includes("; fixed.")));
-    assert.ok(first.some(({description}) => description === "shared operation (fixed)"));
+    assert.ok(first.some(({guidance}) => guidance?.includes("; locked.")));
+    assert.ok(first.some(({description}) => description === "shared operation (locked)"));
     const help = run(root, ["create", "flights", "help"]);
     assert.equal(help.status, 0, help.stdout + help.stderr);
-    assert.match(help.stdout, /flight search \(fixed\)/);
+    assert.match(help.stdout, /flight search \(locked\)/);
     const built = run(root, ["build"]);
     assert.equal(built.status, 0, built.stdout + built.stderr);
     const before = readFileSync(path.join(root, "AGENTS.MD"), "utf8");
     assert.equal(run(root, ["build", "--check"]).status, 0);
-    const configPath = path.join(root, "espalier.config.yaml");
-    writeFileSync(configPath, readFileSync(configPath, "utf8").replace("fixed", "evolving"));
+    // Unlocking the espalier changes every rendering that reads the lock.
+    writeFileSync(path.join(root, "espalier/ESPALIER.mjs"), "export const locked = false;\n");
     assert.equal(run(root, ["build", "--check"]).status, 1);
     assert.equal(readFileSync(path.join(root, "AGENTS.MD"), "utf8"), before);
     const next = await check({ cwd: root, jobs: 2 });
-    assert.ok(next.some(({guidance}) => guidance?.includes("; evolving.")));
-    assert.ok(next.every(({guidance}) => !guidance?.includes("; fixed.")));
-    assert.ok(next.some(({description}) => description === "shared operation (evolving)"));
+    assert.ok(next.some(({guidance}) => guidance?.includes("; unlocked.")));
+    assert.ok(next.every(({guidance}) => !guidance?.includes("; locked.")));
+    assert.ok(next.some(({description}) => description === "shared operation (unlocked)"));
     assert.equal(run(root, ["build"]).status, 0);
-    assert.match(readFileSync(path.join(root, "AGENTS.MD"), "utf8"), /flight operations \(evolving\)/);
+    assert.match(readFileSync(path.join(root, "AGENTS.MD"), "utf8"), /flight operations \(unlocked\)/);
     assert.equal(run(root, ["build", "--check"]).status, 0);
     assert.equal(existsSync(path.join(root, "hotels/AGENTS.MD")), false);
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -54,7 +54,7 @@ test("guidance is fresh per compilation and shared by serial and parallel findin
 
 test("standalone helpers render explicit declaration contexts without changing lint matches", async () => {
   const guidance: RuleGuidanceContext = {
-    config: loadConfig(undefined, fixture), pattern: "[group]/[module].ts", path: null, captures: {},
+    config: loadConfig(undefined, fixture), pattern: "[group]/[module].ts", path: null, captures: {}, locked: false,
   };
   const original = structuredClone(guidance);
   let calls = 0;
@@ -69,7 +69,7 @@ test("standalone helpers render explicit declaration contexts without changing l
     async guidance(context: RuleGuidanceContext) {
       calls++;
       assert.deepEqual(context, original);
-      context.config.build.guidanceMode = "evolving";
+      context.config.build.filename = "changed";
       return "Shared declaration prose.";
     },
     lint({ path, captures, emit }: LintContext) {
@@ -101,7 +101,7 @@ test("standalone helpers render explicit declaration contexts without changing l
 
 test("guidance failure stops standalone lint with the compiler's error codes", async () => {
   const guidance: RuleGuidanceContext = {
-    config: loadConfig(undefined, fixture), pattern: "file.ts", path: "file.ts", captures: {},
+    config: loadConfig(undefined, fixture), pattern: "file.ts", path: "file.ts", captures: {}, locked: false,
   };
   for (const [prose, code] of [
     [() => { throw new Error("broken"); }, "rule_guidance_failed"],
@@ -122,7 +122,7 @@ test("guidance failure stops standalone lint with the compiler's error codes", a
 
 test("standalone computed descriptions require context and fail before lint", async () => {
   const guidance: RuleGuidanceContext = {
-    config: loadConfig(undefined, fixture), pattern: "file.ts", path: "file.ts", captures: {},
+    config: loadConfig(undefined, fixture), pattern: "file.ts", path: "file.ts", captures: {}, locked: false,
   };
   for (const [description, code] of [
     [() => { throw new Error("broken label"); }, "rule_guidance_failed"],
@@ -149,7 +149,7 @@ for (const computed of ["directory", "file"]) {
       writeFileSync(path.join(root, "area/file.ts"), "");
       const config = readFileSync(path.join(fixture, "espalier.config.yaml"), "utf8");
       writeFileSync(path.join(root, "espalier.config.yaml"), config);
-      const label = 'export function description({config}) { return `Label (${config.build.guidanceMode})`; }';
+      const label = 'export function description({locked}) { return `Label (${locked ? "locked" : "unlocked"})`; }';
       writeFileSync(path.join(root, "espalier/area/ESPALIER.mjs"),
         computed === "directory" ? label : 'export const description = "Area";');
       writeFileSync(path.join(root, "espalier/area/file.ts.mjs"),
@@ -158,7 +158,8 @@ for (const computed of ["directory", "file"]) {
       const built = run(root, ["build"]);
       assert.equal(built.status, 0, built.stdout + built.stderr);
       assert.equal(run(root, ["build", "--check"]).status, 0);
-      writeFileSync(path.join(root, "espalier.config.yaml"), config.replace("fixed", "evolving"));
+      // Locking the espalier changes only the description, and that alone is drift.
+      writeFileSync(path.join(root, "espalier/ESPALIER.mjs"), "export const locked = true;\n");
       assert.equal(run(root, ["build", "--check"]).status, 1);
       assert.equal(run(root, ["build"]).status, 0);
       assert.equal(run(root, ["build", "--check"]).status, 0);

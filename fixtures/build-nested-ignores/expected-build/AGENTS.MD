@@ -6,7 +6,9 @@
     ├─ docs/
     ├─ src/
     │
-    └─ main.ts  the application entry point (required)
+    └─ main.ts ❗  the application entry point
+
+❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## `main.ts` — the application entry point
 
@@ -72,14 +74,16 @@ naming distinct roles. Keep fixed parts of a repeated structure static. For
 example, `messages/languages/[language].ts` varies the language while keeping
 its architectural location explicit.
 
-A feature task can require architecture changes even when it does not mention
-rule files. Before changing the architecture, explain the gap in the current
-structure, present the reasonable placement options and their tradeoffs, and
-recommend an approach. Get agreement on that approach before changing
-architectural policy in rules, guidance, or configuration. A feature request authorizes
-implementing the feature; it does not by itself settle its architectural
-design. Raise a missing architectural role before placing the work in a
-catch-all.
+A feature task can require changes to the espalier even when it does not
+mention rule files. When a change follows directly from the task, such as the
+declaration a new member needs or a rule for a file the task names, make it as
+part of the task and say so when reporting the work. When the design is open,
+because several places or roles are reasonable or an existing rule would
+require or permit something different, explain the gap, present the options
+and their tradeoffs, recommend one, and get agreement before changing rules,
+guidance, or configuration. A feature request authorizes implementing the
+feature; it does not by itself settle an open architectural design. Raise a
+missing architectural role before placing the work in a catch-all.
 
 Include changes to constraint selectors, exclusions, and requiredness in that
 discussion. Explain which files become permitted, required, checked, or

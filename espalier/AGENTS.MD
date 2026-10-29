@@ -14,23 +14,21 @@ another copy of this page.
 
 ## Agree on the architecture
 
-Read `build.guidanceMode` in this Espalier's configuration before changing
-architectural policy. The default, `evolving`, invites identifying gaps and
-proposing changes for agreement. In `fixed` mode, ordinary feature work uses
-the existing architecture: report a missing path and role, and pause the
-affected work until architecture work is explicitly authorized. Do not hide
-the gap in a catch-all or change the mode to bypass that boundary. Each nested
-Espalier uses its own setting.
+Check whether a module you are about to change is locked: its own `locked`
+export, or else the nearest enclosing directory module's, decides it, and
+`espalier explain <path>` reports it. A change to what a locked module
+declares needs explicit authorization naming that change, however obvious it
+is: report the path and role the work needs and pause that part of the work.
+Do not hide the gap in a catch-all, and never add, remove or change a `locked`
+export without authorization. `espalier help locks` has the details. Creating
+declared files and regenerating guidance with `create` and `build` remain
+ordinary development operations everywhere.
 
-Explicitly authorized architecture work can proceed in either mode using the
-review process below. Follow the project's own protected-path and commit
-requirements. Creating declared files and regenerating guidance with `create`
-and `build` remain ordinary development operations.
-
-Before changing architectural policy in rules, guidance, or configuration,
-explain the gap, present reasonable options and their tradeoffs, and recommend
-an approach. Get agreement before implementing it. A feature request does not
-by itself settle the architectural design. Include changes to constraint
+In unlocked modules, a change that follows directly from the task, such as the
+declaration a new member needs, is part of the task: make it and report it.
+When the design is open, explain the gap, present reasonable options and their
+tradeoffs, and recommend an approach. Get agreement before implementing it. A
+feature request does not by itself settle an open architectural design. Include changes to constraint
 selectors, exclusions, and requiredness: explain which files become permitted,
 required, checked, or excluded, and which existing guarantees would be removed.
 A more specific node or a moved file can bypass checks without editing them.

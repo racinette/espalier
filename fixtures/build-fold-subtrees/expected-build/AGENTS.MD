@@ -5,14 +5,16 @@ Root guidance.
 ## Project layout
 
     ./
-    ├─ other/         independent code
+    ├─ other/            independent code
     │
-    ├─ src/           application code
+    ├─ src/              application code
     │
     └─ support/
        └─ bundle/
           │
-          └─ main.ts  a source file (required)
+          └─ main.ts ❗  a source file
+
+❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## Governed elsewhere
 

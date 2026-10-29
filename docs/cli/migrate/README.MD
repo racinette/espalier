@@ -12,10 +12,11 @@ package's version. `migrate` is the exception: it updates `pin`, removes
 obsolete settings, and inserts missing required keys. After it runs, this CLI
 owns the repository. An older CLI will refuse the result.
 
-Migration preserves explicit `build.guidanceMode` and `lint.jobs` settings
-and validates them before writing that project's migration files. It does not
-switch between evolving and fixed guidance. The refreshed authoring contract reads the mode
-from the governing configuration.
+Migration preserves an explicit `lint.jobs` setting and validates it before
+writing that project's migration files. It removes `build.guidanceMode`: a
+`fixed` mode becomes `export const locked = true;` on the espalier root's
+`ESPALIER.mjs`, created when there is none, and `evolving`, the unlocked
+default, needs nothing. See [LOCKS.MD](../../LOCKS.MD).
 
 ## Usage
 

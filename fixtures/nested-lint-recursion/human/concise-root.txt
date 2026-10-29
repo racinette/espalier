@@ -2,12 +2,15 @@
 
   Declared here:
     ├─ packages/
-    │  │
-    │  └─ [package]/   (zero or more matching directories)
+    │  └─ [package]/ 0+
     │     │
-    │     └─ index.ts  a package entry point (required)
+    │     └─ index.ts ❗  a package entry point
     │
-    └─ main.ts         the application entry point (required)
+    └─ main.ts ❗         the application entry point
+
+  ❗ marks a named file or directory that must exist; one without it may be
+  absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching
+  names that must exist.
 
   Every path in this directory must fit the project layout or a documented
   repository-specific purpose.

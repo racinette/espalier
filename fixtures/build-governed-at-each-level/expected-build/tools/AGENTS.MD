@@ -5,7 +5,9 @@ Scripts run by hand or by CI. Nothing here is imported by the application.
 ## Project layout
 
     tools/
-    └─ [tool].ts  a developer tool (zero or more matching files)
+    └─ [tool].ts 0+  a developer tool
+
+A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## Governed elsewhere
 

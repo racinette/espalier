@@ -14,6 +14,7 @@ import type { Issue, Reporter } from "./output.js";
 import { eachChild } from "./nested.js";
 import { openConfig, type Repository } from "./repository.js";
 import { ignores } from "./ignore.js";
+import { loadBase, lockViolations } from "./locks.js";
 
 export interface LintOptions {
   cwd: string;
@@ -22,6 +23,8 @@ export interface LintOptions {
   rule: string | undefined;
   guidance: boolean;
   jobs?: Jobs;
+  /** A checkout of this repository at the base of the change, whose locks the espalier is checked against. docs/LOCKS.MD. */
+  base?: string;
 }
 
 /**
@@ -54,7 +57,11 @@ export async function lint(options: LintOptions, reporter: Reporter): Promise<nu
   };
 
   const below = await eachChild(root, repository.children.filter(reaches), reporter, (childRoot, childReporter) =>
-    lint({ ...options, cwd: childRoot, config: undefined, paths: absolute }, childReporter),
+    lint({
+      ...options, cwd: childRoot, config: undefined, paths: absolute,
+      // The base checkout holds the child at the same place this one does.
+      ...(options.base === undefined ? {} : { base: path.join(path.resolve(options.cwd, options.base), path.relative(root, childRoot)) }),
+    }, childReporter),
   );
 
   return Math.max(here, below);
@@ -145,6 +152,24 @@ async function lintOne(
     builtin(`${directory}/`, "undeclared_instance",
       `this directory matches the abstract contract \`${contract}/\` and is not declared; ${declareHint(`${directory}/ESPALIER.mjs`)}`,
       { contract: `${contract}/` });
+  }
+
+  // A change to the espalier is judged by the locks in force at its base.
+  // docs/LOCKS.MD "Enforcing locks".
+  if (options.base !== undefined) {
+    const base = await loadBase(path.resolve(options.cwd, options.base));
+    if (base !== null) {
+      const head = { config, espalier, rules: path.join(config.root, config.espalierRoot) };
+      for (const violation of await lockViolations(base, head)) {
+        const target = `${config.espalierRoot}/${violation.module}`;
+        if (!inScope(target)) continue;
+        builtin(target, violation.code, violation.message, {
+          module: violation.module,
+          lockedBy: violation.lockedBy,
+          ...(violation.via === undefined ? {} : { via: violation.via }),
+        });
+      }
+    }
   }
 
   const requiredEntries = requirements(espalier.root, "", {}, repository.visibleSet, (at) => {

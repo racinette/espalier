@@ -28,22 +28,25 @@ keep the first kind that was buried in it.
 ## Project layout
 
     docs/
-    ├─ cli/          one page per command
+    ├─ cli/             one page per command
     │
-    ├─ API.MD        using espalier as a library (required)
+    ├─ API.MD ❗        using espalier as a library
     │
-    ├─ AUTHORING.MD  how to write a rule module (required)
+    ├─ AUTHORING.MD ❗  how to write a rule module
     │
-    ├─ CONFIG.MD     the configuration file and the ignore list (required)
+    ├─ CONFIG.MD ❗     the configuration file and the ignore list
     │
-    ├─ ERRORS.MD     every operational failure and what it means (required)
+    ├─ ERRORS.MD ❗     every operational failure and what it means
     │
-    ├─ INSTANCES.MD  declaring a path as an instance of a shared contract
-    │                (required)
+    ├─ INSTANCES.MD ❗  declaring a path as an instance of a shared contract
     │
-    ├─ MATCHING.MD   how a rule module claims a file (required)
+    ├─ LOCKS.MD ❗      what a lock covers and how a project enforces it
     │
-    └─ TYPES.MD      what a rule module exports and receives (required)
+    ├─ MATCHING.MD ❗   how a rule module claims a file
+    │
+    └─ TYPES.MD ❗      what a rule module exports and receives
+
+❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## `API.MD` — using espalier as a library
 
@@ -77,6 +80,13 @@ The how-to for declared instances and abstract contracts, written once so that
 generated guidance can point at `espalier help instances` instead of
 repeating the mechanism under every contract. The matching semantics of an
 instance stay in MATCHING.MD; what the module exports stays in TYPES.MD.
+
+## `LOCKS.MD` — what a lock covers and how a project enforces it
+
+The one statement of what `locked` means, written once so that generated
+guidance and the legend can point at `espalier help locks` instead of
+repeating it. The exports themselves stay in TYPES.MD; the issues the lock
+check reports are listed here and on the lint page.
 
 ## `MATCHING.MD` — how a rule module claims a file
 

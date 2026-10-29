@@ -50,6 +50,7 @@ aggregate form.
 | `minMatches` | no | minimum membership of a dynamic collection |
 | `literalName` | no | the filename's brackets or braces are the name, not placeholders |
 | `abstract` | no | on a dynamic leaf, every match must be a declared instance |
+| `locked` | no | changing what this module declares needs explicit authorization; see [LOCKS.MD](LOCKS.MD) |
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
 | `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
@@ -93,14 +94,14 @@ function returning a string:
 
 ```js
 /** @param {import("espalier").RuleGuidanceContext} context */
-export function guidance({ config }) {
-  return config.build.guidanceMode === "fixed"
+export function guidance({ locked }) {
+  return locked
     ? "Changes to this file's responsibilities require architecture authorization."
     : "Discuss changes to this file's responsibilities before implementing them.";
 }
 ```
 
-`RuleGuidanceContext` contains `{ config, pattern, path, captures }`:
+`RuleGuidanceContext` contains `{ config, pattern, path, captures, locked }`:
 
 - `config` is an isolated snapshot of the resolved configuration, with defaults
   applied. Its `root` is the absolute repository path; `espalierRoot` is the
@@ -113,6 +114,8 @@ export function guidance({ config }) {
 - `captures` contains bindings known from named specializations along the
   authored path, including a named file's inherited capture. Unbound dynamic
   and recursive placeholders are absent.
+- `locked` is whether the declaring module is locked, by its own export or its
+  directory's. See [LOCKS.MD](LOCKS.MD).
 
 Each authored declaration's function runs once during repository compilation,
 before lint workers start, including when no source file matches it. Inherited
@@ -523,25 +526,26 @@ file. Its exports are:
 | `optional` | `false` | permit a named directory instance to be absent; valid only with `instanceOf` |
 | `literalName` | `false` | the directory's brackets or braces are its name, as in a Next.js `[slug]` route; see [Literal names](MATCHING.MD#literal-names) |
 | `abstract` | `false` | on a dynamic directory, every matching directory must be a declared instance; see [INSTANCES.MD](INSTANCES.MD) |
+| `locked` | inherited | lock this directory and, until a deeper module says otherwise, everything declared below it; see [LOCKS.MD](LOCKS.MD) |
 
-For example, computed guidance can follow the configured architecture mode:
+For example, computed guidance can follow the directory's lock:
 
 ```js
 /** @param {import("espalier").DirectoryGuidanceContext} context */
-export function description({ config }) {
-  return "shared application runtime" + (config.build.guidanceMode === "fixed" ? " (read-only)" : "");
+export function description({ locked }) {
+  return "shared application runtime" + (locked ? " (read-only)" : "");
 }
 
 /** @param {import("espalier").DirectoryGuidanceContext} context */
-export function guidance({ config }) {
-  return config.build.guidanceMode === "fixed"
+export function guidance({ locked }) {
+  return locked
     ? "Use the established runtime. Report missing capabilities before changing its architecture."
     : "Discuss missing runtime capabilities and agree on placement before changing its architecture.";
 }
 ```
 
 Both `description` and `guidance` functions receive `DirectoryGuidanceContext`:
-`{ config, pattern, path, captures }`. `config` has the same resolved shape
+`{ config, pattern, path, captures, locked }`, where `locked` is this directory's lock. `config` has the same resolved shape
 described for [`RuleGuidanceContext`](#guidance), including `build` and `lint`
 settings. `pattern` is the authored directory path, relative to the rule-tree
 root. `path` is the concrete repository-relative path when known at compile

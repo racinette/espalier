@@ -11,6 +11,10 @@ run. Exit `2` means that output cannot establish conformance. Programmatic
 Six codes are **issues** rather than failures and are not listed here:
 `unexpected_path`, `missing_required_file`, `missing_required_directory`,
 `missing_required_match`, `missing_required_group` and `undeclared_instance`. They come from matching, exit `1`, and are documented in [MATCHING.MD](MATCHING.MD#built-in-issues) and [cli/lint/README.MD](cli/lint/README.MD#built-in-issues).
+Five more come from checking locks against a base checkout and are documented
+in [LOCKS.MD](LOCKS.MD#enforcing-locks): `locked_module_changed`,
+`locked_directory_changed`, `locked_contract_changed`, `lock_changed` and
+`untraceable_import`.
 
 Codes emitted by rule modules are free-form strings chosen by their authors. `espalier` neither validates nor namespaces them. Everything below is `espalier`'s own.
 
@@ -30,7 +34,7 @@ See [CONFIG.MD](CONFIG.MD).
 |---|---|
 | `config_not_found` | no `espalier.config.yaml` found before the filesystem or linked-worktree boundary |
 | `config_malformed` | not valid YAML, or not a mapping |
-| `config_unknown_key` | a key `espalier` does not recognize — usually a typo. A leftover `version` key is this: `pin` is the only version, and `espalier migrate` removes it |
+| `config_unknown_key` | a key `espalier` does not recognize — usually a typo. A leftover `version` key is this: `pin` is the only version, and `espalier migrate` removes it. So is `build.guidanceMode`, which `espalier migrate` turns into a lock on the espalier root |
 | `config_missing_pin` | `pin` is required so the repository cannot silently change tool versions |
 | `version_mismatch` | the running CLI is not the exact version recorded in `pin`. Install that version, or run `espalier migrate` |
 | `config_missing_ignore_files` | `ignoreFiles` is required. `[]` names none; omit is not a decision |
@@ -129,6 +133,7 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | `template_invalid_result` | a template renderer returned something other than a string |
 | `create_write_failed` | the rendered file or staged directory could not be written to its requested path |
 | `invalid_check_options` | programmatic check was passed the unsupported cache option |
+| `base_unreadable` | `lint --base` was given a checkout whose espalier cannot be read: it pins a different espalier version, or a module in it fails to compile, often because a package it imports is not installed there; `detail.cause` names the underlying code. See [LOCKS.MD](LOCKS.MD#enforcing-locks) |
 
 ## Rule-module parse locations
 

@@ -3,12 +3,13 @@
 ## Project layout
 
     clients/
-    ├─ [provider]/   (zero or more matching directories)
+    ├─ [provider]/ 0+
     │  │
-    │  └─ client.ts  an integration with an external API (required)
+    │  └─ client.ts ❗  an integration with an external API
     │
-    └─ [summary].ts  a one-file summary of a provider (zero or more matching
-                     files)
+    └─ [summary].ts 0+  a one-file summary of a provider
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[provider]/client.ts` — an integration with an external API
 

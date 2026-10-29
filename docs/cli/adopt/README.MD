@@ -10,11 +10,10 @@ espalier adopt src/clients
 
 `adopt` produces structure. It cannot produce meaning — the `guidance` bodies are yours to write, and until you do, the generated documentation says where things go and nothing about how they should be written. Choosing a rule's kind and writing that prose is [`espalier help authoring`](../help/README.MD).
 
-Adoption changes architectural declarations. Under
-[`build.guidanceMode: fixed`](../../CONFIG.MD#architecture-guidance-modes),
-agents need explicit authorization for that architecture work. The command
-remains available in either mode and leaves the selected mode unchanged;
-the setting guides agent decisions rather than enforcing command permissions.
+Adoption changes architectural declarations. In a
+[locked](../../LOCKS.MD) part of the espalier, agents need explicit
+authorization for that work. The command itself runs either way and never
+adds, removes or changes a `locked` export.
 
 ## Usage
 

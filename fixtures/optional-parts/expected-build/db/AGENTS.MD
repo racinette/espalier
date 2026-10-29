@@ -5,8 +5,10 @@
 ## Project layout
 
     db/
-    └─ [num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql
-       a migration step (zero or more matching files)
+    └─ [num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql 0+
+       a migration step
+
+A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 In `[num=00000]`, the text after `=` is a mask: each character matches one character of the name. `0` matches a digit and `a` a lowercase letter. `+` repeats the element before it one or more times. `[kind={tables,indexes,grants}]` accepts exactly the listed names. `{,.[role=a+]}` matches one of its comma-separated alternatives, and the empty one makes that part of the name optional. `espalier help matching` has the full grammar.
 

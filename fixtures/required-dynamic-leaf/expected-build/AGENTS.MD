@@ -4,65 +4,64 @@
 
     ./
     ├─ deep/
-    │  │
-    │  └─ [group]/            (zero or more matching directories)
-    │     │
+    │  └─ [group]/ 0+
     │     ├─ tests/
     │     │  │
-    │     │  └─ [test].ts     a source file (one or more matching files)
+    │     │  └─ [test].ts 1+     a source file
     │     │
-    │     └─ notes.md         a source file (optional)
+    │     └─ notes.md            a source file
     │
     ├─ defaults/
     │  │
-    │  └─ [name].js           a source file (zero or more matching files)
+    │  └─ [name].js 0+           a source file
     │
     ├─ empty/
     │  │
-    │  └─ [name].js           a source file (one or more matching files)
+    │  └─ [name].js 1+           a source file
     │
     ├─ features/
     │  ├─ fixed/
     │  │  │
-    │  │  └─ static.md        a source file (required)
+    │  │  └─ static.md ❗        a source file
     │  │
-    │  ├─ narrow-[feature]/   (zero or more matching directories)
+    │  ├─ narrow-[feature]/ 0+
     │  │  │
-    │  │  ├─ notes.md         a source file (optional)
+    │  │  ├─ notes.md            a source file
     │  │  │
-    │  │  └─ [check].ts       a source file (one or more matching files)
+    │  │  └─ [check].ts 1+       a source file
     │  │
-    │  └─ [feature]/          (zero or more matching directories)
+    │  └─ [feature]/ 0+
     │     │
-    │     ├─ notes.md         a source file (optional)
+    │     ├─ notes.md            a source file
     │     │
-    │     ├─ special.test.ts  a source file (optional)
+    │     ├─ special.test.ts     a source file
     │     │
-    │     └─ [test].test.ts   a source file (one or more matching files)
+    │     └─ [test].test.ts 1+   a source file
     │
     ├─ formats/
     │  │
-    │  └─ [name].{json,yaml}  a source file (one or more matching files)
+    │  └─ [name].{json,yaml} 1+  a source file
     │
     ├─ ignored/
     │  │
-    │  └─ [name].js           a source file (one or more matching files)
+    │  └─ [name].js 1+           a source file
     │
     ├─ optional/
     │  │
-    │  ├─ notes.md            optional source (optional)
+    │  ├─ notes.md               optional source
     │  │
-    │  └─ [name].js           optional source (zero or more matching files)
+    │  └─ [name].js 0+           optional source
     │
     ├─ uninstantiated/
-    │  │
-    │  └─ [instance]/         (zero or more matching directories)
+    │  └─ [instance]/ 0+
     │     │
-    │     └─ [test].ts        a source file (one or more matching files)
+    │     └─ [test].ts 1+        a source file
     │
-    ├─ special.ts             a source file (required)
+    ├─ special.ts ❗             a source file
     │
-    └─ [name].ts              a source file (one or more matching files)
+    └─ [name].ts 1+              a source file
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `special.ts` — a source file
 
@@ -208,14 +207,16 @@ naming distinct roles. Keep fixed parts of a repeated structure static. For
 example, `messages/languages/[language].ts` varies the language while keeping
 its architectural location explicit.
 
-A feature task can require architecture changes even when it does not mention
-rule files. Before changing the architecture, explain the gap in the current
-structure, present the reasonable placement options and their tradeoffs, and
-recommend an approach. Get agreement on that approach before changing
-architectural policy in rules, guidance, or configuration. A feature request authorizes
-implementing the feature; it does not by itself settle its architectural
-design. Raise a missing architectural role before placing the work in a
-catch-all.
+A feature task can require changes to the espalier even when it does not
+mention rule files. When a change follows directly from the task, such as the
+declaration a new member needs or a rule for a file the task names, make it as
+part of the task and say so when reporting the work. When the design is open,
+because several places or roles are reasonable or an existing rule would
+require or permit something different, explain the gap, present the options
+and their tradeoffs, recommend one, and get agreement before changing rules,
+guidance, or configuration. A feature request authorizes implementing the
+feature; it does not by itself settle an open architectural design. Raise a
+missing architectural role before placing the work in a catch-all.
 
 Include changes to constraint selectors, exclusions, and requiredness in that
 discussion. Explain which files become permitted, required, checked, or

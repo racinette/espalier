@@ -9,18 +9,18 @@ release procedure itself is `RELEASING.md`, written for the person running it.
 ## Project layout
 
     .github/
-    ├─ workflows/      GitHub Actions workflows
+    ├─ workflows/         GitHub Actions workflows
     │  │
-    │  ├─ ci.yml       the checks every push and pull request runs (required)
+    │  ├─ ci.yml ❗       the checks every push and pull request runs
     │  │
-    │  └─ release.yml  validating and publishing a GitHub release to npm
-    │                  (required)
+    │  └─ release.yml ❗  validating and publishing a GitHub release to npm
     │
-    ├─ RELEASING.md    how a release is prepared and published (required)
+    ├─ RELEASING.md ❗    how a release is prepared and published
     │
-    └─ RELEASE-[major=0+].[minor=0+].[patch=0+].md
-       one release's notes, published as its GitHub release (one or more
-       matching files)
+    └─ RELEASE-[major=0+].[minor=0+].[patch=0+].md 1+
+       one release's notes, published as its GitHub release
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 In `[major=0+]`, the text after `=` is a mask: each character matches one character of the name. `0` matches a digit. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
 

@@ -5,9 +5,11 @@
 ## Project layout
 
     src/features/
-    └─ [feature]/   (zero or more matching directories)
+    └─ [feature]/ 0+
        │
-       └─ model.ts  a feature's cohesive model operations (required)
+       └─ model.ts ❗  a feature's cohesive model operations
+
+❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[feature]/model.ts` — a feature's cohesive model operations
 

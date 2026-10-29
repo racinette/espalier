@@ -15,36 +15,37 @@ command module opens with a header naming its page, which reports
 ## Project layout
 
     docs/cli/
-    ├─ adopt/        bringing an existing directory under the espalier
-    │                (required, instance of [command]/)
+    ├─ adopt/ ❗         bringing an existing directory under the espalier
+    │                    (instance of [command]/)
     │
-    ├─ build/        generating the agent-facing documentation (required,
-    │                instance of [command]/)
+    ├─ build/ ❗         generating the agent-facing documentation (instance of
+    │                    [command]/)
     │
-    ├─ create/       creating a structurally declared file or directory
-    │                (required, instance of [command]/)
+    ├─ create/ ❗        creating a structurally declared file or directory
+    │                    (instance of [command]/)
     │
-    ├─ examples/     locating and copying worked examples (required, instance of
-    │                [command]/)
+    ├─ examples/ ❗      locating and copying worked examples (instance of
+    │                    [command]/)
     │
-    ├─ explain/      answering what the espalier says about a path (required,
-    │                instance of [command]/)
+    ├─ explain/ ❗       answering what the espalier says about a path (instance
+    │                    of [command]/)
     │
-    ├─ help/         printing this version's reference (required, instance of
-    │                [command]/)
+    ├─ help/ ❗          printing this version's reference (instance of
+    │                    [command]/)
     │
-    ├─ init/         bootstrapping a repository (required, instance of
-    │                [command]/)
+    ├─ init/ ❗          bootstrapping a repository (instance of [command]/)
     │
-    ├─ lint/         validating the repository against the espalier (required,
-    │                instance of [command]/)
+    ├─ lint/ ❗          validating the repository against the espalier
+    │                    (instance of [command]/)
     │
-    ├─ migrate/      updating the configuration for this CLI version (required,
-    │                instance of [command]/)
+    ├─ migrate/ ❗       updating the configuration for this CLI version
+    │                    (instance of [command]/)
     │
-    └─ [command]/    one command (zero or more declared directories)
+    └─ [command]/ 📋 0+  one command
        │
-       └─ README.MD  the command's reference page (required)
+       └─ README.MD ❗   the command's reference page
+
+📋 marks an abstract contract: every match must be declared in the espalier, and an undeclared one is reported. ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[command]/` — one command
 

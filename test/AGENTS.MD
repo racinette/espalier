@@ -22,7 +22,9 @@ passed with the fix reverted.
 ## Project layout
 
     test/
-    └─ [name].test.ts  a test module (zero or more matching files)
+    └─ [name].test.ts 0+  a test module
+
+A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[name].test.ts` — a test module
 

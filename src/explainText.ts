@@ -6,7 +6,7 @@
 // the other does not get.
 
 import type { CaptureValue } from "./match.js";
-import { drawMap, type MapEntry, readInside } from "./render.js";
+import { drawMap, marksLegend, type MapEntry, readInside } from "./render.js";
 
 /** Descriptions align here, on every line that has one. */
 const COLUMN = 41;
@@ -57,6 +57,8 @@ export interface RuleAnswer {
   groups?: GroupAnswer[];
   /** Every match must be a declared instance. docs/INSTANCES.MD. */
   abstract?: true;
+  /** The rule's module is locked. docs/LOCKS.MD. */
+  locked?: true;
   path: string;
   pattern: string;
   rule: string;
@@ -75,6 +77,9 @@ export interface PrefixAnswer {
   body: string;
   /** For a named instance directory, its contract, e.g. \`[group]/\`; its guidance is the contract's to state. */
   instanceOf?: string;
+  /** The directory is locked, and which module's export decided it. docs/LOCKS.MD. */
+  locked?: true;
+  lockedBy?: string;
   captures: Record<string, CaptureValue>;
   rules: RuleAnswer[];
   /** The same subtree `build` draws, as data. */
@@ -94,6 +99,9 @@ export interface OwnedAnswer {
   groups?: GroupAnswer[];
   /** The owner is abstract and this path is not declared. docs/INSTANCES.MD. */
   abstract?: true;
+  /** The owning module is locked, and which module's export decided it. docs/LOCKS.MD. */
+  locked?: true;
+  lockedBy?: string;
   kind: "explanation";
   path: string;
   /** The espalier that answered, or null for the one the command loaded. */
@@ -273,6 +281,7 @@ export function renderExplanation(answer: Explanation, concise = false): string 
     blocks.push(head(shown, answer.description));
     if (answeredBy !== null) blocks.push(answeredBy);
     if (answer.instanceOf !== undefined) blocks.push(`  An instance of ${answer.instanceOf}`);
+    if (answer.locked === true) blocks.push(`  Locked by  ${answer.lockedBy}`);
     if (!concise && answer.body !== "") blocks.push(answer.body);
     if (concise && Object.keys(answer.captures).length > 0) {
       blocks.push(["  Captures:", ...describeCaptures(answer.captures, "    ")].join("\n"));
@@ -287,6 +296,8 @@ export function renderExplanation(answer: Explanation, concise = false): string 
           ...drawMap(answer.map, WIDTH + 2 - 4).map((line) => `    ${line}`.trimEnd()),
         ].join("\n"),
       );
+      const legend = marksLegend(answer.map);
+      if (legend !== null) blocks.push(wrap(legend));
     }
 
     if (answer.closedSet !== null) blocks.push(wrap(answer.closedSet));
@@ -359,6 +370,7 @@ export function renderExplanation(answer: Explanation, concise = false): string 
       `  Owned by  ${answer.rule.replace(/\.mjs$/, "")}`,
       ...describeCaptures(answer.captures, " ".repeat(12)),
       ...(answer.abstract === true ? ["  Undeclared  the contract is abstract; declare this path, or see `espalier help instances`"] : []),
+      ...(answer.locked === true ? [`  Locked by  ${answer.lockedBy}`] : []),
     ].join("\n"),
   );
   blocks.push(

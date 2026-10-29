@@ -3,7 +3,9 @@
 ## Project layout
 
     .tools/
-    └─ declared.txt  Declared file (required)
+    └─ declared.txt ❗  Declared file
+
+❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## `declared.txt` — Declared file
 

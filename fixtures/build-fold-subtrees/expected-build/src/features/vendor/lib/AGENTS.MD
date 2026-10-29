@@ -3,7 +3,9 @@
 ## Project layout
 
     lib/
-    └─ [name].ts  a vendor file (zero or more matching files)
+    └─ [name].ts 0+  a vendor file
+
+A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[name].ts` — a vendor file
 

@@ -1,17 +1,17 @@
 import { isMainThread } from "node:worker_threads";
 let descriptions = 0;
-export async function description({ config, pattern, path, captures }) {
+export async function description({ config, pattern, path, captures, locked }) {
   if (!isMainThread || ++descriptions !== 1) throw new Error("describe once in coordinator");
   if (pattern !== "[group]/[module].ts" || path !== null || Object.keys(captures).length) throw new Error("base declaration context");
-  const text = `shared operation (${config.build.guidanceMode})`;
-  config.build.guidanceMode = "changed";
+  const text = `shared operation (${locked ? "locked" : "unlocked"})`;
+  config.build.filename = "changed";
   return text;
 }
 let calls = 0;
-export async function guidance({ config, pattern, path, captures }) {
+export async function guidance({ config, pattern, path, captures, locked }) {
   if (!isMainThread || ++calls !== 1) throw new Error("render once in coordinator");
-  const text = `Base ${pattern}; path=${path}; captures=${JSON.stringify(captures)}; ${config.build.guidanceMode}.`;
-  config.build.guidanceMode = "evolving"; // Prove the callback gets its own copy.
+  const text = `Base ${pattern}; path=${path}; captures=${JSON.stringify(captures)}; ${locked ? "locked" : "unlocked"}.`;
+  config.build.filename = "changed"; // Prove the callback gets its own copy.
   return text;
 }
 export function lint({ emit }) {
