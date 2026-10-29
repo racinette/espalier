@@ -43,6 +43,20 @@ export interface RuleModule {
   aggregate?: unknown;
   targets?: unknown;
   template?: unknown;
+  groups?: unknown;
+}
+
+/**
+ * One named grouping of a dynamic rule's files, by a subset of its captures.
+ * docs/TYPES.MD "groups". The lint function stays on the module; workers
+ * import the module and call `groups[name].lint`.
+ */
+export interface Grouping {
+  name: string;
+  /** Captures whose values identify a group; the rest vary within it. */
+  by: string[];
+  description: string;
+  rule: string;
 }
 
 export interface LoadedModule {
@@ -61,15 +75,27 @@ export interface LoadedModule {
   targets: string[] | null;
   /** A file-creation template, available only on structural rules. */
   template: TemplateDefinition | null;
+  /** Named groupings, available only on dynamic structural rules. */
+  groups: Grouping[];
 }
 
 /** The module kind determines requiredness defaults and valid exports. */
 type ModuleKind = "constraint" | "static" | "dynamic";
 
+/**
+ * What a rule reports as its `pattern`: the declaration exactly as authored,
+ * relative to the rule-tree root. Placeholder names, masks and
+ * back-references survive, where a glob would have lost them. The matched
+ * `path` and the `captures` carry everything the declaration leaves open.
+ */
+export function declaration(modulePath: string): string {
+  return modulePath.slice(0, -".mjs".length);
+}
+
 export interface StructuralRule {
   /** Espalier-relative module path, e.g. `clients/[provider]/client.ts.mjs`. */
   modulePath: string;
-  /** Normalized glob, e.g. `clients/*​/client.ts`. */
+  /** The declaration as authored, e.g. `clients/[provider]/client.ts`: the module path without `.mjs`. */
   pattern: string;
   module: LoadedModule;
   segments?: Segment[];
@@ -99,7 +125,7 @@ export interface Constraint {
   directory: Segment[];
   /** Filename extension selector; null when the module selects with `targets`. */
   extension: string | null;
-  /** Normalized directory scope and optional extension, e.g. `src/**​/*.ts`. */
+  /** The declaration as authored, e.g. `src/[...path]/no-as-any.{ts,tsx}`: the module path without `.mjs`. */
   pattern: string;
   module: LoadedModule;
 }
@@ -357,6 +383,7 @@ async function loadModule(
       `${modulePath}: \`targets\` is available only to constraint modules; structural rules define ownership`
     );
   }
+  const groups = loaded.groups === undefined ? [] : parseGroups(loaded.groups, modulePath, kind);
 
   return {
     description: typeof loaded.description === "string" ? loaded.description : null,
@@ -379,7 +406,39 @@ async function loadModule(
         ? null
         : [...new Set(loaded.targets as string[])].sort((left, right) => left.localeCompare(right)),
     template: isTemplateDefinition(loaded.template) ? loaded.template : null,
+    groups,
   };
+}
+
+const GROUP_NAME = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+
+/**
+ * The shape of `groups`, without reference to the rule's path: which captures
+ * exist is checked where the path is parsed, so a wrong name is reported
+ * beside the names that do exist.
+ */
+function parseGroups(raw: unknown, modulePath: string, kind: ModuleKind): Grouping[] {
+  const bad = (reason: string): never => fail("module_invalid_export", `${modulePath}: \`groups\` ${reason}`);
+  if (kind !== "dynamic") bad("has meaning only on a dynamic structural rule, whose captures identify the groups");
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) bad("must be an object naming each grouping");
+  const groups: Grouping[] = [];
+  for (const [name, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!GROUP_NAME.test(name)) bad(`names a grouping "${name}", which is not an identifier`);
+    if (value === null || typeof value !== "object" || Array.isArray(value)) bad(`.${name} must be an object with by, description, rule and lint`);
+    const grouping = value as Record<string, unknown>;
+    const by = grouping["by"];
+    if (!Array.isArray(by) || by.some((entry) => typeof entry !== "string") || new Set(by).size !== by.length) {
+      bad(`.${name}.by must be an array of distinct capture names`);
+    }
+    if (typeof grouping["description"] !== "string" || grouping["description"].trim() === "") bad(`.${name}.description must be a non-empty string`);
+    if (typeof grouping["rule"] !== "string") bad(`.${name}.rule must be a string`);
+    if (typeof grouping["lint"] !== "function") bad(`.${name}.lint must be a function`);
+    const key = JSON.stringify([...(by as string[])].sort());
+    const twin = groups.find((other) => JSON.stringify([...other.by].sort()) === key);
+    if (twin !== undefined) bad(`.${name} and .${twin.name} group by the same captures; one grouping can carry both rules`);
+    groups.push({ name, by: by as string[], description: (grouping["description"] as string).trim(), rule: grouping["rule"] as string });
+  }
+  return groups;
 }
 
 /**
@@ -601,7 +660,6 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
       const directory = parsed.slice(0, -1);
       const leaf = authored[authored.length - 1]!;
       const module = await loadModule(absoluteModule, modulePath, "constraint", root);
-      const prefix = directory.map((segment) => segment.shape).join("/");
 
       const { name, extensions } = splitConstraintLeaf(leaf, modulePath);
       if (extensions === null && module.targets === null) {
@@ -616,7 +674,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
           name,
           directory,
           extension,
-          pattern: `${prefix === "" ? "" : `${prefix}/`}*${extension === null ? "" : `.${extension}`}`,
+          pattern: declaration(modulePath),
           module,
         });
       }
@@ -627,11 +685,22 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     // literal leaf still rejects a list: its requiredness would be ambiguous.
     const leafSegment = parsed[parsed.length - 1]!;
 
+    const module = await loadModule(absoluteModule, modulePath, leafSegment.dynamic ? "dynamic" : "static", root);
+    for (const grouping of module.groups) {
+      const unknown = grouping.by.find((name) => !names.includes(name));
+      if (unknown !== undefined) {
+        fail("module_invalid_export", `${modulePath}: \`groups.${grouping.name}.by\` names "${unknown}", which this path does not capture; it captures ${names.map((name) => `"${name}"`).join(", ")}`);
+      }
+      if (grouping.by.length === names.length) {
+        fail("module_invalid_export", `${modulePath}: \`groups.${grouping.name}.by\` names every capture, so each group would hold one file; leave at least one capture to vary`);
+      }
+    }
+
     insert(trie, parsed, {
       modulePath,
       segments: parsed,
-      pattern: parsed.map((segment) => segment.shape).join("/"),
-      module: await loadModule(absoluteModule, modulePath, leafSegment.dynamic ? "dynamic" : "static", root),
+      pattern: declaration(modulePath),
+      module,
     });
   }
 
@@ -646,8 +715,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
   const renderModule = async (modulePath: string, module: LoadedModule, constraint = false): Promise<void> => {
     if (!module.ruleRenderer && !module.descriptionRenderer) return;
     if (!renderedRules.has(modulePath)) {
-      const pattern = modulePath.slice(0, -".mjs".length);
-      const context = ruleGuidanceContext(trie, config, pattern, constraint);
+      const context = ruleGuidanceContext(trie, config, declaration(modulePath), constraint);
       renderedRules.set(modulePath, {
         rule: (await renderRuleText(module.ruleRenderer ?? module.rule, context, modulePath))!,
         description: await renderRuleText(module.descriptionRenderer ?? module.description, context, modulePath, "description"),

@@ -11,7 +11,7 @@
       "exit": 0,
       "object": {
         "rule": "clients/[provider]/{provider}.ts.mjs",
-        "pattern": "clients/*/*.ts",
+        "pattern": "clients/[provider]/{provider}.ts",
         "captures": { "provider": "stripe" }
       }
     }

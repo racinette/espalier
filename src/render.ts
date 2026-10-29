@@ -765,9 +765,8 @@ function selectionScope(
 ): { singular: string; plural: string; every: boolean } {
   const prefix = staticPrefix(first.directory);
   const whole = entireSubtree(first.directory);
-  const place = whole
-    ? located(prefix)
-    : `in directories matching ${codeSpan(`${first.directory.map((segment) => segment.shape).join("/")}/`)}`;
+  const directory = codeSpan(`${first.directory.map((segment) => segment.source).join("/")}/`);
+  const place = whole ? located(prefix) : `in directories matching ${directory}`;
 
   if (first.module.targets === null) {
     const extensions = [...new Set(members.map((member) => member.extension!))];
@@ -792,7 +791,7 @@ function selectionScope(
       every: false,
     };
   }
-  const where = whole ? located(prefix) : `within ${codeSpan(first.pattern)}`;
+  const where = whole ? located(prefix) : `within ${directory}`;
   const globs = orList((whole ? targets : patterns).map(codeSpan));
   return {
     singular: `path matching ${globs} ${where}`,
@@ -930,10 +929,23 @@ function renderSections(espalier: Espalier, point: Placement, level: number): st
     // A section with nothing to say is omitted entirely, along with its
     // heading. docs/cli/build/README.MD "Rendering". `adopt` writes an empty
     // `rule` as a TODO, so a freshly adopted project hits this on every node.
-    if (body.length === 0) continue;
+    if (body.length === 0 && module.groups.length === 0) continue;
 
     const heading = module.description === null ? "" : ` — ${module.description}`;
     blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${heading}`, ...body);
+
+    // Each grouping is a sub-section: what identifies a group, then what the
+    // group as a whole must satisfy. docs/cli/build/README.MD "Rule sections".
+    for (const grouping of module.groups) {
+      const shared = grouping.by.length === 0
+        ? "Together, all such files in one directory"
+        : `Together, the files in one directory with the same ${listing(grouping.by.map((name) => codeSpan(name)))}`;
+      blocks.push(
+        `${hashes}# ${grouping.name} — ${grouping.description}`,
+        `${shared} must follow this rule.`,
+        ...(grouping.rule.trim() === "" ? [] : [grouping.rule.trim()]),
+      );
+    }
   }
 
   if (point.constraints.length > 0) {
@@ -1008,6 +1020,12 @@ function maskLegend(entries: MapEntry[]): string | null {
   if (sentences.length === 0) return null;
   sentences.push(`${codeSpan("espalier help matching")} has the full grammar.`);
   return sentences.join(" ");
+}
+
+/** `a`, `a and b`, `a, b and c`. */
+function listing(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
 }
 
 /** The body every document shares: prose, project layout, sections and other paths. */

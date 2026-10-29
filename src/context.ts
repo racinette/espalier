@@ -38,6 +38,8 @@ export interface EmitOptions {
   ruleText: string | null;
   description?: string | null;
   referenceImplementation?: string | null;
+  /** The grouping that is running, recorded on every issue it emits. */
+  group?: string;
   record: (issue: Issue) => void;
 }
 
@@ -82,6 +84,7 @@ export function createEmit(options: EmitOptions): (raw: unknown) => void {
       ruleText: options.ruleText,
       description: options.description,
       referenceImplementation: options.referenceImplementation,
+      ...(options.group === undefined ? {} : { group: options.group }),
     };
     // The context fixes rule identity, pattern and captures. Only emitted
     // fields vary; compare metadata structurally without serializing it.

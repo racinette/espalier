@@ -208,34 +208,29 @@ absorb, because its value is fixed by the enclosing instance before the
 segment is matched. A name that could be split differently around that bound
 text is matched with the earliest possible split.
 
-### Normalization
+### The pattern a rule reports
 
-An ordinary path normalizes to a glob:
-
-```text
-[name]       →  *
-[name=mask]  →  *
-[...name]    →  **
-{name}       →  *
-```
+A rule's `pattern` is its declaration exactly as authored, relative to the
+rule-tree root, without the final `.mjs`:
 
 ```text
-components/buttons/[button].tsx      →  components/buttons/*.tsx
-clients/[provider]/client.ts         →  clients/*/client.ts
-[...path]/no-as-any.ts               →  **/*.ts
-backend/[...path]/no-fetch.ts        →  backend/**/*.ts
+components/buttons/[button].tsx.mjs   →  components/buttons/[button].tsx
+clients/[provider]/client.ts.mjs      →  clients/[provider]/client.ts
+[...path]/no-as-any.{ts,tsx}.mjs      →  [...path]/no-as-any.{ts,tsx}
+backend/[...path]/no-fetch.ts.mjs     →  backend/[...path]/no-fetch.ts
 ```
 
-For a structural extension union, the declaration displays its union, while a
-concrete match receives the selected branch as `context.pattern`. The
-normalized form is otherwise what `lint` receives as `context.pattern`. It is
-an admission pattern, not an exact expression of extension-bearing filename
-semantics: `*.ts` also matches `foo.d.ts` as a glob, while `[file].ts` does
-not. The matcher makes the final decision. Human-facing output — the project
-map, generated documentation, `explain` — keeps the placeholder names, because
-they carry meaning a glob does not.
+That is what `lint` receives as `context.pattern`, what an issue records, what
+`explain` reports, and what a computed `rule` or `description` callback is
+given. Nothing is normalized away: placeholder names, masks, back-references
+and extension unions all survive, because they carry meaning a glob cannot
+express. The file that matched is `context.path`, exact, and the values the
+declaration left open are `context.captures`. An inherited check reports its
+base declaration, even inside a named instance.
 
-Normalization is lossy for a mask, which a glob cannot express, and for a back-reference, unavoidably so: no glob can say *the same text as that other part*. `clients/[provider]/{provider}.ts` normalizes to `clients/*/*.ts`, which matches strictly more than the rule does. Nothing that decides ownership uses the glob — the matcher walks segments — so this costs precision only where a glob is being read as documentation, and `context.path` is always exact.
+Nothing matches against a `pattern`. The matcher walks segments, and the glob
+an aggregate receives as `context.patterns` is its admission selector, derived
+from a filename extension or `targets`, not its declaration.
 
 Patterns use `/` as separator on every platform, match case-sensitively even on case-insensitive filesystems, and match dotfiles like any other name. Structural extension unions and constraint filename extension lists are parsed as rule syntax; neither is glob brace expansion.
 

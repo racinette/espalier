@@ -202,7 +202,7 @@ export async function lint({ matches, emit }) {
     });
     assert.equal(explainedCompound.status, 0, explainedCompound.stderr);
     const compound = JSON.parse(explainedCompound.stdout) as { pattern: string; captures: Record<string, string>; constraints: { name: string }[] };
-    assert.equal(compound.pattern, "*.schema.json");
+    assert.equal(compound.pattern, "[name].{json,schema.json}");
     assert.deepEqual(compound.captures, { name: "a" });
     assert.deepEqual(compound.constraints.map((constraint) => constraint.name), ["exported", "group-target"]);
 
@@ -248,7 +248,7 @@ export async function lint({ matches, emit }) {
     const issues = result.stdout.split("\n").filter(Boolean).map((line) => JSON.parse(line));
     assert.deepEqual(issues.filter((issue) => issue.code === "up").map((issue) => issue.path).sort(), ["migrations/001.up.sql"]);
     assert.equal(issues.find((issue) => issue.code === "pair")?.message, "migrations/001.down.sql,migrations/001.up.sql");
-    assert.deepEqual(issues.find((issue) => issue.code === "pair")?.pattern, "migrations/**/*.down.sql | migrations/**/*.up.sql");
+    assert.deepEqual(issues.find((issue) => issue.code === "pair")?.pattern, "migrations/[...path]/pair.{up.sql,down.sql}");
 
     const explainedPlain = spawnSync(process.execPath, [cli, "explain", "--format", "jsonl", "migrations/002.sql"], {
       cwd: root, encoding: "utf8",
@@ -291,7 +291,7 @@ export async function lint({ emit }) { emit({ code: "glob", severity: "info", me
     assert.equal(explained.status, 0, explained.stderr);
     const answer = JSON.parse(explained.stdout) as { rule: string; pattern: string; captures: Record<string, string> };
     assert.equal(answer.rule, "[file].{ts,d.ts,tsx}.mjs");
-    assert.equal(answer.pattern, "*.d.ts");
+    assert.equal(answer.pattern, "[file].{ts,d.ts,tsx}");
     assert.deepEqual(answer.captures, { file: "foo" });
 
     const built = spawnSync(process.execPath, [cli, "build"], { cwd: root, encoding: "utf8" });

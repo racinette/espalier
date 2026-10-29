@@ -6,7 +6,7 @@
       "code": "raw_fetch",
       "severity": "error",
       "rule": "clients/[provider]/{provider}/[...path]/no-fetch.ts.mjs",
-      "pattern": "clients/*/*/**/*.ts",
+      "pattern": "clients/[provider]/{provider}/[...path]/no-fetch.ts",
       "captures": { "provider": "stripe", "path": [] }
     }
   ],

@@ -8,7 +8,7 @@ import { fail } from "./errors.js";
 import { startImplementations } from "./implementation.js";
 import { prepareAddons, snapshot, type Invocation, type Job } from "./execution.js";
 import { jobLimit, runJobs, type Jobs } from "./workers.js";
-import { admitConstraint, admissionGlobs, issuePattern } from "./targets.js";
+import { admitConstraint, admissionGlobs } from "./targets.js";
 import { isOwnership, requirements, structuralChecks, type CaptureValue } from "./match.js";
 import type { Issue, Reporter } from "./output.js";
 import { eachChild } from "./nested.js";
@@ -260,13 +260,51 @@ async function lintOne(
     const selected = job.filter((item) => options.rule === undefined || options.rule === item.modulePath);
     if (selected.length > 0) jobs.push(selected);
   }
+  // docs/cli/lint/README.MD "Groupings". A group is induced by the files that
+  // exist, so it is never empty, and it is scoped like an aggregate: a run
+  // that touches one member receives the whole group.
+  interface GroupInvocation {
+    rule: StructuralRule;
+    grouping: StructuralRule["module"]["groups"][number];
+    directory: string;
+    captures: Record<string, CaptureValue>;
+    matches: { path: string; captures: Record<string, CaptureValue> }[];
+  }
+  const groups = new Map<string, GroupInvocation>();
+  for (const file of allOwned) {
+    const directory = path.posix.dirname(file.path);
+    for (const { rule, captures } of structuralChecks(file.rule, file.path, file.captures)) {
+      for (const grouping of rule.module.groups) {
+        const key = Object.fromEntries(grouping.by.map((name) => [name, captures[name]!]));
+        const id = JSON.stringify([directory, rule.modulePath, grouping.name, grouping.by.map((name) => captures[name])]);
+        let group = groups.get(id);
+        if (group === undefined) {
+          group = { rule, grouping, directory: directory === "." ? "" : directory, captures: key, matches: [] };
+          groups.set(id, group);
+        }
+        group.matches.push({ path: file.path, captures });
+      }
+    }
+  }
+  for (const group of groups.values()) {
+    if (options.rule !== undefined && options.rule !== group.rule.modulePath) continue;
+    if (scope !== null && !group.matches.some((match) => inScope(match.path))) continue;
+    jobs.push([{
+      ...invocation(group.rule.modulePath, group.rule.module, group.rule.pattern, group.directory === "" ? "." : `${group.directory}/`, group.captures),
+      ruleText: options.ruleText ? group.grouping.rule : null,
+      description: group.grouping.description,
+      group: group.grouping.name,
+      matches: group.matches.sort((left, right) => left.path.localeCompare(right.path)),
+    }]);
+  }
+
   for (const aggregate of aggregates.values()) {
     if (options.rule !== undefined && options.rule !== aggregate.modulePath) continue;
     if (!aggregateInScope(aggregate)) continue;
     const patterns = [...new Set(aggregate.constraints.flatMap((constraint) => admissionGlobs(constraint)))].sort();
     const target = aggregate.prefix === "" ? "." : `${aggregate.prefix}/`;
     jobs.push([{
-      ...invocation(aggregate.modulePath, aggregate.module, issuePattern(patterns), target, {}),
+      ...invocation(aggregate.modulePath, aggregate.module, aggregate.constraints[0]!.pattern, target, {}),
       patterns,
       matches: [...aggregate.matches.values()].sort((left, right) => left.path.localeCompare(right.path)),
     }]);

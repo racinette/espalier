@@ -14,7 +14,7 @@
       "object": {
         "path": "src/linked.ts",
         "rule": "src/[name].ts.mjs",
-        "pattern": "src/*.ts",
+        "pattern": "src/[name].ts",
         "captures": { "name": "linked" }
       }
     }

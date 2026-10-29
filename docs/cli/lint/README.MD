@@ -29,7 +29,7 @@ espalier lint [paths...]
 2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and a traversal failure stops the run. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
 3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. Required named leaves with no file report `missing_required_file`; absent required named directory instances report `missing_required_directory`; collections below their minimum report `missing_required_match`. See [MATCHING.MD](../../MATCHING.MD).
 4. **Prepare execution.** Capture governed source contents, await addon preparation, and initialize all participating workers.
-5. **Run rules.** For every owned file: its inherited structural checks and local `lint`, plus each per-file constraint whose directory pattern and selector admit it. Run each aggregate once over its complete selected group.
+5. **Run rules.** For every owned file: its inherited structural checks and local `lint`, plus each per-file constraint whose directory pattern and selector admit it. Run each aggregate once over its complete selected group, and each grouping of a dynamic rule once per group of files sharing its `by` captures in one directory.
 6. **Report and clean up.** Report distinct issues from each invocation as they arrive, then dispose worker-local addons.
 
 Rules execute independently and in unspecified order. A rule may read any governed file through `read` and list governed files through `files`, but must not depend on another rule having run. Helpers and addons receive repository contents from those functions. Shared analysis may reuse identical inputs when answers remain independent of previous calls. See [TYPES.MD](../../TYPES.MD#execution).
@@ -73,6 +73,20 @@ the constraint's static prefix to decide whether it intersects the scope.
 Choosing whether an obligation is per-file or aggregate is
 [`espalier help authoring`](../help/README.MD).
 
+## Groupings
+
+A dynamic structural rule may export `groups`, naming subsets of its captures
+that identify groups of its files: the steps of one migration set, say, by
+number and group name. Each grouping's `lint` runs once per distinct value of
+those captures per directory, with the members and the shared captures. Groups
+are induced by the files present, so none is empty. See
+[TYPES.MD](../../TYPES.MD#groups).
+
+A grouping is scoped like an aggregate: if the scope reaches one member, the
+grouping receives the whole group. Its issues carry the rule's module path,
+the grouping's name as `group`, the shared captures, and the grouping's own
+rule text; the default issue path is the group's directory.
+
 ## Scoping
 
 A path argument restricts the file set, at the cost of completeness:
@@ -80,7 +94,7 @@ A path argument restricts the file set, at the cost of completeness:
 - `unexpected_path` is reported for files in scope
 - `missing_required_file` is reported only for required leaves inside the scope
 - `missing_required_match` is reported only for containing directories inside the scope, counting their full owned membership
-- structural and per-file constraint invocations are limited to owned files in scope; an aggregate whose selection intersects the scope still receives its complete group
+- structural and per-file constraint invocations are limited to owned files in scope; an aggregate whose selection intersects the scope still receives its complete group, and so does a grouping one of whose members is in scope
 
 A scoped run cannot tell you the repository conforms — only that the part you asked about does. The human summary says so explicitly. **CI runs unscoped.**
 
@@ -110,7 +124,8 @@ jobs, with one worker even when there are no jobs so the addon lifecycle remains
 well-defined. All worker setups finish before any lint callback starts.
 
 One file and its applicable structural/per-file rules form a job. Each aggregate
-is one job containing its complete selected match set. Free workers take the next
+is one job containing its complete selected match set, and so is each group of
+a grouping. Free workers take the next
 job from the queue. Rules and their context API remain unchanged; rules must not
 rely on worker assignment or invocation order. Findings are reported centrally
 as they arrive. Findings, including metadata, must support structured cloning
@@ -160,12 +175,13 @@ call, plus what the runner knows:
 | `message` | human-readable description, from the rule |
 | `severity` | `error`, `warning`, or `info`; defaults to `error` |
 | `rule` | espalier-relative module path, or `null` for built-in issues |
+| `group` | the grouping that reported it; present only on a grouping's issues |
 | `espalier` | repo-relative directory of the espalier that reported it, or `null` for the one this command loaded |
-| `pattern` | the normalized glob that matched; for an aggregate, the admission glob, or the sorted list joined with ` | `, or `null` |
-| `captures` | values from placeholders in the matched pattern |
+| `pattern` | the rule's declaration as authored, without `.mjs`, or `null` for built-in issues |
+| `captures` | values from placeholders in the declaration; for a grouping, the values its members share |
 | `line`, `column` | 1-based, or `null` |
 | `metadata` | arbitrary structured data from the rule |
-| `ruleText` | the module's `rule` body |
+| `ruleText` | the module's `rule` body, or the grouping's |
 
 Human output uses the rendered description in rule headings. The JavaScript
 API also exposes `description` and `referenceImplementation` on its `Issue`
@@ -277,7 +293,7 @@ Every line carries a `kind` — `issue`, `warning`, or `failure`. A reader dispa
 
 ```json
 {"kind":"issue","path":"clients/acme/random.ts","code":"unexpected_path","message":"…","severity":"error","espalier":null,"rule":null,"pattern":null,"captures":{},"line":null,"column":null,"metadata":{"recognized":"clients/[provider]","captures":{"provider":"acme"},"declared":["client.ts","requestModels.ts"]},"ruleText":null}
-{"kind":"issue","path":"clients/stripe/client.ts","code":"missing_factory","message":"…","severity":"error","espalier":null,"rule":"clients/[provider]/client.ts.mjs","pattern":"clients/*/client.ts","captures":{"provider":"stripe"},"line":12,"column":3,"metadata":{},"ruleText":"…"}
+{"kind":"issue","path":"clients/stripe/client.ts","code":"missing_factory","message":"…","severity":"error","espalier":null,"rule":"clients/[provider]/client.ts.mjs","pattern":"clients/[provider]/client.ts","captures":{"provider":"stripe"},"line":12,"column":3,"metadata":{},"ruleText":"…"}
 {"kind":"warning","message":"partial run: 3 of 214 files checked. A scoped run cannot tell you the repository conforms."}
 {"kind":"failure","code":"ambiguous_siblings","message":"…"}
 ```

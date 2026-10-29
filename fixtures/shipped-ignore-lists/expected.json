@@ -69,7 +69,7 @@
       "object": {
         "path": "README.MD",
         "rule": "[doc].MD.mjs",
-        "pattern": "*.MD",
+        "pattern": "[doc].MD",
         "captures": {
           "doc": "README"
         }

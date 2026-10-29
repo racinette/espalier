@@ -233,6 +233,31 @@ const cases: Case[] = [
     espalier: { "src/[...path]/registry.mjs": `${INERT}export const aggregate = true;\n` },
   },
   {
+    what: "groups on a static leaf, which has no captures",
+    code: "module_invalid_export",
+    espalier: { "src/main.ts.mjs": `${INERT}export const groups = { all: { by: [], description: "all", rule: "", lint() {} } };\n` },
+  },
+  {
+    what: "a grouping naming a capture the path does not declare",
+    code: "module_invalid_export",
+    espalier: { "src/[name].ts.mjs": `${INERT}export const groups = { kind: { by: ["kind"], description: "a kind", rule: "", lint() {} } };\n` },
+  },
+  {
+    what: "a grouping naming every capture, so each group is one file",
+    code: "module_invalid_export",
+    espalier: { "src/[name].ts.mjs": `${INERT}export const groups = { one: { by: ["name"], description: "one", rule: "", lint() {} } };\n` },
+  },
+  {
+    what: "two groupings by the same captures",
+    code: "module_invalid_export",
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { x: { by: ["a"], description: "x", rule: "", lint() {} }, y: { by: ["a"], description: "y", rule: "", lint() {} } };\n` },
+  },
+  {
+    what: "a grouping without a lint function",
+    code: "module_invalid_export",
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { x: { by: ["a"], description: "x", rule: "" } };\n` },
+  },
+  {
     what: "a filename extension and targets together",
     code: "module_invalid_export",
     espalier: { "src/[...path]/registry.json.mjs": `${INERT}export const targets = ["**/*.json"];\n` },

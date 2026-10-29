@@ -281,11 +281,16 @@ migrations
 
 The alternative is a rule body asking politely and a `lint` function checking afterwards, for a fact the espalier can simply state. Stating it also puts the requirement in the generated documentation, where an agent reads it before writing the file rather than after.
 
-The matcher normalizes `[name]` to `*`, `[...name]` to `**`, and `{name}` to
-`*`. Structural rules and per-file constraints receive a normalized
-`context.pattern` and matched values in `context.captures`. Aggregates receive
-`context.patterns` for their admission globs and `context.matches` for the
-selected files, each with its own path and captures.
+Structural rules and per-file constraints receive their declaration as
+`context.pattern`, placeholders and all, and the matched values in
+`context.captures`. Aggregates receive `context.patterns` for their admission
+globs and `context.matches` for the selected files, each with its own path and
+captures.
+
+A dynamic rule can also judge its files in groups. `groups` names the
+captures a group shares, such as a migration set's number and name, and each
+grouping carries its own rule text and a `lint` that runs once per group with
+the members. See [groups](docs/TYPES.MD#groups).
 
 Full grammar, matching precedence, and requiredness: [docs/MATCHING.MD](docs/MATCHING.MD) (`espalier help matching`).
 

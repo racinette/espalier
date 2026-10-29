@@ -6,7 +6,7 @@
       "exit": 0,
       "object": {
         "rule": "clients/[summary].ts.mjs",
-        "pattern": "clients/*.ts",
+        "pattern": "clients/[summary].ts",
         "captures": {
           "summary": "registry"
         }
@@ -16,7 +16,7 @@
       "exit": 0,
       "object": {
         "rule": "clients/[provider]/client.ts.mjs",
-        "pattern": "clients/*/client.ts",
+        "pattern": "clients/[provider]/client.ts",
         "captures": {
           "provider": "stripe"
         }

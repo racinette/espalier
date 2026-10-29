@@ -35,13 +35,6 @@ export interface Segment {
   parts: Part[];
   /** The capture name when this segment is exactly `[...name]`. */
   recursive: string | null;
-  /**
-   * Literals with every capture replaced by `*`. Two segments with the same
-   * shape are the same node in the trie — which is what makes
-   * `clients/[provider]` and `clients/[vendor]` a contradiction rather than
-   * two directories.
-   */
-  shape: string;
   /** Contains a `[name]`, so it matches many. */
   dynamic: boolean;
   /**
@@ -230,13 +223,9 @@ export function parseSegment(
   }
 
   if (recursive !== null) {
-    return { source, parts: [], recursive, shape: "**", dynamic: true, resolved: false };
+    return { source, parts: [], recursive, dynamic: true, resolved: false };
   }
   if (literal !== "") parts.push({ kind: "literal", text: literal });
-
-  const shape = parts
-    .map((part) => (part.kind === "literal" ? part.text : "*"))
-    .join("");
 
   const dynamic = parts.some((part) => part.kind === "capture");
 
@@ -244,7 +233,6 @@ export function parseSegment(
     source,
     parts,
     recursive: null,
-    shape,
     dynamic,
     resolved: !dynamic && parts.some((part) => part.kind === "backref"),
     dotlessCaptures: options.dotlessCaptures === true,
@@ -274,7 +262,6 @@ export function parseStructuralLeaf(source: string, context: string): Segment {
   return {
     ...stem,
     source,
-    shape: `${stem.shape}.${extensions.length === 1 ? extensions[0] : `{${extensions.join(",")}}`}`,
     fileStem: stem,
     fileExtensions: extensions,
   };
@@ -286,18 +273,23 @@ export function backrefNames(segment: Segment): string[] {
 }
 
 /**
- * How the trie keys a segment. Shape, so that `[provider]` and `[vendor]` are
- * one directory under two names — except where a back-reference is involved,
- * because two of those are two different rules that happen to share a shape.
+ * How the trie keys a segment: its literals, with every capture reduced to
+ * what it admits. Two segments with the same key are one node — which is what
+ * makes `clients/[provider]` and `clients/[vendor]` a contradiction rather
+ * than two directories — except where a back-reference is involved, because
+ * two of those are two different rules that happen to share a key.
+ *
+ * The key is internal. It is not a glob and nothing matches against it.
  */
 export function trieKey(segment: Segment): string {
+  if (segment.recursive !== null) return "[...]";
   if (segment.parts.some((part) => part.kind === "backref")) return segment.source;
-  if (!segment.parts.some((part) => part.kind === "capture" && part.constraint !== undefined)) return segment.shape;
-  // A mask narrows what the node matches, so it is part of the key; the name is not.
   const stem = segment.parts
-    .map((part) => part.kind === "literal" ? part.text : part.kind === "capture" && part.constraint ? `[=${part.constraint.source}]` : "*")
+    .map((part) => part.kind === "literal" ? part.text : part.kind === "capture" && part.constraint ? `[=${part.constraint.source}]` : "[*]")
     .join("");
-  return segment.fileExtensions === undefined ? stem : `${stem}${segment.shape.slice(segment.fileStem!.shape.length)}`;
+  if (segment.fileExtensions === undefined) return stem;
+  const { fileExtensions } = segment;
+  return `${stem}.${fileExtensions.length === 1 ? fileExtensions[0] : `{${fileExtensions.join(",")}}`}`;
 }
 
 export function captureNames(segment: Segment): string[] {
@@ -399,7 +391,7 @@ export function matchSegment(
     return literal !== null && literal === text ? {} : null;
   }
 
-  if (!segment.dynamic) return segment.shape === text ? {} : null;
+  if (!segment.dynamic) return segment.source === text ? {} : null;
 
   const held = backrefNames(segment);
   const build = (): RegExp | null => {
@@ -561,23 +553,6 @@ function bothAccept(a: Machine, b: Machine, symbols: string[]): boolean {
     }
   }
   return false;
-}
-
-/**
- * Whether two shapes can both match some filename. `*` stands for one
- * character or more, so this is emptiness-of-intersection over two tiny NFAs,
- * explored as a product. It is not "do they share an extension" — MATCHING.MD
- * rejects `[name]-test.ts` against `test-[name].ts` on the strength of
- * "test-x-test.ts" alone.
- */
-export function intersects(
-  a: string,
-  b: string,
-  options: { leftDotless?: boolean; rightDotless?: boolean } = {},
-): boolean {
-  const shaped = (shape: string, dotless: boolean): Token[] =>
-    [...shape].map((char) => char === "*" ? wildcard(dotless) : { kind: "literal", char });
-  return intersectTokens(shaped(a, options.leftDotless === true), shaped(b, options.rightDotless === true));
 }
 
 function intersectTokens(left: Token[], right: Token[]): boolean {

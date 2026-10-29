@@ -21,12 +21,15 @@ export interface Issue {
   severity: Severity;
   /** Espalier-relative module path, or null for built-in issues. */
   rule: string | null;
+  /** The rule's declaration without `.mjs`, or null for built-in issues. */
   pattern: string | null;
   captures: Record<string, CaptureValue>;
   line: number | null;
   column: number | null;
   metadata: Record<string, unknown>;
   ruleText: string | null;
+  /** The grouping of the rule that reported this, when a grouping did. */
+  group?: string;
   /**
    * Repo-relative directory of the espalier that reported this, or null for the
    * one the command loaded. docs/cli/lint/README.MD "Nested espaliers".
@@ -111,6 +114,7 @@ function serialize(issue: Issue): string {
     message: issue.message,
     severity: issue.severity,
     rule: issue.rule,
+    ...(issue.group === undefined ? {} : { group: issue.group }),
     pattern: issue.pattern,
     captures: issue.captures,
     line: issue.line,

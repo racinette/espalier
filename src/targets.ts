@@ -48,8 +48,3 @@ export function admitConstraint(
   if (captures === null || !admitsTarget(constraint, filePath)) return null;
   return captures;
 }
-
-/** Issue `pattern`: the sole admission glob, or the sorted list joined with ` | `. */
-export function issuePattern(patterns: string[]): string {
-  return [...patterns].sort((left, right) => left.localeCompare(right)).join(" | ");
-}

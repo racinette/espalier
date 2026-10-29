@@ -101,6 +101,8 @@ export interface Invocation {
   referenceImplementation: string | null;
   matches?: Array<{ path: string; captures: Record<string, CaptureValue> }>;
   patterns?: string[];
+  /** A grouping of a dynamic structural rule: `module.groups[group].lint` runs over `matches`. */
+  group?: string;
 }
 export type Job = Invocation[];
 export interface WorkerInputs {
@@ -122,7 +124,16 @@ export async function executeJob(data: WorkerInputs, job: Job, addons: Record<st
     const context = inputs(data.sources, invocation.modulePath);
     const emit = createEmit({ ...invocation, record });
     try {
-      if (invocation.matches !== undefined) {
+      if (invocation.group !== undefined) {
+        await module.groups[invocation.group].lint({
+          group: invocation.group, path: invocation.path, pattern: invocation.pattern, captures: invocation.captures,
+          matches: invocation.matches, files: context.files, emit, addons,
+          read: (target?: string) => {
+            if (target === undefined) fail("read_failed", `${invocation.modulePath}: a grouping must name the file to read`);
+            return context.read(target);
+          },
+        });
+      } else if (invocation.matches !== undefined) {
         await module.lint({
           matches: invocation.matches, patterns: invocation.patterns, files: context.files, emit, addons,
           read: (target?: string) => {

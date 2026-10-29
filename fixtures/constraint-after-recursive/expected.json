@@ -6,7 +6,7 @@
       "code": "ran_no_fetch",
       "severity": "info",
       "rule": "backend/[...path]/handlers/no-fetch.ts.mjs",
-      "pattern": "backend/**/handlers/*.ts",
+      "pattern": "backend/[...path]/handlers/no-fetch.ts",
       "captures": { "path": ["orders"] }
     },
     {

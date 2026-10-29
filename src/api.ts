@@ -23,11 +23,14 @@ export type { CaptureValue } from "./match.js";
 export { OperationalError } from "./errors.js";
 export {
   createAggregateLinter,
+  createGroupLinter,
   createLinter,
   type AggregateLintContext,
   type AggregateLinter,
   type AggregateReadFile,
   type EmitIssue,
+  type GroupLintContext,
+  type GroupLinter,
   type LintContext,
   type Linter,
   type LintIssue,
@@ -110,7 +113,7 @@ export interface RuleContext {
   guidance?: RuleGuidanceContext;
   /** The file being linted. */
   path: string;
-  /** The glob that matched it. Defaults to `path`. */
+  /** The declaration recorded on issues. Defaults to `path`. */
   pattern?: string;
   captures?: Record<string, CaptureValue>;
   /** A virtual repository backing both `read` and `files`. */
@@ -133,6 +136,27 @@ export interface AggregateRuleContext {
   matches: AggregateMatch[];
   /** Admission globs. Defaults to the recursive all-files glob. */
   patterns?: string[];
+  /** Default path for emitted issues. Defaults to `.`. */
+  at?: string;
+  /** The declaration recorded on issues. Defaults to `at`. */
+  pattern?: string;
+  tree?: Record<string, string>;
+  read?: (path: string) => Promise<string>;
+  files?: (pattern: string) => Promise<string[]>;
+  addons?: Record<string, unknown>;
+  rule?: string | null;
+}
+
+export interface GroupRuleContext {
+  /** Required for function-valued rule prose or descriptions. */
+  guidance?: RuleGuidanceContext;
+  /** The grouping to run, by its name in `groups`. */
+  group: string;
+  /** The values of the `by` captures the members share. */
+  captures?: Record<string, CaptureValue>;
+  matches: AggregateMatch[];
+  /** The declaration recorded on issues. Defaults to `at`. */
+  pattern?: string;
   /** Default path for emitted issues. Defaults to `.`. */
   at?: string;
   tree?: Record<string, string>;
@@ -281,8 +305,8 @@ export async function runAggregate(
   const whose = modulePath ?? "rule";
   const tree = context.tree ?? {};
   const patterns = context.patterns ?? ["**/*"];
-  const pattern = [...patterns].sort((left, right) => left.localeCompare(right)).join(" | ");
   const at = context.at ?? ".";
+  const pattern = context.pattern ?? at;
   const issues: Issue[] = [];
   const matches = context.matches
     .map((match) => ({ path: match.path, captures: match.captures ?? {} }))
@@ -329,6 +353,77 @@ export async function runAggregate(
   } catch (cause) {
     if (cause instanceof OperationalError) throw cause;
     fail("rule_threw", `${whose} threw while linting aggregate ${pattern}: ${(cause as Error).message}`);
+  }
+
+  return issues;
+}
+
+/** Runs one grouping of a dynamic structural rule over the members a test supplies. */
+export async function runGroup(module: RuleModule, context: GroupRuleContext): Promise<Issue[]> {
+  if (module === null || typeof module !== "object") {
+    fail("module_invalid_export", "runGroup expects a rule module");
+  }
+  if ("unobservedImplementationDependencies" in module) fail("module_invalid_export", "unobservedImplementationDependencies is not supported");
+  const groups = module.groups;
+  if (groups === null || typeof groups !== "object" || Array.isArray(groups)) {
+    fail("module_invalid_export", "runGroup expects a module exporting `groups`");
+  }
+  const grouping = (groups as Record<string, unknown>)[context.group];
+  if (grouping === null || typeof grouping !== "object" || typeof (grouping as Record<string, unknown>)["lint"] !== "function") {
+    fail("module_invalid_export", `runGroup: \`groups.${context.group}\` must be a grouping with a lint function`);
+  }
+  const { description, rule, lint } = grouping as { description?: unknown; rule?: unknown; lint: (context: unknown) => unknown };
+  if (typeof description !== "string" || typeof rule !== "string") {
+    fail("module_invalid_export", `runGroup: \`groups.${context.group}\` needs a string description and rule`);
+  }
+  validateTemplate(module.template, "runGroup");
+
+  const modulePath = context.rule ?? null;
+  const whose = modulePath ?? "rule";
+  const tree = context.tree ?? {};
+  const at = context.at ?? ".";
+  const pattern = context.pattern ?? at;
+  const captures = context.captures ?? {};
+  const issues: Issue[] = [];
+  const matches = context.matches
+    .map((match) => ({ path: match.path, captures: match.captures ?? {} }))
+    .sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0));
+
+  const read =
+    context.read ??
+    (async (target: string): Promise<string> => {
+      const contents = tree[target];
+      if (contents === undefined) {
+        fail("read_failed", `${whose}: could not read "${target}": not in the supplied tree`);
+      }
+      return contents;
+    });
+  const files =
+    context.files ??
+    (async (glob: string): Promise<string[]> =>
+      Object.keys(tree)
+        .filter((target) => matchGlob(glob, target))
+        .sort());
+  const emit = createEmit({
+    modulePath,
+    pattern,
+    path: at,
+    captures,
+    ruleText: rule,
+    description,
+    referenceImplementation:
+      typeof module.referenceImplementation === "string"
+        ? module.referenceImplementation
+        : null,
+    group: context.group,
+    record: (issue) => void issues.push(issue),
+  });
+
+  try {
+    await lint({ group: context.group, path: at, pattern, captures, matches, read, files, emit, addons: context.addons ?? {} });
+  } catch (cause) {
+    if (cause instanceof OperationalError) throw cause;
+    fail("rule_threw", `${whose} threw while linting group ${context.group} at ${at}: ${(cause as Error).message}`);
   }
 
   return issues;

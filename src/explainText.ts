@@ -27,8 +27,19 @@ export interface ConstraintAnswer {
   targets?: string[];
 }
 
+/** One grouping a rule declares, as `explain` reports it. */
+export interface GroupAnswer {
+  name: string;
+  by: string[];
+  description: string;
+  ruleText: string;
+  /** The group a file belongs to; absent in a prefix answer, where no file is in hand. */
+  captures?: Record<string, CaptureValue>;
+}
+
 export interface RuleAnswer {
   inherited?: Array<Omit<InheritedAnswer, "captures">>;
+  groups?: GroupAnswer[];
   path: string;
   pattern: string;
   rule: string;
@@ -61,6 +72,7 @@ export interface InheritedAnswer {
 
 export interface OwnedAnswer {
   inherited?: InheritedAnswer[];
+  groups?: GroupAnswer[];
   kind: "explanation";
   path: string;
   /** The espalier that answered, or null for the one the command loaded. */
@@ -172,6 +184,17 @@ function body(
   return blocks;
 }
 
+/** The groupings a rule declares, and for a file, which group it is in. */
+function groupBlocks(groups: GroupAnswer[], concise: boolean): string[] {
+  return groups.map((group) => {
+    const by = group.by.length === 0 ? "the directory" : group.by.join(", ");
+    const lines = [`  Grouped as ${group.name} by ${by}  ${group.description}`];
+    if (group.captures !== undefined) lines.push(...describeCaptures(group.captures, " ".repeat(12)));
+    if (!concise && group.ruleText !== "") lines.push("", ...group.ruleText.split("\n").map((line) => `    ${line}`));
+    return lines.join("\n");
+  });
+}
+
 function constraintBlocks(
   constraints: ConstraintAnswer[],
   applying: string,
@@ -253,6 +276,7 @@ export function renderExplanation(answer: Explanation, concise = false): string 
         if (rule.description !== null) blocks.push(`  ${rule.description}`);
         blocks.push(
           ...body(rule.ruleText, rule.referenceImplementation),
+          ...groupBlocks(rule.groups ?? [], false),
         );
       }
     }
@@ -310,6 +334,7 @@ export function renderExplanation(answer: Explanation, concise = false): string 
       `  Inherits ${base.rule}`,
       ...body(concise ? "" : base.ruleText, null),
     ]),
+    ...groupBlocks(answer.groups ?? [], concise),
   );
   blocks.push(...constraintBlocks(answer.constraints, `to ${answer.path}`, concise));
 

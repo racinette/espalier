@@ -436,6 +436,28 @@ carries the repository path from `referenceImplementation` and is omitted when
 the module exports none. Inline source is deliberately unsupported: an
 unvalidated duplicate inside the rule module could drift from real code.
 
+A dynamic rule that exports `groups` has one sub-section per grouping under
+its own section, headed by the grouping's name and description. The sentence
+after the heading says what the members share, then the grouping's rule
+follows verbatim:
+
+```markdown
+## `[num=0000][ord=00]_[group=a+].sql` — a migration step
+
+One statement per step.
+
+### set — a migration set
+
+Together, the files in one directory with the same `num` and `group` must
+follow this rule.
+
+Steps are numbered from 01 with no gaps.
+```
+
+A grouping with an empty `by` says "all such files in one directory". A rule
+whose own body is empty still gets its section when it declares a grouping,
+since the sub-section needs a parent.
+
 Each constraint gets its own heading at the placement point, alongside the
 structural rule sections. Constraints are ordered by their rule-file paths,
 regardless of whether they check one file at a time or a group. There are no

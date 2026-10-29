@@ -10,7 +10,7 @@
       "code": "ran_api",
       "severity": "info",
       "rule": "[name].ts.mjs",
-      "pattern": "*.ts",
+      "pattern": "[name].ts",
       "captures": {
         "name": "handler"
       }

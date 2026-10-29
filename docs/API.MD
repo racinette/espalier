@@ -157,7 +157,7 @@ The first argument is the module — whatever `import` gave you. It is not looke
 | Field | Default | |
 |---|---|---|
 | `path` | required | the file being linted |
-| `pattern` | `path` | the glob that matched it |
+| `pattern` | `path` | the declaration recorded on issues |
 | `captures` | `{}` | placeholder values |
 | `tree` | `{}` | a virtual repository: path → contents |
 | `read` | derived from `tree` | override for an exotic reader |
@@ -262,8 +262,9 @@ const issues = await runAggregate(rule, {
 | Field | Default | |
 |---|---|---|
 | `matches` | required | complete `{ path, captures }` set; sorted before `lint` runs |
-| `patterns` | `["**/*"]` | admission globs recorded on issues |
+| `patterns` | `["**/*"]` | admission globs given to `lint` |
 | `at` | `.` | default issue path |
+| `pattern` | `at` | the declaration recorded on issues |
 | `tree` | `{}` | virtual repository backing `read` and `files` |
 | `read` | derived from `tree` | reader requiring an explicit path |
 | `files` | derived from `tree` | additional visible-file queries |
@@ -282,6 +283,44 @@ sorted match set as already selected.
 The unsupported `unobservedImplementationDependencies` export is rejected by
 both rule-testing functions and by compilation. All checks evaluate current
 inputs; there are no persistent dependency declarations.
+
+## `runGroup(module, context)`
+
+Runs one grouping of a dynamic structural rule over the members supplied by
+the test:
+
+```js
+import { runGroup } from "espalier";
+import * as rule from "../espalier/migrations/[num=0000][ord=00]_[group=a+].sql.mjs";
+
+const issues = await runGroup(rule, {
+  group: "set",
+  captures: { num: "0002", group: "users" },
+  matches: [
+    { path: "migrations/000201_users.sql", captures: { num: "0002", ord: "01", group: "users" } },
+    { path: "migrations/000203_users.sql", captures: { num: "0002", ord: "03", group: "users" } },
+  ],
+  at: "migrations/",
+});
+```
+
+| Field | Default | |
+|---|---|---|
+| `group` | required | the grouping's name in `groups` |
+| `captures` | `{}` | the shared `by` values, recorded on issues and given to `lint` |
+| `matches` | required | the members as `{ path, captures }`; sorted before `lint` runs |
+| `at` | `.` | default issue path, normally the group's directory with a trailing slash |
+| `pattern` | `at` | the declaration recorded on issues |
+| `tree` | `{}` | virtual repository backing `read` and `files` |
+| `read` | derived from `tree` | reader requiring an explicit path |
+| `files` | derived from `tree` | additional visible-file queries |
+| `addons` | `{}` | shared resources expected by the rule |
+| `rule` | `null` | module path recorded on issues |
+
+The module must export `groups` with the named grouping. Issues carry the
+grouping's name as `group` and the grouping's `rule` and `description`, as
+they do in a lint run. `runGroup` does not check `by` against the module's
+path, which it cannot see; compilation does.
 
 ## Coverage
 

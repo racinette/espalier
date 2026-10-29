@@ -140,6 +140,9 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
         ruleText: visit.node.rule!.module.rule.trim(),
         referenceImplementation: visit.node.rule!.module.referenceImplementation,
         required: required.has(visit.at),
+        ...(visit.node.rule!.module.groups.length > 0 ? { groups: visit.node.rule!.module.groups.map((grouping) => ({
+          name: grouping.name, by: grouping.by, description: grouping.description, ruleText: grouping.rule.trim(),
+        })) } : {}),
       }));
 
     reporter.explanation({
@@ -221,6 +224,14 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     }
   }
 
+  // A file is in one group per grouping of each rule that checks it, keyed by
+  // the shared captures. docs/cli/explain/README.MD "Groupings".
+  const memberships = structuralChecks(owner.rule, target, owner.captures).flatMap(({ rule, captures }) =>
+    rule.module.groups.map((grouping) => ({
+      name: grouping.name, by: grouping.by, description: grouping.description, ruleText: grouping.rule.trim(),
+      captures: Object.fromEntries(grouping.by.map((name) => [name, captures[name]!])),
+    })));
+
   reporter.explanation({
     kind: "explanation",
     espalier: null,
@@ -228,6 +239,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     ...(owner.rule.inherited?.length ? { inherited: structuralChecks(owner.rule, target, owner.captures).slice(0, -1).map(({ rule, captures }) => ({
       rule: rule.modulePath, pattern: rule.pattern, captures, ruleText: rule.module.rule.trim(), description: rule.module.description,
     })) } : {}),
+    ...(memberships.length > 0 ? { groups: memberships } : {}),
     rule: owner.rule.modulePath,
     pattern: owner.rule.pattern,
     captures: owner.captures,

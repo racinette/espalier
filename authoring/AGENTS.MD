@@ -211,6 +211,27 @@ Once resolved, `{provider}.ts` names one file and wins over a placeholder
 sibling such as `[name].ts`. A literal filename still takes precedence over
 both.
 
+A dynamic rule can state an obligation over several of its files at once by
+exporting `groups`. Each grouping names the captures whose shared values
+identify a group, describes what one group is, states the rule for the group,
+and lints each group with its members:
+
+```js
+export const groups = {
+  set: {
+    by: ["num", "group"],
+    description: "a migration set",
+    rule: "Steps are numbered from 01 with no gaps.",
+    async lint({ captures, matches, emit }) { /* one group at a time */ },
+  },
+};
+```
+
+Groups are per directory and never empty. Use a grouping when the invariant is
+about the files together — numbering, completeness, agreement — and a per-file
+`lint` when each file can be judged alone. A grouping that needs every file in
+the directory lists no captures: `by: []`.
+
 **A per-file constraint does not own files.** It checks files already owned
 by structural rules. Its path contains `[...name]`, which matches any depth
 of directories, including none. A rule file’s path may contain at most one

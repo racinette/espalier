@@ -51,6 +51,7 @@ aggregate form.
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
 | `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
+| `groups` | no | named groupings of a dynamic rule's files by shared captures, each with its own rule and `lint` |
 
 ### `description`
 
@@ -388,8 +389,79 @@ case it was meant to reject. Its default issue path is the constraint's longest
 static directory prefix, with a trailing slash, or `.` for a root constraint.
 As with any issue, `emit({ path })` may attach it somewhere more specific.
 
-An issue's `pattern` field remains one string: the sole admission glob, or the
-sorted list joined with ` | ` when there are several.
+An aggregate's issues record the constraint's declaration as `pattern`, as
+every rule's issues do; the admission globs stay on `context.patterns`.
+
+### `groups`
+
+A dynamic structural rule describes one file at a time. Some obligations hold
+over several of its files together: the steps of one migration set, every
+language of one page, every page of one language. A grouping names such a
+collection by the captures its members share:
+
+```js
+// migrations/[num=0000][ord=00]_[group=a+].sql.mjs
+export const groups = {
+  set: {
+    by: ["num", "group"],
+    description: "a migration set",
+    rule: "Steps are numbered from 01 with no gaps.",
+    async lint({ captures, matches, emit }) {
+      // captures = { num: "0001", group: "users" }
+      // matches  = every file with those two values, with its full captures
+    },
+  },
+  release: {
+    by: ["num"],
+    description: "one release's migrations",
+    rule: "Every group in a release is listed in RELEASES.txt.",
+    async lint({ captures, matches, read, emit }) { /* … */ },
+  },
+};
+```
+
+Each key is the grouping's name, an identifier that appears in guidance, in
+`explain`, and on the issues it emits. Each value has:
+
+| Field | |
+|---|---|
+| `by` | captures of this rule's path whose values identify a group; the others vary within it |
+| `description` | what one group is, for headings |
+| `rule` | the Markdown obligation the group as a whole must satisfy |
+| `lint` | runs once per group with that group's members |
+
+`by` may be empty, which groups every file the rule owns in one directory.
+It may not name every capture, since each group would then hold one file,
+and two groupings may not name the same set of captures. A capture `by`
+names must be one the rule's path declares. Any of these is
+`module_invalid_export`, as is `groups` on a static leaf or a constraint,
+which have no captures to group by.
+
+Groups are per directory: files in two directories matched by the same
+dynamic path are in different groups even when their captures agree. A group
+is induced by the files that exist, so `lint` never sees an empty group; a
+group that must exist is the containing directory's `minMatches` or a static
+sibling's business. A named instance of the rule contributes its file to the
+base rule's groups, with the captures the base path binds.
+
+The `lint` context is:
+
+| Field | |
+|---|---|
+| `group` | the grouping's name |
+| `captures` | the values of the `by` captures, shared by every member |
+| `matches` | the members as sorted `{ path, captures }`, each with its full captures |
+| `path` | the directory holding the group with a trailing slash, or `.`; the default issue path |
+| `pattern` | the rule's declaration, e.g. `migrations/[num=0000][ord=00]_[group=a+].sql` |
+| `read` | reads a governed file; a path is required, since no one member is the group |
+| `files`, `emit`, `addons` | as for every rule |
+
+Issues a grouping emits carry the rule's module path, the grouping's name as
+`group`, the shared captures, and the grouping's own `rule` text and
+`description`. Attach an issue to a member or another file with `path` when
+one file has to change; the directory is the right address when the group as
+a whole is wrong. Groupings run as jobs beside aggregates and follow the same
+scoping rule: a scoped lint that reaches one member runs the whole group.
 
 ## Directory modules
 
@@ -487,6 +559,21 @@ The `aggregate = true` export remains the runtime declaration. The helper does
 not infer or alter execution mode; using the ordinary or aggregate helper is a
 typing choice, while the module export is what the compiler obeys.
 
+`createGroupLinter` types one grouping's `lint` inside `groups`:
+
+```js
+export const groups = {
+  set: {
+    by: ["num", "group"],
+    description: "a migration set",
+    rule: "Steps are numbered from 01 with no gaps.",
+    lint: createGroupLinter(async ({ group, captures, matches, read, emit }) => {
+      // ...
+    }),
+  },
+};
+```
+
 Both helpers accept two optional type parameters, captures first and addons
 second:
 
@@ -519,6 +606,7 @@ The exported type surface is:
 - `LintMatch<Captures>`
 - `AggregateLintContext<Captures, Addons>` and
   `AggregateLinter<Captures, Addons>`
+- `GroupLintContext<Captures, Addons>` and `GroupLinter<Captures, Addons>`
 
 ## Captures
 
@@ -666,11 +754,11 @@ matcher enforces that relationship before `lint` runs.
  * Repo-relative path of the file currently being linted.
  *
  * @property {string} pattern
- * Normalized glob that matched `path`.
- * `[name]` placeholders are represented as `*`; `[...name]`
- * placeholders are represented as `**`.
+ * The rule's declaration as authored, relative to the rule-tree root and
+ * without `.mjs`: `clients/[provider]/client.ts`. Placeholder names, masks and
+ * back-references are kept; `path` is the file that matched.
  * `pattern === path` for a local exact structural rule. Inherited checks
- * retain their base pattern and capture names, even for a named instance.
+ * retain their base declaration and capture names, even for a named instance.
  *
  * @property {Record<string, CaptureValue>} captures
  * Values extracted from named placeholders in the rule's path.
@@ -739,8 +827,8 @@ an adapter and tests for application, dependency, external, and global locations
 ## Execution
 
 Rules execute independently, in unspecified order. An aggregate checks its
-selected `matches`; it does not consume findings or state left by per-file
-rules. Each rule's answer must follow from its source inputs and implementation,
+selected `matches`, and a grouping its group's; neither consumes findings or
+state left by per-file rules. Each rule's answer must follow from its source inputs and implementation,
 regardless of previous calls or which other rules execute.
 
 **Read governed repository data through `read` and `files`.** `read` refuses
@@ -761,4 +849,4 @@ An ordinary exception from `lint` fails the run with exit `2` and `rule_threw`.
 Context validation failures preserve their specific codes, such as
 `invalid_issue` or `read_ungoverned`. Neither is a finding about the repository. See [cli/lint/README.MD](cli/lint/README.MD) and [ERRORS.MD](ERRORS.MD).
 
-A `lint` function is ordinary code and can be called from an ordinary test. [API.MD](API.MD) describes `runRule`, which builds this context from values you supply and returns the issues rather than printing them.
+A `lint` function is ordinary code and can be called from an ordinary test. [API.MD](API.MD) describes `runRule`, `runAggregate` and `runGroup`, which build these contexts from values you supply and return the issues rather than printing them.

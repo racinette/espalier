@@ -69,7 +69,7 @@ export async function lint({ matches, patterns, emit }) {
     assert.equal(result.status, 1, result.stderr);
     const inventory = lines.find((line) => line["code"] === "inventory");
     assert.ok(inventory);
-    assert.equal(inventory["pattern"], "**/*");
+    assert.equal(inventory["pattern"], "[...path]/inventory");
     assert.equal(inventory["message"], "a.json,b.md@**/*");
     assert.ok(lines.some((line) => line["code"] === "unexpected_path" && line["path"] === "orphan.xyz"));
     assert.doesNotMatch(JSON.stringify(inventory), /secret\.txt|orphan\.xyz/);
@@ -139,7 +139,7 @@ export async function lint({ matches, patterns, emit }) {
       registry["message"],
       "backend/billing/handlers/create.ts:billing;backend/orders/handlers/create.ts:orders@backend/**/create.ts",
     );
-    assert.equal(registry["pattern"], "backend/**/create.ts");
+    assert.equal(registry["pattern"], "backend/[...path]/handlers/registry");
 
     const explained = spawnSync(process.execPath, [cli, "explain", "--format", "jsonl", "backend/orders/handlers/other.ts"], {
       cwd: root,
@@ -163,13 +163,13 @@ export async function lint({ matches, patterns, emit }) {
     );
     assert.equal(explainedCreate.status, 0, explainedCreate.stderr);
     assert.match(explainedCreate.stdout, /"patterns":\["backend\/\*\*\/create\.ts"\]/);
-    assert.match(explainedCreate.stdout, /analyzes paths matching `backend\/\*\*\/create\.ts` within `backend\/\*\*\/handlers\/\*` together/);
+    assert.match(explainedCreate.stdout, /analyzes paths matching `backend\/\*\*\/create\.ts` within `backend\/\[\.\.\.path\]\/handlers\/` together/);
 
     const built = spawnSync(process.execPath, [cli, "build", "--force"], { cwd: root, encoding: "utf8" });
     assert.equal(built.status, 0, built.stdout + built.stderr);
     const guidance = readFileSync(path.join(root, "backend/AGENTS.MD"), "utf8");
     assert.doesNotMatch(guidance, /## Aggregate constraints/);
-    assert.match(guidance.replace(/\s+/g, " "), /Together, paths matching `backend\/\*\*\/create\.ts` within `backend\/\*\*\/handlers\/\*` must follow this rule\./);
+    assert.match(guidance.replace(/\s+/g, " "), /Together, paths matching `backend\/\*\*\/create\.ts` within `backend\/\[\.\.\.path\]\/handlers\/` must follow this rule\./);
     assert.doesNotMatch(guidance, /Scope:/);
     assert.doesNotMatch(guidance, /all TypeScript files/);
   } finally {
@@ -199,7 +199,7 @@ export async function lint() {}
     const built = spawnSync(process.execPath, [cli, "build", "--force"], { cwd: root, encoding: "utf8" });
     assert.equal(built.status, 0, built.stdout + built.stderr);
     const guidance = readFileSync(path.join(root, "backend/AGENTS.MD"), "utf8");
-    assert.match(guidance.replace(/\s+/g, " "), /Together, files with exactly `\.ts` as their extension in directories matching `backend\/\*\*\/handlers\/` must follow this rule\./);
+    assert.match(guidance.replace(/\s+/g, " "), /Together, files with exactly `\.ts` as their extension in directories matching `backend\/\[\.\.\.path\]\/handlers\/` must follow this rule\./);
     assert.doesNotMatch(guidance, /Every file under `backend\/`/);
     assert.doesNotMatch(guidance, /Scope:/);
   } finally {

@@ -77,6 +77,7 @@ test("runAggregate supplies one sorted group context", async () => {
     matches: [{ path: "fixtures/b.json" }, { path: "fixtures/a.json", captures: { fixture: ["a"] } }],
     patterns: ["fixtures/**/*.json"],
     at: "fixtures/",
+    pattern: "fixtures/[...fixture]/group",
     tree: { "fixtures/a.json": "a", "fixtures/b.json": "b" },
     rule: "fixtures/[...fixture]/group.mjs",
   });
@@ -84,7 +85,7 @@ test("runAggregate supplies one sorted group context", async () => {
   assert.deepEqual(issues.map(({ path, pattern, captures, message }) => ({ path, pattern, captures, message })), [
     {
       path: "fixtures/",
-      pattern: "fixtures/**/*.json",
+      pattern: "fixtures/[...fixture]/group",
       captures: {},
       message: "fixtures/a.json,fixtures/b.json:a",
     },

@@ -6,8 +6,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   createAggregateLinter,
+  createGroupLinter,
   createLinter,
   type AggregateLinter,
+  type GroupLinter,
   type Linter,
 } from "../src/api.js";
 
@@ -80,4 +82,14 @@ test("createAggregateLinter gives every match its specialized captures", () => {
       emit({ code: "aggregate_typed", message: directories.join("/"), metadata: { source, peers, parser } });
     },
   );
+});
+
+test("createGroupLinter returns the exact grouping function it receives", () => {
+  const linter: GroupLinter<{ num: string; ord: string; group: string }, Addons> = async ({ group, captures, matches, addons }) => {
+    group satisfies string;
+    captures.num satisfies string | undefined;
+    matches[0]?.captures.ord satisfies string | undefined;
+    addons.parser satisfies Parser;
+  };
+  assert.equal(createGroupLinter(linter), linter);
 });

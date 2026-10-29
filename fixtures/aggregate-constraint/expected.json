@@ -10,7 +10,7 @@
       "code": "element_frequency",
       "severity": "info",
       "rule": "fixtures/[...fixture]/element-frequency.mjs",
-      "pattern": "fixtures/**/*.json",
+      "pattern": "fixtures/[...fixture]/element-frequency",
       "captures": {},
       "message": "2:button,button,input",
       "metadata": {
@@ -25,7 +25,7 @@
       "code": "empty_yaml_group",
       "severity": "info",
       "rule": "fixtures/[...fixture]/require-yaml.mjs",
-      "pattern": "fixtures/**/*.yaml",
+      "pattern": "fixtures/[...fixture]/require-yaml",
       "captures": {},
       "message": "0 YAML fixtures"
     }

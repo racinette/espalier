@@ -2,7 +2,7 @@
 // docs/MATCHING.MD "Ownership", "What must exist", "The deepest recognized node".
 
 import type { Constraint, Espalier, StructuralRule, TrieNode } from "./compile.js";
-import { captureNames, isStrictSubset, matchSegment, matchedFileExtension, resolveSegment, type CaptureValue } from "./pattern.js";
+import { captureNames, isStrictSubset, matchSegment, resolveSegment, type CaptureValue } from "./pattern.js";
 
 // Defined beside the parser, because what a capture can hold is a fact about
 // segments rather than about matching. Re-exported here: every reader of an
@@ -106,14 +106,6 @@ export function resolve(espalier: Espalier, filePath: string): Ownership | Recog
 
     if (last) {
       if (node.rule === null) return stopped(node, walked, captures);
-      if (node.segment.fileExtensions !== undefined && node.segment.fileExtensions.length > 1) {
-        const extension = matchedFileExtension(node.segment, segment, captures)!;
-        const suffix = `.{${node.segment.fileExtensions.join(",")}}`;
-        return {
-          rule: { ...node.rule, pattern: `${node.rule.pattern.slice(0, -suffix.length)}.${extension}` },
-          captures,
-        };
-      }
       return { rule: node.rule, captures };
     }
   }
@@ -319,15 +311,9 @@ export function structuralChecks(rule: StructuralRule, target: string, bindings:
     for (const [index, segment] of (source.segments ?? []).entries()) {
       Object.assign(captures, matchSegment(segment, parts[index] ?? "", captures) ?? {});
     }
-    let effective = source;
-    const leaf = source.segments?.at(-1);
-    if (leaf?.fileExtensions && leaf.fileExtensions.length > 1) {
-      const extension = matchedFileExtension(leaf, parts.at(-1)!, captures)!;
-      effective = { ...source, pattern: source.pattern.replace(/\.\{[^}]+\}$/, `.${extension}`) };
-    }
     // Base callbacks receive only captures declared by their own source path.
     const names = new Set((source.segments ?? []).flatMap(captureNames));
     const own = source === rule ? captures : Object.fromEntries(Object.entries(captures).filter(([name]) => names.has(name)));
-    return { rule: effective, captures: own };
+    return { rule: source, captures: own };
   });
 }

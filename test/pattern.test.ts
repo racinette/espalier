@@ -4,11 +4,9 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ambiguousSplit, intersects, intersectSegments, isStrictSubset, matchSegment, parseSegment, parseStructuralLeaf, resolveSegment, trieKey } from "../src/pattern.js";
+import { ambiguousSplit, intersectSegments, isStrictSubset, matchSegment, parseSegment, parseStructuralLeaf, resolveSegment, trieKey } from "../src/pattern.js";
 
-const shapeOf = (source: string): string => parseSegment(source, "test").shape;
-
-const overlaps = (a: string, b: string): boolean => intersects(shapeOf(a), shapeOf(b));
+const overlaps = (a: string, b: string): boolean => intersectSegments(parseSegment(a, "test"), parseSegment(b, "test"));
 
 test("dynamic patterns can overlap without being equivalent", () => {
   assert.equal(overlaps("[component].tsx", "[helper].tsx"), true);
@@ -163,11 +161,15 @@ test("placeholder names must be valid identifiers", () => {
   assert.throws(() => parseSegment("[unclosed", "test"), /unclosed/);
 });
 
-test("shapes normalize placeholders to a star", () => {
-  assert.equal(shapeOf("clients"), "clients");
-  assert.equal(shapeOf("[provider]"), "*");
-  assert.equal(shapeOf("test-[name].ts"), "test-*.ts");
-  assert.equal(shapeOf("[...path]"), "**");
+test("the trie keys a segment by what it admits, not by its placeholder names", () => {
+  const key = (source: string): string => trieKey(parseSegment(source, "test"));
+  assert.equal(key("clients"), "clients");
+  assert.equal(key("[provider]"), key("[vendor]"));
+  assert.equal(key("test-[name].ts"), key("test-[module].ts"));
+  assert.notEqual(key("test-[name].ts"), key("[name].ts"));
+  assert.notEqual(key("[a][b=00]"), key("[a=00][b]"), "adjacent captures keep their order");
+  assert.equal(key("[...path]"), key("[...rest]"));
+  assert.notEqual(key("{provider}.ts"), key("{vendor}.ts"), "back-references are two rules");
 });
 
 // Classification and captures. docs/MATCHING.MD "Classification", "Captures",

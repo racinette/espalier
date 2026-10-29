@@ -63,7 +63,7 @@
       "exit": 0,
       "object": {
         "rule": "migrations/[revision].{up.sql,down.sql}.mjs",
-        "pattern": "migrations/*.up.sql",
+        "pattern": "migrations/[revision].{up.sql,down.sql}",
         "captures": { "revision": "001" },
         "constraints": [
           { "name": "migration-pairs", "patterns": ["migrations/**/*.down.sql", "migrations/**/*.up.sql"], "aggregate": true },
@@ -77,7 +77,7 @@
       "exit": 0,
       "object": {
         "rule": "migrations/[revision].{up.sql,down.sql}.mjs",
-        "pattern": "migrations/*.down.sql",
+        "pattern": "migrations/[revision].{up.sql,down.sql}",
         "captures": { "revision": "001" },
         "constraints": [
           { "name": "migration-pairs", "patterns": ["migrations/**/*.down.sql", "migrations/**/*.up.sql"], "aggregate": true },

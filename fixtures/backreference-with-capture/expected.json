@@ -25,7 +25,7 @@
       "exit": 0,
       "object": {
         "rule": "clients/[provider]/{provider}-[kind].ts.mjs",
-        "pattern": "clients/*/*-*.ts",
+        "pattern": "clients/[provider]/{provider}-[kind].ts",
         "captures": { "provider": "stripe", "kind": "charges" }
       }
     },
