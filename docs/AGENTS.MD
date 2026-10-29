@@ -40,6 +40,9 @@ keep the first kind that was buried in it.
     │
     ├─ ERRORS.MD     every operational failure and what it means (required)
     │
+    ├─ INSTANCES.MD  declaring a path as an instance of a shared contract
+    │                (required)
+    │
     ├─ MATCHING.MD   how a rule module claims a file (required)
     │
     └─ TYPES.MD      what a rule module exports and receives (required)
@@ -69,6 +72,13 @@ from the walk. How a declared path claims a file is MATCHING.MD.
 One table, every code reported with `kind: "failure"`. A code `fail()` raises
 that this does not list fails the suite, and so does a code listed here that
 nothing raises — the table is checked in both directions on purpose.
+
+## `INSTANCES.MD` — declaring a path as an instance of a shared contract
+
+The how-to for declared instances and abstract contracts, written once so that
+generated guidance can point at `espalier help instances` instead of
+repeating the mechanism under every contract. The matching semantics of an
+instance stay in MATCHING.MD; what the module exports stays in TYPES.MD.
 
 ## `MATCHING.MD` — how a rule module claims a file
 

@@ -72,7 +72,7 @@ See [TYPES.MD](TYPES.MD).
 |---|---|
 | `module_import_failed` | the module could not be parsed or threw while being imported |
 | `module_missing_export` | no `guidance`, or no `description` on a structural rule |
-| `module_invalid_export` | an export of the wrong type or on the wrong rule kind, `targets` together with a constraint filename extension, a `lint` that is not a function, or a `rule` export left over from before the rename to `guidance` (`espalier migrate` rewrites a direct declaration and refuses a destructured or re-exported one) |
+| `module_invalid_export` | an export of the wrong type or on the wrong rule kind, `targets` together with a constraint filename extension, a `lint` that is not a function, or a `rule` export, which `espalier migrate` renames to `guidance` when it is a direct declaration and refuses when destructured or re-exported |
 | `invalid_reference_implementation` | a `referenceImplementation` that is absent, is not a governed file, or is not actually owned or covered by its rule |
 | `invalid_instance` | a specialization has a missing, incompatible, or cyclic base, introduces an unsupported child, or weakens inherited requirements |
 

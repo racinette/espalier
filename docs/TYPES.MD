@@ -124,9 +124,8 @@ no lint inputs or addon state. `build --check` detects stale rendered prose.
 A thrown or rejected callback is `rule_guidance_failed`; a non-string result is
 `module_invalid_export`.
 
-The export was previously named `rule`, on the module and inside each
-grouping. A module still exporting `rule` is rejected with a pointer, and
-`espalier migrate` renames it.
+A module exporting `rule`, on the module or inside a grouping, is rejected
+with a pointer to `guidance`; `espalier migrate` renames it.
 
 ### `referenceImplementation`
 

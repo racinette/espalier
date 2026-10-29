@@ -45,7 +45,7 @@ function repo(): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-cli-"));
   mkdirSync(path.join(root, "espalier", "src"), { recursive: true });
   mkdirSync(path.join(root, "src"));
-  writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.9.2\nroot: espalier\nignoreFiles: []\nskip: []\n");
+  writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.10.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
   writeFileSync(path.join(root, "espalier", "src", "[name].ts.mjs"), RULE);
   writeFileSync(path.join(root, "src", "a.ts"), "export const a = 1;\n");
   writeFileSync(path.join(root, "stray.txt"), "stray\n");
@@ -163,7 +163,7 @@ test("concise explain preserves output routing and operational failures", () => 
     const missing = run(root, ["explain", "--concise"]);
     assert.equal(missing.status, 2);
     assert.match(missing.stdout, /missing_argument/);
-    writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.9.2\nnope: 1\n");
+    writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.10.0\nnope: 1\n");
     const failure = run(root, [...args, "--out", "stderr"]);
     assert.equal(failure.status, 2);
     assert.equal(failure.stdout, "");
@@ -210,7 +210,7 @@ test("--out a file leaves both streams empty", () => {
 
 test("an operational failure goes to --out as well: there is no second channel", () => {
   scratch((root) => {
-    writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.9.2\nroot: espalier\nignoreFiles: []\nskip: []\nnope: 1\n");
+    writeFileSync(path.join(root, "espalier.config.yaml"), "pin: 0.10.0\nroot: espalier\nignoreFiles: []\nskip: []\nnope: 1\n");
 
     const sent = run(root, ["lint", "--format", "jsonl", "--out", "report.jsonl"]);
     assert.equal(sent.stdout, "");
@@ -308,7 +308,7 @@ test("adopt --force migrates conflicting guidance idempotently", () => {
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.9.2\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  filename: PACKAGE.MD\n",
+      "pin: 0.10.0\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  filename: PACKAGE.MD\n",
     );
     mkdirSync(path.join(root, "area"), { recursive: true });
     writeFileSync(path.join(root, "area", "PACKAGE.MD"), "# Legacy guidance\n");
@@ -345,7 +345,7 @@ test("build.espalierGuidance omits only Espalier's canned operational guidance",
     );
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.9.2\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  espalierGuidance: false\n",
+      "pin: 0.10.0\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  espalierGuidance: false\n",
     );
 
     mkdirSync(path.join(root, "package", "espalier"), { recursive: true });
@@ -355,7 +355,7 @@ test("build.espalierGuidance omits only Espalier's canned operational guidance",
     );
     writeFileSync(
       path.join(root, "package", "espalier.config.yaml"),
-      "pin: 0.9.2\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  espalierGuidance: false\n",
+      "pin: 0.10.0\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  espalierGuidance: false\n",
     );
 
     const result = run(root, ["build"]);
@@ -375,7 +375,7 @@ test("build does not materialize exclusions for paths hidden by an external igno
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      "pin: 0.9.2\nroot: espalier\nskip: []\nignoreFiles:\n  - .gitignore\n",
+      "pin: 0.10.0\nroot: espalier\nskip: []\nignoreFiles:\n  - .gitignore\n",
     );
     writeFileSync(path.join(root, ".gitignore"), ".local/\n");
     writeFileSync(
