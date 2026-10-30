@@ -467,11 +467,9 @@ const cases: Case[] = [
     espalier: { "src/ESPALIER.mjs": "export async function description() { return 42; }" },
   },
   {
-    what: "a module with no `guidance`",
-    code: "module_missing_export",
-    espalier: {
-      "src/[name].ts.mjs": 'export const description = "a file";\nexport async function lint() {}\n',
-    },
+    what: "a `guidance` that is neither a string nor a function",
+    code: "module_invalid_export",
+    espalier: { "src/[name].ts.mjs": "export const guidance = 42;\n" },
   },
   {
     what: "`rule`, the old name of `guidance`",
@@ -488,13 +486,6 @@ const cases: Case[] = [
     code: "module_invalid_export",
     espalier: {
       "src/[name].ts.mjs": 'export const description = "a file";\nexport const guidance = `R`;\nexport const lint = true;\n',
-    },
-  },
-  {
-    what: "a module with no `description`",
-    code: "module_missing_export",
-    espalier: {
-      "src/[name].ts.mjs": "export const guidance = `R`;\nexport async function lint() {}\n",
     },
   },
   {
@@ -517,9 +508,6 @@ export const template = createTemplate(() => "");
     },
   },
   {
-    // On a constraint, where `description` is optional. A structural module
-    // missing one is `module_missing_export`, and that check runs first — so
-    // this branch is reachable only through the kind that does not require it.
     what: "a `description` that is present and not a string",
     code: "module_invalid_export",
     espalier: {

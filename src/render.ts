@@ -1109,7 +1109,7 @@ function groupingSections(module: LoadedModule, shown: string, level: number): s
   const directory = shown.slice(0, shown.lastIndexOf("/") + 1);
   return module.groups.flatMap((grouping) => {
     const blocks = [
-      `${"#".repeat(level)} Together, ${grouping.by.length === 0 ? "all files in a directory" : `by ${listing(grouping.by.map((name) => codeSpan(name)))}`}${lockMark(false, false, grouping.sealed)} — ${grouping.description}`,
+      `${"#".repeat(level)} Together, ${grouping.by.length === 0 ? "all files in a directory" : `by ${listing(grouping.by.map((name) => codeSpan(name)))}`}${lockMark(false, false, grouping.sealed)}${grouping.description === null ? "" : ` — ${grouping.description}`}`,
       ...(grouping.guidance.trim() === "" ? [] : [grouping.guidance.trim()]),
     ];
     if (grouping.instances.length === 0 && !grouping.abstract) return blocks;

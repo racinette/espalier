@@ -279,6 +279,19 @@ test("sealed = false takes a directory out of the seals above it, and a seal bel
   }), ["sealed_collection_changed components/Button/icon.tsx", "sealed_collection_changed components/Checkout/assets/card.svg", "sealed_collection_changed other.ts"]);
 });
 
+test("a rule and a declaration need no prose: an empty contract, and a declaration that only freezes", async () => {
+  const bare = {
+    "espalier/[name].ts.mjs": "",
+    "espalier/a.ts.mjs": 'export const instanceOf = "[name].ts.mjs"; export const frozen = true;\n',
+    "a.ts": "a\n",
+    "b.ts": "b\n",
+  };
+  assert.deepEqual(await compare(bare, (put) => {
+    put("a.ts", "changed\n");
+    put("b.ts", "changed\n");
+  }), ["frozen_file_changed a.ts"]);
+});
+
 const SETS = {
   "espalier/migrations/[num=0000][ord=00]_[table=a+].sql.mjs": `${RULE}export const groups = { set: { by: ["num", "table"], sealed: true, description: "a set", guidance: "" } };\n`,
   "migrations/000101_users.sql": "a\n",

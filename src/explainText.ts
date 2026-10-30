@@ -40,7 +40,7 @@ export interface DeclaredGroupAnswer {
 export interface GroupAnswer {
   name: string;
   by: string[];
-  description: string;
+  description: string | null;
   guidance: string;
   /** Every group must be declared. docs/INSTANCES.MD "Abstract groupings". */
   abstract?: true;
@@ -249,7 +249,7 @@ function body(
 function groupBlocks(groups: GroupAnswer[], concise: boolean): string[] {
   return groups.map((group) => {
     const by = group.by.length === 0 ? "the directory" : group.by.join(", ");
-    const lines = [`  Grouped as ${group.name} by ${by}${group.abstract ? ", every group declared" : ""}${group.sealed ? ", sealed" : ""}  ${group.description}`];
+    const lines = [`  Grouped as ${group.name} by ${by}${group.abstract ? ", every group declared" : ""}${group.sealed ? ", sealed" : ""}${group.description === null ? "" : `  ${group.description}`}`];
     if (group.captures !== undefined) lines.push(...describeCaptures(group.captures, " ".repeat(12)));
     if (!concise && group.guidance !== "") lines.push("", ...group.guidance.split("\n").map((line) => `    ${line}`));
     if (group.instance !== undefined) {

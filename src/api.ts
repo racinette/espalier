@@ -390,8 +390,8 @@ export async function runGroup(module: RuleModule, context: GroupRuleContext): P
   if (lint !== undefined && typeof lint !== "function") {
     fail("module_invalid_export", `runGroup: ${where}'s lint must be a function`);
   }
-  if (typeof description !== "string" || typeof guidance !== "string") {
-    fail("module_invalid_export", `runGroup: ${where} needs a string description and guidance`);
+  if ((description !== undefined && typeof description !== "string") || (guidance !== undefined && typeof guidance !== "string")) {
+    fail("module_invalid_export", `runGroup: ${where}'s description and guidance must be strings`);
   }
   validateTemplate(module.template, "runGroup");
 
@@ -426,8 +426,8 @@ export async function runGroup(module: RuleModule, context: GroupRuleContext): P
     pattern,
     path: at,
     captures,
-    guidance,
-    description,
+    guidance: (guidance as string | undefined) ?? "",
+    description: (description as string | undefined) ?? null,
     referenceImplementation:
       typeof module.referenceImplementation === "string"
         ? module.referenceImplementation

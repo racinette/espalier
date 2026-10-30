@@ -91,6 +91,14 @@ keeps the base from being read stops the run with `base_unreadable`. Without
 project's decision, typically an approval required before a failing check may
 be overridden.
 
+## Rule prose is optional
+
+A rule module no longer has to export `description` or `guidance`, and a
+grouping in `groups` needs only `by`. The file's name already declares its
+path, so an empty module requires its file, and a declaration exporting only
+`instanceOf` and `frozen` freezes one member of a contract.
+`module_missing_export` is gone.
+
 ## Declared groups
 
 A module at a dynamic rule's name, with the grouping's captures written as

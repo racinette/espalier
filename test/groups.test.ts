@@ -48,6 +48,15 @@ test("runGroup runs one grouping with sorted members and records the grouping on
   assert.equal(issue!.rule, "migrations/[num=0000][ord=00]_[group=a+].sql.mjs");
 });
 
+test("a grouping needs only its by: description and guidance are optional", async () => {
+  const issues = await runGroup({ groups: { set: { by: ["num"], lint: ({ emit }: { emit: (issue: { code: string; message: string }) => void }) => emit({ code: "x", message: "m" }) } } }, {
+    group: "set", captures: { num: "0001" }, matches: [], at: "migrations/",
+  });
+  assert.equal(issues.length, 1);
+  assert.equal(issues[0]!.guidance, "");
+  assert.equal(issues[0]!.description, null);
+});
+
 test("runGroup refuses a module without the named grouping", async () => {
   await assert.rejects(runGroup({ ...rule, groups: {} }, { group: "set", matches: [] }), { code: "module_invalid_export" });
   await assert.rejects(runGroup({ description: "x", guidance: "x", lint() {} }, { group: "set", matches: [] }), { code: "module_invalid_export" });

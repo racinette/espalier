@@ -41,8 +41,8 @@ aggregate form.
 
 | Export | Required | |
 |---|---|---|
-| `description` | structural only | string or sync/async function briefly describing the file or a constraint's requirement |
-| `guidance` | yes | Markdown string or function returning the natural-language conventions |
+| `description` | no | string or sync/async function briefly describing the file or a constraint's requirement |
+| `guidance` | no | Markdown string or function returning the natural-language conventions |
 | `lint` | no | deterministic validation; a module with nothing to check exports none |
 | `referenceImplementation` | no | a path to a canonical conforming file |
 | `optional` | no | whether a named file may be absent |
@@ -60,12 +60,20 @@ aggregate form.
 
 ### `description`
 
-For a structural rule, `description` is required: briefly describe what the
-governed file is, such as "a payment provider client."
+For a structural rule, briefly describe what the governed file is, such as "a
+payment provider client." For a constraint, briefly summarize the requirement,
+such as "checkout message IDs agree across locales," and put the full
+requirements in `guidance`.
 
-For a constraint, `description` is optional: briefly summarize the requirement,
-such as "checkout message IDs agree across locales." Put the full requirements
-in `guidance`.
+Every rule module's prose is optional. The path a module is named after
+already declares something, so a module may export nothing at all: an empty
+`README.md.mjs` requires `README.md`, and a declaration exporting only
+`instanceOf` and `frozen` freezes one member of a contract. A rule without a
+`description` has a map row with no description, and one without `guidance`
+adds no conventions. A declaration does not borrow its contract's
+`description`; its map row names the contract instead. Prose is what makes the
+generated documents useful to an agent, so leave it out only where the path
+and the contract say enough.
 
 The export accepts a string or a synchronous or asynchronous function returning
 a string. Functions receive `RuleGuidanceContext`, with the same declaration
@@ -319,8 +327,8 @@ constraints reject `minMatches`.
 on a directory module. It is not valid on constraints. On a dynamic name it
 declares one group of the named rule's files rather than a file; see
 [Declaring a group](INSTANCES.MD#declaring-a-group).
-Named structural rules keep their required `description` and `guidance` and
-optional `lint`; a local lint adds to inherited checks. Their optional `template` replaces the
+Named structural rules keep their optional `description`, `guidance` and
+`lint`; a local lint adds to inherited checks. Their optional `template` replaces the
 inherited creation recipe, without replacing checks. Without a local template,
 creation uses the inherited template and its original captures.
 
@@ -468,8 +476,8 @@ Each key is the grouping's name, an identifier that appears in guidance, in
 | Field | |
 |---|---|
 | `by` | captures of this rule's path whose values identify a group; the others vary within it |
-| `description` | what one group is, for headings |
-| `guidance` | the Markdown obligation the group as a whole must satisfy |
+| `description` | optional: what one group is, for headings |
+| `guidance` | optional: the Markdown obligation the group as a whole must satisfy |
 | `lint` | runs once per group with that group's members |
 | `abstract` | when `true`, every group must be declared; see below |
 | `sealed` | when `true`, no group joins or leaves the grouping; see [LOCKS.MD](LOCKS.MD#sealed-collections) |

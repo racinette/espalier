@@ -67,7 +67,9 @@ export interface Grouping {
   name: string;
   /** Captures whose values identify a group; the rest vary within it. */
   by: string[];
-  description: string;
+  /** What one group is, for headings; null when the grouping does not say. */
+  description: string | null;
+  /** Empty when the grouping states no guidance. */
   guidance: string;
   /** Every group must be a declared instance; an undeclared one is reported. docs/INSTANCES.MD. */
   abstract: boolean;
@@ -490,14 +492,11 @@ async function loadModule(
   if ("rule" in loaded) {
     fail("module_invalid_export", `${modulePath}: \`rule\` was renamed to \`guidance\`; espalier migrate rewrites it`);
   }
-  if (typeof loaded.guidance !== "string" && typeof loaded.guidance !== "function") {
-    fail("module_missing_export", `${modulePath} must export a string or function \`guidance\``);
+  if (loaded.guidance !== undefined && typeof loaded.guidance !== "string" && typeof loaded.guidance !== "function") {
+    fail("module_invalid_export", `${modulePath}: \`guidance\` must be a string or function`);
   }
   if (loaded.lint !== undefined && typeof loaded.lint !== "function") {
     fail("module_invalid_export", `${modulePath}: \`lint\` must be a function`);
-  }
-  if (structural && typeof loaded.description !== "string" && typeof loaded.description !== "function") {
-    fail("module_missing_export", `${modulePath} must export a string or function \`description\``);
   }
   if (loaded.description !== undefined && typeof loaded.description !== "string" && typeof loaded.description !== "function") {
     fail("module_invalid_export", `${modulePath}: \`description\` must be a string or function`);
@@ -637,15 +636,17 @@ function parseGroups(raw: unknown, modulePath: string, kind: ModuleKind): Groupi
   const groups: Grouping[] = [];
   for (const [name, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!GROUP_NAME.test(name)) bad(`names a grouping "${name}", which is not an identifier`);
-    if (value === null || typeof value !== "object" || Array.isArray(value)) bad(`.${name} must be an object with by, description and guidance`);
+    if (value === null || typeof value !== "object" || Array.isArray(value)) bad(`.${name} must be an object with by`);
     const grouping = value as Record<string, unknown>;
     const by = grouping["by"];
     if (!Array.isArray(by) || by.some((entry) => typeof entry !== "string") || new Set(by).size !== by.length) {
       bad(`.${name}.by must be an array of distinct capture names`);
     }
-    if (typeof grouping["description"] !== "string" || grouping["description"].trim() === "") bad(`.${name}.description must be a non-empty string`);
+    if (grouping["description"] !== undefined && (typeof grouping["description"] !== "string" || grouping["description"].trim() === "")) {
+      bad(`.${name}.description must be a non-empty string`);
+    }
     if ("rule" in grouping) bad(`.${name}.rule was renamed to guidance; espalier migrate rewrites it`);
-    if (typeof grouping["guidance"] !== "string") bad(`.${name}.guidance must be a string`);
+    if (grouping["guidance"] !== undefined && typeof grouping["guidance"] !== "string") bad(`.${name}.guidance must be a string`);
     if (grouping["lint"] !== undefined && typeof grouping["lint"] !== "function") bad(`.${name}.lint must be a function`);
     if (grouping["abstract"] !== undefined && typeof grouping["abstract"] !== "boolean") bad(`.${name}.abstract must be a boolean`);
     if (grouping["sealed"] !== undefined && typeof grouping["sealed"] !== "boolean") bad(`.${name}.sealed must be a boolean`);
@@ -659,7 +660,8 @@ function parseGroups(raw: unknown, modulePath: string, kind: ModuleKind): Groupi
     const twin = groups.find((other) => JSON.stringify([...other.by].sort()) === key);
     if (twin !== undefined) bad(`.${name} and .${twin.name} group by the same captures; one grouping can carry both rules`);
     groups.push({
-      name, by: by as string[], description: (grouping["description"] as string).trim(), guidance: grouping["guidance"] as string,
+      name, by: by as string[], description: typeof grouping["description"] === "string" ? grouping["description"].trim() : null,
+      guidance: typeof grouping["guidance"] === "string" ? grouping["guidance"] : "",
       abstract: grouping["abstract"] === true, sealed: grouping["sealed"] === true, instances: [],
     });
   }

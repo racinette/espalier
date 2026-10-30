@@ -23,9 +23,10 @@ export const description = "the Stripe client";
 export const guidance = `Uses payment intents, never charges.`;
 ```
 
-`description` and `guidance` are required, as on every structural rule: the
-declaration exists to carry them. `lint` is optional and adds to the inherited
-check rather than replacing it. The contract's `template` creates the file
+`description` and `guidance` are what a declaration usually carries, and like
+every rule export they are optional: a declaration may exist only to
+[freeze or seal](LOCKS.MD) one member. `lint` is optional too, and adds to the
+inherited check rather than replacing it. The contract's `template` creates the file
 unless the instance supplies its own.
 
 ## Declaring a directory
@@ -139,7 +140,7 @@ Any other shape is `invalid_instance`.
 The declaration owns no file. Its group's files are still the rule's, checked
 by the rule's `lint` and the grouping's `lint` as before. What it adds:
 
-- `description` and `guidance`, which are required. In generated guidance the
+- `description` and `guidance`, both optional. In generated guidance the
   group is a section under its grouping, and `explain` shows a member's
   declared group.
 - `lint`, which is optional. It runs once per directory holding the group, with

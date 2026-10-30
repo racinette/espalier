@@ -319,10 +319,11 @@ contain modules and `ESPALIER.mjs` without compiling them.
 
 ## The rule file
 
-Every rule file exports `guidance`, the written requirements, and usually `lint`, the
-function that checks them. A structural rule file also exports
-`description`, a short phrase describing what the governed file is.
-A constraint may export `description` to briefly summarize its requirement.
+A rule file usually exports `guidance`, the written requirements, and `lint`, the
+function that checks them. A structural rule file usually also exports
+`description`, a short phrase describing what the governed file is, and a
+constraint may export one to briefly summarize its requirement. Every export is
+optional: a file's name already declares its path.
 
 A structural rule file has this shape; the check’s implementation is omitted
 here.
