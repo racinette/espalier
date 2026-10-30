@@ -531,8 +531,8 @@ file. Its exports are:
 | `literalName` | `false` | the directory's brackets or braces are its name, as in a Next.js `[slug]` route; see [Literal names](MATCHING.MD#literal-names) |
 | `abstract` | `false` | on a dynamic directory, every matching directory must be a declared instance; see [INSTANCES.MD](INSTANCES.MD) |
 | `locked` | inherited | lock this directory and, until a deeper module says otherwise, everything declared below it; see [LOCKS.MD](LOCKS.MD) |
-| `frozen` | inherited | existing files beneath this directory keep their content, until a deeper module says otherwise; see [LOCKS.MD](LOCKS.MD#frozen-files) |
-| `sealed` | `false` | no file joins or leaves this directory, at any depth; never inherited or reopened; see [LOCKS.MD](LOCKS.MD#sealed-collections) |
+| `frozen` | inherited | existing files beneath this directory keep their content, until a deeper module says otherwise; a declared instance directory follows its contract's; see [LOCKS.MD](LOCKS.MD#frozen-files) |
+| `sealed` | `false` | no file joins or leaves this directory, at any depth; on a contract, nor any directory it matches; never inherited or reopened; see [LOCKS.MD](LOCKS.MD#sealed-collections) |
 
 For example, computed guidance can follow the directory's lock:
 

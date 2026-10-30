@@ -319,8 +319,9 @@ matches rather than a literal filename. `description` and
 `body` come from the directory's `ESPALIER.mjs`. For a named instance
 directory, `instanceOf` names the contract, such as `[group]/`, and
 `captures` holds the instance's bindings. `body` is the instance's own
-guidance only. Human output names the contract in both forms. A rule entry whose contract is abstract carries
-`"abstract":true`.
+guidance only. Human output names the contract in both forms. A rule entry
+whose contract is abstract carries `"abstract":true`, and one whose module is
+locked `"locked":true`.
 
 It is called `rules` rather than `declared` because `declared` already means something narrower and is already in the output above: the names of a node's immediate children, which is what `lint` attaches to `unexpected_path`. One key, one shape.
 
@@ -333,7 +334,9 @@ contract name without a module suffix and with a trailing `/` for directories.
 Human maps, including `--concise`, render it as `instance of <contract>`. A
 node declared `literalName` carries `"literal":true`, rendered as
 `literal name`; an abstract contract carries `"abstract":true`, rendered as
-📋, and a locked node carries `"locked":true`, rendered as 🔒. Human maps use
+📋; a locked node carries `"locked":true`, rendered as 🔒; a frozen node
+`"frozen":true`, rendered as ❄️; and a node whose module seals its files
+`"sealed":true`, rendered as 📦. Human maps use
 the same [marks](../build/README.MD#marks) as generated documents, with the
 same legend under the map.
 The drawing is not in the JSON, because branch characters and line breaks are a rendering, and a consumer of this format is not reading prose.
@@ -366,7 +369,8 @@ prefix lists the same groupings without `captures`, since no file is in hand.
 Human output shows each as "Grouped as <name> by <by names>  <description>",
 followed by the group's values and guidance; concise output omits the guidance.
 
-An abstract grouping carries `abstract: true`. When the file's group is
+An abstract grouping carries `abstract: true`, and a sealed one `sealed:
+true`, which human output adds as ", sealed" after the `by` names. When the file's group is
 declared, the grouping also carries `instance`: the declaring module as
 `rule`, its `pattern`, `captures`, `description` and `guidance`. Human output
 adds "Declared as <pattern>" with that guidance, or a line saying the group

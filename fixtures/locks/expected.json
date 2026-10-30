@@ -8,6 +8,7 @@
       { "kind": "written", "path": "migrations/AGENTS.MD" },
       { "kind": "written", "path": "src/core/AGENTS.MD" },
       { "kind": "written", "path": "src/core/plugins/AGENTS.MD" },
+      { "kind": "written", "path": "themes/AGENTS.MD" },
       { "kind": "written", "path": "vendor/AGENTS.MD" }
     ]
   },
@@ -20,7 +21,9 @@
     "vendor/lib.js": "vendor/[file].js.mjs",
     "migrations/000101_users.sql": "migrations/[num=0000][ord=00]_[table=a+].sql.mjs",
     "migrations/000201_orders.sql": "migrations/[num=0000][ord=00]_[table=a+].sql.mjs",
-    "locales/en.json": "locales/[lang=a+].json.mjs"
+    "locales/en.json": "locales/[lang=a+].json.mjs",
+    "themes/dark_base.css": "themes/[theme=a+]_[part=a+].css.mjs",
+    "themes/light_base.css": "themes/[theme=a+]_[part=a+].css.mjs"
   },
   "explain": {
     "src/core/http.ts": {
@@ -55,6 +58,17 @@
     "locales/en.json": {
       "exit": 0,
       "object": { "rule": "locales/[lang=a+].json.mjs", "sealedBy": ["locales/[lang=a+].json.mjs"] }
+    },
+    "themes/dark_base.css": {
+      "exit": 0,
+      "object": {
+        "groups": [{ "name": "theme", "sealed": true, "captures": { "theme": "dark" } }],
+        "sealedBy": ["themes/[theme=a+]_[part=a+].css.mjs groups.theme"]
+      }
+    },
+    "themes/": {
+      "exit": 0,
+      "object": { "rules": [{ "path": "themes/[theme=a+]_[part=a+].css", "groups": [{ "name": "theme", "sealed": true }] }] }
     }
   }
 }

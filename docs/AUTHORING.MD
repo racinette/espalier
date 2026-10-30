@@ -16,7 +16,8 @@ It opens with what an espalier is and how to agree on architectural changes,
 including placement and enforcement boundaries. It tells agents to check
 whether a module is locked before changing it: a locked module needs explicit
 authorization, while an unlocked one takes changes the task implies and
-proposals for open designs. See [LOCKS.MD](LOCKS.MD). It then introduces the three
+proposals for open designs, and to leave frozen files and sealed collections
+as they are. See [LOCKS.MD](LOCKS.MD). It then introduces the three
 kinds of rule: structural, per-file, and aggregate. How each kind is written in
 the tree comes after that. Four plain questions check that the sentence was
 filed under the right kind.

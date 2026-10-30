@@ -81,10 +81,10 @@ Choosing whether an obligation is per-file or aggregate is
 change in the working tree that a lock, freeze or seal in force there covers:
 `locked_module_changed`, `locked_directory_changed`,
 `locked_contract_changed`, `lock_changed`, `untraceable_import`,
-`frozen_file_changed` and `sealed_collection_changed`. A locked module is compared together with every
-repository file it imports. Each child espalier is checked against the same
-revision. Without `--base`, lint never consults git. What each lock, freeze and seal
-covers, and what the check can and cannot see, is
+`frozen_file_changed` and `sealed_collection_changed`. A locked module is
+compared together with every repository file it imports. Each child espalier
+is checked against the same revision. Without `--base`, lint never consults
+git. What each lock, freeze and seal covers, and what the check can and cannot see, is
 [LOCKS.MD](../../LOCKS.MD#checking-against-a-base-revision).
 
 ## Groupings

@@ -96,8 +96,8 @@ whose files it groups, and any of them before the nearest directory module
 above the file. A declared directory comes before its contract directory in
 the same way, and so does every directory inside it: declaring a member gives
 it guidance of its own, and keeps it in its contract's collection. Locks differ
-here because they protect modules, and a declaration is a module of its own. `frozen = false`
-reopens a file inside a frozen group, rule or directory.
+here because they protect modules, and a declaration is a module of its own.
+`frozen = false` reopens a file inside a frozen group, rule or directory.
 
 An existing frozen file must keep its content and must not be removed or
 renamed. New files are welcome, so a frozen collection is append-only: the next
@@ -135,8 +135,8 @@ the grouping. A rename is one file leaving and another joining.
 
 A sealed contract directory seals each directory it matches, declared ones
 included. A seal is the collection's statement about itself, so it is never
-inherited and never reopened: a sealed directory holding an unsealed rule still admits no
-new file, and `sealed = false` means only that the module seals nothing. A file
+inherited and never reopened: a sealed directory holding an unsealed rule
+still admits no new file, and `sealed = false` means only that the module seals nothing. A file
 in several sealed collections answers to each. A constraint owns no files and
 rejects `sealed`.
 
@@ -168,9 +168,8 @@ espalier lint --base HEAD          # what the working tree changes, while workin
 at that revision and reports every change between it and the working tree, so
 uncommitted edits count. Each change is judged by what was in force at the
 base, so a change cannot unlock what it edits, unfreeze what it rewrites, or
-unseal what it adds to.
-The check is opt-in: without `--base`, lint never consults git, and its answer
-depends on the working tree alone.
+unseal what it adds to. The check is opt-in: without `--base`, lint never
+consults git, and its answer depends on the working tree alone.
 
 | Issue | When |
 |---|---|
@@ -189,7 +188,8 @@ that file as `via`. A frozen issue sits on the file, with `frozenBy`, `deleted`
 and the `base` revision. A sealed issue sits on the file that joined or left,
 with `sealedBy`, every module whose seal it changed, `added`, and the `base`
 revision. Both sides are read by the base's espalier, so a file the change
-moves to a new rule is still judged by the collections it belonged to. Path arguments scope them like any other issue.
+moves to a new rule is still judged by the collections it belonged to. Path
+arguments scope them like any other issue.
 
 A module is compared together with every repository file it imports by a
 relative path, followed transitively, because a locked rule changes when a
@@ -210,8 +210,8 @@ The base revision's tracked files are written to a temporary directory and
 read as a repository of their own. The project's installed packages are
 linked beside them, and the working tree's other git-ignored top-level
 entries, such as build output a package imports by its own name, are linked
-into them, so the base's rule modules import what the head's would.
-The base must pin the same espalier version, so both are read by one
+into them, so the base's rule modules import what the head's would. The base
+must pin the same espalier version, so both are read by one
 implementation. Anything that keeps the base from being read stops the run
 with `base_unreadable`: no git, a revision that is not there, another pin, or
 a module that fails to compile. A base with no configuration has no locks, frozen
@@ -236,6 +236,6 @@ marks it uses once. The working instructions describe the unlocked behaviour,
 the locked behaviour whenever the espalier has a lock, and the frozen and
 sealed behaviour whenever it freezes or seals anything. `espalier explain`
 reports whether a path's module is locked or its file frozen, which module's
-export decided each, and as `sealedBy` every sealed collection it belongs to. Computed `guidance` and
-`description` receive the declaring module's lock as `locked`; see
+export decided each, and as `sealedBy` every sealed collection it belongs to.
+Computed `guidance` and `description` receive the declaring module's lock as `locked`; see
 [TYPES.MD](TYPES.MD#guidance).

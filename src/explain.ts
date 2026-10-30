@@ -150,6 +150,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
         ...(visit.node.rule!.module.groups.length > 0 ? { groups: visit.node.rule!.module.groups.map((grouping) => ({
           name: grouping.name, by: grouping.by, description: grouping.description, guidance: grouping.guidance.trim(),
           ...(grouping.abstract ? { abstract: true as const } : {}),
+          ...(grouping.sealed ? { sealed: true as const } : {}),
           ...(grouping.instances.length > 0 ? { instances: grouping.instances.map(declaredAnswer) } : {}),
         })) } : {}),
       }));
@@ -245,6 +246,7 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
       return {
         name: grouping.name, by: grouping.by, description: grouping.description, guidance: grouping.guidance.trim(),
         ...(grouping.abstract ? { abstract: true as const } : {}),
+        ...(grouping.sealed ? { sealed: true as const } : {}),
         captures: Object.fromEntries(grouping.by.map((name) => [name, captures[name]!])),
         ...(declared === undefined ? {} : { instance: declaredAnswer(declared) }),
       };

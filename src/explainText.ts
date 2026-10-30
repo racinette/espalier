@@ -44,6 +44,8 @@ export interface GroupAnswer {
   guidance: string;
   /** Every group must be declared. docs/INSTANCES.MD "Abstract groupings". */
   abstract?: true;
+  /** No group joins or leaves the grouping. docs/LOCKS.MD "Sealed collections". */
+  sealed?: true;
   /** The group a file belongs to; absent in a prefix answer, where no file is in hand. */
   captures?: Record<string, CaptureValue>;
   /** In a prefix answer, every declared group of this grouping. */
@@ -227,7 +229,7 @@ function body(
 function groupBlocks(groups: GroupAnswer[], concise: boolean): string[] {
   return groups.map((group) => {
     const by = group.by.length === 0 ? "the directory" : group.by.join(", ");
-    const lines = [`  Grouped as ${group.name} by ${by}${group.abstract ? ", every group declared" : ""}  ${group.description}`];
+    const lines = [`  Grouped as ${group.name} by ${by}${group.abstract ? ", every group declared" : ""}${group.sealed ? ", sealed" : ""}  ${group.description}`];
     if (group.captures !== undefined) lines.push(...describeCaptures(group.captures, " ".repeat(12)));
     if (!concise && group.guidance !== "") lines.push("", ...group.guidance.split("\n").map((line) => `    ${line}`));
     if (group.instance !== undefined) {
