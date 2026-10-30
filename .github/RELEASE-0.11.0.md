@@ -1,0 +1,137 @@
+# Espalier 0.11.0
+
+Parts of the espalier can be locked, files can be frozen, and collections
+sealed; `espalier lint --base` checks a change against all three at a git
+revision. One group of a grouping can be declared with its own guidance, a name
+can hold alternatives, and generated maps use compact marks instead of
+parenthesized words.
+
+There are breaking changes to configuration, to computed guidance that read
+the configuration, and to the shape of generated documents. Review the upgrade
+instructions below before migrating.
+
+## Locks replace `build.guidanceMode`
+
+Any module of the espalier may export `locked`:
+
+```js
+// espalier/src/core/ESPALIER.mjs
+export const locked = true;
+```
+
+A locked module needs explicit authorization before anything it declares
+changes: its guidance, its checks, and for an abstract contract its member
+list. A directory module locks its subtree until a deeper module says `locked =
+false`, and a declaration inherits from its directory, not its contract.
+Unlocked modules take the changes a task clearly implies; open designs are
+still proposed first. Generated guidance marks locked modules with 🔒 and
+states both behaviours. `espalier help locks` is the specification.
+
+`build.guidanceMode` is removed. A project that set it to `fixed` meant the
+whole espalier was locked, and `espalier migrate` writes exactly that:
+`locked = true` on the espalier root's `ESPALIER.mjs`. Computed `guidance` and
+`description` receive the declaring module's lock as `locked`, in place of
+reading `config.build.guidanceMode`.
+
+## Frozen files and sealed collections
+
+Locks never apply to the project's files. Two new exports do:
+
+```js
+// espalier/migrations/0001[ord=00]_users.sql.mjs
+export const frozen = true;
+
+// espalier/locales/[lang=a+].json.mjs
+export const sealed = true;
+```
+
+- `frozen` keeps an existing file's content: it must not be edited, removed or
+  renamed, while new files are welcome, so a frozen collection is append-only.
+  It may be set on a directory module, a structural rule, an instance
+  declaration or a declared group, and the most specific statement wins;
+  `frozen = false` reopens. Declared groups that could share a file must agree,
+  or compilation fails with `conflicting_frozen`.
+- `sealed` keeps a collection's members: no file joins or leaves it, while the
+  files stay editable. It may be set on a directory, a rule, a declaration, a
+  declared group, or a grouping as `sealed: true`, where only a whole group
+  appearing or disappearing counts. A seal is never inherited.
+
+Both together make a snapshot, such as vendored code. Generated guidance marks
+frozen nodes with ❄️ and sealed ones with 📦, and `explain` reports `frozen`,
+`frozenBy` and `sealedBy`.
+
+## Checking a change against a base
+
+```bash
+espalier lint --base origin/main
+```
+
+`--base` names a git revision. Lint reads the repository as it was there and
+reports every change in the working tree that a lock, freeze or seal in force
+there covers: `locked_module_changed`, `locked_directory_changed`,
+`locked_contract_changed`, `lock_changed`, `untraceable_import`,
+`frozen_file_changed` and `sealed_collection_changed`. A locked module is
+compared with every repository file it imports, so a locked module must import
+by literal paths. The base must pin the same espalier version; anything that
+keeps it from being read stops the run with `base_unreadable`. Without
+`--base`, lint never consults git. What counts as authorization is the
+project's decision, typically an approval required before a failing check may
+be overridden.
+
+## Declared groups
+
+A module at a dynamic rule's name, with the grouping's captures written as
+values, declares one group:
+
+```js
+// espalier/migrations/0001[ord=00]_users.sql.mjs: the 0001 users set
+export const instanceOf = "[num=0000][ord=00]_[table=a+].sql.mjs";
+export const description = "the released users set";
+export const guidance = "Shipped in 1.0.";
+```
+
+It owns no file. Its guidance and optional `lint` apply to that group beside
+the grouping's own, and it is required in every directory its rule reaches
+unless it exports `optional`, reported as `missing_required_group`. A grouping
+with `abstract: true` reports an undeclared group as `undeclared_instance`.
+`runGroup` runs a declared group's `lint` when given its module.
+
+## Alternatives in names
+
+Braces holding a comma match exactly one of their alternatives, anywhere in a
+structural path, and an empty alternative makes that part optional:
+
+```text
+[num=00000][ord=00]_[table=a+].[kind={tables,indexes,grants}]{,.[role=a+]}.sql
+```
+
+A capture in an alternative the name did not take is absent, not empty, so a
+grouping may not group by it. A name two combinations of alternatives could
+both match is rejected at compile time.
+
+## Generated documents
+
+- Maps use marks after each name instead of parenthesized words: ❗ for a file
+  or directory that must exist, a count such as `0+` or `1+` on a pattern, 📋
+  for an abstract contract, and 🔒, ❄️ and 📦. Each document's legend explains
+  the marks it uses. `(instance of …)` and `(literal name)` remain.
+- Guidance an author writes is rendered once. An instance directory's document
+  names where its contract's guidance is stated instead of repeating it, and a
+  file that takes over an inherited one does the same.
+- The mask legend is stated once per document, under the map.
+- A name too long for a readable column hangs its description below it.
+
+## Upgrading from 0.10.0
+
+1. Install `espalier@0.11.0` and preview migration with `espalier migrate --dry-run`.
+2. Run `espalier migrate`. It updates pins, removes `build.guidanceMode`, and
+   for `fixed` adds `locked = true` to the espalier root's `ESPALIER.mjs`.
+3. Replace any computed guidance or description that reads
+   `config.build.guidanceMode` with the context's `locked`.
+4. Run `espalier lint`, `espalier build`, and `espalier build --check`. Every
+   generated map changes notation; review the documents before committing the
+   upgrade.
+5. To enforce locks, freezes and seals, run `espalier lint --base` against the
+   target branch in CI, with that branch fetched; see `espalier help locks`.
+
+Full changes: https://github.com/racinette/espalier/compare/v0.10.0...v0.11.0
