@@ -278,7 +278,9 @@ with `metadata.group` and the group's `metadata.captures`. See
 
 ## Output
 
-`--format` chooses the encoding and `--out` chooses the destination. The two are independent, and everything the run has to say — issues, the partial-run warning, an operational failure — goes through the chosen format to the chosen destination. There is no second channel and no message that arrives by another route, so nothing depends on the reader having guessed which stream it landed on. A consumer that wants two of them runs the command twice.
+`--format` chooses the encoding and `--out` chooses the destination. The two are independent, and everything the run has to say — issues, the partial-run warning, an operational failure — goes through the chosen format to the chosen destination. There is no second channel and no message that arrives by another route, so nothing depends on the reader having guessed which stream it landed on. A consumer that wants two of them runs the command twice. A reader
+that closes the stream early, such as `head`, ends the output but not the run,
+and the exit code still reports the result.
 
 ### `human`
 

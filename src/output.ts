@@ -77,9 +77,30 @@ interface Destination {
   close(): void;
 }
 
+/**
+ * A standard stream. A reader that leaves early, as `head` does, ends the
+ * output and not the run: later writes are dropped, and the exit code still
+ * reports the result.
+ */
+function streamDestination(descriptor: number): Destination {
+  let open = true;
+  return {
+    write: (text) => {
+      if (!open) return;
+      try {
+        writeSync(descriptor, text);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "EPIPE") throw error;
+        open = false;
+      }
+    },
+    close: () => {},
+  };
+}
+
 function openDestination(out: string, root: string): Destination {
-  if (out === "stdout") return { write: (text) => void writeSync(1, text), close: () => {} };
-  if (out === "stderr") return { write: (text) => void writeSync(2, text), close: () => {} };
+  if (out === "stdout") return streamDestination(1);
+  if (out === "stderr") return streamDestination(2);
 
   const handle = openSync(path.resolve(root, out), "w");
   return {

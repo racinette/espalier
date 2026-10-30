@@ -12,7 +12,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -62,6 +62,21 @@ function scratch(body: (root: string) => void): void {
 }
 
 // Dispatch.
+
+test("a reader that leaves early ends the output, not the run or its exit code", async () => {
+  const root = repo();
+  try {
+    const child = spawn(process.execPath, [cli, "lint"], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
+    child.stdout.destroy();
+    let stderr = "";
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    const status = await new Promise<number | null>((resolve) => child.on("close", resolve));
+    assert.equal(stderr, "");
+    assert.equal(status, 1);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("no command prints usage and refuses", () => {
   scratch((root) => {
