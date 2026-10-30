@@ -112,7 +112,18 @@ node dist/src/cli.js build
 node dist/src/cli.js build --check
 ```
 
-Write the release notes in `.github/RELEASE-X.Y.Z.md`. Commit and push the
+Write the release notes in `.github/RELEASE-X.Y.Z.md`, and declare them
+editable while the release is prepared, since published notes are frozen:
+
+```js
+// espalier/.github/RELEASE-X.Y.Z.md.mjs
+export const instanceOf = "RELEASE-[major=0+].[minor=0+].[patch=0+].md.mjs";
+export const description = "the notes of the release being prepared";
+export const guidance = `Not yet published, so still editable.`;
+export const frozen = false;
+```
+
+Commit and push the
 preparation, wait for CI to pass on both Node versions, then create and push
 the matching annotated tag and create a draft:
 
@@ -127,6 +138,9 @@ Replace `X.Y.Z` with the prepared version. Review the draft before publishing
 it with `gh release edit vX.Y.Z --draft=false`. Publishing the release starts
 validation and npm publication. Ordinary branch pushes, tag pushes, pull
 requests, and draft releases do not publish to npm.
+
+Once the release is published, delete `espalier/.github/RELEASE-X.Y.Z.md.mjs`
+and run `node dist/src/cli.js build`, which freezes the notes with the others.
 
 If publication fails before uploading, fix the account setup and rerun the
 failed workflow. After a successful publication, any change requires a new

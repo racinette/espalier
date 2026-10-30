@@ -9,18 +9,21 @@ release procedure itself is `RELEASING.md`, written for the person running it.
 ## Project layout
 
     .github/
-    ├─ workflows/         GitHub Actions workflows
+    ├─ workflows/            GitHub Actions workflows
     │  │
-    │  ├─ ci.yml ❗       the checks every push and pull request runs
+    │  ├─ ci.yml ❗          the checks every push and pull request runs
     │  │
-    │  └─ release.yml ❗  validating and publishing a GitHub release to npm
+    │  └─ release.yml ❗     validating and publishing a GitHub release to npm
     │
-    ├─ RELEASING.md ❗    how a release is prepared and published
+    ├─ RELEASE-0.11.0.md ❗  the notes of the release being prepared (instance
+    │                        of RELEASE-[major=0+].[minor=0+].[patch=0+].md)
     │
-    └─ RELEASE-[major=0+].[minor=0+].[patch=0+].md 1+
+    ├─ RELEASING.md ❗       how a release is prepared and published
+    │
+    └─ RELEASE-[major=0+].[minor=0+].[patch=0+].md ❄️ 1+
        one release's notes, published as its GitHub release
 
-❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+❄️ marks frozen files: an existing file keeps its content and is never removed; add a new one instead where the contract admits it (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 In `[major=0+]`, the text after `=` is a mask: each character matches one character of the name. `0` matches a digit. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
 
@@ -31,13 +34,27 @@ A step that changes, such as a new file whose version must be bumped, changes
 here in the same commit, because this page is what the next release is run
 from.
 
-## `RELEASE-[major=0+].[minor=0+].[patch=0+].md` — one release's notes, published as its GitHub release
+## `RELEASE-[major=0+].[minor=0+].[patch=0+].md` ❄️ — one release's notes, published as its GitHub release
 
 Written for someone upgrading: what changed that they will notice, what they
 must do about it, and what `espalier migrate` does for them. Opens with
 `# Espalier <version>`. The file is the release body `gh release create
---notes-file` publishes, so it is written before the release is tagged and
-not edited after it is published.
+--notes-file` publishes, so it is written before the release is tagged.
+Published notes are frozen: the GitHub release already carries them, so a
+correction is a new release's notes. The notes of the release being prepared
+are reopened by a declaration of their own, `RELEASE-X.Y.Z.md.mjs` with
+`frozen = false`, deleted once that release is published.
+
+Concrete instances, each bound by this contract and by its own section:
+
+### `RELEASE-0.11.0.md` — the notes of the release being prepared
+
+Not yet published, so still editable. Delete this declaration once 0.11.0 is
+published, which freezes these notes with the others.
+
+### Adding new instances
+
+A `RELEASE-[major=0+].[minor=0+].[patch=0+].md` needs no declaration. Declaring one gives it its own guidance; see `espalier help instances`.
 
 ## `workflows/` — GitHub Actions workflows
 

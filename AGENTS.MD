@@ -155,6 +155,12 @@ A new node can also bypass existing restrictions; check which rules will
 apply. When the work conflicts with the intended architecture, report the
 design gap instead of hiding it in a catch-all or relaxing the rules.
 
+Files marked ❄️ in **Project layout** are frozen. Never edit, rename, or delete
+a frozen file, even to fix it: when the work needs different content, add a new
+file where the contract admits one, such as the next migration. A `frozen`
+export is part of the espalier, so changing one is governed like any other
+change to it.
+
 Use `espalier build --force` only to restore a generated file whose provenance
 marker was removed; it authorizes overwriting an unmarked document at a
 planned output path.
