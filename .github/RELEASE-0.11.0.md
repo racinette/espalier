@@ -65,7 +65,9 @@ export const sealed = true;
 - `sealed` keeps a collection's members: no file joins or leaves it, while the
   files stay editable. It may be set on a directory, a rule, a declaration, a
   declared group, or a grouping as `sealed: true`, where only a whole group
-  appearing or disappearing counts. A seal is never inherited.
+  appearing or disappearing counts. A directory module with `sealed = false`
+  takes its subtree out of the sealed directories above it, so a sealed tree
+  can leave room for one piece of work.
 
 Both together make a snapshot, such as vendored code. Generated guidance marks
 frozen nodes with ❄️ and sealed ones with 📦, and `explain` reports `frozen`,

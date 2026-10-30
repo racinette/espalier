@@ -251,7 +251,7 @@ legend under the map explains the ones the document uses, its headings' included
 |---|---|
 | 🔒 | the node's module is locked: changing what it declares needs explicit authorization; see [LOCKS.MD](../../LOCKS.MD) |
 | ❄️ | the node's files are frozen: an existing file keeps its content and is never removed; see [LOCKS.MD](../../LOCKS.MD#frozen-files) |
-| 📦 | the node's module seals a collection: no file joins or leaves it; see [LOCKS.MD](../../LOCKS.MD#sealed-collections) |
+| 📦 | the node is sealed: no file joins or leaves it, by its own module's seal or a sealed directory's; see [LOCKS.MD](../../LOCKS.MD#sealed-collections) |
 | 📋 | an abstract contract: every match must be declared in the espalier, and an undeclared one is reported |
 | ❗ | a named file or named directory instance that must exist |
 | `0+`, `1+`, `3+` | on a pattern, the fewest matching names that must exist |
@@ -278,9 +278,10 @@ out inheritance from the map. The first row carries it too when the
 document's own directory is locked, and a locked module's section heading
 carries it after the name. ❄️ follows the same rules for frozen nodes, and a
 frozen declared group carries it in its heading, since groups have no row in
-the map. 📦 marks only the module that seals, since a seal is not inherited: a
-sealed directory or rule in its row and heading, and a sealed grouping or
-declared group in its heading.
+the map. 📦 follows them too: every node inside a sealed directory carries it,
+so a directory that reopens with `sealed = false` is the one row without it. A
+sealed rule carries it in its own row, and a sealed grouping or declared group
+in its heading.
 
 ### Suffixes
 

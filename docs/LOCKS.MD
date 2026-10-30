@@ -133,12 +133,30 @@ export const sealed = true;
 A file added to an existing group of a sealed grouping changes the group, not
 the grouping. A rename is one file leaving and another joining.
 
-A sealed contract directory seals each directory it matches, declared ones
-included. A seal is the collection's statement about itself, so it is never
-inherited and never reopened: a sealed directory holding an unsealed rule
-still admits no new file, and `sealed = false` means only that the module seals nothing. A file
-in several sealed collections answers to each. A constraint owns no files and
-rejects `sealed`.
+A sealed directory holding an unsealed rule still admits no new file: the
+rule's files are beneath it. A sealed contract directory seals each directory
+it matches, declared ones included.
+
+`sealed = false` on a directory module takes that directory, and everything
+beneath it, out of every sealed directory above it, the way `frozen = false`
+reopens a frozen subtree. At each level a declared directory speaks before its
+contract, so a declaration can reopen one member of a sealed contract, and a
+directory below the reopened one may seal again. This is how a sealed tree
+leaves room for one piece of work:
+
+```js
+// espalier/ESPALIER.mjs: nothing joins or leaves the repository
+export const sealed = true;
+
+// espalier/src/components/Checkout/ESPALIER.mjs: except the checkout component
+export const instanceOf = "../[component]";
+export const sealed = false;
+```
+
+Only a directory reopens. A rule, grouping or group seal is a statement about
+that collection's own files, so on those `sealed = false` means only that the
+module seals nothing. A file in several sealed collections answers to each. A
+constraint owns no files and rejects `sealed`.
 
 ## Frozen and sealed together
 
@@ -230,7 +248,8 @@ or a label, before a failing check may be overridden:
 ## In generated guidance
 
 Every locked module carries 🔒 after its name in the map and in its section's
-heading, every frozen node ❄️, and every sealed one 📦; a declared group or a
+heading, every frozen node ❄️, and every sealed node 📦, a node inside a sealed
+directory included, so a reopened directory is the one without it; a declared group or a
 grouping carries its marks in its heading. Each document's legend explains the
 marks it uses once. The working instructions describe the unlocked behaviour,
 the locked behaviour whenever the espalier has a lock, and the frozen and

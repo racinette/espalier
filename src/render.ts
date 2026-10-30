@@ -5,7 +5,7 @@
 // disk — a renderer that could read a file could produce output that depends
 // on something other than the espalier.
 
-import { directoryFrozen, directoryLock, type Constraint, type Espalier, type LoadedModule, type NodeDoc, type StructuralRule, type TrieNode } from "./compile.js";
+import { directoryFrozen, directoryLock, directorySealed, type Constraint, type Espalier, type LoadedModule, type NodeDoc, type StructuralRule, type TrieNode } from "./compile.js";
 import path from "node:path";
 import { PROVENANCE } from "./files.js";
 import { matchSegment, resolveSegment, type CaptureValue, backrefNames, isStrictSubset, parseSegment, parseStructuralLeaf, type Segment } from "./pattern.js";
@@ -524,7 +524,7 @@ export function mapEntries(
       ...((directory ? visit.node.abstract === true : visit.node.rule?.module.abstract === true) ? { abstract: true } : {}),
       ...((directory ? directoryLock(espalier.nodes, absolute).locked : visit.node.rule?.module.locked === true) ? { locked: true } : {}),
       ...(nodeFrozen(espalier, visit.node, absolute) ? { frozen: true } : {}),
-      ...((directory ? espalier.nodes.get(absolute)?.sealed : visit.node.rule?.module.sealed) === true ? { sealed: true } : {}),
+      ...(nodeSealed(espalier, visit.node, absolute) ? { sealed: true } : {}),
       required:
         visit.node.instanceOf !== undefined ? !visit.node.optional : directory || (visit.node.segment.dynamic && visit.node.rule?.module.optional !== false)
           ? null
@@ -547,6 +547,17 @@ function nodeFrozen(espalier: Espalier, node: TrieNode, authored: string): boole
   if (own !== undefined) return own;
   const cut = authored.lastIndexOf("/");
   return directoryFrozen(espalier.nodes, node.rule === null ? authored : cut === -1 ? "" : authored.slice(0, cut)).locked;
+}
+
+/**
+ * Whether no file joins or leaves a map node: its rule seals its own files, or
+ * the node lies in a sealed directory that no nearer one reopens. A rule's
+ * `sealed = false` reopens nothing; only a directory takes its subtree out.
+ */
+function nodeSealed(espalier: Espalier, node: TrieNode, authored: string): boolean {
+  if (node.rule?.module.sealed === true) return true;
+  const cut = authored.lastIndexOf("/");
+  return directorySealed(espalier.nodes, node.rule === null ? authored : cut === -1 ? "" : authored.slice(0, cut)).locked;
 }
 
 /** The parsed name of a map entry's last segment. */
@@ -1183,7 +1194,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
       const instances = node === null || parent === null ? [] : instancesOf(parent, node);
       const abstract = node?.abstract === true;
       const heading = section.doc.description === null ? "" : ` — ${section.doc.description}`;
-      blocks.push(`${hashes} ${codeSpan(`${displayPath(point, section.at)}/`)}${lockMark(directoryLock(espalier.nodes, section.at).locked, directoryFrozen(espalier.nodes, section.at).locked, espalier.nodes.get(section.at)?.sealed === true)}${heading}`);
+      blocks.push(`${hashes} ${codeSpan(`${displayPath(point, section.at)}/`)}${lockMark(directoryLock(espalier.nodes, section.at).locked, directoryFrozen(espalier.nodes, section.at).locked, directorySealed(espalier.nodes, section.at).locked)}${heading}`);
       if (section.doc.body !== "") blocks.push(section.doc.body);
       if (instances.length > 0 || abstract) {
         const prefix = section.at.includes("/") ? section.at.slice(0, section.at.lastIndexOf("/") + 1) : "";
@@ -1222,7 +1233,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
     if (body.length === 0 && module.groups.length === 0 && instances.length === 0 && !module.abstract) continue;
 
     const heading = module.description === null ? "" : ` — ${module.description}`;
-    blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${lockMark(module.locked, node !== null && nodeFrozen(espalier, node, section.at), module.sealed === true)}${heading}`, ...body);
+    blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${lockMark(module.locked, node !== null && nodeFrozen(espalier, node, section.at), node !== null ? nodeSealed(espalier, node, section.at) : module.sealed === true)}${heading}`, ...body);
     if (!inherited) blocks.push(...groupingSections(module, displayPath(point, section.at), level + 1));
 
     if (instances.length > 0 || module.abstract) {
@@ -1234,7 +1245,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
         const own = ruleBody(instance.rule.module);
         const described = instance.rule.module.description === null ? "" : ` — ${instance.rule.module.description}`;
         const instanceNode = nodeAt(point, instance.at);
-        blocks.push(`${hashes}# ${codeSpan(displayPath(point, instance.at))}${lockMark(instance.rule.module.locked, instanceNode !== null && nodeFrozen(espalier, instanceNode, instance.at), instance.rule.module.sealed === true)}${described}`, ...own);
+        blocks.push(`${hashes}# ${codeSpan(displayPath(point, instance.at))}${lockMark(instance.rule.module.locked, instanceNode !== null && nodeFrozen(espalier, instanceNode, instance.at), instanceNode !== null ? nodeSealed(espalier, instanceNode, instance.at) : instance.rule.module.sealed === true)}${described}`, ...own);
         blocks.push(...groupingSections(instance.rule.module, displayPath(point, instance.at), level + 2));
       }
       blocks.push(...addingInstances(node!.display, false, module.abstract, level + 1));
@@ -1472,7 +1483,7 @@ ${architectureGuidance(espalier)}`);
     body.push(...renderSections(espalier, folded, level + 1, documents));
     if (body.length === 0) continue;
     const description = folded.doc?.description == null ? "" : ` — ${folded.doc.description}`;
-    blocks.push(`${"#".repeat(level)} ${codeSpan(`${displayPath(point, folded.at)}/`)}${lockMark(directoryLock(espalier.nodes, folded.at).locked, directoryFrozen(espalier.nodes, folded.at).locked, folded.doc?.sealed === true)}${description}`, ...body);
+    blocks.push(`${"#".repeat(level)} ${codeSpan(`${displayPath(point, folded.at)}/`)}${lockMark(directoryLock(espalier.nodes, folded.at).locked, directoryFrozen(espalier.nodes, folded.at).locked, directorySealed(espalier.nodes, folded.at).locked)}${description}`, ...body);
   }
   blocks.push(...renderOutside(outside, level));
   if (closed !== null) blocks.push(closed);

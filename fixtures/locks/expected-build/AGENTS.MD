@@ -6,15 +6,18 @@
 
     ./
     ├─ clients/
+    │
+    ├─ components/ 📦  shared UI components
+    │
     ├─ locales/
     ├─ migrations/
     ├─ src/
     │  │
-    │  └─ core/ 🔒   the runtime every feature builds on
+    │  └─ core/ 🔒     the runtime every feature builds on
     │
     ├─ themes/
     │
-    └─ vendor/ ❄️📦  third-party code, kept as received
+    └─ vendor/ ❄️📦    third-party code, kept as received
 
 🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). ❄️ marks frozen files: an existing file keeps its content and is never removed; add a new one instead where the contract admits it (`espalier help locks`). 📦 marks a sealed collection: no file, or for a grouping no group, joins or leaves it (`espalier help locks`).
 

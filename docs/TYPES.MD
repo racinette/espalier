@@ -532,7 +532,7 @@ file. Its exports are:
 | `abstract` | `false` | on a dynamic directory, every matching directory must be a declared instance; see [INSTANCES.MD](INSTANCES.MD) |
 | `locked` | inherited | lock this directory and, until a deeper module says otherwise, everything declared below it; see [LOCKS.MD](LOCKS.MD) |
 | `frozen` | inherited | existing files beneath this directory keep their content, until a deeper module says otherwise; a declared instance directory follows its contract's; see [LOCKS.MD](LOCKS.MD#frozen-files) |
-| `sealed` | `false` | no file joins or leaves this directory, at any depth; on a contract, nor any directory it matches; never inherited or reopened; see [LOCKS.MD](LOCKS.MD#sealed-collections) |
+| `sealed` | absent | `true`: no file joins or leaves this directory, at any depth, nor, on a contract, any directory it matches; `false`: take this subtree out of the sealed directories above it; see [LOCKS.MD](LOCKS.MD#sealed-collections) |
 
 For example, computed guidance can follow the directory's lock:
 

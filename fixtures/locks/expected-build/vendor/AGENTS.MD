@@ -5,11 +5,11 @@
 ## Project layout
 
     vendor/
-    └─ [file].js ❄️ 0+  a vendored script
+    └─ [file].js ❄️📦 0+  a vendored script
 
-❄️ marks frozen files: an existing file keeps its content and is never removed; add a new one instead where the contract admits it (`espalier help locks`). A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+❄️ marks frozen files: an existing file keeps its content and is never removed; add a new one instead where the contract admits it (`espalier help locks`). 📦 marks a sealed collection: no file, or for a grouping no group, joins or leaves it (`espalier help locks`). A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
-## `[file].js` ❄️ — a vendored script
+## `[file].js` ❄️📦 — a vendored script
 
 Replaced only by a new release, never patched.
 

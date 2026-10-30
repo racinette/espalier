@@ -161,15 +161,35 @@ export function contractDirectories(nodes: ReadonlyMap<string, NodeDoc>, at: str
   return [at];
 }
 
-/** Whether files beneath an espalier directory are frozen, and which directory module said so. */
-export function directoryFrozen(nodes: ReadonlyMap<string, NodeDoc>, at: string): Lock {
+/**
+ * The nearest directory module's statement about files beneath an espalier
+ * directory, and which module made it: at each level the directory itself,
+ * then its contract equivalents, then the level above.
+ */
+function nearestStatement(nodes: ReadonlyMap<string, NodeDoc>, at: string, statement: (doc: NodeDoc) => boolean | undefined): Lock {
   for (let directory = at; ; directory = directory.includes("/") ? directory.slice(0, directory.lastIndexOf("/")) : "") {
     for (const speaker of contractDirectories(nodes, directory)) {
-      const frozen = nodes.get(speaker)?.frozenExport;
-      if (frozen !== undefined) return { locked: frozen, by: speaker === "" ? NODE_DESCRIPTION : `${speaker}/${NODE_DESCRIPTION}` };
+      const doc = nodes.get(speaker);
+      const said = doc === undefined ? undefined : statement(doc);
+      if (said !== undefined) return { locked: said, by: speaker === "" ? NODE_DESCRIPTION : `${speaker}/${NODE_DESCRIPTION}` };
     }
     if (directory === "") return { locked: false, by: null };
   }
+}
+
+/** Whether files beneath an espalier directory are frozen, and which directory module said so. */
+export function directoryFrozen(nodes: ReadonlyMap<string, NodeDoc>, at: string): Lock {
+  return nearestStatement(nodes, at, (doc) => doc.frozenExport);
+}
+
+/**
+ * Whether an espalier directory lies in a sealed directory, so no file joins
+ * or leaves it, and which directory module sealed it: the nearest `sealed`
+ * statement, since `sealed = false` takes a subtree out of the seals above.
+ * docs/LOCKS.MD "Sealed collections".
+ */
+export function directorySealed(nodes: ReadonlyMap<string, NodeDoc>, at: string): Lock {
+  return nearestStatement(nodes, at, (doc) => doc.sealed);
 }
 
 /** The lock of a module file: its own export, else its directory's. */
@@ -256,8 +276,11 @@ export interface NodeDoc {
   lockExport?: boolean;
   /** The directory module's own `frozen` export: files beneath keep their content. */
   frozenExport?: boolean;
-  /** No file joins or leaves the directory, at any depth. docs/LOCKS.MD "Sealed collections". */
-  sealed?: true;
+  /**
+   * The directory module's own `sealed` export: true seals every file beneath,
+   * false takes this subtree out of the seals above. docs/LOCKS.MD "Sealed collections".
+   */
+  sealed?: boolean;
 }
 
 /**
@@ -1138,7 +1161,7 @@ async function readDirectoryModule(
     ...(module.abstract === true ? { abstract: true } : {}),
     ...(typeof module.locked === "boolean" ? { lockExport: module.locked } : {}),
     ...(typeof module.frozen === "boolean" ? { frozenExport: module.frozen } : {}),
-    ...(module.sealed === true ? { sealed: true as const } : {}),
+    ...(typeof module.sealed === "boolean" ? { sealed: module.sealed } : {}),
     ...(typeof module.guidance === "function" ? { render: module.guidance as (context: DirectoryGuidanceContext) => unknown } : {}),
     ...(typeof module.description === "function" ? { renderDescription: module.description as (context: DirectoryGuidanceContext) => unknown } : {}),
   };

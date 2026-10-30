@@ -4,6 +4,8 @@
     "report": [
       { "kind": "written", "path": "AGENTS.MD" },
       { "kind": "written", "path": "clients/AGENTS.MD" },
+      { "kind": "written", "path": "components/AGENTS.MD" },
+      { "kind": "written", "path": "components/Checkout/AGENTS.MD" },
       { "kind": "written", "path": "locales/AGENTS.MD" },
       { "kind": "written", "path": "migrations/AGENTS.MD" },
       { "kind": "written", "path": "src/core/AGENTS.MD" },
@@ -16,6 +18,8 @@
   "issues": [],
   "ownership": {
     "clients/stripe.ts": "clients/stripe.ts.mjs",
+    "components/Button/index.tsx": "components/[component]/index.tsx.mjs",
+    "components/Checkout/index.tsx": "components/[component]/index.tsx.mjs",
     "src/core/http.ts": "src/core/http.ts.mjs",
     "src/core/plugins/slack.ts": "src/core/plugins/[plugin].ts.mjs",
     "vendor/lib.js": "vendor/[file].js.mjs",
@@ -42,6 +46,14 @@
           { "path": "clients/[provider].ts", "locked": true, "abstract": true }
         ]
       }
+    },
+    "components/Button/index.tsx": {
+      "exit": 0,
+      "object": { "sealedBy": ["components/ESPALIER.mjs"] }
+    },
+    "components/Checkout/index.tsx": {
+      "exit": 0,
+      "object": { "rule": "components/[component]/index.tsx.mjs" }
     },
     "vendor/lib.js": {
       "exit": 0,

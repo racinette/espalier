@@ -254,6 +254,31 @@ test("a sealed directory or rule admits no file in or out, and its files stay ed
   }), ["sealed_collection_changed docs/b.md", "sealed_collection_changed locales/de.json", "sealed_collection_changed locales/fr.json"]);
 });
 
+test("sealed = false takes a directory out of the seals above it, and a seal below it counts again", async () => {
+  const guarded = {
+    "espalier/ESPALIER.mjs": "export const sealed = true;\n",
+    "espalier/[module].ts.mjs": RULE,
+    "espalier/components/[component]/ESPALIER.mjs": "export const sealed = true;\n",
+    "espalier/components/[component]/[part].tsx.mjs": RULE,
+    "espalier/components/Checkout/ESPALIER.mjs": 'export const instanceOf = "../[component]"; export const sealed = false;\n',
+    "espalier/components/[component]/assets/ESPALIER.mjs": "export const sealed = true;\n",
+    "espalier/components/[component]/assets/[file].svg.mjs": RULE,
+    "main.ts": "",
+    "components/Button/index.tsx": "",
+    "components/Checkout/index.tsx": "",
+    "components/Checkout/assets/logo.svg": "",
+  };
+  assert.deepEqual(await compare(guarded, (put, remove) => {
+    put("components/Checkout/form.tsx", "");
+    remove("components/Checkout/index.tsx");
+  }), []);
+  assert.deepEqual(await compare(guarded, (put) => {
+    put("other.ts", "");
+    put("components/Button/icon.tsx", "");
+    put("components/Checkout/assets/card.svg", "");
+  }), ["sealed_collection_changed components/Button/icon.tsx", "sealed_collection_changed components/Checkout/assets/card.svg", "sealed_collection_changed other.ts"]);
+});
+
 const SETS = {
   "espalier/migrations/[num=0000][ord=00]_[table=a+].sql.mjs": `${RULE}export const groups = { set: { by: ["num", "table"], sealed: true, description: "a set", guidance: "" } };\n`,
   "migrations/000101_users.sql": "a\n",

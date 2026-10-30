@@ -17,7 +17,10 @@ export decided a path's lock.
 set is not, and `locales/[lang].json` is sealed but not frozen: its files stay
 editable, and no language is added or removed. The `theme` grouping of
 `themes/` is sealed, so no theme is added or removed while a theme may gain a
-part. Frozen and sealed nodes carry ❄️ and 📦 in the map, and declared groups
+part. `components/` is sealed, and its declared `Checkout/` reopens itself
+with `sealed = false`, as a branch guard would: every node in it but
+`Checkout/` carries 📦, and `explain` names the seal on `Button/`.
+Frozen and sealed nodes carry ❄️ and 📦 in the map, and declared groups
 and groupings in their headings; the legend explains every mark a document
 uses, a heading's included, the working instructions add the frozen and sealed
 behaviour, and `explain` names the modules that froze and sealed a file, and

@@ -398,17 +398,22 @@ export interface Seal {
 
 /**
  * The sealed directories a directory lies in, itself included, outermost
- * first. A declared instance directory answers to its contract's seal too.
+ * first. At each level the directory's own statement comes before its
+ * contract's, as for `frozen`; one saying `sealed = false` takes the subtree
+ * out of every seal above it, and a seal below it counts again.
  */
 export function directorySeals(espalier: Espalier, directoryPath: string): Seal[] {
   const parts = directoryPath.split("/").filter(Boolean);
   const found = resolveDirectory(espalier, parts.join("/"));
   const authored = (isDirectoryOwnership(found) ? found.path : found.recognized ?? "").split("/").filter(Boolean);
   const seals: Seal[] = [];
-  for (let depth = 0; depth <= authored.length; depth += 1) {
+  levels: for (let depth = authored.length; depth >= 0; depth -= 1) {
     for (const at of contractDirectories(espalier.nodes, authored.slice(0, depth).join("/"))) {
-      if (espalier.nodes.get(at)?.sealed !== true) continue;
-      seals.push({ key: `directory ${parts.slice(0, depth).join("/")}`, by: at === "" ? NODE_DESCRIPTION : `${at}/${NODE_DESCRIPTION}` });
+      const sealed = espalier.nodes.get(at)?.sealed;
+      if (sealed === undefined) continue;
+      if (!sealed) break levels;
+      seals.unshift({ key: `directory ${parts.slice(0, depth).join("/")}`, by: at === "" ? NODE_DESCRIPTION : `${at}/${NODE_DESCRIPTION}` });
+      break;
     }
   }
   return seals;
