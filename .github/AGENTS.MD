@@ -44,7 +44,10 @@ not edited after it is published.
 ### `ci.yml` — the checks every push and pull request runs
 
 Runs on every supported Node version. It holds a push to what a release must
-pass, so a release never discovers a failure CI could have reported.
+pass, so a release never discovers a failure CI could have reported. A pull
+request is also checked against its target branch with `lint --base`, so a
+change to a locked module, a frozen file or a sealed collection fails until
+someone authorized overrides it.
 
 ### `release.yml` — validating and publishing a GitHub release to npm
 

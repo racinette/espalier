@@ -40,5 +40,13 @@ jobs:
       - name: Lint repository architecture
         run: node dist/src/cli.js lint
 
+      - name: Check locks, frozen files and seals against the target branch
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags --depth=1 origin "+refs/heads/$BASE_REF:refs/remotes/origin/$BASE_REF"
+          node dist/src/cli.js lint --base "origin/$BASE_REF"
+
       - name: Check generated guidance
         run: node dist/src/cli.js build --check
