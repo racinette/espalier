@@ -21,4 +21,5 @@ part. Frozen and sealed nodes carry ❄️ and 📦 in the map, and declared gro
 and groupings in their headings; the legend explains every mark a document
 uses, a heading's included, the working instructions add the frozen and sealed
 behaviour, and `explain` names the modules that froze and sealed a file, and
-marks a sealed grouping.
+marks a sealed grouping. Its human form lines up the values of `Owned by`,
+`Frozen by` and `Sealed by` in one column.

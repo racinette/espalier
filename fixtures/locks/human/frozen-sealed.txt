@@ -1,0 +1,21 @@
+migrations/000101_users.sql              a migration step
+
+  Owned by   migrations/[num=0000][ord=00]_[table=a+].sql
+             num = "0001"
+             ord = "01"
+             table = "users"
+  Frozen by  migrations/0001[ord=00]_users.sql.mjs
+  Sealed by  migrations/0001[ord=00]_users.sql.mjs
+
+  Guidance
+    One statement per step.
+
+  Grouped as set by num, table  one table's migration set
+            num = "0001"
+            table = "users"
+
+    Steps are numbered from 01.
+
+  Declared as migrations/0001[ord=00]_users.sql  the released users set
+
+    Shipped in 1.0.

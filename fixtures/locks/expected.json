@@ -47,13 +47,19 @@
       "exit": 0,
       "object": { "frozen": true, "frozenBy": "vendor/ESPALIER.mjs", "sealedBy": ["vendor/ESPALIER.mjs"] }
     },
+    "vendor/": {
+      "exit": 0,
+      "object": { "frozen": true, "frozenBy": "vendor/ESPALIER.mjs", "sealedBy": ["vendor/ESPALIER.mjs"] },
+      "human": "human/frozen-sealed-prefix.txt"
+    },
     "migrations/000101_users.sql": {
       "exit": 0,
       "object": {
         "frozen": true,
         "frozenBy": "migrations/0001[ord=00]_users.sql.mjs",
         "sealedBy": ["migrations/0001[ord=00]_users.sql.mjs"]
-      }
+      },
+      "human": "human/frozen-sealed.txt"
     },
     "locales/en.json": {
       "exit": 0,

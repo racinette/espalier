@@ -208,6 +208,26 @@ function describeCaptures(captures: Record<string, CaptureValue>, indent: string
   );
 }
 
+/**
+ * Labelled rows, such as `Owned by` and `Locked by`, with their values in one
+ * column: the widest label present sets it. Returns the lines and the column,
+ * so continuation lines can align with the values.
+ */
+function labelled(rows: ReadonlyArray<readonly [label: string, value: string] | null>): { lines: string[]; column: number } {
+  const present = rows.filter((row) => row !== null);
+  const width = Math.max(...present.map(([label]) => label.length));
+  return { lines: present.map(([label, value]) => `  ${label.padEnd(width)}  ${value}`), column: width + 4 };
+}
+
+/** The lock, freeze and seals an answer reports, as labelled rows. docs/LOCKS.MD. */
+function protections(answer: { locked?: true; lockedBy?: string; frozen?: true; frozenBy?: string; sealedBy?: string[] }): Array<readonly [string, string] | null> {
+  return [
+    answer.locked === true ? ["Locked by", answer.lockedBy!] : null,
+    answer.frozen === true ? ["Frozen by", answer.frozenBy!] : null,
+    answer.sealedBy !== undefined ? ["Sealed by", answer.sealedBy.join(", ")] : null,
+  ];
+}
+
 /** The rule and reference-implementation blocks a rule and constraint share. */
 function body(
   guidance: string,
@@ -293,9 +313,8 @@ export function renderExplanation(answer: Explanation, concise = false): string 
     blocks.push(head(shown, answer.description));
     if (answeredBy !== null) blocks.push(answeredBy);
     if (answer.instanceOf !== undefined) blocks.push(`  An instance of ${answer.instanceOf}`);
-    if (answer.locked === true) blocks.push(`  Locked by  ${answer.lockedBy}`);
-    if (answer.frozen === true) blocks.push(`  Frozen by  ${answer.frozenBy}`);
-    if (answer.sealedBy !== undefined) blocks.push(`  Sealed by  ${answer.sealedBy.join(", ")}`);
+    const protectedBy = labelled(protections(answer)).lines;
+    if (protectedBy.length > 0) blocks.push(protectedBy.join("\n"));
     if (!concise && answer.body !== "") blocks.push(answer.body);
     if (concise && Object.keys(answer.captures).length > 0) {
       blocks.push(["  Captures:", ...describeCaptures(answer.captures, "    ")].join("\n"));
@@ -379,14 +398,16 @@ export function renderExplanation(answer: Explanation, concise = false): string 
 
   blocks.push(head(answer.path, answer.description));
   if (answeredBy !== null) blocks.push(answeredBy);
+  const owner = labelled([
+    ["Owned by", answer.rule.replace(/\.mjs$/, "")],
+    answer.abstract === true ? ["Undeclared", "the contract is abstract; declare this path, or see `espalier help instances`"] : null,
+    ...protections(answer),
+  ]);
   blocks.push(
     [
-      `  Owned by  ${answer.rule.replace(/\.mjs$/, "")}`,
-      ...describeCaptures(answer.captures, " ".repeat(12)),
-      ...(answer.abstract === true ? ["  Undeclared  the contract is abstract; declare this path, or see `espalier help instances`"] : []),
-      ...(answer.locked === true ? [`  Locked by  ${answer.lockedBy}`] : []),
-      ...(answer.frozen === true ? [`  Frozen by  ${answer.frozenBy}`] : []),
-      ...(answer.sealedBy !== undefined ? [`  Sealed by  ${answer.sealedBy.join(", ")}`] : []),
+      owner.lines[0]!,
+      ...describeCaptures(answer.captures, " ".repeat(owner.column)),
+      ...owner.lines.slice(1),
     ].join("\n"),
   );
   blocks.push(

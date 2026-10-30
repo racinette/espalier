@@ -2,3 +2,4 @@ FIXTURE.MD
 expected.json
 expected-build/**
 after/**
+human/**
