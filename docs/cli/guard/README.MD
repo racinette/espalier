@@ -60,9 +60,17 @@ A trailing `/` names a directory; one that exists is a directory either way.
 A declaration guard creates carries only `instanceOf` and the export, which is
 all a declaration needs. Guard never invents architecture: a target the
 espalier does not admit is refused as `guard_unknown_target`, and so is a path
-inside the espalier root, because a guard governs the work, not the rules. A
-file under a directory the espalier admits only through a contract needs that
-directory declared first.
+inside the espalier root, because a guard governs the work, not the rules.
+
+A target under a directory the espalier admits only through a contract, such
+as `src/features/checkout/api.ts` under `src/features/[feature]/`, needs that
+directory declared before a module beneath it means anything. Guard declares
+each such directory on the way, with only `instanceOf`, and `unguard` deletes
+those declarations with the rest. Inside one, a file the contract names, such
+as `api.ts`, is opened at its own name, and a file a pattern admits is declared
+as the pattern's instance. A group is declared only beside the rule that
+defines it, so a group inside such a directory is refused as
+`guard_invalid_target`; open its files one by one with `--edit` instead.
 
 `--add` and `--open` take directories only, since only a directory reopens a
 seal. To let the work create one particular file, open its directory. `--edit`

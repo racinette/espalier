@@ -127,9 +127,9 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | `missing_argument` | a command was invoked without an argument it needs |
 | `unexpected_argument` | `guard` or `unguard` was given a path; each target is named with a flag |
 | `already_guarded` | `guard` found a guard already in place; run `unguard` first |
-| `guard_unknown_target` | a `guard` target the espalier admits as no file, directory, group or pattern, one outside the repository or inside the espalier root, or one under a directory that must be declared first |
+| `guard_unknown_target` | a `guard` target the espalier admits as no file, directory, group or pattern, or one outside the repository or inside the espalier root |
 | `guard_ambiguous_target` | a `guard` target names a group of more than one rule |
-| `guard_invalid_target` | `--add` or `--open` named something other than a directory, or `--edit` a file that does not exist |
+| `guard_invalid_target` | `--add` or `--open` named something other than a directory, `--edit` a file that does not exist, or a target named a group inside a directory a contract admits, where no group can be declared |
 | `guard_conflict` | one `guard` target was both closed and opened for the same export |
 | `guard_unsupported_export` | a module exports `locked`, `frozen` or `sealed` by destructuring, which `guard` cannot set |
 | `guard_unsupported_module` | a module `guard` would change does not parse, or could not be changed in a way that restores exactly |

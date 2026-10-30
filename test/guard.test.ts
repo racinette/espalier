@@ -132,6 +132,65 @@ test("a guard closes the repository, opens what it names, and is checked against
     ]);
   }));
 
+/** Features matched by a contract, none of them declared. */
+const FEATURES: Record<string, string> = {
+  "espalier.config.yaml": "root: espalier\nignoreFiles: []\nskip: []\n",
+  ".espalierignore": ".git\n",
+  "espalier/features/[feature]/api.ts.mjs": "",
+  "espalier/features/[feature]/components/[component]/index.tsx.mjs": "",
+  "espalier/features/[feature]/routes/[route].ts.mjs": "",
+  "espalier/features/[feature]/steps/[num=0000]_[t=a+].sql.mjs": 'export const groups = { step: { by: ["num"] } };\n',
+  "features/checkout/api.ts": "checkout\n",
+  "features/checkout/components/Button/index.tsx": "button\n",
+  "features/checkout/routes/pay.ts": "pay\n",
+  "features/checkout/steps/0001_users.sql": "a\n",
+  "features/orders/api.ts": "orders\n",
+  "features/orders/routes/list.ts": "list\n",
+};
+
+test("a guard declares the directories a contract admits on the way to its targets", () =>
+  scratch(FEATURES, async (root) => {
+    const before = espalierFiles(root);
+    const result = run(root, ["guard", "--no-build", "--close", ".",
+      "--open", "features/checkout/components/Cart/", "--edit", "features/checkout/api.ts", "--edit", "features/checkout/routes/pay.ts"]);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(readFileSync(path.join(root, "espalier/features/checkout/ESPALIER.mjs"), "utf8"), /^\/\/ espalier guard created [0-9a-f]+\nexport const instanceOf = "\.\.\/\[feature\]";\n$/);
+    // A fixed name the contract carries is taken over at its own name; a pattern's file is declared as its instance.
+    assert.doesNotMatch(readFileSync(path.join(root, "espalier/features/checkout/api.ts.mjs"), "utf8"), /instanceOf/);
+    assert.match(readFileSync(path.join(root, "espalier/features/checkout/routes/pay.ts.mjs"), "utf8"), /instanceOf = "\[route\]\.ts\.mjs"/);
+
+    git(root, "init", "-q");
+    git(root, "add", "-A");
+    git(root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "guard");
+    for (const name of ["features/checkout/api.ts", "features/checkout/routes/pay.ts", "features/orders/api.ts", "features/orders/routes/list.ts"]) {
+      writeFileSync(path.join(root, name), "edited\n");
+    }
+    mkdirSync(path.join(root, "features/checkout/components/Cart"));
+    writeFileSync(path.join(root, "features/checkout/components/Cart/index.tsx"), "cart\n");
+    writeFileSync(path.join(root, "features/checkout/routes/refund.ts"), "refund\n");
+    const issues = (await check({ cwd: root, jobs: 1, base: "HEAD" }))
+      .filter((issue) => issue.code === "frozen_file_changed" || issue.code === "sealed_collection_changed")
+      .map((issue) => `${issue.code} ${issue.path}`).sort();
+    assert.deepEqual(issues, [
+      "frozen_file_changed features/orders/api.ts",
+      "frozen_file_changed features/orders/routes/list.ts",
+      "sealed_collection_changed features/checkout/routes/refund.ts",
+    ]);
+
+    git(root, "checkout", "-q", ".");
+    git(root, "clean", "-qfd");
+    assert.equal(run(root, ["unguard", "--no-build"]).status, 0);
+    assert.deepEqual(espalierFiles(root), before);
+    assert.equal(existsSync(path.join(root, "espalier/features/checkout")), false);
+  }));
+
+test("a group inside a directory a contract admits is refused, since a group is declared beside its rule", () =>
+  scratch(FEATURES, (root) => {
+    const result = run(root, ["guard", "--no-build", "--format", "jsonl", "--close", ".", "--edit", "features/checkout/steps/0001_[t=a+].sql"]);
+    assert.equal(result.status, 2);
+    assert.match(result.stdout, /"code":"guard_invalid_target".*one by one with --edit/);
+  }));
+
 test("unguard gives every module back byte for byte, and deletes what the guard created", () =>
   scratch(PROJECT, (root) => {
     const before = espalierFiles(root);

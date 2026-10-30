@@ -56,6 +56,14 @@ interface Slot {
   scope: { kind: "directory"; at: string } | { kind: "rule"; module: string } | { kind: "member" };
   /** For a module the guard creates: the contract it declares a member of, or null for a directory module. */
   create?: { instanceOf: string | null };
+  /**
+   * Directories on the way to the target that the espalier admits only
+   * through a contract. A module beneath one means something only once the
+   * directory is declared, so the guard declares it too.
+   */
+  declares?: { module: string; instanceOf: string }[];
+  /** Written only to declare a directory on the way to another target. */
+  declaresOnly?: boolean;
   /** The target names a repository file that exists. */
   file?: string;
 }
@@ -101,6 +109,23 @@ function resolveTarget(repository: Repository, cwd: string, target: string): Slo
   const rulesDirectory = (at: string): boolean => {
     try { return statSync(path.join(rulesRoot, at)).isDirectory(); } catch { return false; }
   };
+  /** The espalier's directory for a concrete one, and the declarations it takes to reach it. */
+  const reach = (directory: string): { authored: string; declares: { module: string; instanceOf: string }[] } => {
+    const parts = directory.split("/").filter(Boolean);
+    const declares: { module: string; instanceOf: string }[] = [];
+    let authored = "";
+    for (let depth = 1; depth <= parts.length; depth += 1) {
+      const concrete = parts.slice(0, depth).join("/");
+      const found = resolveDirectory(espalier, concrete);
+      if (!isDirectoryOwnership(found)) unknown(`no directory of the espalier admits ${concrete}/`);
+      authored = (found as { path: string }).path;
+      // A contract's own static child needs no declaration: it comes with its instance.
+      if (leaf(authored) !== leaf(concrete) && !rulesDirectory(concrete)) {
+        declares.push({ module: `${concrete}/${NODE_DESCRIPTION}`, instanceOf: `../${leaf(authored)}` });
+      }
+    }
+    return { authored, declares };
+  };
 
   // The espalier's own vocabulary first: a module or directory it already has.
   if (!wantsDirectory && espalier.modules.has(`${relative}.mjs`)) {
@@ -123,26 +148,26 @@ function resolveTarget(repository: Repository, cwd: string, target: string): Slo
     };
   }
 
-  // A concrete directory the espalier admits through a contract: declare it.
+  // A concrete directory the espalier admits through a contract: declare it,
+  // and every directory on the way that needs it.
   if (wantsDirectory) {
-    const found = resolveDirectory(espalier, relative);
-    if (!isDirectoryOwnership(found)) unknown("no directory of the espalier admits it");
-    const authored = (found as { path: string }).path;
-    if (parent(authored) !== parent(relative)) {
-      unknown(`it lies under ${parent(relative)}/, which the espalier admits only through ${parent(authored)}/; declare ${parent(relative)}/ first`);
-    }
+    const module = `${relative}/${NODE_DESCRIPTION}`;
+    const { declares } = reach(relative);
+    const own = declares.find((entry) => entry.module === module);
     return {
-      target, module: `${relative}/${NODE_DESCRIPTION}`, scope: { kind: "directory", at: relative },
-      create: { instanceOf: `../${leaf(authored)}` },
+      target, module, scope: { kind: "directory", at: relative },
+      create: { instanceOf: own?.instanceOf ?? null },
+      declares: declares.filter((entry) => entry !== own),
     };
   }
 
   // A group: a rule's name with its grouping's captures written as values.
   // Brackets are the espalier's, so this comes before reading it as a file.
-  if (relative.includes("[") && rulesDirectory(parent(relative))) {
+  if (relative.includes("[") && isDirectoryOwnership(resolveDirectory(espalier, parent(relative)))) {
     const name = leaf(relative);
+    const { authored: within, declares } = reach(parent(relative));
     const candidates = rules(espalier.root).filter(({ rule, directory }) => {
-      if (directory !== parent(relative) || rule.module.groups.length === 0) return false;
+      if (directory !== within || rule.module.groups.length === 0) return false;
       const bound = boundCaptures(leaf(declaration(rule.modulePath)), name);
       if (bound === null || Object.keys(bound).length === 0) return false;
       const names = Object.keys(bound).sort().join();
@@ -152,9 +177,16 @@ function resolveTarget(repository: Repository, cwd: string, target: string): Slo
       fail("guard_ambiguous_target", `${target} names a group of ${candidates.map(({ rule }) => rule.modulePath).join(" and ")}; declare it by hand`, { target });
     }
     if (candidates.length === 1) {
+      const contract = candidates[0]!.rule.modulePath;
+      // Groups attach to their rule before instance directories are filled in,
+      // so a group is declared only beside the rule that defines it.
+      if (parent(contract) !== parent(relative)) {
+        fail("guard_invalid_target", `${target}: ${parent(relative)}/ is an instance of ${parent(contract)}/, and a group is declared only beside its rule; open its files one by one with --edit, or the directory with --open`, { target });
+      }
       return {
         target, module: `${relative}.mjs`, scope: { kind: "member" },
         create: { instanceOf: `${leaf(declaration(candidates[0]!.rule.modulePath))}.mjs` },
+        declares,
       };
     }
   }
@@ -162,14 +194,15 @@ function resolveTarget(repository: Repository, cwd: string, target: string): Slo
   // A concrete file: its own rule when it has a fixed name, else a declaration.
   const owner = resolve(espalier, relative);
   if (isOwnership(owner)) {
-    const authored = declaration(owner.rule.modulePath);
-    if (parent(authored) !== parent(relative)) {
-      unknown(`its rule ${owner.rule.modulePath} is declared under ${parent(authored)}/; open ${parent(relative)}/ instead, or declare the file by hand`);
-    }
+    const authored = leaf(declaration(owner.rule.modulePath));
+    const { declares } = reach(parent(relative));
     return {
       target, module: `${relative}.mjs`, scope: { kind: "member" },
       ...(existsSync(path.join(config.root, relative)) ? { file: relative } : {}),
-      create: { instanceOf: `${leaf(authored)}.mjs` },
+      // A pattern's file is declared as its instance; a fixed name the
+      // directory's contract carries is taken over at the same name.
+      create: { instanceOf: authored === leaf(relative) ? null : `${authored}.mjs` },
+      declares,
     };
   }
   return unknown("the espalier admits no such file, directory, group or pattern");
@@ -219,8 +252,15 @@ export async function guard(options: GuardOptions, reporter: Reporter): Promise<
     return created;
   };
 
+  const declare = (slot: Slot): void => {
+    for (const { module, instanceOf } of slot.declares ?? []) {
+      if (!espalier.modules.has(module)) entry({ target: slot.target, module, scope: { kind: "member" }, create: { instanceOf }, declaresOnly: true });
+    }
+  };
+
   for (const { flag, target } of closing) {
     const slot = resolveTarget(repository, options.cwd, target);
+    declare(slot);
     const planned = entry(slot);
     for (const protection of CLOSING[flag]) {
       planned.settings[protection] = true;
@@ -247,6 +287,7 @@ export async function guard(options: GuardOptions, reporter: Reporter): Promise<
 
   for (const { flag, target } of opening) {
     const slot = resolveTarget(repository, options.cwd, target);
+    declare(slot);
     if (flag !== "edit" && slot.scope.kind !== "directory") {
       fail("guard_invalid_target", `${target}: --${flag} opens a directory for new files, and this is not one; a single file is opened with --edit`, { target });
     }
@@ -273,7 +314,7 @@ export async function guard(options: GuardOptions, reporter: Reporter): Promise<
       continue;
     }
     const values = (Object.entries(settings) as [Protection, Setting][]).filter(([, value]) => value !== null);
-    if (values.length === 0) continue;
+    if (values.length === 0 && slot.declaresOnly !== true) continue;
     const instanceOf = slot.create?.instanceOf ?? null;
     writes.push({
       module, created: true,
