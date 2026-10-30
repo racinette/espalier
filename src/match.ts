@@ -1,7 +1,7 @@
 // Ownership, requiredness, and the deepest recognized node.
 // docs/MATCHING.MD "Ownership", "What must exist", "The deepest recognized node".
 
-import type { Constraint, Espalier, GroupInstance, Grouping, StructuralRule, TrieNode } from "./compile.js";
+import { contractDirectories, declaredGroup, directoryFrozen, NODE_DESCRIPTION, type Constraint, type Espalier, type GroupInstance, type Grouping, type StructuralRule, type TrieNode } from "./compile.js";
 import { captureNames, isStrictSubset, matchSegment, resolveSegment, type CaptureValue } from "./pattern.js";
 
 // Defined beside the parser, because what a capture can hold is a fact about
@@ -356,4 +356,88 @@ export function structuralChecks(rule: StructuralRule, target: string, bindings:
     const own = source === rule ? captures : Object.fromEntries(Object.entries(captures).filter(([name]) => names.has(name)));
     return { rule: source, captures: own };
   });
+}
+
+/** Whether a file keeps its content, and the module whose `frozen` export decided it. */
+export interface Freeze {
+  frozen: boolean;
+  by: string | null;
+}
+
+/**
+ * Whether an owned file is frozen. The most specific statement wins: a rule
+ * before the contract it declares an instance of, and a rule's declared
+ * groups, which hold some of its files, before the rule itself; then the
+ * nearest directory module above it. Declared groups that share a file agree
+ * on `frozen`, as compilation checks. docs/LOCKS.MD "Frozen files".
+ */
+export function fileFrozen(espalier: Espalier, filePath: string, owner: Ownership): Freeze {
+  for (const { rule, captures } of structuralChecks(owner.rule, filePath, owner.captures).reverse()) {
+    for (const grouping of rule.module.groups) {
+      const declared = declaredGroup(grouping, captures);
+      if (declared?.module.frozenExport !== undefined) return { frozen: declared.module.frozenExport, by: declared.modulePath };
+    }
+    if (rule.module.frozenExport !== undefined) return { frozen: rule.module.frozenExport, by: rule.modulePath };
+  }
+  const cut = filePath.lastIndexOf("/");
+  const directory = resolveDirectory(espalier, cut === -1 ? "" : filePath.slice(0, cut));
+  if (!isDirectoryOwnership(directory)) return { frozen: false, by: null };
+  const decided = directoryFrozen(espalier.nodes, directory.path);
+  return { frozen: decided.locked, by: decided.by };
+}
+
+/** One sealed collection a file belongs to. docs/LOCKS.MD "Sealed collections". */
+export interface Seal {
+  /** Which collection: its module, and for a directory or grouping, which one. */
+  key: string;
+  /** The module whose `sealed` export sealed it; a grouping as `module groups.name`. */
+  by: string;
+  /** For a grouping, the file's group: only a group joining or leaving changes it. */
+  group?: string;
+}
+
+/**
+ * The sealed directories a directory lies in, itself included, outermost
+ * first. A declared instance directory answers to its contract's seal too.
+ */
+export function directorySeals(espalier: Espalier, directoryPath: string): Seal[] {
+  const parts = directoryPath.split("/").filter(Boolean);
+  const found = resolveDirectory(espalier, parts.join("/"));
+  const authored = (isDirectoryOwnership(found) ? found.path : found.recognized ?? "").split("/").filter(Boolean);
+  const seals: Seal[] = [];
+  for (let depth = 0; depth <= authored.length; depth += 1) {
+    for (const at of contractDirectories(espalier.nodes, authored.slice(0, depth).join("/"))) {
+      if (espalier.nodes.get(at)?.sealed !== true) continue;
+      seals.push({ key: `directory ${parts.slice(0, depth).join("/")}`, by: at === "" ? NODE_DESCRIPTION : `${at}/${NODE_DESCRIPTION}` });
+    }
+  }
+  return seals;
+}
+
+/**
+ * Every sealed collection a path belongs to. A sealed directory holds every
+ * file beneath it, owned or not; a sealed rule the files it owns, a contract
+ * its instances' too; a sealed grouping its groups; a sealed declared group
+ * its files. Seals are never inherited: each is the collection's own.
+ */
+export function fileSeals(espalier: Espalier, filePath: string, owner: Ownership | Recognition): Seal[] {
+  const cut = filePath.lastIndexOf("/");
+  const directory = cut === -1 ? "" : filePath.slice(0, cut);
+  const seals = directorySeals(espalier, directory);
+  if (!isOwnership(owner)) return seals;
+  for (const { rule, captures } of structuralChecks(owner.rule, filePath, owner.captures)) {
+    if (rule.module.sealed === true) seals.push({ key: `rule ${rule.modulePath}`, by: rule.modulePath });
+    for (const grouping of rule.module.groups) {
+      if (grouping.sealed) {
+        seals.push({
+          key: `grouping ${rule.modulePath} ${grouping.name}`,
+          by: `${rule.modulePath} groups.${grouping.name}`,
+          group: JSON.stringify([directory, ...grouping.by.map((name) => captures[name] ?? null)]),
+        });
+      }
+      const declared = declaredGroup(grouping, captures);
+      if (declared?.module.sealed === true) seals.push({ key: `group ${declared.modulePath}`, by: declared.modulePath });
+    }
+  }
+  return seals;
 }

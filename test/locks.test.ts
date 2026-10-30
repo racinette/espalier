@@ -1,10 +1,11 @@
-// Locks checked against a base checkout. docs/LOCKS.MD "Enforcing locks".
-// A fixture is one repository, and this check needs two: the base whose locks
-// are in force and the change being judged, so each case builds both.
+// Locks, frozen files and sealed collections checked against a base revision. docs/LOCKS.MD
+// "Checking against a base revision". A fixture is one tree, and this check
+// needs a history: each case commits a base and changes the working tree.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { check } from "../src/api.js";
@@ -12,31 +13,40 @@ import { VERSION } from "../src/version.js";
 
 const RULE = 'export const description = "x"; export const guidance = "";\n';
 
-/** A base repository, a copy of it as the head, and the lock issues the head's lint reports. */
+const CHECKS = ["locked_module_changed", "locked_directory_changed", "locked_contract_changed", "lock_changed", "untraceable_import", "frozen_file_changed", "sealed_collection_changed"];
+
+/** Runs git in a scratch repository, failing loudly. */
+function git(root: string, ...args: string[]): void {
+  const result = spawnSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+}
+
+/**
+ * A repository committed as the base, then changed in the working tree, and
+ * the lock and frozen issues `lint --base HEAD` reports for the change.
+ */
 async function compare(
   base: Record<string, string>,
   change: (put: (name: string, contents: string) => void, remove: (name: string) => void) => void,
   config = `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\n`,
 ): Promise<string[]> {
-  const scratch = mkdtempSync(path.join(os.tmpdir(), "espalier-locks-"));
+  const root = mkdtempSync(path.join(os.tmpdir(), "espalier-locks-"));
   try {
-    const write = (root: string) => (name: string, contents: string) => {
+    const put = (name: string, contents: string) => {
       mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
       writeFileSync(path.join(root, name), contents);
     };
-    const baseRoot = path.join(scratch, "base");
-    const headRoot = path.join(scratch, "head");
-    write(baseRoot)("espalier.config.yaml", config);
-    for (const [name, contents] of Object.entries(base)) write(baseRoot)(name, contents);
-    cpSync(baseRoot, headRoot, { recursive: true });
-    change(write(headRoot), (name) => rmSync(path.join(headRoot, name), { recursive: true }));
-    const issues = await check({ cwd: headRoot, jobs: 1, base: baseRoot });
-    return issues
-      .filter((issue) => ["locked_module_changed", "locked_directory_changed", "locked_contract_changed", "lock_changed", "untraceable_import"].includes(issue.code))
-      .map((issue) => `${issue.code} ${issue.path}`)
-      .sort();
+    put("espalier.config.yaml", config);
+    put(".espalierignore", `.git\n${base[".espalierignore"] ?? ""}`);
+    for (const [name, contents] of Object.entries(base)) if (name !== ".espalierignore") put(name, contents);
+    git(root, "init", "-q");
+    git(root, "add", "-A");
+    git(root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base");
+    change(put, (name) => rmSync(path.join(root, name), { recursive: true }));
+    const issues = await check({ cwd: root, jobs: 1, base: "HEAD" });
+    return issues.filter((issue) => CHECKS.includes(issue.code)).map((issue) => `${issue.code} ${issue.path}`).sort();
   } finally {
-    rmSync(scratch, { recursive: true, force: true });
+    rmSync(root, { recursive: true, force: true });
   }
 }
 
@@ -125,32 +135,156 @@ test("the addons module counts as part of every locked rule", async () => {
 });
 
 test("a base without an espalier has no locks", async () => {
-  const scratch = mkdtempSync(path.join(os.tmpdir(), "espalier-locks-"));
+  const root = mkdtempSync(path.join(os.tmpdir(), "espalier-locks-"));
   try {
-    mkdirSync(path.join(scratch, "base"));
-    mkdirSync(path.join(scratch, "head/espalier"), { recursive: true });
-    writeFileSync(path.join(scratch, "head/espalier.config.yaml"), `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\n`);
-    writeFileSync(path.join(scratch, "head/espalier/main.ts.mjs"), `${RULE}export const locked = true;\n`);
-    writeFileSync(path.join(scratch, "head/main.ts"), "");
-    const issues = await check({ cwd: path.join(scratch, "head"), jobs: 1, base: path.join(scratch, "base") });
+    writeFileSync(path.join(root, "README"), "");
+    git(root, "init", "-q");
+    git(root, "add", "-A");
+    git(root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base");
+    mkdirSync(path.join(root, "espalier"));
+    writeFileSync(path.join(root, "espalier.config.yaml"), `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\n`);
+    writeFileSync(path.join(root, ".espalierignore"), ".git\nREADME\n");
+    writeFileSync(path.join(root, "espalier/main.ts.mjs"), `${RULE}export const locked = true;\n`);
+    writeFileSync(path.join(root, "main.ts"), "");
     // Introducing the espalier is a decision no lock was in force to cover.
-    assert.deepEqual(issues, []);
+    assert.deepEqual(await check({ cwd: root, jobs: 1, base: "HEAD" }), []);
   } finally {
-    rmSync(scratch, { recursive: true, force: true });
+    rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("a base pinned to another version is refused rather than misread", async () => {
-  const scratch = mkdtempSync(path.join(os.tmpdir(), "espalier-locks-"));
+test("a base pinned to another version, or a revision that is not there, is refused rather than misread", async () => {
+  await assert.rejects(compare({ "espalier/main.ts.mjs": RULE, "main.ts": "" }, (put) => {
+    put("espalier.config.yaml", `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\n# head\n`);
+  }, `pin: 0.0.1\nroot: espalier\nignoreFiles: []\nskip: []\n`), { code: "base_unreadable" });
+  const root = mkdtempSync(path.join(os.tmpdir(), "espalier-locks-"));
   try {
-    for (const [side, pin] of [["base", "0.0.1"], ["head", VERSION]] as const) {
-      mkdirSync(path.join(scratch, side, "espalier"), { recursive: true });
-      writeFileSync(path.join(scratch, side, "espalier.config.yaml"), `pin: ${pin}\nroot: espalier\nignoreFiles: []\nskip: []\n`);
-      writeFileSync(path.join(scratch, side, "espalier/main.ts.mjs"), RULE);
-      writeFileSync(path.join(scratch, side, "main.ts"), "");
-    }
-    await assert.rejects(check({ cwd: path.join(scratch, "head"), jobs: 1, base: path.join(scratch, "base") }), { code: "base_unreadable" });
+    mkdirSync(path.join(root, "espalier"));
+    writeFileSync(path.join(root, "espalier.config.yaml"), `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\n`);
+    writeFileSync(path.join(root, ".espalierignore"), ".git\n");
+    git(root, "init", "-q");
+    await assert.rejects(check({ cwd: root, jobs: 1, base: "no-such-branch" }), { code: "base_unreadable" });
   } finally {
-    rmSync(scratch, { recursive: true, force: true });
+    rmSync(root, { recursive: true, force: true });
   }
+});
+
+const MIGRATIONS = {
+  "espalier/migrations/[num=0000][ord=00]_[table=a+].sql.mjs": `${RULE}export const groups = { set: { by: ["num", "table"], description: "a set", guidance: "" } };\n`,
+  "espalier/migrations/0001[ord=00]_users.sql.mjs": 'export const instanceOf = "[num=0000][ord=00]_[table=a+].sql.mjs"; export const description = "users"; export const guidance = ""; export const frozen = true;\n',
+  "migrations/000101_users.sql": "create table users;\n",
+  "migrations/000201_orders.sql": "create table orders;\n",
+};
+
+test("a frozen group keeps its files; other groups and new files stay open", async () => {
+  assert.deepEqual(await compare(MIGRATIONS, (put) => {
+    put("migrations/000201_orders.sql", "create table orders (id int);\n");
+    put("migrations/000102_users.sql", "create index on users (id);\n");
+  }), []);
+  assert.deepEqual(await compare(MIGRATIONS, (put) => {
+    put("migrations/000101_users.sql", "create table users (id int);\n");
+  }), ["frozen_file_changed migrations/000101_users.sql"]);
+});
+
+test("a frozen directory keeps every file beneath it, and deleting or renaming one is a change", async () => {
+  const vendor = {
+    "espalier/vendor/ESPALIER.mjs": "export const frozen = true;\n",
+    "espalier/vendor/[file].js.mjs": RULE,
+    "vendor/a.js": "a\n",
+    "vendor/b.js": "b\n",
+  };
+  assert.deepEqual(await compare(vendor, (put, remove) => {
+    remove("vendor/a.js");
+    put("vendor/c.js", "b\n");
+    remove("vendor/b.js");
+  }), ["frozen_file_changed vendor/a.js", "frozen_file_changed vendor/b.js"]);
+  // frozen = false reopens a rule inside a frozen directory.
+  assert.deepEqual(await compare({ ...vendor, "espalier/vendor/[file].js.mjs": `${RULE}export const frozen = false;\n` }, (put) => {
+    put("vendor/a.js", "changed\n");
+  }), []);
+});
+
+test("an instance's own frozen comes before its contract's", async () => {
+  const base = {
+    "espalier/clients/[provider].ts.mjs": `${RULE}export const frozen = true;\n`,
+    "espalier/clients/stripe.ts.mjs": 'export const instanceOf = "[provider].ts.mjs"; export const description = "stripe"; export const guidance = ""; export const frozen = false;\n',
+    "clients/stripe.ts": "a\n",
+    "clients/adyen.ts": "a\n",
+  };
+  assert.deepEqual(await compare(base, (put) => {
+    put("clients/stripe.ts", "b\n");
+    put("clients/adyen.ts", "b\n");
+  }), ["frozen_file_changed clients/adyen.ts"]);
+});
+
+test("a declared directory stays frozen and sealed by its contract, unless it reopens itself", async () => {
+  const commands = {
+    "espalier/docs/[command]/ESPALIER.mjs": 'export const description = "a command"; export const frozen = true; export const sealed = true;\n',
+    "espalier/docs/[command]/[page].md.mjs": RULE,
+    "espalier/docs/build/ESPALIER.mjs": 'export const instanceOf = "../[command]"; export const description = "build";\n',
+    "docs/build/a.md": "a\n",
+  };
+  assert.deepEqual(await compare(commands, (put) => {
+    put("docs/build/a.md", "b\n");
+    put("docs/build/b.md", "b\n");
+  }), ["frozen_file_changed docs/build/a.md", "sealed_collection_changed docs/build/b.md"]);
+  const reopened = { ...commands, "espalier/docs/build/ESPALIER.mjs": 'export const instanceOf = "../[command]"; export const description = "build"; export const frozen = false;\n' };
+  assert.deepEqual(await compare(reopened, (put) => {
+    put("docs/build/a.md", "b\n");
+  }), []);
+});
+
+test("a sealed directory or rule admits no file in or out, and its files stay editable", async () => {
+  const locales = {
+    "espalier/locales/[lang=a+].json.mjs": `${RULE}export const sealed = true;\n`,
+    "espalier/docs/ESPALIER.mjs": "export const sealed = true;\n",
+    "espalier/docs/[page].md.mjs": RULE,
+    "locales/en.json": "{}\n",
+    "locales/fr.json": "{}\n",
+    "docs/a.md": "a\n",
+  };
+  assert.deepEqual(await compare(locales, (put) => {
+    put("locales/en.json", '{"hello": "hello"}\n');
+    put("docs/a.md", "b\n");
+  }), []);
+  assert.deepEqual(await compare(locales, (put, remove) => {
+    put("locales/de.json", "{}\n");
+    remove("locales/fr.json");
+    put("docs/b.md", "b\n");
+  }), ["sealed_collection_changed docs/b.md", "sealed_collection_changed locales/de.json", "sealed_collection_changed locales/fr.json"]);
+});
+
+const SETS = {
+  "espalier/migrations/[num=0000][ord=00]_[table=a+].sql.mjs": `${RULE}export const groups = { set: { by: ["num", "table"], sealed: true, description: "a set", guidance: "" } };\n`,
+  "migrations/000101_users.sql": "a\n",
+  "migrations/000201_orders.sql": "a\n",
+};
+
+test("a sealed grouping admits no group in or out, and its groups admit new files", async () => {
+  assert.deepEqual(await compare(SETS, (put) => {
+    put("migrations/000102_users.sql", "b\n");
+    put("migrations/000201_orders.sql", "b\n");
+  }), []);
+  assert.deepEqual(await compare(SETS, (put, remove) => {
+    put("migrations/000301_items.sql", "a\n");
+    put("migrations/000302_items.sql", "a\n");
+    remove("migrations/000201_orders.sql");
+  }), ["sealed_collection_changed migrations/000201_orders.sql", "sealed_collection_changed migrations/000301_items.sql", "sealed_collection_changed migrations/000302_items.sql"]);
+});
+
+test("a sealed declared group admits no file in or out, while other groups stay open", async () => {
+  const sealed = {
+    "espalier/migrations/[num=0000][ord=00]_[table=a+].sql.mjs": `${RULE}export const groups = { set: { by: ["num", "table"], description: "a set", guidance: "" } };\n`,
+    "espalier/migrations/0001[ord=00]_users.sql.mjs": 'export const instanceOf = "[num=0000][ord=00]_[table=a+].sql.mjs"; export const description = "users"; export const guidance = ""; export const sealed = true;\n',
+    "migrations/000101_users.sql": "a\n",
+    "migrations/000201_orders.sql": "a\n",
+  };
+  assert.deepEqual(await compare(sealed, (put) => {
+    put("migrations/000101_users.sql", "b\n");
+    put("migrations/000202_orders.sql", "a\n");
+    put("migrations/000301_items.sql", "a\n");
+  }), []);
+  assert.deepEqual(await compare(sealed, (put) => {
+    put("migrations/000102_users.sql", "a\n");
+  }), ["sealed_collection_changed migrations/000102_users.sql"]);
 });

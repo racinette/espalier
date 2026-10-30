@@ -244,12 +244,14 @@ Constraints do not appear. They declare no file and permit none, so a map that l
 
 ### Marks
 
-Four marks follow a name, each true of that line and of nothing else, and the
-legend under the map explains the ones the map uses:
+Six marks follow a name, each true of that line and of nothing else, and the
+legend under the map explains the ones the document uses, its headings' included:
 
 | Mark | Means |
 |---|---|
 | 🔒 | the node's module is locked: changing what it declares needs explicit authorization; see [LOCKS.MD](../../LOCKS.MD) |
+| ❄️ | the node's files are frozen: an existing file keeps its content and is never removed; see [LOCKS.MD](../../LOCKS.MD#frozen-files) |
+| 📦 | the node's module seals a collection: no file joins or leaves it; see [LOCKS.MD](../../LOCKS.MD#sealed-collections) |
 | 📋 | an abstract contract: every match must be declared in the espalier, and an undeclared one is reported |
 | ❗ | a named file or named directory instance that must exist |
 | `0+`, `1+`, `3+` | on a pattern, the fewest matching names that must exist |
@@ -274,7 +276,11 @@ members, since an undeclared match is reported rather than accepted.
 locked it, so a missing lock always means unlocked and no reader has to work
 out inheritance from the map. The first row carries it too when the
 document's own directory is locked, and a locked module's section heading
-carries it after the name.
+carries it after the name. ❄️ follows the same rules for frozen nodes, and a
+frozen declared group carries it in its heading, since groups have no row in
+the map. 📦 marks only the module that seals, since a seal is not inherited: a
+sealed directory or rule in its row and heading, and a sealed grouping or
+declared group in its heading.
 
 ### Suffixes
 
@@ -760,6 +766,12 @@ The boundary is followed by an `Architecture changes` section with the same
 architecture paragraphs, stated for that child's own locks: a child's root
 starts unlocked whatever its parent locks, so a locked child can sit under an
 unlocked parent and the other way around.
+
+When the espalier freezes any files, a paragraph says never to edit, rename or
+delete a frozen file, and to add a new one where the contract admits it. When
+it seals any collection, a paragraph says never to add a file to a sealed
+collection or remove one from it, and to report the path the work needs and
+wait for authorization, as for a lock.
 
 When the espalier has a lock, a further paragraph follows the unlocked ones.
 Work inside locked modules stays ordinary; a change to what a locked module

@@ -11,10 +11,10 @@ run. Exit `2` means that output cannot establish conformance. Programmatic
 Six codes are **issues** rather than failures and are not listed here:
 `unexpected_path`, `missing_required_file`, `missing_required_directory`,
 `missing_required_match`, `missing_required_group` and `undeclared_instance`. They come from matching, exit `1`, and are documented in [MATCHING.MD](MATCHING.MD#built-in-issues) and [cli/lint/README.MD](cli/lint/README.MD#built-in-issues).
-Five more come from checking locks against a base checkout and are documented
-in [LOCKS.MD](LOCKS.MD#enforcing-locks): `locked_module_changed`,
-`locked_directory_changed`, `locked_contract_changed`, `lock_changed` and
-`untraceable_import`.
+Seven more come from checking a change against a base revision and are documented
+in [LOCKS.MD](LOCKS.MD#checking-against-a-base-revision): `locked_module_changed`,
+`locked_directory_changed`, `locked_contract_changed`, `lock_changed`,
+`untraceable_import`, `frozen_file_changed` and `sealed_collection_changed`.
 
 Codes emitted by rule modules are free-form strings chosen by their authors. `espalier` neither validates nor namespaces them. Everything below is `espalier`'s own.
 
@@ -79,6 +79,7 @@ See [TYPES.MD](TYPES.MD).
 | `module_invalid_export` | an export of the wrong type or on the wrong rule kind, `targets` together with a constraint filename extension, a `lint` that is not a function, or a `rule` export, which `espalier migrate` renames to `guidance` when it is a direct declaration and refuses when destructured or re-exported |
 | `invalid_reference_implementation` | a `referenceImplementation` that is absent, is not a governed file, or is not actually owned or covered by its rule |
 | `invalid_instance` | a specialization has a missing, incompatible, or cyclic base, introduces an unsupported child, or weakens inherited requirements; or a group declaration names no sibling rule with groupings, changes more than its captures, writes in a value its placeholder does not admit, or binds captures no grouping groups by |
+| `conflicting_frozen` | two declared groups of different groupings could share a file, and one freezes it while the other reopens it. See [LOCKS.MD](LOCKS.MD#frozen-files) |
 
 ## Configuration against the espalier
 
@@ -133,7 +134,7 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | `template_invalid_result` | a template renderer returned something other than a string |
 | `create_write_failed` | the rendered file or staged directory could not be written to its requested path |
 | `invalid_check_options` | programmatic check was passed the unsupported cache option |
-| `base_unreadable` | `lint --base` was given a checkout whose espalier cannot be read: it pins a different espalier version, or a module in it fails to compile, often because a package it imports is not installed there; `detail.cause` names the underlying code. See [LOCKS.MD](LOCKS.MD#enforcing-locks) |
+| `base_unreadable` | `lint --base` could not read the base revision: git is missing or fails, the revision is not a commit, the base pins a different espalier version, or a module there fails to compile; `detail.cause` names the underlying code when there is one. See [LOCKS.MD](LOCKS.MD#checking-against-a-base-revision) |
 
 ## Rule-module parse locations
 

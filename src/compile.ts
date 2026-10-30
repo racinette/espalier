@@ -51,6 +51,8 @@ export interface RuleModule {
   literalName?: unknown;
   abstract?: unknown;
   locked?: unknown;
+  frozen?: unknown;
+  sealed?: unknown;
 }
 
 /** Brackets or braces, which a path segment otherwise reads as placeholders. */
@@ -69,6 +71,8 @@ export interface Grouping {
   guidance: string;
   /** Every group must be a declared instance; an undeclared one is reported. docs/INSTANCES.MD. */
   abstract: boolean;
+  /** No group joins or leaves the grouping. docs/LOCKS.MD "Sealed collections". */
+  sealed: boolean;
   /** Groups declared beside the rule, each with its own guidance, sorted by declaration. */
   instances: GroupInstance[];
 }
@@ -115,6 +119,10 @@ export interface LoadedModule {
   locked: boolean;
   /** The module whose `locked` export decided it; null when nothing did. */
   lockedBy: string | null;
+  /** The module's own `frozen` export: its files keep their content. docs/LOCKS.MD "Frozen files". */
+  frozenExport?: boolean;
+  /** No file joins or leaves the module's files. docs/LOCKS.MD "Sealed collections". */
+  sealed?: true;
 }
 
 /** A module's lock and the module that set it. docs/LOCKS.MD "Which lock applies". */
@@ -129,6 +137,37 @@ export function directoryLock(nodes: ReadonlyMap<string, NodeDoc>, at: string): 
   for (let directory = at; ; directory = directory.includes("/") ? directory.slice(0, directory.lastIndexOf("/")) : "") {
     const lock = nodes.get(directory)?.lockExport;
     if (lock !== undefined) return { locked: lock, by: directory === "" ? NODE_DESCRIPTION : `${directory}/${NODE_DESCRIPTION}` };
+    if (directory === "") return { locked: false, by: null };
+  }
+}
+
+/**
+ * The espalier directories that speak for the files of one, most specific
+ * first: itself, then, where it or a directory above it is a declared
+ * instance, the same place under the contract. Freezing and sealing protect
+ * files, and declaring a member adds guidance without taking it out of its
+ * contract's collection. Locks protect modules, so they do not follow this.
+ * docs/LOCKS.MD "Frozen files".
+ */
+export function contractDirectories(nodes: ReadonlyMap<string, NodeDoc>, at: string): string[] {
+  const parts = at.split("/").filter(Boolean);
+  for (let depth = parts.length; depth > 0; depth -= 1) {
+    const instance = parts.slice(0, depth).join("/");
+    const reference = nodes.get(instance)?.instanceOf;
+    if (reference === undefined) continue;
+    const contract = path.posix.normalize(path.posix.join(instance, reference));
+    return [at, ...contractDirectories(nodes, [contract, ...parts.slice(depth)].join("/"))];
+  }
+  return [at];
+}
+
+/** Whether files beneath an espalier directory are frozen, and which directory module said so. */
+export function directoryFrozen(nodes: ReadonlyMap<string, NodeDoc>, at: string): Lock {
+  for (let directory = at; ; directory = directory.includes("/") ? directory.slice(0, directory.lastIndexOf("/")) : "") {
+    for (const speaker of contractDirectories(nodes, directory)) {
+      const frozen = nodes.get(speaker)?.frozenExport;
+      if (frozen !== undefined) return { locked: frozen, by: speaker === "" ? NODE_DESCRIPTION : `${speaker}/${NODE_DESCRIPTION}` };
+    }
     if (directory === "") return { locked: false, by: null };
   }
 }
@@ -215,6 +254,10 @@ export interface NodeDoc {
   abstract?: boolean;
   /** The directory module's own `locked` export. docs/LOCKS.MD. */
   lockExport?: boolean;
+  /** The directory module's own `frozen` export: files beneath keep their content. */
+  frozenExport?: boolean;
+  /** No file joins or leaves the directory, at any depth. docs/LOCKS.MD "Sealed collections". */
+  sealed?: true;
 }
 
 /**
@@ -407,6 +450,18 @@ async function loadModule(
   if (loaded.locked !== undefined && typeof loaded.locked !== "boolean") {
     fail("module_invalid_export", `${modulePath}: \`locked\` must be a boolean`);
   }
+  if (loaded.frozen !== undefined && typeof loaded.frozen !== "boolean") {
+    fail("module_invalid_export", `${modulePath}: \`frozen\` must be a boolean`);
+  }
+  if (loaded.frozen !== undefined && kind === "constraint") {
+    fail("module_invalid_export", `${modulePath}: \`frozen\` has no meaning on a constraint, which owns no files; freeze the rule or directory that owns them`);
+  }
+  if (loaded.sealed !== undefined && typeof loaded.sealed !== "boolean") {
+    fail("module_invalid_export", `${modulePath}: \`sealed\` must be a boolean`);
+  }
+  if (loaded.sealed !== undefined && kind === "constraint") {
+    fail("module_invalid_export", `${modulePath}: \`sealed\` has no meaning on a constraint, which owns no files; seal the rule or directory that owns them`);
+  }
 
   if ("unobservedImplementationDependencies" in loaded) fail("module_invalid_export", `${modulePath}: unobservedImplementationDependencies is not supported`);
   if ("rule" in loaded) {
@@ -537,6 +592,8 @@ async function loadModule(
     template: isTemplateDefinition(loaded.template) ? loaded.template : null,
     groups,
     ...(loaded.locked === undefined ? {} : { lockExport: loaded.locked as boolean }),
+    ...(loaded.frozen === undefined ? {} : { frozenExport: loaded.frozen as boolean }),
+    ...(loaded.sealed === true ? { sealed: true as const } : {}),
     // Resolved once every directory module is read. docs/LOCKS.MD.
     locked: false,
     lockedBy: null,
@@ -568,6 +625,10 @@ function parseGroups(raw: unknown, modulePath: string, kind: ModuleKind): Groupi
     if (typeof grouping["guidance"] !== "string") bad(`.${name}.guidance must be a string`);
     if (grouping["lint"] !== undefined && typeof grouping["lint"] !== "function") bad(`.${name}.lint must be a function`);
     if (grouping["abstract"] !== undefined && typeof grouping["abstract"] !== "boolean") bad(`.${name}.abstract must be a boolean`);
+    if (grouping["sealed"] !== undefined && typeof grouping["sealed"] !== "boolean") bad(`.${name}.sealed must be a boolean`);
+    if ("frozen" in grouping) {
+      bad(`.${name}.frozen: a grouping holds every file of its rule, so freezing it would freeze the rule; freeze the rule, or one declared group`);
+    }
     if (grouping["abstract"] === true && (by as string[]).length === 0) {
       bad(`.${name} groups by no captures, so its one group per directory has no name to declare it by; it cannot be abstract`);
     }
@@ -576,7 +637,7 @@ function parseGroups(raw: unknown, modulePath: string, kind: ModuleKind): Groupi
     if (twin !== undefined) bad(`.${name} and .${twin.name} group by the same captures; one grouping can carry both rules`);
     groups.push({
       name, by: by as string[], description: (grouping["description"] as string).trim(), guidance: grouping["guidance"] as string,
-      abstract: grouping["abstract"] === true, instances: [],
+      abstract: grouping["abstract"] === true, sealed: grouping["sealed"] === true, instances: [],
     });
   }
   return groups;
@@ -910,7 +971,9 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
 
   // Before instances are cloned, so a contract inherited by a directory
   // instance carries its declared groups with it.
-  for (const entry of groupDeclarations) attachGroup(trie, entry);
+  const declaredGroupings = new Set<Grouping[]>();
+  for (const entry of groupDeclarations) declaredGroupings.add(attachGroup(trie, entry));
+  for (const groupings of declaredGroupings) checkGroupFreezes(groupings);
   markAbstract(trie, nodes);
   materializeInstances(trie, nodes);
   validateBindings(trie, new Set());
@@ -1046,7 +1109,7 @@ async function readDirectoryModule(
   if (module.instanceOf !== undefined && (typeof module.instanceOf !== "string" || !module.instanceOf)) {
     fail("malformed_node_description", `${source}: instanceOf must be a nonempty string`);
   }
-  for (const key of ["fold", "optional", "literalName", "abstract", "locked"] as const) {
+  for (const key of ["fold", "optional", "literalName", "abstract", "locked", "frozen", "sealed"] as const) {
     if (module[key] !== undefined && typeof module[key] !== "boolean") {
       fail("malformed_node_description", `${source}: ${key} must be a boolean`);
     }
@@ -1074,6 +1137,8 @@ async function readDirectoryModule(
     ...(module.literalName === true ? { literalName: true } : {}),
     ...(module.abstract === true ? { abstract: true } : {}),
     ...(typeof module.locked === "boolean" ? { lockExport: module.locked } : {}),
+    ...(typeof module.frozen === "boolean" ? { frozenExport: module.frozen } : {}),
+    ...(module.sealed === true ? { sealed: true as const } : {}),
     ...(typeof module.guidance === "function" ? { render: module.guidance as (context: DirectoryGuidanceContext) => unknown } : {}),
     ...(typeof module.description === "function" ? { renderDescription: module.description as (context: DirectoryGuidanceContext) => unknown } : {}),
   };
@@ -1169,9 +1234,10 @@ const groupInstances = new WeakMap<LoadedModule, GroupInstance>();
 /**
  * Resolve a group declaration against its sibling contract and attach it to
  * the grouping whose `by` it binds. Two groupings never share a capture set,
- * so the captures written as values choose exactly one.
+ * so the captures written as values choose exactly one. Returns the
+ * contract's groupings.
  */
-function attachGroup(root: TrieNode, entry: GroupDeclaration): void {
+function attachGroup(root: TrieNode, entry: GroupDeclaration): Grouping[] {
   const { modulePath, module } = entry;
   let parent: TrieNode | undefined = root;
   for (const segment of entry.directory) parent = parent?.children.get(trieKey(segment));
@@ -1205,6 +1271,32 @@ function attachGroup(root: TrieNode, entry: GroupDeclaration): void {
   groupInstances.set(module, instance);
   grouping.instances.push(instance);
   grouping.instances.sort((left, right) => left.pattern.localeCompare(right.pattern));
+  return rule.module.groups;
+}
+
+/**
+ * Two declared groups of different groupings may share files, and a file
+ * cannot be both frozen and reopened. Groups that could share one, because
+ * they agree on every capture both groupings group by, must agree on
+ * `frozen`. A file that does not exist yet is still covered: the
+ * contradiction is in the espalier. docs/LOCKS.MD "Frozen files".
+ */
+function checkGroupFreezes(groupings: Grouping[]): void {
+  for (const [index, grouping] of groupings.entries()) {
+    for (const other of groupings.slice(index + 1)) {
+      for (const one of grouping.instances) {
+        for (const two of other.instances) {
+          const [a, b] = [one.module.frozenExport, two.module.frozenExport];
+          if (a === undefined || b === undefined || a === b) continue;
+          if (Object.keys(one.captures).some((name) => name in two.captures && one.captures[name] !== two.captures[name])) continue;
+          const [frozen, reopened] = a ? [one, two] : [two, one];
+          fail("conflicting_frozen", `${frozen.modulePath} freezes the files it shares with ${reopened.modulePath}, which reopens them; set \`frozen\` on only one of them, or make them agree`, {
+            frozen: frozen.modulePath, reopened: reopened.modulePath,
+          });
+        }
+      }
+    }
+  }
 }
 
 /** An abstract directory module marks its dynamic node before instances are cloned from it. */

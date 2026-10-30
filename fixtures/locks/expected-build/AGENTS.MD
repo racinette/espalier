@@ -6,11 +6,15 @@
 
     ./
     ├─ clients/
-    └─ src/
-       │
-       └─ core/ 🔒  the runtime every feature builds on
+    ├─ locales/
+    ├─ migrations/
+    ├─ src/
+    │  │
+    │  └─ core/ 🔒   the runtime every feature builds on
+    │
+    └─ vendor/ ❄️📦  third-party code, kept as received
 
-🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`).
+🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). ❄️ marks frozen files: an existing file keeps its content and is never removed; add a new one instead where the contract admits it (`espalier help locks`). 📦 marks a sealed collection: no file, or for a grouping no group, joins or leaves it (`espalier help locks`).
 
 ## Other repository paths
 
@@ -114,6 +118,18 @@ authorized, agree on any open design, preserve existing guarantees unless
 changing them is part of that agreement, and follow the project's review
 workflow. `espalier help locks` says exactly what each lock covers and how a
 project can enforce locks in review.
+
+Files marked ❄️ in **Project layout** are frozen. Never edit, rename, or delete
+a frozen file, even to fix it: when the work needs different content, add a new
+file where the contract admits one, such as the next migration. A `frozen`
+export is part of the espalier, so changing one is governed like any other
+change to it.
+
+Collections marked 📦 are sealed: no file joins or leaves a sealed directory,
+rule, or declared group, and no group joins or leaves a sealed grouping. Their
+files stay editable unless frozen. When the work needs a file added to a sealed
+collection, or one removed or renamed, report the path it needs and wait for
+explicit authorization, as for a lock.
 
 Use `espalier build --force` only to restore a generated file whose provenance
 marker was removed; it authorizes overwriting an unmarked document at a

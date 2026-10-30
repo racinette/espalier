@@ -4,8 +4,11 @@
     "report": [
       { "kind": "written", "path": "AGENTS.MD" },
       { "kind": "written", "path": "clients/AGENTS.MD" },
+      { "kind": "written", "path": "locales/AGENTS.MD" },
+      { "kind": "written", "path": "migrations/AGENTS.MD" },
       { "kind": "written", "path": "src/core/AGENTS.MD" },
-      { "kind": "written", "path": "src/core/plugins/AGENTS.MD" }
+      { "kind": "written", "path": "src/core/plugins/AGENTS.MD" },
+      { "kind": "written", "path": "vendor/AGENTS.MD" }
     ]
   },
   "exit": 0,
@@ -13,7 +16,11 @@
   "ownership": {
     "clients/stripe.ts": "clients/stripe.ts.mjs",
     "src/core/http.ts": "src/core/http.ts.mjs",
-    "src/core/plugins/slack.ts": "src/core/plugins/[plugin].ts.mjs"
+    "src/core/plugins/slack.ts": "src/core/plugins/[plugin].ts.mjs",
+    "vendor/lib.js": "vendor/[file].js.mjs",
+    "migrations/000101_users.sql": "migrations/[num=0000][ord=00]_[table=a+].sql.mjs",
+    "migrations/000201_orders.sql": "migrations/[num=0000][ord=00]_[table=a+].sql.mjs",
+    "locales/en.json": "locales/[lang=a+].json.mjs"
   },
   "explain": {
     "src/core/http.ts": {
@@ -32,6 +39,22 @@
           { "path": "clients/[provider].ts", "locked": true, "abstract": true }
         ]
       }
+    },
+    "vendor/lib.js": {
+      "exit": 0,
+      "object": { "frozen": true, "frozenBy": "vendor/ESPALIER.mjs", "sealedBy": ["vendor/ESPALIER.mjs"] }
+    },
+    "migrations/000101_users.sql": {
+      "exit": 0,
+      "object": {
+        "frozen": true,
+        "frozenBy": "migrations/0001[ord=00]_users.sql.mjs",
+        "sealedBy": ["migrations/0001[ord=00]_users.sql.mjs"]
+      }
+    },
+    "locales/en.json": {
+      "exit": 0,
+      "object": { "rule": "locales/[lang=a+].json.mjs", "sealedBy": ["locales/[lang=a+].json.mjs"] }
     }
   }
 }

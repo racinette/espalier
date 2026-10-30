@@ -21,13 +21,13 @@ espalier lint [paths...]
   --config <path>       use this config file instead of discovering one
   --no-guidance        omit guidance bodies from output
   --jobs <n|auto>       maximum workers (default: lint.jobs, otherwise auto)
-  --base <dir>          check the espalier's locks against a base checkout
+  --base <rev>          check locks, frozen files and seals against a git revision
 ```
 
 ## What it does
 
 1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, build the matcher, and render computed descriptions, guidance, and directory guidance. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `guidance` export, a guidance callback that fails — stops the run before repository linting begins. Workers receive rendered guidance text and descriptions; they do not evaluate those callbacks. `--no-guidance` suppresses output, not compilation or callback validation.
-2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and a traversal failure stops the run. Nothing consults git. See [CONFIG.MD](../../CONFIG.MD).
+2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and a traversal failure stops the run. The walk never consults git; only `--base` reads a revision from it, separately. See [CONFIG.MD](../../CONFIG.MD).
 3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. A match of an abstract contract that no instance declares reports `undeclared_instance`. Required named leaves with no file report `missing_required_file`; absent required named directory instances report `missing_required_directory`; collections below their minimum report `missing_required_match`. See [MATCHING.MD](../../MATCHING.MD).
 4. **Prepare execution.** Capture governed source contents, await addon preparation, and initialize all participating workers.
 5. **Run rules.** For every owned file: its inherited structural checks and local `lint`, plus each per-file constraint whose directory pattern and selector admit it. Run each aggregate once over its complete selected group, and each grouping of a dynamic rule once per group of files sharing its `by` captures in one directory.
@@ -74,17 +74,18 @@ the constraint's static prefix to decide whether it intersects the scope.
 Choosing whether an obligation is per-file or aggregate is
 [`espalier help authoring`](../help/README.MD).
 
-## Locks
+## Locks, frozen files and seals
 
-`--base <dir>` names a checkout of the same repository at the base of the
-change, such as a pull request's target branch. Lint then also compares that
-checkout's espalier with this one and reports every change a lock in force at
-the base covers: `locked_module_changed`, `locked_directory_changed`,
-`locked_contract_changed`, `lock_changed` and `untraceable_import`. A locked
-module is compared together with every repository file it imports. Each
-child espalier is compared with the same relative path in the base. What each
-lock covers, and what the check can and cannot see, is
-[LOCKS.MD](../../LOCKS.MD#enforcing-locks).
+`--base <rev>` names a git revision, such as a pull request's target branch or
+`HEAD`. Lint then also reads the repository at that revision and reports every
+change in the working tree that a lock, freeze or seal in force there covers:
+`locked_module_changed`, `locked_directory_changed`,
+`locked_contract_changed`, `lock_changed`, `untraceable_import`,
+`frozen_file_changed` and `sealed_collection_changed`. A locked module is compared together with every
+repository file it imports. Each child espalier is checked against the same
+revision. Without `--base`, lint never consults git. What each lock, freeze and seal
+covers, and what the check can and cannot see, is
+[LOCKS.MD](../../LOCKS.MD#checking-against-a-base-revision).
 
 ## Groupings
 

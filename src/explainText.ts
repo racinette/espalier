@@ -80,6 +80,11 @@ export interface PrefixAnswer {
   /** The directory is locked, and which module's export decided it. docs/LOCKS.MD. */
   locked?: true;
   lockedBy?: string;
+  /** Files beneath keep their content, and which module's export decided it. */
+  frozen?: true;
+  frozenBy?: string;
+  /** The sealed directories it lies in, itself included. docs/LOCKS.MD "Sealed collections". */
+  sealedBy?: string[];
   captures: Record<string, CaptureValue>;
   rules: RuleAnswer[];
   /** The same subtree `build` draws, as data. */
@@ -102,6 +107,11 @@ export interface OwnedAnswer {
   /** The owning module is locked, and which module's export decided it. docs/LOCKS.MD. */
   locked?: true;
   lockedBy?: string;
+  /** The file keeps its content, and which module's export decided it. docs/LOCKS.MD "Frozen files". */
+  frozen?: true;
+  frozenBy?: string;
+  /** The sealed collections it belongs to. docs/LOCKS.MD "Sealed collections". */
+  sealedBy?: string[];
   kind: "explanation";
   path: string;
   /** The espalier that answered, or null for the one the command loaded. */
@@ -282,6 +292,8 @@ export function renderExplanation(answer: Explanation, concise = false): string 
     if (answeredBy !== null) blocks.push(answeredBy);
     if (answer.instanceOf !== undefined) blocks.push(`  An instance of ${answer.instanceOf}`);
     if (answer.locked === true) blocks.push(`  Locked by  ${answer.lockedBy}`);
+    if (answer.frozen === true) blocks.push(`  Frozen by  ${answer.frozenBy}`);
+    if (answer.sealedBy !== undefined) blocks.push(`  Sealed by  ${answer.sealedBy.join(", ")}`);
     if (!concise && answer.body !== "") blocks.push(answer.body);
     if (concise && Object.keys(answer.captures).length > 0) {
       blocks.push(["  Captures:", ...describeCaptures(answer.captures, "    ")].join("\n"));
@@ -371,6 +383,8 @@ export function renderExplanation(answer: Explanation, concise = false): string 
       ...describeCaptures(answer.captures, " ".repeat(12)),
       ...(answer.abstract === true ? ["  Undeclared  the contract is abstract; declare this path, or see `espalier help instances`"] : []),
       ...(answer.locked === true ? [`  Locked by  ${answer.lockedBy}`] : []),
+      ...(answer.frozen === true ? [`  Frozen by  ${answer.frozenBy}`] : []),
+      ...(answer.sealedBy !== undefined ? [`  Sealed by  ${answer.sealedBy.join(", ")}`] : []),
     ].join("\n"),
   );
   blocks.push(

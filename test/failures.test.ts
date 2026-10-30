@@ -310,6 +310,25 @@ const cases: Case[] = [
     espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}${GROUPED}`, "src/[a=0+]_users.ts.mjs": DECLARE_GROUP },
   },
   {
+    what: "frozen on a grouping, which holds every file of its rule",
+    code: "module_invalid_export",
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}${GROUPED.replace("abstract: true", "frozen: true")}` },
+  },
+  {
+    what: "a grouping whose sealed is not a boolean",
+    code: "module_invalid_export",
+    espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}${GROUPED.replace("abstract: true", 'sealed: "yes"')}` },
+  },
+  {
+    what: "two declared groups that could share a file, one frozen and one reopened",
+    code: "conflicting_frozen",
+    espalier: {
+      "src/[a=0+]_[b].ts.mjs": `${INERT}export const groups = { release: { by: ["a"], description: "r", guidance: "" }, name: { by: ["b"], description: "n", guidance: "" } };\n`,
+      "src/1_[b].ts.mjs": `${DECLARE_GROUP}export const frozen = true;\n`,
+      "src/[a=0+]_users.ts.mjs": `${DECLARE_GROUP}export const frozen = false;\n`,
+    },
+  },
+  {
     what: "a template on a declared group, which is a set of files",
     code: "module_invalid_export",
     espalier: { "src/[a=0+]_[b].ts.mjs": `${INERT}${GROUPED}`, "src/1_[b].ts.mjs": `${DECLARE_GROUP}export const template = { schema: null, render() { return ""; } };\n` },

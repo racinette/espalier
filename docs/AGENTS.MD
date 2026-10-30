@@ -40,7 +40,8 @@ keep the first kind that was buried in it.
     │
     ├─ INSTANCES.MD ❗  declaring a path as an instance of a shared contract
     │
-    ├─ LOCKS.MD ❗      what a lock covers and how a project enforces it
+    ├─ LOCKS.MD ❗      locks, frozen files, sealed collections, and checking a
+    │                   change against a base revision
     │
     ├─ MATCHING.MD ❗   how a rule module claims a file
     │
@@ -81,9 +82,9 @@ generated guidance can point at `espalier help instances` instead of
 repeating the mechanism under every contract. The matching semantics of an
 instance stay in MATCHING.MD; what the module exports stays in TYPES.MD.
 
-## `LOCKS.MD` — what a lock covers and how a project enforces it
+## `LOCKS.MD` — locks, frozen files, sealed collections, and checking a change against a base revision
 
-The one statement of what `locked` means, written once so that generated
+The one statement of what `locked`, `frozen` and `sealed` mean, written once so that generated
 guidance and the legend can point at `espalier help locks` instead of
 repeating it. The exports themselves stay in TYPES.MD; the issues the lock
 check reports are listed here and on the lint page.

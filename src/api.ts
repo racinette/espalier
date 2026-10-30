@@ -60,7 +60,7 @@ export interface CheckOptions {
   rule?: string;
   /** Maximum lint workers; defaults to each project's lint.jobs setting. */
   jobs?: Jobs;
-  /** A base checkout of this repository whose locks the espalier is checked against. docs/LOCKS.MD. */
+  /** A git revision whose locks and frozen files the change is checked against. docs/LOCKS.MD. */
   base?: string;
 }
 

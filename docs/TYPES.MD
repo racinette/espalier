@@ -51,6 +51,8 @@ aggregate form.
 | `literalName` | no | the filename's brackets or braces are the name, not placeholders |
 | `abstract` | no | on a dynamic leaf, every match must be a declared instance |
 | `locked` | no | changing what this module declares needs explicit authorization; see [LOCKS.MD](LOCKS.MD) |
+| `frozen` | no | on a structural rule or declaration, existing files it owns keep their content; see [LOCKS.MD](LOCKS.MD#frozen-files) |
+| `sealed` | no | on a structural rule or declaration, no file joins or leaves the files it owns; see [LOCKS.MD](LOCKS.MD#sealed-collections) |
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
 | `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
@@ -470,6 +472,7 @@ Each key is the grouping's name, an identifier that appears in guidance, in
 | `guidance` | the Markdown obligation the group as a whole must satisfy |
 | `lint` | runs once per group with that group's members |
 | `abstract` | when `true`, every group must be declared; see below |
+| `sealed` | when `true`, no group joins or leaves the grouping; see [LOCKS.MD](LOCKS.MD#sealed-collections) |
 
 `by` may be empty, which groups every file the rule owns in one directory.
 It may not name every capture, since each group would then hold one file,
@@ -478,7 +481,8 @@ names must be one the rule's path declares, and one every match binds: a
 capture inside an [alternative](MATCHING.MD#alternatives) that can be left
 out has no value on some files. Any of these is
 `module_invalid_export`, as is `groups` on a static leaf or a constraint,
-which have no captures to group by.
+which have no captures to group by, and `frozen` on a grouping, which would
+freeze every file of the rule.
 
 Groups are per directory: files in two directories matched by the same
 dynamic path are in different groups even when their captures agree. A group
@@ -527,6 +531,8 @@ file. Its exports are:
 | `literalName` | `false` | the directory's brackets or braces are its name, as in a Next.js `[slug]` route; see [Literal names](MATCHING.MD#literal-names) |
 | `abstract` | `false` | on a dynamic directory, every matching directory must be a declared instance; see [INSTANCES.MD](INSTANCES.MD) |
 | `locked` | inherited | lock this directory and, until a deeper module says otherwise, everything declared below it; see [LOCKS.MD](LOCKS.MD) |
+| `frozen` | inherited | existing files beneath this directory keep their content, until a deeper module says otherwise; see [LOCKS.MD](LOCKS.MD#frozen-files) |
+| `sealed` | `false` | no file joins or leaves this directory, at any depth; never inherited or reopened; see [LOCKS.MD](LOCKS.MD#sealed-collections) |
 
 For example, computed guidance can follow the directory's lock:
 

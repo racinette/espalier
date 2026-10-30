@@ -1,4 +1,4 @@
-# Locked parts of an espalier
+# Locked parts of an espalier, and frozen and sealed files
 
 Pins LOCKS.MD "Which lock applies" and build "Marks". `src/core/` is locked by
 its directory module, so `http.ts` inherits the lock; `src/core/plugins/`
@@ -11,3 +11,12 @@ Every locked node carries 🔒 in the map and in its section heading, the legend
 explains each mark the map uses, and the working instructions add the locked
 behaviour because the espalier has a lock. `explain` names the module whose
 export decided a path's lock.
+
+`vendor/` freezes and seals every file beneath it, a snapshot. The released
+`0001` users set is frozen and sealed by its group declaration while the orders
+set is not, and `locales/[lang].json` is sealed but not frozen: its files stay
+editable, and no language is added or removed. Frozen and sealed nodes carry ❄️
+and 📦 in the map, and declared groups in their headings; the legend explains
+every mark a document uses, a heading's included, the working instructions add
+the frozen and sealed behaviour, and `explain` names the modules that froze and
+sealed a file.

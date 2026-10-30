@@ -1,15 +1,20 @@
-// Checking a change to the espalier against the locks of a base checkout.
-// docs/LOCKS.MD "Enforcing locks".
+// Checking a change against a base revision: the espalier against the locks
+// in force there, and the files against what was frozen and sealed there. docs/LOCKS.MD
+// "Checking against a base revision".
 //
 // Every question is answered from the base: a change is judged by the locks
 // that were in force before it, so a change cannot unlock what it edits. A
 // module is compared together with every repository file it imports, since a
 // locked rule changes when a helper it imports does.
 
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { compile, directoryLock, type Espalier, type ModuleRecord } from "./compile.js";
+import { directoryLock, type Espalier, type ModuleRecord } from "./compile.js";
 import { loadConfig, type Config } from "./config.js";
+import { hashFiles, ignoredEntries, listTree, readObjects, resolveRevision, type TreeEntry } from "./git.js";
+import { fileFrozen, fileSeals, isOwnership } from "./match.js";
+import { openConfig, type Repository } from "./repository.js";
 import { fail, OperationalError } from "./errors.js";
 import { init, parse } from "es-module-lexer";
 
@@ -33,27 +38,167 @@ interface Side {
   rules: string;
 }
 
-/** Compiles the base checkout's espalier with the base's own configuration. */
-export async function loadBase(base: string): Promise<Side | null> {
-  if (!existsSync(path.join(base, "espalier.config.yaml"))) return null;
-  let config: Config;
+/** The base revision, opened as a repository of its own. */
+export interface Base {
+  side: Side;
+  repository: Repository;
+  /** Tracked files at the base, by path relative to the repository root. */
+  tree: Map<string, TreeEntry>;
+  /** Removes the temporary copy. */
+  dispose(): void;
+}
+
+/** The nearest `node_modules` at or above a directory, which the base's imports resolve from. */
+function nearestPackages(from: string): string | null {
+  for (let directory = from; ; directory = path.dirname(directory)) {
+    const candidate = path.join(directory, "node_modules");
+    if (existsSync(candidate)) return candidate;
+    if (path.dirname(directory) === directory) return null;
+  }
+}
+
+/**
+ * Opens a git revision of this repository as a repository of its own. Its
+ * tracked files are written to a temporary directory, and the project's
+ * installed packages are linked beside it, outside the copy, so the base's
+ * rule modules import what the head's would and no walk wanders into them.
+ * Null when the revision has no espalier, and so no locks.
+ */
+export async function loadBase(root: string, revision: string): Promise<Base | null> {
+  const commit = resolveRevision(root, revision);
+  const tree = listTree(root, commit);
+  if (!tree.has("espalier.config.yaml")) return null;
+  const holder = mkdtempSync(path.join(os.tmpdir(), "espalier-base-"));
+  const mirror = path.join(holder, "repository");
+  const dispose = (): void => rmSync(holder, { recursive: true, force: true });
   try {
-    config = loadConfig(undefined, base);
-  } catch (cause) {
-    if (cause instanceof OperationalError && cause.code === "version_mismatch") {
-      fail("base_unreadable", `the base checkout at ${base} pins a different espalier version; lock checks compare two espaliers read by the same version`, { base });
+    const contents = readObjects(root, [...tree.values()].map((entry) => entry.object));
+    for (const [file, entry] of tree) {
+      const target = path.join(mirror, file);
+      mkdirSync(path.dirname(target), { recursive: true });
+      const data = contents.get(entry.object)!;
+      if (entry.mode === "120000") symlinkSync(data.toString("utf8"), target);
+      else writeFileSync(target, data, { mode: entry.mode === "100755" ? 0o755 : 0o644 });
     }
+    // Installed packages are linked beside the copy, where resolution finds
+    // them and no walk does. Other ignored build output, which a module may
+    // import by the package's own name, is linked into the copy, where the
+    // base's own ignore files keep it out of governance as they do here.
+    const packages = nearestPackages(root);
+    if (packages !== null) symlinkSync(packages, path.join(holder, "node_modules"), "dir");
+    for (const entry of ignoredEntries(root)) {
+      if (entry === "node_modules" || existsSync(path.join(mirror, entry))) continue;
+      symlinkSync(path.join(root, entry), path.join(mirror, entry));
+    }
+
+    let repository: Repository;
+    try {
+      repository = await openConfig(loadConfig(undefined, mirror));
+    } catch (cause) {
+      // Said as the base's failure, so it is not mistaken for one in the change.
+      if (!(cause instanceof OperationalError)) throw cause;
+      fail("base_unreadable", cause.code === "version_mismatch"
+        ? `${revision} pins a different espalier version; locks and frozen files are compared by one version reading both`
+        : `${revision} could not be read: ${cause.message}`, { revision, cause: cause.code });
+    }
+    const { config } = repository;
+    return { side: { config, espalier: repository.espalier, rules: path.join(config.root, config.espalierRoot) }, repository, tree, dispose };
+  } catch (cause) {
+    dispose();
     throw cause;
   }
-  let espalier: Espalier;
-  try {
-    espalier = await compile(config.root, config.espalierRoot, config.skip, config);
-  } catch (cause) {
-    // Said as the base's failure, so it is not mistaken for one in the change.
-    if (!(cause instanceof OperationalError)) throw cause;
-    fail("base_unreadable", `the base checkout at ${base} could not be read: ${cause.message}`, { base, cause: cause.code });
+}
+
+/** A frozen file at the base that the working tree changed or removed. */
+export interface FrozenViolation {
+  path: string;
+  /** The module whose `frozen` export decided it. */
+  frozenBy: string | null;
+  deleted: boolean;
+}
+
+/**
+ * Every file frozen at the base whose content differs in the working tree,
+ * or which is gone. New files are never violations: a frozen collection is
+ * append-only. docs/LOCKS.MD "Frozen files".
+ */
+export function frozenViolations(base: Base, root: string): FrozenViolation[] {
+  const frozen: Array<{ path: string; by: string | null }> = [];
+  for (const file of base.repository.visible) {
+    const owner = base.repository.resolve(file);
+    if (!isOwnership(owner)) continue;
+    const freeze = fileFrozen(base.repository.espalier, file, owner);
+    if (freeze.frozen && base.tree.has(file)) frozen.push({ path: file, by: freeze.by });
   }
-  return { config, espalier, rules: path.join(config.root, config.espalierRoot) };
+  const exists = (file: string): boolean => { try { lstatSync(path.join(root, file)); return true; } catch { return false; } };
+  const present = new Set(frozen.filter((entry) => exists(entry.path)).map((entry) => entry.path));
+  const isLink = (file: string): boolean => base.tree.get(file)!.mode === "120000";
+  const hashes = hashFiles(root, [...present].filter((file) => !isLink(file)));
+  const linked = readObjects(root, [...present].filter(isLink).map((file) => base.tree.get(file)!.object));
+  const violations: FrozenViolation[] = [];
+  for (const entry of frozen) {
+    const was = base.tree.get(entry.path)!;
+    let changed: boolean;
+    if (!present.has(entry.path)) changed = true;
+    else if (isLink(entry.path)) {
+      let target: string | null = null;
+      try { target = readlinkSync(path.join(root, entry.path)); } catch { /* no longer a link */ }
+      changed = target !== linked.get(was.object)!.toString("utf8");
+    } else changed = hashes.get(entry.path) !== was.object;
+    if (changed) violations.push({ path: entry.path, frozenBy: entry.by, deleted: !present.has(entry.path) });
+  }
+  return violations;
+}
+
+/** A file that joined or left a collection sealed at the base. */
+export interface SealViolation {
+  path: string;
+  /** True when it joined; false when it left, by removal or a rename. */
+  added: boolean;
+  /** The modules whose `sealed` exports sealed the collections it changed. */
+  sealedBy: string[];
+}
+
+/**
+ * Every file that joined or left a collection sealed at the base. Both sides
+ * are read by the base's espalier, since a change is judged by the seals in
+ * force before it. A sealed grouping changes only when a whole group joins or
+ * leaves it. docs/LOCKS.MD "Sealed collections".
+ */
+export function sealedViolations(base: Base, head: Repository): SealViolation[] {
+  const { espalier } = base.repository;
+  const members = (files: Iterable<string>): Map<string, { by: string; files: Map<string, string | undefined> }> => {
+    const collections = new Map<string, { by: string; files: Map<string, string | undefined> }>();
+    for (const file of files) {
+      for (const seal of fileSeals(espalier, file, base.repository.resolve(file))) {
+        let collection = collections.get(seal.key);
+        if (collection === undefined) collections.set(seal.key, collection = { by: seal.by, files: new Map() });
+        collection.files.set(file, seal.group);
+      }
+    }
+    return collections;
+  };
+  const before = members(base.repository.visible.filter((file) => base.tree.has(file)));
+  const after = members(head.visible);
+  const found = new Map<string, SealViolation>();
+  const report = (file: string, added: boolean, by: string): void => {
+    const key = `${added} ${file}`;
+    const violation = found.get(key) ?? { path: file, added, sealedBy: [] };
+    if (!violation.sealedBy.includes(by)) violation.sealedBy.push(by);
+    found.set(key, violation);
+  };
+  for (const [key, was] of before) {
+    const now = after.get(key)?.files ?? new Map<string, string | undefined>();
+    const groupsWere = new Set(was.files.values());
+    const groupsNow = new Set(now.values());
+    for (const [file, group] of was.files) {
+      if (group === undefined ? !now.has(file) : !groupsNow.has(group)) report(file, false, was.by);
+    }
+    for (const [file, group] of now) {
+      if (group === undefined ? !was.files.has(file) : !groupsWere.has(group)) report(file, true, was.by);
+    }
+  }
+  return [...found.values()].sort((left, right) => left.path.localeCompare(right.path) || Number(left.added) - Number(right.added));
 }
 
 /** What a module's file and its local imports contain, by repository-relative path. */

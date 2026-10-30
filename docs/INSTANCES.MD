@@ -149,6 +149,11 @@ by the rule's `lint` and the grouping's `lint` as before. What it adds:
 - Requiredness. A declared group must have at least one file in every
   directory the rule reaches, or `lint` reports `missing_required_group` on
   that directory. `optional = true` relaxes that.
+- Freezing and sealing. `frozen = true` keeps the group's existing files as
+  they are, such as a released migration set, while other groups stay
+  editable; `sealed = true` lets no file join or leave the group. Declared
+  groups that could share a file must agree on `frozen`. See
+  [LOCKS.MD](LOCKS.MD#frozen-files).
 
 `template` and `referenceImplementation` describe one file and stay on the
 rule. A group can only be declared beside its rule. A capture from a

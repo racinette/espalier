@@ -64,7 +64,7 @@ const USAGE = `espalier <command> [options]
   --rule <module>       run one rule module only
   --no-guidance         omit guidance bodies from output
   --jobs <n|auto>       maximum workers (default: lint.jobs, otherwise auto)
-  --base <dir>          check the espalier's locks against a base checkout
+  --base <rev>          check locks, frozen files and seals against a git revision
 
   explain only:
   --concise             show a human summary without authored prose

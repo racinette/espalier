@@ -8,9 +8,13 @@
 import path from "node:path";
 import { fail } from "./errors.js";
 import type { ConstraintAnswer, DeclaredGroupAnswer, RuleAnswer } from "./explainText.js";
-import { declaredGroup, directoryLock, type GroupInstance, type Lock } from "./compile.js";
+import { declaredGroup, directoryFrozen, directoryLock, type GroupInstance, type Lock } from "./compile.js";
 import {
   isDirectoryOwnership,
+  directorySeals,
+  fileFrozen,
+  fileSeals,
+  type Seal,
   structuralChecks,
   isOwnership,
   resolveDirectory,
@@ -158,6 +162,8 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
       body: doc?.body ?? "",
       ...(doc?.instanceOf === undefined ? {} : { instanceOf: `${path.posix.normalize(path.posix.join(found.path, doc.instanceOf))}/` }),
       ...lockAnswer(directoryLock(espalier.nodes, found.path)),
+      ...frozenAnswer(directoryFrozen(espalier.nodes, found.path)),
+      ...sealedAnswer(directorySeals(espalier, prefix)),
       captures: found.captures,
       rules,
       map: mapEntries(espalier, found.node, found.path),
@@ -255,6 +261,8 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
     rule: owner.rule.modulePath,
     ...(owner.rule.module.abstract ? { abstract: true } : {}),
     ...lockAnswer({ locked: owner.rule.module.locked, by: owner.rule.module.lockedBy }),
+    ...frozenAnswer((({ frozen, by }) => ({ locked: frozen, by }))(fileFrozen(espalier, target, owner))),
+    ...sealedAnswer(fileSeals(espalier, target, owner)),
     pattern: owner.rule.pattern,
     captures: owner.captures,
     description: owner.rule.module.description,
@@ -276,4 +284,14 @@ function declaredAnswer(instance: GroupInstance): DeclaredGroupAnswer {
 /** A lock as explain reports it: present only when the module is locked. docs/LOCKS.MD. */
 function lockAnswer(lock: Lock): { locked?: true; lockedBy?: string } {
   return lock.locked && lock.by !== null ? { locked: true, lockedBy: lock.by } : {};
+}
+
+/** The sealed collections a path belongs to, when there are any. docs/LOCKS.MD "Sealed collections". */
+function sealedAnswer(seals: Seal[]): { sealedBy?: string[] } {
+  return seals.length === 0 ? {} : { sealedBy: seals.map((seal) => seal.by) };
+}
+
+/** A freeze as explain reports it: present only when the files are frozen. docs/LOCKS.MD "Frozen files". */
+function frozenAnswer(freeze: Lock): { frozen?: true; frozenBy?: string } {
+  return freeze.locked && freeze.by !== null ? { frozen: true, frozenBy: freeze.by } : {};
 }

@@ -447,9 +447,12 @@ Any module of the espalier can be locked with `export const locked = true`,
 a directory module for its whole subtree. A locked module needs explicit
 authorization before anything it declares changes; an unlocked one takes the
 changes a task implies, and proposals for open designs. Locks never apply to
-the project's files, and `espalier lint --base <dir>` reports every change
-that touches a lock, so a project can require approval for it. See
-[locks](docs/LOCKS.MD).
+the project's files; `frozen` and `sealed` do. `frozen` keeps existing files
+such as applied migrations as they are while new ones are added, and `sealed`
+keeps a collection, such as the languages a product ships, from gaining or
+losing a file. `espalier lint --base origin/main` reports every change that
+touches a lock, a frozen file or a sealed collection, so a project can require
+approval for it. See [locks](docs/LOCKS.MD).
 
 Authorized architecture changes are design decisions to discuss. Before changing rules,
 architectural guidance, or configuration policy, the agent explains the gap,

@@ -59,6 +59,9 @@ place is a list that stops matching the modules.
     │
     ├─ files.ts ❗           walking the repository (instance of [module].ts)
     │
+    ├─ git.ts ❗             reading a base revision from git (instance of
+    │                        [module].ts)
+    │
     ├─ help.ts ❗            the help command (instance of [module].ts)
     │
     ├─ ignore.ts ❗          gitignore-syntax matching (instance of [module].ts)
@@ -73,8 +76,8 @@ place is a list that stops matching the modules.
     ├─ linter.ts ❗          contextual typing helpers for rule linters
     │                        (instance of [module].ts)
     │
-    ├─ locks.ts ❗           checking a change to the espalier against a base
-    │                        checkout's locks (instance of [module].ts)
+    ├─ locks.ts ❗           checking a change against a base revision's locks,
+    │                        frozen files and seals (instance of [module].ts)
     │
     ├─ match.ts ❗           ownership, requiredness, and the deepest recognized
     │                        node (instance of [module].ts)
@@ -310,6 +313,16 @@ propose rather than pronounce. `matchGlob` is the one implementation of the
 dialect in `docs/MATCHING.MD` "Glob syntax", and `targets.ts` and the API
 both use it.
 
+### `git.ts` — reading a base revision from git
+
+The one module that runs git, and only for `lint --base`: the repository
+walk stays a pure function of the working tree, and nothing else may import
+this. Every git failure becomes `base_unreadable` through `fail`, never a
+silent empty answer, because a check that quietly read nothing would pass.
+Working-tree content is hashed by git itself, with the repository's filters,
+so a line-ending conversion is never reported as an edit.
+`docs/LOCKS.MD` "Checking against a base revision" is the specification.
+
 ### `help.ts` — the help command
 
 Prints pages from the installed package, resolved against `PACKAGE_ROOT`. It
@@ -374,16 +387,18 @@ Exports identity helpers and the context types they apply.
 Plain lint functions remain valid; typing helpers must not introduce a second
 runtime protocol.
 
-### `locks.ts` — checking a change to the espalier against a base checkout's locks
+### `locks.ts` — checking a change against a base revision's locks, frozen files and seals
 
-Judges every change by the locks in force at the base, so a change cannot
-unlock what it edits; `docs/LOCKS.MD` "Enforcing locks" is the specification.
-A module is compared together with every repository file it imports, read with
-`es-module-lexer`, never with patterns over source text: a guessed import
-graph is a lock with a hole in it. The compiled espalier's `modules` registry
-supplies what each module declares; nothing here re-derives a lock or a
-contract. The base must be read by this same version, and a different pin
-stops the run rather than comparing two readings.
+Judges a change against a base revision: the espalier by the locks in force
+there, so a change cannot unlock what it edits, and the files by what was
+frozen and sealed there. `docs/LOCKS.MD` "Checking against a base revision" is the
+specification. The base is opened as a repository of its own from a temporary
+copy, so ownership, freezing and sealing are answered by the same code as
+everywhere else; nothing here re-derives them. Files on both sides are
+classified by the base's espalier, since that is what a change is judged by. A module is compared together with every
+repository file it imports, read with `es-module-lexer`, never with patterns
+over source text: a guessed import graph is a lock with a hole in it. The
+temporary copy is always removed, whatever the outcome.
 
 ### `match.ts` — ownership, requiredness, and the deepest recognized node
 
