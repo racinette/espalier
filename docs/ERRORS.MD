@@ -15,6 +15,8 @@ Seven more come from checking a change against a base revision and are documente
 in [LOCKS.MD](LOCKS.MD#checking-against-a-base-revision): `locked_module_changed`,
 `locked_directory_changed`, `locked_contract_changed`, `lock_changed`,
 `untraceable_import`, `frozen_file_changed` and `sealed_collection_changed`.
+One more, `guard_in_place`, is a warning that a module still carries a guard,
+documented in [cli/guard/README.MD](cli/guard/README.MD#one-guard-at-a-time).
 
 Codes emitted by rule modules are free-form strings chosen by their authors. `espalier` neither validates nor namespaces them. Everything below is `espalier`'s own.
 
@@ -123,6 +125,16 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | `invalid_adopt_target` | `adopt` was given a path that is outside the repository, is not a directory, is excluded by repository policy, would produce skipped rules or prose, or is the espalier root |
 | `unmarked_documentation` | a build-owned documentation path contains an unmarked file; `build --force` may overwrite it, while `adopt --force` first preserves its contents in the corresponding `ESPALIER.mjs` |
 | `missing_argument` | a command was invoked without an argument it needs |
+| `unexpected_argument` | `guard` or `unguard` was given a path; each target is named with a flag |
+| `already_guarded` | `guard` found a guard already in place; run `unguard` first |
+| `guard_unknown_target` | a `guard` target the espalier admits as no file, directory, group or pattern, one outside the repository or inside the espalier root, or one under a directory that must be declared first |
+| `guard_ambiguous_target` | a `guard` target names a group of more than one rule |
+| `guard_invalid_target` | `--add` or `--open` named something other than a directory, or `--edit` a file that does not exist |
+| `guard_conflict` | one `guard` target was both closed and opened for the same export |
+| `guard_unsupported_export` | a module exports `locked`, `frozen` or `sealed` by destructuring, which `guard` cannot set |
+| `guard_unsupported_module` | a module `guard` would change does not parse, or could not be changed in a way that restores exactly |
+| `guard_invalid` | the guarded espalier would not compile, so the guard was taken back; `detail.cause` names the compile failure |
+| `guard_tampered` | `unguard` found a guarded module edited since the guard; restore it by hand |
 | `invalid_create_target` | `create` was given a path outside the repository, excluded by repository policy, not structurally declared as a file or directory, or admitted by an abstract contract without being declared as an instance |
 | `invalid_template_arguments` | create options or optional-leaf selections are invalid; template arguments are unknown, missing, outside schema choices, before `--`, or supplied to `help` |
 | `create_target_exists` | the requested file or directory already exists; `create` never overwrites |

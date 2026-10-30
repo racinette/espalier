@@ -47,7 +47,7 @@ export type Format = "human" | "jsonl";
  * "3 files written" and "no issues" are not interchangeable closing lines, and
  * only the caller knows which question was asked.
  */
-export type Mode = "lint" | "build" | "explain" | "init" | "adopt" | "create" | "migrate";
+export type Mode = "lint" | "build" | "explain" | "init" | "adopt" | "create" | "migrate" | "guard" | "unguard";
 
 export type DriftState = "missing" | "changed" | "stale";
 
@@ -330,7 +330,9 @@ class HumanReporter implements Reporter {
       this.mode === "init" ||
       this.mode === "adopt" ||
       this.mode === "create" ||
-      this.mode === "migrate"
+      this.mode === "migrate" ||
+      this.mode === "guard" ||
+      this.mode === "unguard"
     ) {
       this.summarizeBuild();
       // Warnings outlive the tally here as they do for `lint`: advice about

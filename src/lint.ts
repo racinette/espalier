@@ -14,6 +14,7 @@ import type { Issue, Reporter } from "./output.js";
 import { eachChild } from "./nested.js";
 import { openConfig, type Repository } from "./repository.js";
 import { ignores } from "./ignore.js";
+import { guardedModules } from "./guardMarks.js";
 import { frozenViolations, loadBase, lockViolations, sealedViolations } from "./locks.js";
 
 export interface LintOptions {
@@ -97,12 +98,13 @@ async function lintOne(
     code: string,
     message: string,
     metadata: Record<string, unknown>,
+    severity: "error" | "warning" = "error",
   ): void => {
     record({
       path: target,
       code,
       message,
-      severity: "error",
+      severity,
       rule: null,
       pattern: null,
       captures: {},
@@ -152,6 +154,14 @@ async function lintOne(
     builtin(`${directory}/`, "undeclared_instance",
       `this directory matches the abstract contract \`${contract}/\` and is not declared; ${declareHint(`${directory}/ESPALIER.mjs`)}`,
       { contract: `${contract}/` });
+  }
+
+  // A guard belongs to one branch's work; one still in place is reported so
+  // it is not merged. docs/cli/guard/README.MD.
+  for (const module of guardedModules(path.join(config.root, config.espalierRoot), espalier.modules.keys())) {
+    const target = `${config.espalierRoot}/${module}`;
+    if (!inScope(target)) continue;
+    builtin(target, "guard_in_place", "this module carries a guard; run espalier unguard before the work is merged", { module }, "warning");
   }
 
   // A change is judged against its base revision, opt-in: the espalier by

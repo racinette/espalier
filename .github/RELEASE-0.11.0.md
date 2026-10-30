@@ -91,6 +91,23 @@ keeps the base from being read stops the run with `base_unreadable`. Without
 project's decision, typically an approval required before a failing check may
 be overridden.
 
+## Guarding a piece of work
+
+`espalier guard` fences one piece of work: it closes parts of the repository
+and opens what the work needs, by writing locks, freezes and seals into the
+espalier, and `espalier unguard` takes it all back.
+
+```bash
+espalier guard --close . --open src/components/Checkout/ --edit src/router.ts
+```
+
+Targets are repository paths or the espalier's own names: directories, files,
+groups and patterns. Every change is marked, so unguard restores each module
+byte for byte, and one guard is in place at a time. Lint reports a guard left
+in place as `guard_in_place`, a warning. With `lint --base` against the guard
+commit, an agent's change outside its opening is reported. `docs/LOCKS.MD`
+"Guarding a piece of work" describes the workflow.
+
 ## Rule prose is optional
 
 A rule module no longer has to export `description` or `guidance`, and a

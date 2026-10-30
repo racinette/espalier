@@ -428,10 +428,28 @@ function syntaxLocation(absolute: string, cause: unknown): { line: number; colum
   }
 }
 
+/**
+ * Node caches a module by its URL for the life of the process, so a command
+ * that edits espalier modules and then compiles again, as `guard` does,
+ * imports them under a new generation. Ordinary runs compile once and never
+ * advance it.
+ */
+let generation = 0;
+
+/** Read espalier modules afresh on the next compile. */
+export function reimportModules(): void {
+  generation += 1;
+}
+
+export function moduleUrl(absolute: string): string {
+  const href = pathToFileURL(absolute).href;
+  return generation === 0 ? href : `${href}?generation=${generation}`;
+}
+
 /** Import a rule module, turning a syntax error into a located failure. */
 async function importRuleModule(absolute: string, modulePath: string, root: string): Promise<RuleModule> {
   try {
-    return (await import(pathToFileURL(absolute).href)) as RuleModule;
+    return (await import(moduleUrl(absolute))) as RuleModule;
   } catch (cause) {
     const location = syntaxLocation(absolute, cause);
     const source = path.relative(root, absolute).split(path.sep).join("/");
@@ -1126,7 +1144,7 @@ async function readDirectoryModule(
   absolute: string, source: string,
 ): Promise<NodeDoc> {
   let module: Record<string, unknown>;
-  try { module = await import(pathToFileURL(absolute).href); }
+  try { module = await import(moduleUrl(absolute)); }
   catch (cause) { fail("module_import_failed", `${source} could not be imported: ${(cause as Error).message}`); }
   if (["rule", "lint", "template", "minMatches"].some((key) => key in module)) {
     fail("malformed_node_description", `${source}: ESPALIER.mjs is reserved for directory metadata; move structural rule exports to their governed filename`);
@@ -1237,7 +1255,7 @@ export function declaredGroup(grouping: Grouping, captures: Readonly<Record<stri
  * placeholders, or null when it is not the contract's name with some of them
  * filled in. Every other character must be the contract's own.
  */
-function boundCaptures(contract: string, name: string): Record<string, string> | null {
+export function boundCaptures(contract: string, name: string): Record<string, string> | null {
   const tokens = nameTokens(contract);
   const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const source = tokens.map((token, index) => token.capture === undefined

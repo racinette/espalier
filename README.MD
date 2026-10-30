@@ -450,6 +450,11 @@ losing a file. `espalier lint --base origin/main` reports every change that
 touches a lock, a frozen file or a sealed collection, so a project can require
 approval for it. See [locks](docs/LOCKS.MD).
 
+The same exports can fence one piece of work. `espalier guard --close .
+--open src/components/Checkout/` locks, freezes and seals everything but the
+checkout component for an agent building it on a branch, and `espalier
+unguard` takes the fence back. See [`espalier guard`](docs/cli/guard/README.MD).
+
 Authorized architecture changes are design decisions to discuss. Before changing rules,
 architectural guidance, or configuration policy, the agent explains the gap,
 presents reasonable options and tradeoffs, and recommends an approach. The

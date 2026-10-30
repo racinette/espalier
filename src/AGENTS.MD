@@ -62,6 +62,11 @@ place is a list that stops matching the modules.
     ├─ git.ts ❗             reading a base revision from git (instance of
     │                        [module].ts)
     │
+    ├─ guard.ts ❗           the guard command (instance of [module].ts)
+    │
+    ├─ guardMarks.ts ❗      the marks a guard leaves in espalier modules
+    │                        (instance of [module].ts)
+    │
     ├─ help.ts ❗            the help command (instance of [module].ts)
     │
     ├─ ignore.ts ❗          gitignore-syntax matching (instance of [module].ts)
@@ -103,6 +108,8 @@ place is a list that stops matching the modules.
     │
     ├─ template.ts ❗        file-creation template definitions (instance of
     │                        [module].ts)
+    │
+    ├─ unguard.ts ❗         the unguard command (instance of [module].ts)
     │
     ├─ version.ts ❗         the running package version (instance of
     │                        [module].ts)
@@ -323,6 +330,26 @@ Working-tree content is hashed by git itself, with the repository's filters,
 so a line-ending conversion is never reported as an edit.
 `docs/LOCKS.MD` "Checking against a base revision" is the specification.
 
+### `guard.ts` — the guard command
+
+Closes parts of a repository for one piece of work by writing `locked`,
+`frozen` and `sealed` exports, and the declarations an opening needs, into
+the espalier. It resolves each target to the one module that speaks for exactly
+what the target names, plans every write before making one, and compiles the
+written espalier before reporting success, taking the guard back if it does
+not. Every edit goes through `guardMarks.ts`, never around it, so `unguard`
+can take all of it back. It never touches git. Specified in
+`docs/cli/guard/README.MD`.
+
+### `guardMarks.ts` — the marks a guard leaves in espalier modules
+
+The one place that edits module source for a guard and reads it back. A change
+comments out the statement it replaces and fences its replacement, so restoring
+is a pass over comments that acorn confirms are comments, never text inside a
+string. Every edit is restored in memory before it is returned, and one that
+would not come back byte for byte is refused. Specified in
+`docs/cli/guard/README.MD` "What it writes".
+
 ### `help.ts` — the help command
 
 Prints pages from the installed package, resolved against `PACKAGE_ROOT`. It
@@ -512,6 +539,13 @@ of command dispatch. The schema is flat because it maps to flat CLI flags;
 examples document invocations but never become runtime defaults. Renderers
 receive the concrete owned path and its structural captures so they can derive
 names from the destination instead of asking callers to repeat them.
+
+### `unguard.ts` — the unguard command
+
+Takes back the guard in place by reading the espalier's files, never by
+compiling them, so a guard comes back out of an espalier that no longer
+compiles. Every module is restored in memory first; one edited since the guard
+is refused before anything is written. Specified in `docs/cli/unguard/README.MD`.
 
 ### `version.ts` — the running package version
 

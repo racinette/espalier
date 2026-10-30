@@ -11,10 +11,12 @@ import { create } from "./create.js";
 import { examples } from "./examples.js";
 import { OperationalError } from "./errors.js";
 import { explain } from "./explain.js";
+import { guard } from "./guard.js";
 import { help } from "./help.js";
 import { init } from "./init.js";
 import { lint } from "./lint.js";
 import { migrate } from "./migrate.js";
+import { unguard } from "./unguard.js";
 import { createReporter, type Format, type Mode } from "./output.js";
 import { VERSION } from "./version.js";
 
@@ -29,6 +31,8 @@ const USAGE = `espalier <command> [options]
   create <path> preview render source without writing target files
   lint [paths...]       validate the repository against the espalier
   explain <path>        what the espalier says about a path
+  guard                 close parts of the repository for one piece of work
+  unguard               take back the guard in place
   help [page]           print this version's reference
   examples [name]       locate a worked example; --copy <dir> copies it
 
@@ -68,6 +72,21 @@ const USAGE = `espalier <command> [options]
 
   explain only:
   --concise             show a human summary without authored prose
+
+  guard only:
+  --close <target>      lock, freeze and seal it; repeat for more
+  --freeze <target>     existing files keep their content
+  --seal <target>       no file joins or leaves
+  --lock <target>       its espalier modules need authorization
+  --open <dir>          inside what is closed: edit, add and remove files
+  --edit <target>       inside what is closed: edit existing files
+  --add <dir>           inside what is closed: add and remove files
+  --no-build            do not rebuild the generated documentation
+  --dry-run             print what would be written, write nothing
+
+  unguard only:
+  --no-build            do not rebuild the generated documentation
+  --dry-run             print what would be written, write nothing
 `;
 
 async function runCreate(argv: string[]): Promise<number> {
@@ -112,6 +131,8 @@ async function main(): Promise<number> {
     "lint",
     "explain",
     "build",
+    "guard",
+    "unguard",
     "init",
     "migrate",
     "adopt",
@@ -153,6 +174,9 @@ async function main(): Promise<number> {
         "no-guidance": { type: "boolean" },
         ...(command === "lint" ? { jobs: { type: "string" as const }, base: { type: "string" as const } } : {}),
         ...(command === "explain" ? { concise: { type: "boolean" as const } } : {}),
+        ...(command === "guard" ? Object.fromEntries(["close", "freeze", "seal", "lock", "open", "edit", "add"]
+          .map((flag) => [flag, { type: "string" as const, multiple: true as const }])) : {}),
+        ...(command === "guard" || command === "unguard" ? { "no-build": { type: "boolean" as const } } : {}),
       },
     }) as { values: Record<string, unknown>; positionals: string[] });
   } catch (cause) {
@@ -231,6 +255,27 @@ async function main(): Promise<number> {
         },
         reporter,
       );
+    }
+
+    if (command === "guard" || command === "unguard") {
+      if (positionals.length > 0) {
+        reporter.failure("unexpected_argument", `${command} takes no paths; name each one with a flag such as --close or --open`);
+        return 2;
+      }
+      if (values["dry-run"] === true) reporter.warning("Dry run: no files will be changed.");
+      const common = {
+        cwd,
+        config: values["config"] as string | undefined,
+        dryRun: values["dry-run"] === true,
+        build: values["no-build"] !== true,
+      };
+      if (command === "unguard") return await unguard(common, reporter);
+      const list = (flag: string): string[] => (values[flag] as string[] | undefined) ?? [];
+      return await guard({
+        ...common,
+        close: list("close"), freeze: list("freeze"), seal: list("seal"), lock: list("lock"),
+        open: list("open"), edit: list("edit"), add: list("add"),
+      }, reporter);
     }
 
     if (command === "explain") {

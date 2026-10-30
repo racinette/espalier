@@ -28,10 +28,12 @@ export const PAGES: HelpPage[] = [
   { name: "create", file: "docs/cli/create/README.MD", summary: "create a structurally declared absent file or directory" },
   { name: "examples", file: "docs/cli/examples/README.MD", summary: "print the local path to a worked example" },
   { name: "explain", file: "docs/cli/explain/README.MD", summary: "what the espalier says about a path" },
+  { name: "guard", file: "docs/cli/guard/README.MD", summary: "close parts of the repository for one piece of work" },
   { name: "help", file: "docs/cli/help/README.MD", summary: "print this version's reference" },
   { name: "init", file: "docs/cli/init/README.MD", summary: "write the configuration and create the espalier root" },
   { name: "lint", file: "docs/cli/lint/README.MD", summary: "validate the repository against the espalier" },
   { name: "migrate", file: "docs/cli/migrate/README.MD", summary: "rewrite the configuration for this CLI version" },
+  { name: "unguard", file: "docs/cli/unguard/README.MD", summary: "take back the guard in place" },
 ];
 
 const LOOKUP = new Map(PAGES.map((page) => [page.name, page]));

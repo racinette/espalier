@@ -245,6 +245,37 @@ or a label, before a failing check may be overridden:
 - run: npx espalier lint --base origin/main
 ```
 
+## Guarding a piece of work
+
+Locks, freezes and seals usually describe a project for good. They can also
+fence one piece of work for its duration: an agent building a feature on a
+branch gets the whole repository's guidance, while everything the feature has
+no business touching is out of reach.
+
+[`espalier guard`](cli/guard/README.MD) writes such a fence and
+[`espalier unguard`](cli/unguard/README.MD) takes it back:
+
+```bash
+espalier guard --close . --open src/components/Checkout/ --edit src/router.ts
+git commit -am "Guard the checkout work"
+# the agent builds the feature, checking with:
+espalier lint --base <guard commit>
+espalier unguard
+git commit -am "Lift the guard"
+```
+
+The guard closes what it is told to, here the whole repository, and opens the
+files, groups, patterns and directories the work needs. The agent reads the
+result in its generated guidance, and `lint --base` against the guard commit
+reports anything it changes outside its opening. Editing is opened precisely,
+down to one file; adding files is opened by directory, since only a directory
+reopens a seal. A feature works within the architecture, so the espalier stays
+locked.
+
+A guard marks every change it makes, and one guard is in place at a time. Lint
+reports a guard left in place as `guard_in_place`, so one is not merged by
+accident.
+
 ## In generated guidance
 
 Every locked module carries 🔒 after its name in the map and in its section's

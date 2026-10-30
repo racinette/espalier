@@ -30,6 +30,9 @@ command module opens with a header naming its page, which reports
     ├─ explain/ ❗       answering what the espalier says about a path (instance
     │                    of [command]/)
     │
+    ├─ guard/ ❗         closing parts of the repository for one piece of work
+    │                    (instance of [command]/)
+    │
     ├─ help/ ❗          printing this version's reference (instance of
     │                    [command]/)
     │
@@ -40,6 +43,8 @@ command module opens with a header naming its page, which reports
     │
     ├─ migrate/ ❗       updating the configuration for this CLI version
     │                    (instance of [command]/)
+    │
+    ├─ unguard/ ❗       taking back the guard in place (instance of [command]/)
     │
     └─ [command]/ 📋 0+  one command
        │
@@ -60,10 +65,12 @@ Concrete instances:
 - `create/` — creating a structurally declared file or directory, in `create/AGENTS.MD`
 - `examples/` — locating and copying worked examples, in `examples/AGENTS.MD`
 - `explain/` — answering what the espalier says about a path, in `explain/AGENTS.MD`
+- `guard/` — closing parts of the repository for one piece of work, in `guard/AGENTS.MD`
 - `help/` — printing this version's reference, in `help/AGENTS.MD`
 - `init/` — bootstrapping a repository, in `init/AGENTS.MD`
 - `lint/` — validating the repository against the espalier, in `lint/AGENTS.MD`
 - `migrate/` — updating the configuration for this CLI version, in `migrate/AGENTS.MD`
+- `unguard/` — taking back the guard in place, in `unguard/AGENTS.MD`
 
 ### Adding new instances
 

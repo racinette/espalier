@@ -87,6 +87,13 @@ is checked against the same revision. Without `--base`, lint never consults
 git. What each lock, freeze and seal covers, and what the check can and cannot see, is
 [LOCKS.MD](../../LOCKS.MD#checking-against-a-base-revision).
 
+Every module carrying a guard's marks is reported as `guard_in_place`, on the
+module's path under the espalier root with the `module` in metadata. It is a
+warning, the one built-in that is not an error: on the branch the guard is for
+it is expected. Where a guard must never land, such as the main branch, a CI
+step can fail on the code in `--format jsonl` output. See
+[cli/guard/README.MD](../guard/README.MD#one-guard-at-a-time).
+
 ## Groupings
 
 A dynamic structural rule may export `groups`, naming subsets of its captures
