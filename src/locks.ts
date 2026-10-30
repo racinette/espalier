@@ -93,13 +93,11 @@ export async function loadBase(root: string, revision: string): Promise<Base | n
 
     let repository: Repository;
     try {
-      repository = await openConfig(loadConfig(undefined, mirror));
+      repository = await openConfig(loadConfig(undefined, mirror, { ignoreVersionRecords: true }));
     } catch (cause) {
       // Said as the base's failure, so it is not mistaken for one in the change.
       if (!(cause instanceof OperationalError)) throw cause;
-      fail("base_unreadable", cause.code === "version_mismatch"
-        ? `${revision} pins a different espalier version; locks and frozen files are compared by one version reading both`
-        : `${revision} could not be read: ${cause.message}`, { revision, cause: cause.code });
+      fail("base_unreadable", `${revision} could not be read: ${cause.message}`, { revision, cause: cause.code });
     }
     const { config } = repository;
     return { side: { config, espalier: repository.espalier, rules: path.join(config.root, config.espalierRoot) }, repository, tree, dispose };

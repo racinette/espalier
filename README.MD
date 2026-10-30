@@ -100,14 +100,11 @@ Install the CLI on a machine running Node.js 24 or later:
 npm install --global espalier
 ```
 
-The global installation is only provisioning. `espalier init` records its exact
-version in the repository. Commands that load its configuration require that
-version; `espalier migrate` updates the configuration for the CLI that is
-running. `espalier --version` prints the installed version. It, `help`, and
-`examples` work independently of repository configuration.
-See [`espalier migrate`](docs/cli/migrate/README.MD) for what migration changes.
-Projects may instead provide the same pinned executable
-through a local dependency, package runner, container, or system toolchain.
+`espalier --version` prints the installed version. A project that needs every
+machine on the same version installs it as a development dependency, whose
+lockfile fixes it, or through a package runner, container or system toolchain.
+After an upgrade, [`espalier migrate`](docs/cli/migrate/README.MD) rewrites
+settings and modules that changed shape.
 
 Start with an empty demonstration directory. It has no `.gitignore`, so this
 invocation explicitly declines reading one:
@@ -363,9 +360,8 @@ writes the compact contract to `espalier/AGENTS.MD`, where an agent editing
 rules can read it.
 
 To import helpers such as `createLinter` or the testing API from `"espalier"`,
-install Espalier as a local development dependency at the exact version in
-`espalier.config.yaml`'s `pin`. A global CLI installation alone does not make
-the package available to project imports.
+install Espalier as a local development dependency. A global CLI installation
+alone does not make the package available to project imports.
 
 Find or copy the examples packed with this CLI version:
 

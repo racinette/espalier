@@ -7,7 +7,6 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { check, runGroup } from "../src/api.js";
-import { VERSION } from "../src/version.js";
 
 const rule = {
   description: "a step",
@@ -61,7 +60,7 @@ test("a grouping runs once per directory and key, and --rule selects it with its
     writeFileSync(path.join(root, name), contents);
   };
   try {
-    put("espalier.config.yaml", `pin: ${VERSION}\nignoreFiles: []\nskip: []\n`);
+    put("espalier.config.yaml", `ignoreFiles: []\nskip: []\n`);
     put("espalier/[area]/[num=0000][ord=00]_[group=a+].sql.mjs", `export const description = "a step"; export const guidance = "Per step.";
 export function lint({ emit }) { emit({ code: "file", message: "file", severity: "info" }); }
 export const groups = {
@@ -119,7 +118,7 @@ test("a declared group is required in every directory its rule reaches, and --ru
     writeFileSync(path.join(root, name), contents);
   };
   try {
-    put("espalier.config.yaml", `pin: ${VERSION}\nignoreFiles: []\nskip: []\n`);
+    put("espalier.config.yaml", `ignoreFiles: []\nskip: []\n`);
     put("espalier/[area]/[num=0000][ord=00]_[group=a+].sql.mjs", `export const description = "a step"; export const guidance = "Per step.";
 export const groups = {
   set: { by: ["num", "group"], description: "a set", guidance: "", lint({ path, emit }) { emit({ code: "set", message: path, severity: "info" }); } },

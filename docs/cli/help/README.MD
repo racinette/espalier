@@ -8,7 +8,7 @@ espalier help authoring
 espalier help types
 ```
 
-The pages live in the installed package. The running binary prints its own copy, which is what `pin` already promises: `espalier help types` prints TYPES.MD from the running version. There is no machine path in the interface, and no GitHub URL. `--help` remains the short synopsis of commands and flags; this command is the manual. `espalier --version` prints the installed package version as a single line, without loading a repository or configuration.
+The pages live in the installed package. The running binary prints its own copy, so the pages always describe the version that runs: `espalier help types` prints TYPES.MD from the running version. There is no machine path in the interface, and no GitHub URL. `--help` remains the short synopsis of commands and flags; this command is the manual. `espalier --version` prints the installed package version as a single line, without loading a repository or configuration.
 
 ## Usage
 

@@ -9,7 +9,6 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { VERSION } from "../src/version.js";
 import { loadConfig } from "../src/config.js";
 
 const cli = fileURLToPath(new URL("../src/cli.js", import.meta.url));
@@ -35,7 +34,7 @@ export function lint() {}
   } finally { rmSync(root, { recursive: true, force: true }); }
 }
 function config(build = "") {
-  return `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\n${build ? `build:\n${build}` : ""}`;
+  return `root: espalier\nignoreFiles: []\nskip: []\n${build ? `build:\n${build}` : ""}`;
 }
 
 test("a root lock produces drift without writes, and a locked espalier permits normal creation", () => {
@@ -100,8 +99,7 @@ test("a lock that is not a boolean is refused", () => {
 
 test("migration turns a fixed mode into a root lock through legacy folding, idempotently", () => {
   scratch((root, put) => {
-    const old = config("  inline: true\n  guidanceMode: fixed # keep this decision\n")
-      .replace(`pin: ${VERSION}`, "pin: 0.6.0");
+    const old = `pin: 0.6.0\n${config("  inline: true\n  guidanceMode: fixed # keep this decision\n")}`;
     put("espalier.config.yaml", old);
     const dry = run(root, ["migrate", "--dry-run"]);
     assert.equal(dry.status, 0, dry.stdout + dry.stderr);

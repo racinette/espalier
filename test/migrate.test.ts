@@ -10,7 +10,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { SHIPPED_SKIP, shippedAuthoring, AUTHORING_SENTINEL } from "../src/config.js";
 import { rewriteConfigText } from "../src/migrate.js";
-import { VERSION } from "../src/version.js";
 
 const cli = path.join(
   path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".."),
@@ -46,7 +45,7 @@ function scratch(body: (root: string) => void): void {
   }
 }
 
-test("rewrite drops version, keeps comments, and inserts omitted keys", () => {
+test("rewrite drops version records, keeps comments, and inserts omitted keys", () => {
   const text = `# the project
 version: 1
 pin: 0.0.9
@@ -56,12 +55,10 @@ name: demo
 root: espalier
 `;
   const values = { version: 1, pin: "0.0.9", name: "demo", root: "espalier" };
-  const next = rewriteConfigText(text, values, "0.1.0");
+  const next = rewriteConfigText(text, values);
   assert.equal(
     next,
     `# the project
-pin: 0.1.0
-
 name: demo
 # keep me
 root: espalier
@@ -80,13 +77,12 @@ skip:
 });
 
 test("rewrite leaves an existing skip and ignoreFiles alone", () => {
-  const text = `pin: 0.1.0
-root: espalier
+  const text = `root: espalier
 ignoreFiles: []
 skip: []
 `;
-  const values = { pin: "0.1.0", root: "espalier", ignoreFiles: [], skip: [] };
-  assert.equal(rewriteConfigText(text, values, "0.1.0"), text);
+  const values = { root: "espalier", ignoreFiles: [], skip: [] };
+  assert.equal(rewriteConfigText(text, values), text);
 });
 
 test("migrate rewrites an old config and is then loadable", () => {
@@ -101,7 +97,7 @@ test("migrate rewrites an old config and is then loadable", () => {
 
     const written = readFileSync(path.join(root, "espalier.config.yaml"), "utf8");
     assert.equal(written.includes("version:"), false);
-    assert.ok(written.split("\n").includes(`pin: ${VERSION}`));
+    assert.equal(written.includes("pin:"), false);
     assert.match(written, /^ignoreFiles: \[\]$/m);
     assert.match(written, /^skip:$/m);
     for (const name of SHIPPED_SKIP) {
@@ -116,7 +112,7 @@ test("migrate rewrites an old config and is then loadable", () => {
   });
 });
 
-test("migrate updates a 0.2.0 pin without rewriting old rule selectors", () => {
+test("migrate removes a 0.2.0 pin without rewriting old rule selectors", () => {
   scratch((root) => {
     const directory = path.join(root, "espalier", "[...path]");
     mkdirSync(directory);
@@ -133,7 +129,7 @@ export async function lint() {}
 
     const migrated = run(root, ["migrate", "--format", "jsonl"]);
     assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
-    assert.ok(readFileSync(path.join(root, "espalier.config.yaml"), "utf8").split("\n").includes(`pin: ${VERSION}`));
+    assert.equal(readFileSync(path.join(root, "espalier.config.yaml"), "utf8").includes("pin:"), false);
     assert.equal(readFileSync(rulePath, "utf8"), oldRule);
 
     const lint = run(root, ["lint", "--format", "jsonl"]);
@@ -185,7 +181,7 @@ test("a current config is skipped", () => {
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\n`,
+      `root: espalier\nignoreFiles: []\nskip: []\n`,
     );
     const migrated = run(root, ["migrate", "--format", "jsonl"]);
     assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
@@ -208,7 +204,7 @@ test("migrate vendors a missing root AGENTS.MD when skip covers it", () => {
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n`,
+      `root: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n`,
     );
     const migrated = run(root, ["migrate", "--format", "jsonl"]);
     assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
@@ -221,7 +217,7 @@ test("migrate leaves a customized AGENTS.MD alone", () => {
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n`,
+      `root: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n`,
     );
     writeFileSync(path.join(root, "espalier", "AGENTS.MD"), "Local notes.\n");
     const migrated = run(root, ["migrate", "--format", "jsonl"]);
@@ -234,7 +230,7 @@ test("migrate updates a still-marked shipped AGENTS.MD", () => {
   scratch((root) => {
     writeFileSync(
       path.join(root, "espalier.config.yaml"),
-      `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n`,
+      `root: espalier\nignoreFiles: []\nskip:\n  - AGENTS.MD\n`,
     );
     writeFileSync(
       path.join(root, "espalier", "AGENTS.MD"),
@@ -252,7 +248,7 @@ for (const build of [
 ]) {
   test(`migrate converts inline placement and preserves authored frontmatter (${build.includes('{') ? 'flow' : 'block'})`, () => {
     scratch((root) => {
-      const config = `pin: ${VERSION}\nroot: rules\nignoreFiles: []\nskip: []\n${build}`;
+      const config = `root: rules\nignoreFiles: []\nskip: []\n${build}`;
       const source = '---\n# local policy\ndescription: "Project guidance"\nfold: false\ncustom: keep\n---\n\n# Authored prose\n\nKeep  spacing.\r\n';
       mkdirSync(path.join(root, 'rules'));
       writeFileSync(path.join(root, 'espalier.config.yaml'), config);
@@ -290,7 +286,7 @@ for (const build of [
 
 test('migrate creates root folding frontmatter and visits an inline child independently', () => {
   scratch((root) => {
-    const config = `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\nbuild:\n  inline: true\n`;
+    const config = `root: espalier\nignoreFiles: []\nskip: []\nbuild:\n  inline: true\n`;
     writeFileSync(path.join(root, 'espalier.config.yaml'), config);
     mkdirSync(path.join(root, 'child', 'espalier'), { recursive: true });
     writeFileSync(path.join(root, 'child', 'espalier.config.yaml'), config);
@@ -312,7 +308,7 @@ test('migrate creates root folding frontmatter and visits an inline child indepe
 test('migrate removes inline false without changing or creating folding frontmatter', () => {
   for (const source of [undefined, '---\nfold: true\n---\nAuthored.\n']) {
     scratch((root) => {
-      writeFileSync(path.join(root, 'espalier.config.yaml'), `pin: ${VERSION}\nignoreFiles: []\nskip: []\nbuild: { inline: false }\n`);
+      writeFileSync(path.join(root, 'espalier.config.yaml'), `ignoreFiles: []\nskip: []\nbuild: { inline: false }\n`);
       const filename = path.join(root, 'espalier', 'ESPALIER.MD');
       if (source !== undefined) writeFileSync(filename, source);
       const result = run(root, ['migrate']);
@@ -327,7 +323,7 @@ test('migrate removes inline false without changing or creating folding frontmat
 test('migrate accepts empty frontmatter and leaves an existing true fold byte-identical', () => {
   for (const source of ['---\n---\nBody.\n', '---\nfold: true # keep\n---\nBody.\n']) {
     scratch((root) => {
-      writeFileSync(path.join(root, 'espalier.config.yaml'), `pin: ${VERSION}\nignoreFiles: []\nskip: []\nbuild: { inline: true }\n`);
+      writeFileSync(path.join(root, 'espalier.config.yaml'), `ignoreFiles: []\nskip: []\nbuild: { inline: true }\n`);
       const filename = path.join(root, 'espalier', 'ESPALIER.MD');
       writeFileSync(filename, source);
       const result = run(root, ['migrate']);
@@ -351,7 +347,7 @@ test('invalid folding migration leaves config and source untouched', () => {
     ['true', '---\nfold: false\n'],
   ]) {
     scratch((root) => {
-      const config = `pin: ${VERSION}\nignoreFiles: []\nskip: []\nbuild: { inline: ${inline} }\n`;
+      const config = `ignoreFiles: []\nskip: []\nbuild: { inline: ${inline} }\n`;
       const configPath = path.join(root, 'espalier.config.yaml');
       const sourcePath = path.join(root, 'espalier', 'ESPALIER.MD');
       writeFileSync(configPath, config);
@@ -421,7 +417,7 @@ test("migration preserves configured jobs and rejects malformed settings before 
 
 test("migration emits editable prose without evaluating it or duplicating defaults", () => {
   scratch((root) => {
-    writeFileSync(path.join(root, "espalier.config.yaml"), `pin: ${VERSION}\nignoreFiles: []\nskip: []\n`);
+    writeFileSync(path.join(root, "espalier.config.yaml"), `ignoreFiles: []\nskip: []\n`);
     const body = '\n# Notes\n\nUse `code`, ${throwIfEvaluated()}, and \\paths.\r\nKeep \\${literal} and trailing spaces.  \n';
     const source = path.join(root, "espalier/ESPALIER.MD");
     const target = path.join(root, "espalier/ESPALIER.mjs");

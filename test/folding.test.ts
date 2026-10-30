@@ -24,7 +24,7 @@ function scratch(body: (root: string, put: (at: string, text: string) => void) =
     writeFileSync(path.join(root, at), text);
   };
   try {
-    put('espalier.config.yaml', `pin: ${VERSION}\nignoreFiles: []\nskip: []\n`);
+    put('espalier.config.yaml', `ignoreFiles: []\nskip: []\n`);
     put('espalier/src/ESPALIER.MD', 'Source guidance.\n');
     put('espalier/src/deep/[name].ts.mjs', 'export const description = "source";\nexport const guidance = "Keep it local.";\nexport async function lint() {}\n');
     body(root, put);

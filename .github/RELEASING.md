@@ -96,12 +96,8 @@ real implementation as `0.1.0` through GitHub Actions.
 
 ## Subsequent releases
 
-Update `package.json`, both root version fields in `package-lock.json`, the
-repository's `espalier.config.yaml` pin, and the package pins in documentation,
-tests, and fixtures together. There is no separate configuration schema
-version; `pin` is the only version. Espalier requires an exact package version
-match, so changing only the manifest leaves the repository and fixtures unable
-to run until they are migrated or edited.
+Update `package.json` and both root version fields in `package-lock.json`
+together. Repositories record no espalier version, so nothing else names it.
 
 Run the checks before committing:
 

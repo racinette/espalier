@@ -8,7 +8,6 @@ import { parse as parseYaml } from "yaml";
 import { fail } from "./errors.js";
 import { isLinkedWorktree } from "./files.js";
 import { compileIgnore, excludedBy, ignores } from "./ignore.js";
-import { VERSION } from "./version.js";
 
 export const CONFIG_FILENAME = "espalier.config.yaml";
 export const IGNORE_FILENAME = ".espalierignore";
@@ -29,8 +28,6 @@ export interface Config {
   root: string;
   /** Absolute path of the config file itself. */
   configPath: string;
-  /** Exact Espalier CLI version this repository was authored against. */
-  pin: string;
   /** What the project is called, and what heads every generated document. */
   name: string | null;
   /** Repo-relative directory holding the espalier tree. */
@@ -50,7 +47,7 @@ export interface Config {
   build: { filename: string; espalierGuidance: boolean };
 }
 
-const KNOWN = new Set(["pin", "name", "root", "ignoreFiles", "skip", "addons", "build", "lint"]);
+const KNOWN = new Set(["name", "root", "ignoreFiles", "skip", "addons", "build", "lint"]);
 const KNOWN_BUILD = new Set(["filename", "espalierGuidance"]);
 
 /** Instruction files `init` and `migrate` write into `skip`. docs/CONFIG.MD "`skip`". */
@@ -159,37 +156,28 @@ export function parseLintConfig(value: unknown): Config["lint"] {
   return { jobs };
 }
 
-export function loadConfig(explicit: string | undefined, cwd: string): Config {
+/**
+ * Reads and validates a repository's configuration. A base revision is read
+ * with `ignoreVersionRecords`: it predates the change being checked, so it
+ * may still carry the removed `pin` or `version`, which mean nothing now.
+ * docs/LOCKS.MD "Checking against a base revision".
+ */
+export function loadConfig(explicit: string | undefined, cwd: string, options: { ignoreVersionRecords?: boolean } = {}): Config {
   const configPath = locateConfig(explicit, cwd);
   const root = path.dirname(configPath);
   const { values } = readConfigFile(configPath);
 
   for (const key of Object.keys(values)) {
-    if (key === "version") continue;
+    if (key === "version" || key === "pin") {
+      if (options.ignoreVersionRecords === true) continue;
+      // Removed version records, named so the fix is obvious. docs/CONFIG.MD.
+      fail("config_unknown_key", `${key} has been removed: a repository no longer records an espalier version. Delete the line, or run espalier migrate`);
+    }
     if (!KNOWN.has(key)) {
       // A typo in a config file is not something to discover three weeks later
       // when the rule it disabled turns out never to have run.
       fail("config_unknown_key", `unknown configuration key "${key}"`);
     }
-  }
-
-  if (!("pin" in values)) {
-    fail("config_missing_pin", "pin is required");
-  }
-  const pin = asString(values["pin"], "pin");
-  if (pin !== VERSION) {
-    fail(
-      "version_mismatch",
-      `this repository pins espalier ${pin}, but ${VERSION} is running; install espalier@${pin} or run espalier migrate`,
-      { pinned: pin, running: VERSION },
-    );
-  }
-
-  if ("version" in values) {
-    fail(
-      "config_unknown_key",
-      `unknown configuration key "version"; pin is the only version. Run espalier migrate`,
-    );
   }
 
   // A name rather than a description, so it is not re-wrapped, and one line
@@ -275,7 +263,6 @@ export function loadConfig(explicit: string | undefined, cwd: string): Config {
   return {
     root,
     configPath,
-    pin,
     name,
     espalierRoot,
     ignoreFiles,

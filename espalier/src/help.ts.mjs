@@ -3,7 +3,7 @@ export const description = "the help command";
 
 export const guidance = `Prints pages from the installed package, resolved against \`PACKAGE_ROOT\`. It
 never loads a repository or configuration, because the running binary's own
-copy is what \`pin\` promises. \`PAGES\` is the catalog, and lint holds it to
+copy describes the version that runs. \`PAGES\` is the catalog, and lint holds it to
 \`docs/\`: every listed file exists, and every reference page is listed. Page
 names are an interface: the authoring contract and the generated **Working
 with Espalier** section tell agents to run them. It writes stdout and stderr

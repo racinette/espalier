@@ -1,8 +1,9 @@
 // `espalier migrate`. docs/cli/migrate/README.MD, docs/AUTHORING.MD.
 //
-// Rewrites the configuration for the running CLI. Every other command dies in
-// `loadConfig` on a pin mismatch; this one is allowed to see the old file,
-// edit it as text, and visit children the way `lint` and `build` do.
+// Rewrites an older configuration and espalier into the current shape. Every
+// other command refuses a removed setting in `loadConfig`; this one is allowed
+// to see the old file, edit it as text, and visit children the way `lint` and
+// `build` do.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -26,7 +27,6 @@ import { compileIgnore, ignores } from "./ignore.js";
 import { eachChild } from "./nested.js";
 import type { Reporter } from "./output.js";
 import { readIgnoreFile } from "./repository.js";
-import { VERSION } from "./version.js";
 import { compileVisibility } from "./visibility.js";
 
 const CURRENT_KEYS = new Set([
@@ -65,12 +65,11 @@ function compareRelease(left: string, right: string): number {
 export function rewriteConfigText(
   text: string,
   values: Record<string, unknown>,
-  version: string,
 ): string {
   parseLintConfig(values["lint"]);
   const inline = legacyInline(values);
   const mode = legacyGuidanceMode(values);
-  const skip = skipAfterRewrite(values, version);
+  const skip = skipAfterRewrite(values);
   if (inline !== undefined || mode !== undefined || ("skip" in values && JSON.stringify(skip) !== JSON.stringify(values["skip"]))) {
     const document = parseDocument(text);
     if (inline !== undefined) document.deleteIn(["build", "inline"]);
@@ -88,17 +87,9 @@ export function rewriteConfigText(
   let lines = text.split(/\r?\n/);
   if (lines[lines.length - 1] === "") lines = lines.slice(0, -1);
 
-  lines = lines.filter((line) => !/^version\s*:/.test(line));
-
-  let sawPin = false;
-  lines = lines.map((line) => {
-    if (/^pin\s*:/.test(line)) {
-      sawPin = true;
-      return `pin: ${version}`;
-    }
-    return line;
-  });
-  if (!sawPin) lines = [`pin: ${version}`, "", ...lines];
+  // Version records are gone, with the blank line that set each apart.
+  lines = lines.filter((line, index) => !/^(version|pin)\s*:/.test(line) &&
+    !(line.trim() === "" && index > 0 && /^(version|pin)\s*:/.test(lines[index - 1]!)));
 
   const additions: string[] = [];
   if (!("ignoreFiles" in values)) additions.push("ignoreFiles: []");
@@ -243,19 +234,6 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
     }
   }
 
-  if ("pin" in values) {
-    if (typeof values["pin"] !== "string") {
-      fail("config_invalid_value", "pin must be a string");
-    }
-    if (compareRelease(values["pin"], VERSION) > 0) {
-      fail(
-        "cannot_downgrade",
-        `this repository pins espalier ${values["pin"]}, which is newer than ${VERSION}; install that version rather than migrating downward`,
-        { pinned: values["pin"], running: VERSION },
-      );
-    }
-  }
-
   const inline = legacyInline(values);
   const written = "root" in values ? values["root"] : "espalier";
   if (typeof written !== "string" || path.isAbsolute(written) || written.split(/[\\/]/).includes("..")) {
@@ -265,12 +243,12 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
   if (espalierRoot === "" || espalierRoot === ".") {
     fail("config_invalid_value", "root must name a directory inside the repository");
   }
-  const wanted = rewriteConfigText(text, values, VERSION);
+  const wanted = rewriteConfigText(text, values);
   const skip = skipAfterRewrite(values);
   const ignorePath = path.join(root, IGNORE_FILENAME);
   const previousIgnore = existsSync(ignorePath) ? readFileSync(ignorePath, "utf8") : "";
   let wantedIgnore = previousIgnore;
-  if (upgradesDotPaths(values, VERSION)) {
+  if (upgradesDotPaths(values)) {
     const rules = compileIgnore(previousIgnore.split("\n"));
     if (!ignores(rules, ".git") || !ignores(rules, ".git", true) ||
         !ignores(rules, "nested/.git") || !ignores(rules, "nested/.git", true)) {
@@ -306,9 +284,14 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
   return { root, children: discoverChildren(root, configPath, values, wantedIgnore.split("\n")) };
 }
 
-function upgradesDotPaths(values: Record<string, unknown>, version: string): boolean {
-  return compareRelease(version, "0.7.0") >= 0 &&
-    (typeof values["pin"] !== "string" || compareRelease(values["pin"], "0.7.0") < 0);
+/**
+ * Whether the config predates 0.7.0, which made dot-prefixed paths eligible:
+ * a `version` key, or a `pin` below 0.7.0. The version record is read here
+ * for the last time, as it is removed.
+ */
+function upgradesDotPaths(values: Record<string, unknown>): boolean {
+  if ("version" in values) return true;
+  return typeof values["pin"] === "string" && compareRelease(values["pin"], "0.7.0") < 0;
 }
 
 /** Report old hidden boundaries without opening them or importing rule modules. */
@@ -348,14 +331,14 @@ function reviewDotEntries(root: string, source: string, skip: string[], reporter
   walk(root, "");
 }
 
-function skipAfterRewrite(values: Record<string, unknown>, version = VERSION): string[] {
+function skipAfterRewrite(values: Record<string, unknown>): string[] {
   if (!("skip" in values)) return SHIPPED_SKIP;
   const listed = values["skip"];
   if (!Array.isArray(listed) || listed.some((entry) => typeof entry !== "string")) {
     fail("config_invalid_value", "skip must be a list of strings");
   }
   const skip = [...listed] as string[];
-  if (upgradesDotPaths(values, version)) {
+  if (upgradesDotPaths(values)) {
     for (const entry of [".git", ".gitkeep"]) {
       const rules = compileIgnore(skip, "skip");
       if (!ignores(rules, entry) || !ignores(rules, entry, true) ||

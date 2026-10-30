@@ -8,7 +8,6 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { check } from '../src/api.js';
-import { VERSION } from '../src/version.js';
 
 const cli = fileURLToPath(new URL('../src/cli.js', import.meta.url));
 const api = pathToFileURL(fileURLToPath(new URL('../src/api.js', import.meta.url))).href;
@@ -25,7 +24,7 @@ async function scratch(body: (root: string, put: (name: string, contents: string
     writeFileSync(path.join(root, name), contents);
   };
   try {
-    put('espalier.config.yaml', `pin: ${VERSION}\nignoreFiles: []\nskip: []\n`);
+    put('espalier.config.yaml', `ignoreFiles: []\nskip: []\n`);
     await body(root, put);
   } finally { rmSync(root, { recursive: true, force: true }); }
 }

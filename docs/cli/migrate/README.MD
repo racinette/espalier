@@ -1,16 +1,17 @@
 # `espalier migrate`
 
-Updates repository configuration and directory guidance modules for the
-running CLI.
+Rewrites an older repository's configuration and espalier into the shape the
+running CLI reads.
 
 ```bash
 espalier migrate
 ```
 
-Commands that load repository configuration require a `pin` matching this
-package's version. `migrate` is the exception: it updates `pin`, removes
-obsolete settings, and inserts missing required keys. After it runs, this CLI
-owns the repository. An older CLI will refuse the result.
+Other commands reject settings that have been removed. `migrate` is the
+exception: it removes obsolete settings, converts what replaced them, and
+inserts missing required keys. It reads the files themselves, so it works the
+same whether the previous upgrade was migrated or edited by hand, and running
+it on a current repository changes nothing.
 
 Migration preserves an explicit `lint.jobs` setting and validates it before
 writing that project's migration files. It removes `build.guidanceMode`: a
@@ -38,15 +39,16 @@ are visited or no changes are needed. It follows `--out` like the other output.
 
 ## What it rewrites
 
-Ordinary pin updates edit the file as text. Removing `build.inline` or extending
+Removing a version record edits the file as text. Removing `build.inline` or extending
 an existing `skip` list uses a YAML document editor so block and flow forms are
 both supported; comments and key order are retained, though YAML formatting
 may be normalized.
 
-**`pin`.** Set to the running package version. A pin that is already that version is left as a rewrite of the same line only when something else in the file still needs changing.
-
-**`version`.** Removed. `pin` is the only version; other commands that load
-repository configuration reject this leftover schema identifier as an unknown key.
+**`pin` and `version`.** Removed, with the blank line after each. Neither
+means anything now, and other commands reject them as unknown keys. A `pin`
+below 0.7.0, or a `version` key, is read once first: such a config predates
+dot-prefixed paths becoming eligible, so `migrate` also excludes `.git` and
+reviews the rule tree's hidden entries.
 
 **`rule` to `guidance`.** A rule module's `rule` export, string or function,
 is renamed `guidance`, and so is `rule` inside each entry of `groups`. Only a
@@ -117,19 +119,17 @@ A config that is already current is reported `skipped` and not written. The auth
 
 ## What it will not do
 
-**It will not downgrade.** If `pin` is newer than the running CLI, the run stops with `cannot_downgrade` and the file is not touched. Install the recorded version, or run migrate with that newer CLI.
-
 **It will not compile the espalier.** An older config may already hold an `AGENTS.MD` the current compiler would reject until `skip` is present. The rewrite is the whole of the command; `lint` and `build` run afterwards.
 
 **Rule changes are limited to the `rule` to `guidance` rename and the literal cardinality conversion above.** A new CLI version may change how rule
 filenames or selectors are interpreted, and the config alone cannot reveal the
 author's intended match set. Review the rules against [MATCHING.MD](../../MATCHING.MD)
-and [TYPES.MD](../../TYPES.MD) before relying on the new pin. `--dry-run`
+and [TYPES.MD](../../TYPES.MD) before relying on the new version. `--dry-run`
 reports configuration, exclusion-list, rule-module, directory-module, and
 authoring-file writes and legacy-source removals; it does not validate rule
 behavior.
 
-Unknown keys other than `version` and `build.inline` still fail. Migration only
+Unknown keys other than `pin`, `version` and the removed `build` settings still fail. Migration only
 removes recognized obsolete settings; it does not guess at typos.
 
 ## Nested espaliers
@@ -142,7 +142,7 @@ A migrate at the root visits each child the way `lint` and `build` do: its own c
 
 ## After `migrate`
 
-1. Install the CLI this repository now pins, if you have not already.
-2. Run [`espalier lint`](../lint/README.MD) and [`espalier build`](../build/README.MD) the way any pin change requires.
+1. Run [`espalier lint`](../lint/README.MD) and [`espalier build`](../build/README.MD), as any version change requires.
+2. Review the generated documents before committing the upgrade.
 
 Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).

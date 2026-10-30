@@ -327,7 +327,7 @@ so a line-ending conversion is never reported as an edit.
 
 Prints pages from the installed package, resolved against `PACKAGE_ROOT`. It
 never loads a repository or configuration, because the running binary's own
-copy is what `pin` promises. `PAGES` is the catalog, and lint holds it to
+copy describes the version that runs. `PAGES` is the catalog, and lint holds it to
 `docs/`: every listed file exists, and every reference page is listed. Page
 names are an interface: the authoring contract and the generated **Working
 with Espalier** section tell agents to run them. It writes stdout and stderr
@@ -417,7 +417,7 @@ check gets only the captures its own declaration names.
 
 ### `migrate.ts` — the migrate command
 
-The one command that must read a configuration pinned to another version, so it
+The one command that must read a configuration holding removed settings, so it
 never calls `loadConfig` or opens a repository. It edits the configuration and
 rule sources as text, which keeps comments and key order, and never imports
 authored code or compiles the espalier. Within each project, every check on
@@ -516,8 +516,7 @@ names from the destination instead of asking callers to repeat them.
 ### `version.ts` — the running package version
 
 Read the exact running version from the installed package manifest.
-The CLI, configuration validation and generated pins must share that one source of
-truth.
+`--version` and the help catalog must share that one source of truth.
 
 ### `visibility.ts` — filesystem visibility from external ignore files
 

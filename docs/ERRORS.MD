@@ -34,9 +34,7 @@ See [CONFIG.MD](CONFIG.MD).
 |---|---|
 | `config_not_found` | no `espalier.config.yaml` found before the filesystem or linked-worktree boundary |
 | `config_malformed` | not valid YAML, or not a mapping |
-| `config_unknown_key` | a key `espalier` does not recognize — usually a typo. A leftover `version` key is this: `pin` is the only version, and `espalier migrate` removes it. So is `build.guidanceMode`, which `espalier migrate` turns into a lock on the espalier root |
-| `config_missing_pin` | `pin` is required so the repository cannot silently change tool versions |
-| `version_mismatch` | the running CLI is not the exact version recorded in `pin`. Install that version, or run `espalier migrate` |
+| `config_unknown_key` | a key `espalier` does not recognize — usually a typo. So are the `pin` and `version` keys and `build.guidanceMode` of earlier releases, which `espalier migrate` removes, turning a fixed guidance mode into a lock on the espalier root |
 | `config_missing_ignore_files` | `ignoreFiles` is required. `[]` names none; omit is not a decision |
 | `config_missing_skip` | `skip` is required. `[]` skips nothing; omit is not a decision |
 | `skip_hides_grammar` | a `skip` pattern would individually hide a `.mjs` rule module or an `ESPALIER.mjs` in an inspected directory |
@@ -46,7 +44,6 @@ See [CONFIG.MD](CONFIG.MD).
 | `config_exists` | `init` only: a configuration is already here, and it will not be overwritten |
 | `unknown_language` | `init --lang` only: no shipped list by that name. The available names are reported with it |
 | `contradictory_flags` | two flags that cannot both be honoured — `init --no-ignore-file` with `--ignore-file` |
-| `cannot_downgrade` | `migrate` only: `pin` is newer than the running CLI, and migrate will not rewrite the config toward an older implementation |
 
 ## The espalier tree
 
@@ -134,7 +131,7 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | `template_invalid_result` | a template renderer returned something other than a string |
 | `create_write_failed` | the rendered file or staged directory could not be written to its requested path |
 | `invalid_check_options` | programmatic check was passed the unsupported cache option |
-| `base_unreadable` | `lint --base` could not read the base revision: git is missing or fails, the revision is not a commit, the base pins a different espalier version, or a module there fails to compile; `detail.cause` names the underlying code when there is one. See [LOCKS.MD](LOCKS.MD#checking-against-a-base-revision) |
+| `base_unreadable` | `lint --base` could not read the base revision: git is missing or fails, the revision is not a commit, or its configuration or a module there fails to load; `detail.cause` names the underlying code when there is one. See [LOCKS.MD](LOCKS.MD#checking-against-a-base-revision) |
 
 ## Rule-module parse locations
 

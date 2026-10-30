@@ -6,9 +6,20 @@ revision. One group of a grouping can be declared with its own guidance, a name
 can hold alternatives, and generated maps use compact marks instead of
 parenthesized words.
 
-There are breaking changes to configuration, to computed guidance that read
-the configuration, and to the shape of generated documents. Review the upgrade
+There are breaking changes to configuration, which no longer records a
+version, to computed guidance that read the configuration, and to the shape of
+generated documents. Review the upgrade
 instructions below before migrating.
+
+## No more `pin`
+
+`espalier.config.yaml` no longer records an espalier version. The version that
+runs is the one installed; a project that needs every machine to agree fixes it
+the way it fixes any tool, with a development dependency and its lockfile.
+Upgrading or downgrading no longer needs a config change, and `lint --base` can
+read a base on either side of one. A config that still says `pin` or `version`
+is rejected with a pointer, and `espalier migrate` removes both.
+`version_mismatch`, `config_missing_pin` and `cannot_downgrade` are gone.
 
 ## Locks replace `build.guidanceMode`
 
@@ -72,8 +83,8 @@ there covers: `locked_module_changed`, `locked_directory_changed`,
 `locked_contract_changed`, `lock_changed`, `untraceable_import`,
 `frozen_file_changed` and `sealed_collection_changed`. A locked module is
 compared with every repository file it imports, so a locked module must import
-by literal paths. The base must pin the same espalier version; anything that
-keeps it from being read stops the run with `base_unreadable`. Without
+by literal paths. Both sides are read by the installed espalier; anything that
+keeps the base from being read stops the run with `base_unreadable`. Without
 `--base`, lint never consults git. What counts as authorization is the
 project's decision, typically an approval required before a failing check may
 be overridden.
@@ -124,7 +135,7 @@ both match is rejected at compile time.
 ## Upgrading from 0.10.0
 
 1. Install `espalier@0.11.0` and preview migration with `espalier migrate --dry-run`.
-2. Run `espalier migrate`. It updates pins, removes `build.guidanceMode`, and
+2. Run `espalier migrate`. It removes `pin`, removes `build.guidanceMode`, and
    for `fixed` adds `locked = true` to the espalier root's `ESPALIER.mjs`.
 3. Replace any computed guidance or description that reads
    `config.build.guidanceMode` with the context's `locked`.

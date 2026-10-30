@@ -3,7 +3,7 @@
 import type { CaptureValue } from "./match.js";
 
 // A rule may import a project-local copy while a globally provisioned CLI runs
-// another copy of the same pinned version. The registry keeps the brand stable
+// another copy of the same version. The registry keeps the brand stable
 // across those two module instances.
 const TEMPLATE = Symbol.for("espalier.template");
 

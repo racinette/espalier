@@ -35,8 +35,6 @@ espalier init [--config <path>] [--root <dir>] [--lang <name>]...
 ## What it writes
 
 ```yaml
-pin: 0.10.0
-
 name: acme-web
 
 root: espalier
@@ -51,12 +49,6 @@ skip:
   - .git
   - .gitkeep
 ```
-
-`pin` is the exact running package version. Commands that load repository
-configuration require that version; [`espalier migrate`](../migrate/README.MD)
-is the exception that rewrites the config for the running CLI. A global
-upgrade therefore cannot silently change how this repository is interpreted.
-`help`, `examples`, and `--version` work independently of configuration.
 
 `name` is the repository directory's own name. It heads every document `build`
 writes. Rename it to the project's name, or remove it to omit the heading.
@@ -141,8 +133,6 @@ espalier init --no-common-ignore
 ```
 
 ```yaml
-pin: 0.10.0
-
 root: espalier
 
 ignoreFiles:

@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
 const cli = fileURLToPath(new URL("../src/cli.js", import.meta.url));
-const config = "pin: 0.10.0\nroot: espalier\nignoreFiles: []\nskip: []\n";
+const config = "root: espalier\nignoreFiles: []\nskip: []\n";
 const rule = 'export const description = "source"; export const guidance = "Source."; export function lint() {}\n';
 
 function write(root: string, at: string, text: string): void {

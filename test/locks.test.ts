@@ -9,7 +9,6 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { check } from "../src/api.js";
-import { VERSION } from "../src/version.js";
 
 const RULE = 'export const description = "x"; export const guidance = "";\n';
 
@@ -28,7 +27,7 @@ function git(root: string, ...args: string[]): void {
 async function compare(
   base: Record<string, string>,
   change: (put: (name: string, contents: string) => void, remove: (name: string) => void) => void,
-  config = `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\n`,
+  config = `root: espalier\nignoreFiles: []\nskip: []\n`,
 ): Promise<string[]> {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-locks-"));
   try {
@@ -122,7 +121,7 @@ test("a locked module that imports a computed path is reported, since nothing ca
 });
 
 test("the addons module counts as part of every locked rule", async () => {
-  const config = `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\naddons: tools/addons.mjs\n`;
+  const config = `root: espalier\nignoreFiles: []\nskip: []\naddons: tools/addons.mjs\n`;
   const base = {
     "espalier/main.ts.mjs": `${RULE}export const locked = true;\n`,
     "tools/addons.mjs": "export default { prepare: () => ({}) };\n",
@@ -142,7 +141,7 @@ test("a base without an espalier has no locks", async () => {
     git(root, "add", "-A");
     git(root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base");
     mkdirSync(path.join(root, "espalier"));
-    writeFileSync(path.join(root, "espalier.config.yaml"), `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\n`);
+    writeFileSync(path.join(root, "espalier.config.yaml"), `root: espalier\nignoreFiles: []\nskip: []\n`);
     writeFileSync(path.join(root, ".espalierignore"), ".git\nREADME\n");
     writeFileSync(path.join(root, "espalier/main.ts.mjs"), `${RULE}export const locked = true;\n`);
     writeFileSync(path.join(root, "main.ts"), "");
@@ -153,14 +152,15 @@ test("a base without an espalier has no locks", async () => {
   }
 });
 
-test("a base pinned to another version, or a revision that is not there, is refused rather than misread", async () => {
-  await assert.rejects(compare({ "espalier/main.ts.mjs": RULE, "main.ts": "" }, (put) => {
-    put("espalier.config.yaml", `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\n# head\n`);
-  }, `pin: 0.0.1\nroot: espalier\nignoreFiles: []\nskip: []\n`), { code: "base_unreadable" });
+test("a base still recording a version is read, and a revision that is not there is refused", async () => {
+  assert.deepEqual(await compare({ "espalier/main.ts.mjs": `${RULE}export const locked = true;\n`, "main.ts": "" }, (put) => {
+    put("espalier.config.yaml", `root: espalier\nignoreFiles: []\nskip: []\n`);
+    put("espalier/main.ts.mjs", `${RULE}export const locked = true; // edited\n`);
+  }, `pin: 0.0.1\nversion: 1\nroot: espalier\nignoreFiles: []\nskip: []\n`), ["locked_module_changed espalier/main.ts.mjs"]);
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-locks-"));
   try {
     mkdirSync(path.join(root, "espalier"));
-    writeFileSync(path.join(root, "espalier.config.yaml"), `pin: ${VERSION}\nroot: espalier\nignoreFiles: []\nskip: []\n`);
+    writeFileSync(path.join(root, "espalier.config.yaml"), `root: espalier\nignoreFiles: []\nskip: []\n`);
     writeFileSync(path.join(root, ".espalierignore"), ".git\n");
     git(root, "init", "-q");
     await assert.rejects(check({ cwd: root, jobs: 1, base: "no-such-branch" }), { code: "base_unreadable" });

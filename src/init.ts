@@ -20,7 +20,6 @@ import { fail } from "./errors.js";
 import { isLinkedWorktree, probe } from "./files.js";
 import { compileIgnore, ignores } from "./ignore.js";
 import type { Reporter } from "./output.js";
-import { VERSION } from "./version.js";
 
 /**
  * The shipped ignore lists, as data rather than as code. One file per language,
@@ -141,8 +140,6 @@ function render(name: string, espalierRoot: string, ignoreFiles: string[]): stri
   // rather than one buried in the tool. Without it every document `build`
   // writes would open with no heading. docs/cli/init/README.MD "`name`".
   const lines = [
-    `pin: ${VERSION}`,
-    "",
     `name: ${quoted(name)}`,
     "",
     `root: ${espalierRoot}`,

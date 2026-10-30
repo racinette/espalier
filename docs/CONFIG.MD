@@ -3,8 +3,6 @@
 `espalier` is configured by an `espalier.config.yaml` at the repository root, and by a `.espalierignore` beside it.
 
 ```yaml
-pin: 0.10.0
-
 name: acme-web
 
 root: espalier
@@ -42,21 +40,18 @@ db/migrations/**
 
 Two files rather than one because they answer to different readers. The config is settings, read once by whoever set the project up. `.espalierignore` is a list that grows and shrinks as the espalier does, it is line-oriented rather than nested, and its comments are read back out into the documentation `build` writes — a YAML key can hold the patterns but not the reasons.
 
-`pin`, `ignoreFiles`, and `skip` are required. Everything else is optional. Omitting a required key is an error; an empty list is written `[]` and means none. Unknown keys are errors — a typo in a config file is not something to discover three weeks later when the rule it disabled turns out never to have run.
+`ignoreFiles` and `skip` are required. Everything else is optional. Omitting a required key is an error; an empty list is written `[]` and means none. Unknown keys are errors — a typo in a config file is not something to discover three weeks later when the rule it disabled turns out never to have run.
 
-## `pin`
+## Versions
 
-The exact Espalier CLI version this repository expects:
+The configuration records no espalier version. The version that runs is the
+one installed, and a project that needs every machine to agree fixes it the
+way it fixes any tool: a development dependency with a lockfile, or a pinned
+toolchain. `build --check` in CI catches generated documents that another
+version would write differently.
 
-```yaml
-pin: 0.10.0
-```
-
-`pin` is the only version. There is no separate schema identifier: the implementation a repository was authored against is the whole of what “this config means,” and `espalier init` records the running package version. Commands that load repository configuration require that exact version, except `migrate`, which updates it. `help`, `examples`, and `--version` do not load repository configuration.
-
-A mismatch is `version_mismatch`. Install the recorded version, or run [`espalier migrate`](cli/migrate/README.MD) to rewrite the configuration for the CLI that is running. Ranges are not accepted: two versions satisfying one range could generate different artifacts or enforce different rules while both claiming the repository was correctly configured.
-
-The pin does not dictate how the CLI is installed. A global installation, a local package runner, a container, and a reproducible system toolchain are equivalent provided they expose the exact recorded version as `espalier`.
+The `pin` and `version` keys of earlier releases are rejected as unknown keys,
+naming the fix: delete the line, or run [`espalier migrate`](cli/migrate/README.MD).
 
 ## Discovery
 
@@ -479,7 +474,7 @@ Files bearing the marker are regenerated and, when the espalier no longer produc
 ## Errors
 
 Everything in this document that fails — a missing config, an unknown key,
-a missing `pin`, `ignoreFiles` or `skip`, an addon that will not start, an
+a missing `ignoreFiles` or `skip`, an addon that will not start, an
 exclusion that contradicts a required file or named directory instance — is an operational failure.
 `espalier` exits `2`. Findings emitted before a runtime failure may remain in
 the output; they cannot establish conformance.

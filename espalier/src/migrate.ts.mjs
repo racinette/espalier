@@ -1,7 +1,7 @@
 export const instanceOf = "[module].ts.mjs";
 export const description = "the migrate command";
 
-export const guidance = `The one command that must read a configuration pinned to another version, so it
+export const guidance = `The one command that must read a configuration holding removed settings, so it
 never calls \`loadConfig\` or opens a repository. It edits the configuration and
 rule sources as text, which keeps comments and key order, and never imports
 authored code or compiles the espalier. Within each project, every check on

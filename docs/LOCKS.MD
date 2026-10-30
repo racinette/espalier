@@ -210,11 +210,11 @@ The base revision's tracked files are written to a temporary directory and
 read as a repository of their own. The project's installed packages are
 linked beside them, and the working tree's other git-ignored top-level
 entries, such as build output a package imports by its own name, are linked
-into them, so the base's rule modules import what the head's would. The base
-must pin the same espalier version, so both are read by one
-implementation. Anything that keeps the base from being read stops the run
-with `base_unreadable`: no git, a revision that is not there, another pin, or
-a module that fails to compile. A base with no configuration has no locks, frozen
+into them, so the base's rule modules import what the head's would. Both
+sides are read by the installed espalier, and a base that still records a
+`pin` or `version` is read without it. Anything that keeps the base from being
+read stops the run with `base_unreadable`: no git, a revision that is not
+there, or a module that the installed version cannot load. A base with no configuration has no locks, frozen
 files or seals, and nothing is reported.
 
 What counts as authorization is the project's decision, because no diff can
