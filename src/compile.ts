@@ -77,6 +77,12 @@ export interface Grouping {
   sealed: boolean;
   /** Groups declared beside the rule, each with its own guidance, sorted by declaration. */
   instances: GroupInstance[];
+  /**
+   * In a rule restating an inherited one, the inherited grouping of the same
+   * name this one adds to; null until materialization finds it. It only
+   * tightens. docs/INSTANCES.MD "Adding to an inherited grouping".
+   */
+  extends?: Grouping | null;
 }
 
 /**
@@ -91,6 +97,12 @@ export interface GroupInstance {
   pattern: string;
   /** The values it binds, one per capture of the grouping's `by`. */
   captures: Record<string, string>;
+  /**
+   * The one concrete directory it speaks for, when a named instance declares
+   * a group of a grouping it inherits; null beside the grouping's own rule,
+   * where it speaks for every directory the rule reaches.
+   */
+  directory: string | null;
   module: LoadedModule;
 }
 
@@ -657,8 +669,16 @@ function parseGroups(raw: unknown, modulePath: string, kind: ModuleKind): Groupi
     if (value === null || typeof value !== "object" || Array.isArray(value)) bad(`.${name} must be an object with by`);
     const grouping = value as Record<string, unknown>;
     const by = grouping["by"];
-    if (!Array.isArray(by) || by.some((entry) => typeof entry !== "string") || new Set(by).size !== by.length) {
+    // Without `by`, it adds to the inherited grouping of that name; materialization finds it.
+    const extending = by === undefined;
+    if (!extending && (!Array.isArray(by) || by.some((entry) => typeof entry !== "string") || new Set(by).size !== by.length)) {
       bad(`.${name}.by must be an array of distinct capture names`);
+    }
+    if (extending && grouping["description"] !== undefined) {
+      bad(`.${name} has no \`by\`, so it adds to the inherited grouping of that name, whose description it cannot replace`);
+    }
+    if (extending && (grouping["abstract"] === false || grouping["sealed"] === false)) {
+      bad(`.${name} adds to an inherited grouping, and may only tighten it: set abstract or sealed to true, or leave it out`);
     }
     if (grouping["description"] !== undefined && (typeof grouping["description"] !== "string" || grouping["description"].trim() === "")) {
       bad(`.${name}.description must be a non-empty string`);
@@ -671,16 +691,17 @@ function parseGroups(raw: unknown, modulePath: string, kind: ModuleKind): Groupi
     if ("frozen" in grouping) {
       bad(`.${name}.frozen: a grouping holds every file of its rule, so freezing it would freeze the rule; freeze the rule, or one declared group`);
     }
-    if (grouping["abstract"] === true && (by as string[]).length === 0) {
+    if (!extending && grouping["abstract"] === true && (by as string[]).length === 0) {
       bad(`.${name} groups by no captures, so its one group per directory has no name to declare it by; it cannot be abstract`);
     }
-    const key = JSON.stringify([...(by as string[])].sort());
-    const twin = groups.find((other) => JSON.stringify([...other.by].sort()) === key);
+    const key = JSON.stringify([...((by ?? []) as string[])].sort());
+    const twin = extending ? undefined : groups.find((other) => other.extends !== null && JSON.stringify([...other.by].sort()) === key);
     if (twin !== undefined) bad(`.${name} and .${twin.name} group by the same captures; one grouping can carry both rules`);
     groups.push({
-      name, by: by as string[], description: typeof grouping["description"] === "string" ? grouping["description"].trim() : null,
+      name, by: extending ? [] : by as string[], description: typeof grouping["description"] === "string" ? grouping["description"].trim() : null,
       guidance: typeof grouping["guidance"] === "string" ? grouping["guidance"] : "",
       abstract: grouping["abstract"] === true, sealed: grouping["sealed"] === true, instances: [],
+      ...(extending ? { extends: null } : {}),
     });
   }
   return groups;
@@ -848,6 +869,7 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
   }
   const literalDirectory = (parts: string[], depth: number): boolean => nodes.get(parts.slice(0, depth + 1).join("/"))?.literalName === true;
   const groupDeclarations: GroupDeclaration[] = [];
+  const extensions: { modulePath: string; grouping: Grouping }[] = [];
   // Every directory module is read by now, so a module's lock is decidable
   // the moment it loads.
   const modules = new Map<string, ModuleRecord>();
@@ -991,6 +1013,10 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
 
     const module = settleLock(await loadModule(absoluteModule, modulePath, leafSegment.dynamic ? "dynamic" : "static", root, imported), modulePath);
     for (const grouping of module.groups) {
+      if (grouping.extends === null) {
+        extensions.push({ modulePath, grouping });
+        continue;
+      }
       const unknown = grouping.by.find((name) => !names.includes(name));
       if (unknown !== undefined) {
         fail("module_invalid_export", `${modulePath}: \`groups.${grouping.name}.by\` names "${unknown}", which this path does not capture; it captures ${names.map((name) => `"${name}"`).join(", ")}`);
@@ -1012,13 +1038,18 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
     });
   }
 
-  // Before instances are cloned, so a contract inherited by a directory
-  // instance carries its declared groups with it.
-  const declaredGroupings = new Set<Grouping[]>();
-  for (const entry of groupDeclarations) declaredGroupings.add(attachGroup(trie, entry));
-  for (const groupings of declaredGroupings) checkGroupFreezes(groupings);
   markAbstract(trie, nodes);
   materializeInstances(trie, nodes);
+  for (const { modulePath, grouping } of extensions) {
+    if (grouping.extends !== null) continue;
+    fail("module_invalid_export", `${modulePath}: \`groups.${grouping.name}\` has no \`by\`; only a rule restating an inherited one leaves it out, to add to the inherited grouping of that name`);
+  }
+  // After instances are filled in, so a named instance can declare a group
+  // of a grouping it inherits. Instances share their contract's rule, so a
+  // group declared beside the contract reaches every one of them.
+  const declaredGroupings = new Set<Grouping[]>();
+  for (const entry of groupDeclarations) declaredGroupings.add(attachGroup(trie, entry, modules));
+  for (const groupings of declaredGroupings) checkGroupFreezes(groupings);
   validateBindings(trie, new Set());
   for (const constraint of constraints) validateSegments(constraint.directory, new Set(), constraint.modulePath);
   checkSiblings(trie, "");
@@ -1245,9 +1276,20 @@ export function groupModulePath(rule: StructuralRule, grouping: Grouping, captur
   return `${rule.pattern.slice(0, cut + 1)}${groupName(rule.pattern.slice(cut + 1), values)}.mjs`;
 }
 
-/** The declared group of `grouping` these captures name, if one is declared. */
-export function declaredGroup(grouping: Grouping, captures: Readonly<Record<string, CaptureValue>>): GroupInstance | undefined {
-  return grouping.instances.find((instance) => grouping.by.every((name) => instance.captures[name] === captures[name]));
+/** The declared group of `grouping` these captures name in `directory`, if one is declared for it. */
+export function declaredGroup(grouping: Grouping, captures: Readonly<Record<string, CaptureValue>>, directory: string): GroupInstance | undefined {
+  return grouping.instances.find((instance) => (instance.directory === null || instance.directory === directory)
+    && grouping.by.every((name) => instance.captures[name] === captures[name]));
+}
+
+/**
+ * Whether a group is declared in `directory` by any grouping along a rule's
+ * chain that adds to the same one: an abstract grouping is satisfied by a
+ * declaration beside the contract or inside the instance alike.
+ */
+export function groupDeclared(chain: readonly StructuralRule[], grouping: Grouping, captures: Readonly<Record<string, CaptureValue>>, directory: string): boolean {
+  const root = rootGrouping(grouping);
+  return chain.some((rule) => rule.module.groups.some((other) => rootGrouping(other) === root && declaredGroup(other, captures, directory) !== undefined));
 }
 
 /**
@@ -1276,11 +1318,13 @@ const groupInstances = new WeakMap<LoadedModule, GroupInstance>();
 
 /**
  * Resolve a group declaration against its sibling contract and attach it to
- * the grouping whose `by` it binds. Two groupings never share a capture set,
- * so the captures written as values choose exactly one. Returns the
- * contract's groupings.
+ * the grouping whose `by` it binds, the nearest along the contract's chain.
+ * Two groupings of one rule never share a capture set, so the captures
+ * written as values choose exactly one. A declaration inside a named
+ * instance of a grouping it inherits speaks only for that directory.
+ * Returns the groupings of the rule that defines it.
  */
-function attachGroup(root: TrieNode, entry: GroupDeclaration): Grouping[] {
+function attachGroup(root: TrieNode, entry: GroupDeclaration, modules: Map<string, ModuleRecord>): Grouping[] {
   const { modulePath, module } = entry;
   let parent: TrieNode | undefined = root;
   for (const segment of entry.directory) parent = parent?.children.get(trieKey(segment));
@@ -1290,8 +1334,8 @@ function attachGroup(root: TrieNode, entry: GroupDeclaration): Grouping[] {
   if (contract === undefined || !contract.segment.dynamic) {
     fail("invalid_instance", `${modulePath}: instanceOf must name a sibling dynamic rule; ${reference} is not one beside it`);
   }
-  const rule = contract.rule!;
-  if (rule.module.groups.length === 0) {
+  const chain = [...(contract.rule!.inherited ?? []), contract.rule!].reverse();
+  if (chain.every((rule) => rule.module.groups.length === 0)) {
     fail("invalid_instance", `${modulePath}: ${reference} declares no groupings, so a narrower name declares no group of it; a single file is declared at its full name`);
   }
   const bound = boundCaptures(reference, entry.name);
@@ -1304,17 +1348,73 @@ function attachGroup(root: TrieNode, entry: GroupDeclaration): Grouping[] {
       && !(contract.segment.dotlessCaptures === true && value.includes("."));
     if (!admitted) fail("invalid_instance", `${modulePath}: "${value}" is not a value ${placeholder} admits`);
   }
-  const names = Object.keys(bound).sort();
-  const grouping = rule.module.groups.find((candidate) => [...candidate.by].sort().join() === names.join());
-  if (grouping === undefined) {
-    const known = rule.module.groups.map((candidate) => `${candidate.name} by ${candidate.by.length === 0 ? "nothing" : candidate.by.join(", ")}`).join("; ");
-    fail("invalid_instance", `${modulePath}: binds ${names.join(", ")}, and no grouping of ${reference} groups by exactly those captures (${known})`);
+  const names = Object.keys(bound).sort().join();
+  const binds = (candidate: Grouping): boolean => [...candidate.by].sort().join() === names;
+  const owner = chain.find((rule) => rule.module.groups.some(binds));
+  if (owner === undefined) {
+    const known = chain.flatMap((rule) => rule.module.groups)
+      .map((candidate) => `${candidate.name} by ${candidate.by.length === 0 ? "nothing" : candidate.by.join(", ")}`).join("; ");
+    fail("invalid_instance", `${modulePath}: binds ${Object.keys(bound).sort().join(", ")}, and no grouping of ${reference} groups by exactly those captures (${known})`);
   }
-  const instance: GroupInstance = { modulePath, pattern: declaration(modulePath), captures: bound, module };
+  const grouping = owner.module.groups.find(binds)!;
+  const directory = directoryOf(modulePath);
+  const scoped = directory !== directoryOf(owner.modulePath);
+  if (scoped && entry.directory.some((segment) => segment.dynamic || segment.resolved)) {
+    fail("invalid_instance", `${modulePath}: declares a group of ${owner.pattern} away from it; declare it beside that rule, or in one named instance directory`);
+  }
+  const instance: GroupInstance = { modulePath, pattern: declaration(modulePath), captures: bound, directory: scoped ? directory : null, module };
   groupInstances.set(module, instance);
   grouping.instances.push(instance);
   grouping.instances.sort((left, right) => left.pattern.localeCompare(right.pattern));
-  return rule.module.groups;
+  modules.get(modulePath)!.contract = owner.modulePath;
+  return owner.module.groups;
+}
+
+const directoryOf = (modulePath: string): string => modulePath.includes("/") ? modulePath.slice(0, modulePath.lastIndexOf("/")) : "";
+
+/**
+ * A rule restating an inherited one adds to the groupings it inherits and
+ * never replaces one: a grouping without `by` names an inherited grouping and
+ * may make it abstract or sealed, and add guidance and a check. Tightening
+ * what is already tight states nothing new, and would report every finding
+ * twice. docs/INSTANCES.MD "Adding to an inherited grouping".
+ */
+function extendGroupings(local: StructuralRule, base: StructuralRule): void {
+  const inherited = [...(base.inherited ?? []), base].reverse().flatMap((rule) => rule.module.groups);
+  for (const grouping of local.module.groups) {
+    const same = inherited.find((candidate) => candidate.name === grouping.name);
+    if (grouping.extends !== null) {
+      if (same !== undefined) {
+        fail("invalid_instance", `${local.modulePath}: \`groups.${grouping.name}\` would replace the grouping ${base.pattern} defines under that name; leave out \`by\` to add to it, or give a grouping of its own another name`);
+      }
+      continue;
+    }
+    if (same === undefined) {
+      fail("invalid_instance", `${local.modulePath}: \`groups.${grouping.name}\` has no \`by\`, and ${base.pattern} has no grouping of that name to add to`);
+    }
+    grouping.by = same.by;
+    grouping.extends = same;
+    grouping.abstract &&= !tightened(same, "abstract");
+    grouping.sealed &&= !tightened(same, "sealed");
+  }
+}
+
+/** Whether a grouping, or one it adds to, sets `key`. */
+function tightened(grouping: Grouping, key: "abstract" | "sealed"): boolean {
+  for (let at: Grouping | null | undefined = grouping; at; at = at.extends) if (at[key]) return true;
+  return false;
+}
+
+/** Whether a grouping is abstract, by itself or by the grouping it adds to. */
+export function groupingAbstract(grouping: Grouping): boolean {
+  return tightened(grouping, "abstract");
+}
+
+/** The grouping that defines what `grouping` adds to: itself, unless it extends one. */
+export function rootGrouping(grouping: Grouping): Grouping {
+  let at = grouping;
+  while (at.extends) at = at.extends;
+  return at;
 }
 
 /**
@@ -1329,6 +1429,7 @@ function checkGroupFreezes(groupings: Grouping[]): void {
     for (const other of groupings.slice(index + 1)) {
       for (const one of grouping.instances) {
         for (const two of other.instances) {
+          if (one.directory !== null && two.directory !== null && one.directory !== two.directory) continue;
           const [a, b] = [one.module.frozenExport, two.module.frozenExport];
           if (a === undefined || b === undefined || a === b) continue;
           if (Object.keys(one.captures).some((name) => name in two.captures && one.captures[name] !== two.captures[name])) continue;
@@ -1416,6 +1517,7 @@ function materializeInstances(root: TrieNode, docs: Map<string, NodeDoc>): void 
   const compose = (local: TrieNode, base: TrieNode, at: string, captures: Record<string, string>): void => {
     if (local.rule !== null) {
       if (base.rule === null) fail("invalid_instance", `${at}: a file must specialize a file`);
+      extendGroupings(local.rule, base.rule);
       if (!base.segment.dynamic && !base.rule.module.optional && local.rule.module.optional) {
         fail("invalid_instance", `${at}: a required inherited file cannot become optional`);
       }

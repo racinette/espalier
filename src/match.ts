@@ -227,6 +227,7 @@ export function requirements(
         for (const rule of [...(child.rule.inherited ?? []), child.rule]) {
           for (const grouping of rule.module.groups) {
             for (const instance of grouping.instances) {
+              if (instance.directory !== null && instance.directory !== prefix) continue;
               if (!instance.module.optional) groups.push({ path: prefix, rule, grouping, instance });
             }
           }
@@ -372,17 +373,18 @@ export interface Freeze {
  * on `frozen`, as compilation checks. docs/LOCKS.MD "Frozen files".
  */
 export function fileFrozen(espalier: Espalier, filePath: string, owner: Ownership): Freeze {
+  const cut = filePath.lastIndexOf("/");
+  const directory = cut === -1 ? "" : filePath.slice(0, cut);
   for (const { rule, captures } of structuralChecks(owner.rule, filePath, owner.captures).reverse()) {
     for (const grouping of rule.module.groups) {
-      const declared = declaredGroup(grouping, captures);
+      const declared = declaredGroup(grouping, captures, directory);
       if (declared?.module.frozenExport !== undefined) return { frozen: declared.module.frozenExport, by: declared.modulePath };
     }
     if (rule.module.frozenExport !== undefined) return { frozen: rule.module.frozenExport, by: rule.modulePath };
   }
-  const cut = filePath.lastIndexOf("/");
-  const directory = resolveDirectory(espalier, cut === -1 ? "" : filePath.slice(0, cut));
-  if (!isDirectoryOwnership(directory)) return { frozen: false, by: null };
-  const decided = directoryFrozen(espalier.nodes, directory.path);
+  const found = resolveDirectory(espalier, directory);
+  if (!isDirectoryOwnership(found)) return { frozen: false, by: null };
+  const decided = directoryFrozen(espalier.nodes, found.path);
   return { frozen: decided.locked, by: decided.by };
 }
 
@@ -440,7 +442,7 @@ export function fileSeals(espalier: Espalier, filePath: string, owner: Ownership
           group: JSON.stringify([directory, ...grouping.by.map((name) => captures[name] ?? null)]),
         });
       }
-      const declared = declaredGroup(grouping, captures);
+      const declared = declaredGroup(grouping, captures, directory);
       if (declared?.module.sealed === true) seals.push({ key: `group ${declared.modulePath}`, by: declared.modulePath });
     }
   }

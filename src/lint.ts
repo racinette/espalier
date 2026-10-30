@@ -2,7 +2,7 @@
 
 import { statSync } from "node:fs";
 import path from "node:path";
-import { declaredGroup, groupModulePath, groupName, type Constraint, type StructuralRule } from "./compile.js";
+import { declaredGroup, groupDeclared, groupModulePath, groupName, type Constraint, type StructuralRule } from "./compile.js";
 import { loadConfig } from "./config.js";
 import { fail } from "./errors.js";
 import { startImplementations } from "./implementation.js";
@@ -340,18 +340,21 @@ async function lintOne(
     grouping: StructuralRule["module"]["groups"][number];
     directory: string;
     captures: Record<string, CaptureValue>;
+    /** The rules that check its members, contract first. */
+    chain: StructuralRule[];
     matches: { path: string; captures: Record<string, CaptureValue> }[];
   }
   const groups = new Map<string, GroupInvocation>();
   for (const file of allOwned) {
     const directory = path.posix.dirname(file.path);
-    for (const { rule, captures } of structuralChecks(file.rule, file.path, file.captures)) {
+    const checks = structuralChecks(file.rule, file.path, file.captures);
+    for (const { rule, captures } of checks) {
       for (const grouping of rule.module.groups) {
         const key = Object.fromEntries(grouping.by.map((name) => [name, captures[name]!]));
         const id = JSON.stringify([directory, rule.modulePath, grouping.name, grouping.by.map((name) => captures[name])]);
         let group = groups.get(id);
         if (group === undefined) {
-          group = { rule, grouping, directory: directory === "." ? "" : directory, captures: key, matches: [] };
+          group = { rule, grouping, directory: directory === "." ? "" : directory, captures: key, chain: checks.map((check) => check.rule), matches: [] };
           groups.set(id, group);
         }
         group.matches.push({ path: file.path, captures });
@@ -362,10 +365,10 @@ async function lintOne(
     if (scope !== null && !group.matches.some((match) => inScope(match.path))) continue;
     const at = group.directory === "" ? "." : `${group.directory}/`;
     const matches = group.matches.sort((left, right) => left.path.localeCompare(right.path));
-    const declared = declaredGroup(group.grouping, group.captures);
+    const declared = declaredGroup(group.grouping, group.captures, group.directory);
     // A group an abstract grouping does not see declared is reported where a
     // missing member would be: on the directory that holds it.
-    if (declared === undefined && group.grouping.abstract) {
+    if (group.grouping.abstract && !groupDeclared(group.chain, group.grouping, group.captures, group.directory)) {
       const name = groupName(group.rule.pattern.slice(group.rule.pattern.lastIndexOf("/") + 1), group.captures);
       builtin(at, "undeclared_instance",
         `the ${group.grouping.name} group \`${name}\` of the abstract grouping in \`${group.rule.pattern}\` is not declared; ${declareHint(groupModulePath(group.rule, group.grouping, group.captures))}`,

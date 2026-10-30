@@ -376,7 +376,9 @@ declared, the grouping also carries `instance`: the declaring module as
 adds "Declared as <pattern>" with that guidance, or a line saying the group
 must be declared when an abstract grouping has no declaration for it. A rule
 summary under a prefix lists each grouping's declared groups as `instances`.
-See [INSTANCES.MD](../../INSTANCES.MD#declaring-a-group).
+A grouping a named instance adds to is one grouping in a file's explanation:
+the inherited guidance comes first, the instance's after it, and the nearest
+declared group answers. See [INSTANCES.MD](../../INSTANCES.MD#declaring-a-group).
 
 ## Inherited contracts
 

@@ -68,9 +68,10 @@ directory declared before a module beneath it means anything. Guard declares
 each such directory on the way, with only `instanceOf`, and `unguard` deletes
 those declarations with the rest. Inside one, a file the contract names, such
 as `api.ts`, is opened at its own name, and a file a pattern admits is declared
-as the pattern's instance. A group is declared only beside the rule that
-defines it, so a group inside such a directory is refused as
-`guard_invalid_target`; open its files one by one with `--edit` instead.
+as the pattern's instance, and a group, such as
+`src/features/checkout/steps/0001_[t=a+].sql`, is declared there and holds
+only that directory's files. See
+[INSTANCES.MD](../../INSTANCES.MD#in-a-named-instance).
 
 `--add` and `--open` take directories only, since only a directory reopens a
 seal. To let the work create one particular file, open its directory. `--edit`

@@ -153,3 +153,66 @@ export const optional = true; export const description = "create users"; export 
     assert.deepEqual(messages(await check({ cwd: root, jobs: 1 })), ["set: a/ a/", "set: b/ b/"]);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test("a named instance declares a group of a grouping it inherits for its own files only", async () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "espalier-instance-groups-"));
+  const put = (name: string, contents: string) => {
+    mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+    writeFileSync(path.join(root, name), contents);
+  };
+  try {
+    put("espalier.config.yaml", `ignoreFiles: []\nskip: []\n`);
+    put("espalier/[area]/[num=0000][ord=00]_[group=a+].sql.mjs", `export const groups = {
+  set: { by: ["num", "group"], lint({ path, emit }) { emit({ code: "set", message: path, severity: "info" }); } },
+};
+`);
+    put("espalier/a/ESPALIER.mjs", `export const instanceOf = "../[area]";\n`);
+    put("espalier/a/0001[ord=00]_users.sql.mjs", `export const instanceOf = "[num=0000][ord=00]_[group=a+].sql.mjs";
+export function lint({ path, matches, emit }) { emit({ code: "users", message: path + " " + matches.length, severity: "info" }); }
+`);
+    for (const file of ["a/000101_users.sql", "a/000201_orders.sql", "b/000201_orders.sql"]) put(file, "");
+    const messages = (issues: { code: string; message: string; path: string }[]) => issues.map((issue) => `${issue.code}: ${issue.path} ${issue.message.split(";")[0]}`).sort();
+    // b has no users group, and nothing requires one there.
+    assert.deepEqual(messages(await check({ cwd: root, jobs: 1 })), [
+      "set: a/ a/", "set: a/ a/", "set: b/ b/",
+      "users: a/ a/ 1",
+    ]);
+
+    // The instance restates the rule to make the inherited grouping abstract
+    // and add a check; b keeps the contract's grouping as it is.
+    put("espalier/a/[num=0000][ord=00]_[group=a+].sql.mjs", `export const groups = {
+  set: { abstract: true, lint({ path, emit }) { emit({ code: "a-set", message: path, severity: "info" }); } },
+};
+`);
+    assert.deepEqual(messages(await check({ cwd: root, jobs: 1 })), [
+      "a-set: a/ a/", "a-set: a/ a/",
+      "set: a/ a/", "set: a/ a/", "set: b/ b/",
+      "undeclared_instance: a/ the set group `0002[ord=00]_orders.sql` of the abstract grouping in `a/[num=0000][ord=00]_[group=a+].sql` is not declared",
+      "users: a/ a/ 1",
+    ]);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("an instance adds to an inherited grouping and never replaces or loosens it", async () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "espalier-extend-groups-"));
+  const put = (name: string, contents: string) => {
+    mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+    writeFileSync(path.join(root, name), contents);
+  };
+  try {
+    put("espalier.config.yaml", `ignoreFiles: []\nskip: []\n`);
+    put("espalier/[area]/[num=0000]_[group=a+].sql.mjs", `export const groups = { set: { by: ["num"], abstract: true } };\n`);
+    put("espalier/a/ESPALIER.mjs", `export const instanceOf = "../[area]";\n`);
+    const refused = async (groups: string, code: string, message: RegExp) => {
+      put("espalier/a/[num=0000]_[group=a+].sql.mjs", `export const groups = ${groups};\n`);
+      await assert.rejects(check({ cwd: root, jobs: 1 }), (error: { code: string; message: string }) => error.code === code && message.test(error.message));
+    };
+    await refused(`{ set: { by: ["group"] } }`, "invalid_instance", /would replace the grouping/);
+    await refused(`{ other: { abstract: true } }`, "invalid_instance", /no grouping of that name to add to/);
+    await refused(`{ set: { description: "x" } }`, "module_invalid_export", /whose description it cannot replace/);
+    await refused(`{ set: { abstract: false } }`, "module_invalid_export", /may only tighten it/);
+    rmSync(path.join(root, "espalier/a"), { recursive: true });
+    put("espalier/[num=0000]_[group=a+].sql.mjs", `export const groups = { set: { sealed: true } };\n`);
+    await assert.rejects(check({ cwd: root, jobs: 1 }), { code: "module_invalid_export" });
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

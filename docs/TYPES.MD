@@ -475,7 +475,7 @@ Each key is the grouping's name, an identifier that appears in guidance, in
 
 | Field | |
 |---|---|
-| `by` | captures of this rule's path whose values identify a group; the others vary within it |
+| `by` | captures of this rule's path whose values identify a group; the others vary within it. Left out only in a named instance's restated rule, to [add to the inherited grouping](INSTANCES.MD#adding-to-an-inherited-grouping) of that name |
 | `description` | optional: what one group is, for headings |
 | `guidance` | optional: the Markdown obligation the group as a whole must satisfy |
 | `lint` | runs once per group with that group's members |
@@ -502,7 +502,8 @@ One group can be declared with its own `description`, `guidance` and `lint`,
 by a module at the rule's name with the grouping's captures written as values:
 `0001[ord=00]_users.sql.mjs` declares the `0001`, `users` group of `set`. A
 declared group must exist unless it is `optional`. With `abstract: true` every
-group must be declared. See [INSTANCES.MD](INSTANCES.MD#declaring-a-group).
+group must be declared. A named instance can declare groups that hold only
+its own files. See [INSTANCES.MD](INSTANCES.MD#declaring-a-group).
 
 The `lint` context is:
 

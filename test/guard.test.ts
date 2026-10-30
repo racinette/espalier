@@ -146,6 +146,7 @@ const FEATURES: Record<string, string> = {
   "features/checkout/steps/0001_users.sql": "a\n",
   "features/orders/api.ts": "orders\n",
   "features/orders/routes/list.ts": "list\n",
+  "features/orders/steps/0001_items.sql": "a\n",
 };
 
 test("a guard declares the directories a contract admits on the way to its targets", () =>
@@ -184,11 +185,21 @@ test("a guard declares the directories a contract admits on the way to its targe
     assert.equal(existsSync(path.join(root, "espalier/features/checkout")), false);
   }));
 
-test("a group inside a directory a contract admits is refused, since a group is declared beside its rule", () =>
-  scratch(FEATURES, (root) => {
-    const result = run(root, ["guard", "--no-build", "--format", "jsonl", "--close", ".", "--edit", "features/checkout/steps/0001_[t=a+].sql"]);
-    assert.equal(result.status, 2);
-    assert.match(result.stdout, /"code":"guard_invalid_target".*one by one with --edit/);
+test("a group inside a directory a contract admits is declared there, and opens only that directory's files", () =>
+  scratch(FEATURES, async (root) => {
+    const result = run(root, ["guard", "--no-build", "--close", ".", "--edit", "features/checkout/steps/0001_[t=a+].sql"]);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(readFileSync(path.join(root, "espalier/features/checkout/steps/0001_[t=a+].sql.mjs"), "utf8"), /instanceOf = "\[num=0000\]_\[t=a\+\]\.sql\.mjs"/);
+
+    git(root, "init", "-q");
+    git(root, "add", "-A");
+    git(root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "guard");
+    for (const name of ["features/checkout/steps/0001_users.sql", "features/orders/steps/0001_items.sql"]) {
+      writeFileSync(path.join(root, name), "edited\n");
+    }
+    const issues = (await check({ cwd: root, jobs: 1, base: "HEAD" }))
+      .filter((issue) => issue.code === "frozen_file_changed").map((issue) => issue.path);
+    assert.deepEqual(issues, ["features/orders/steps/0001_items.sql"]);
   }));
 
 test("unguard gives every module back byte for byte, and deletes what the guard created", () =>

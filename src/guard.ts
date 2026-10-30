@@ -166,26 +166,22 @@ function resolveTarget(repository: Repository, cwd: string, target: string): Slo
   if (relative.includes("[") && isDirectoryOwnership(resolveDirectory(espalier, parent(relative)))) {
     const name = leaf(relative);
     const { authored: within, declares } = reach(parent(relative));
-    const candidates = rules(espalier.root).filter(({ rule, directory }) => {
-      if (directory !== within || rule.module.groups.length === 0) return false;
+    const candidates = [...new Set(rules(espalier.root).filter(({ rule, directory }) => {
+      const groupings = [...(rule.inherited ?? []), rule].flatMap((source) => source.module.groups);
+      if (directory !== within || groupings.length === 0) return false;
       const bound = boundCaptures(leaf(declaration(rule.modulePath)), name);
       if (bound === null || Object.keys(bound).length === 0) return false;
       const names = Object.keys(bound).sort().join();
-      return rule.module.groups.some((grouping) => [...grouping.by].sort().join() === names);
-    });
+      return groupings.some((grouping) => [...grouping.by].sort().join() === names);
+    }).map(({ rule }) => rule))];
     if (candidates.length > 1) {
-      fail("guard_ambiguous_target", `${target} names a group of ${candidates.map(({ rule }) => rule.modulePath).join(" and ")}; declare it by hand`, { target });
+      fail("guard_ambiguous_target", `${target} names a group of ${candidates.map((rule) => rule.modulePath).join(" and ")}; declare it by hand`, { target });
     }
     if (candidates.length === 1) {
-      const contract = candidates[0]!.rule.modulePath;
-      // Groups attach to their rule before instance directories are filled in,
-      // so a group is declared only beside the rule that defines it.
-      if (parent(contract) !== parent(relative)) {
-        fail("guard_invalid_target", `${target}: ${parent(relative)}/ is an instance of ${parent(contract)}/, and a group is declared only beside its rule; open its files one by one with --edit, or the directory with --open`, { target });
-      }
+      // Inside a named instance, the declaration speaks for that directory only.
       return {
         target, module: `${relative}.mjs`, scope: { kind: "member" },
-        create: { instanceOf: `${leaf(declaration(candidates[0]!.rule.modulePath))}.mjs` },
+        create: { instanceOf: `${leaf(declaration(candidates[0]!.modulePath))}.mjs` },
         declares,
       };
     }

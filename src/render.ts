@@ -5,7 +5,7 @@
 // disk — a renderer that could read a file could produce output that depends
 // on something other than the espalier.
 
-import { directoryFrozen, directoryLock, directorySealed, type Constraint, type Espalier, type LoadedModule, type NodeDoc, type StructuralRule, type TrieNode } from "./compile.js";
+import { directoryFrozen, directoryLock, directorySealed, groupingAbstract, rootGrouping, type Constraint, type Espalier, type GroupInstance, type LoadedModule, type NodeDoc, type StructuralRule, type TrieNode } from "./compile.js";
 import path from "node:path";
 import { PROVENANCE } from "./files.js";
 import { matchSegment, resolveSegment, type CaptureValue, backrefNames, isStrictSubset, parseSegment, parseStructuralLeaf, type Segment } from "./pattern.js";
@@ -388,10 +388,11 @@ export function plan(espalier: Espalier): Placement[] {
       const onSpine = spine && directory && !child.segment.dynamic && !child.segment.resolved;
 
       // A rule authored here gets a section. So does a contract inherited into
-      // this directory, when something here is declared an instance of it:
-      // the instances nest under it, and a document that names them has to
-      // state the contract they share. docs/cli/build/README.MD "Contracts".
-      if (child.rule !== null && (child.rule.modulePath === `${path}.mjs` || isContract(node, child))) {
+      // this directory, when something here is declared an instance of it,
+      // or a group of it: the instances nest under it, and a document that
+      // names them has to state the contract they share.
+      // docs/cli/build/README.MD "Contracts".
+      if (child.rule !== null && (child.rule.modulePath === `${path}.mjs` || isContract(node, child) || declaresGroupsHere(child.rule, at))) {
         ensure(point, null).sections.push({ kind: "rule", at: path, rule: child.rule });
       }
 
@@ -1099,6 +1100,42 @@ function ruleBody(module: LoadedModule): string[] {
   return body;
 }
 
+const groupingTitle = (by: string[]): string => by.length === 0 ? "all files in a directory" : `by ${listing(by.map((name) => codeSpan(name)))}`;
+
+/** A declared group's heading and its own guidance. */
+function groupInstanceBlocks(instance: GroupInstance, directory: string, level: number): string[] {
+  const name = instance.pattern.slice(instance.pattern.lastIndexOf("/") + 1);
+  const described = instance.module.description === null ? "" : ` — ${instance.module.description}`;
+  return [
+    `${"#".repeat(level)} ${codeSpan(`${directory}${name}`)}${lockMark(instance.module.locked, instance.module.frozenExport === true, instance.module.sealed === true)}${described}`,
+    ...(instance.module.guidance.trim() === "" ? [] : [instance.module.guidance.trim()]),
+  ];
+}
+
+/** Whether a named instance at `directory` declares groups of a grouping the rule inherits. */
+const declaresGroupsHere = (rule: StructuralRule, directory: string): boolean =>
+  [...(rule.inherited ?? []), rule].some((source) => source.module.groups.some((grouping) =>
+    grouping.instances.some((instance) => instance.directory !== null && instance.directory === directory)));
+
+/**
+ * Groups a named instance declares of a grouping it inherits hold only its
+ * own files, so they are stated here, under the rule, rather than beside the
+ * contract that defines the grouping.
+ */
+function declaredHereSections(rule: StructuralRule, at: string, shown: string, level: number): string[] {
+  const here = at.slice(0, Math.max(at.lastIndexOf("/"), 0));
+  const directory = shown.slice(0, shown.lastIndexOf("/") + 1);
+  return [...(rule.inherited ?? []), rule].flatMap((source) => source.module.groups.flatMap((grouping) => {
+    const instances = grouping.instances.filter((instance) => instance.directory !== null && instance.directory === here);
+    if (instances.length === 0) return [];
+    return [
+      `${"#".repeat(level)} Together, ${groupingTitle(grouping.by)}, declared here`,
+      `Groups of the inherited ${codeSpan(grouping.name)} grouping, each bound by it and by its own section:`,
+      ...instances.flatMap((instance) => groupInstanceBlocks(instance, directory, level + 1)),
+    ];
+  }));
+}
+
 /**
  * Each grouping is a sub-section: what the members share is the heading, and
  * what the group as a whole must satisfy is the body. Declared groups nest
@@ -1108,23 +1145,23 @@ function ruleBody(module: LoadedModule): string[] {
 function groupingSections(module: LoadedModule, shown: string, level: number): string[] {
   const directory = shown.slice(0, shown.lastIndexOf("/") + 1);
   return module.groups.flatMap((grouping) => {
+    // Groups a named instance declares are stated in its own document.
+    const instances = grouping.instances.filter((instance) => instance.directory === null);
+    const abstract = groupingAbstract(grouping);
+    const { description } = rootGrouping(grouping);
     const blocks = [
-      `${"#".repeat(level)} Together, ${grouping.by.length === 0 ? "all files in a directory" : `by ${listing(grouping.by.map((name) => codeSpan(name)))}`}${lockMark(false, false, grouping.sealed)}${grouping.description === null ? "" : ` — ${grouping.description}`}`,
+      `${"#".repeat(level)} Together, ${groupingTitle(grouping.by)}${lockMark(false, false, grouping.sealed)}${description === null ? "" : ` — ${description}`}`,
+      ...(grouping.extends ? [`Adds to the inherited ${codeSpan(grouping.name)} grouping.`] : []),
       ...(grouping.guidance.trim() === "" ? [] : [grouping.guidance.trim()]),
     ];
-    if (grouping.instances.length === 0 && !grouping.abstract) return blocks;
-    blocks.push(grouping.instances.length === 0
+    if (instances.length === 0 && !abstract) return blocks;
+    blocks.push(instances.length === 0
       ? "No groups are declared yet."
       : "Declared groups, each bound by this grouping and by its own section:");
-    for (const instance of grouping.instances) {
-      const name = instance.pattern.slice(instance.pattern.lastIndexOf("/") + 1);
-      const described = instance.module.description === null ? "" : ` — ${instance.module.description}`;
-      blocks.push(`${"#".repeat(level + 1)} ${codeSpan(`${directory}${name}`)}${lockMark(instance.module.locked, instance.module.frozenExport === true, instance.module.sealed === true)}${described}`);
-      if (instance.module.guidance.trim() !== "") blocks.push(instance.module.guidance.trim());
-    }
+    for (const instance of instances) blocks.push(...groupInstanceBlocks(instance, directory, level + 1));
     blocks.push(
       `${"#".repeat(level + 1)} Adding new groups`,
-      grouping.abstract
+      abstract
         ? `Every ${codeSpan(grouping.name)} group here is declared, and an undeclared one is reported. ${HELP_INSTANCES}`
         : `A ${codeSpan(grouping.name)} group needs no declaration. Declaring one gives it its own guidance; ${HELP_INSTANCES.toLowerCase()}`,
     );
@@ -1235,6 +1272,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
     const heading = module.description === null ? "" : ` — ${module.description}`;
     blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${lockMark(module.locked, node !== null && nodeFrozen(espalier, node, section.at), node !== null ? nodeSealed(espalier, node, section.at) : module.sealed === true)}${heading}`, ...body);
     if (!inherited) blocks.push(...groupingSections(module, displayPath(point, section.at), level + 1));
+    blocks.push(...declaredHereSections(section.rule, section.at, displayPath(point, section.at), level + 1));
 
     if (instances.length > 0 || module.abstract) {
       blocks.push(instances.length === 0

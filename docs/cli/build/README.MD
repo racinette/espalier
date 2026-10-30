@@ -533,6 +533,13 @@ declaring one gives it its own guidance. An abstract grouping with no
 declared groups says "No groups are declared yet." in place of the list. See
 [INSTANCES.MD](../../INSTANCES.MD#declaring-a-group).
 
+Groups a named instance declares of a grouping it inherits hold only its
+files, so they are stated in the instance's document rather than beside the
+contract: under the inherited rule's section, a sub-section headed "Together,
+by … , declared here" lists them. A grouping an instance's restated rule adds
+to says "Adds to the inherited `<name>` grouping." before its own guidance,
+and keeps the inherited grouping's description in its heading.
+
 ### Contracts
 
 A dynamic rule with declared instances beside it is a contract, and its

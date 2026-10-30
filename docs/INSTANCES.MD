@@ -157,10 +157,65 @@ by the rule's `lint` and the grouping's `lint` as before. What it adds:
   [LOCKS.MD](LOCKS.MD#frozen-files).
 
 `template` and `referenceImplementation` describe one file and stay on the
-rule. A group can only be declared beside its rule. A capture from a
-directory segment cannot be written in, since a directory is declared as a
-directory instance. Every group in the rule's directories is the same
-declaration, as with any sibling instance.
+rule. A capture from a directory segment cannot be written in, since a
+directory is declared as a directory instance. A group declared beside its
+rule is the same declaration in every directory the rule reaches, as with any
+sibling instance.
+
+### In a named instance
+
+A named directory instance inherits its contract's groupings, and it can
+declare groups of them that hold only its own files. Write the declaration
+in the instance's directory, naming the contract's rule as the sibling it
+inherits:
+
+```js
+// espalier/features/[feature]/steps/[num=0000]_[t=a+].sql.mjs
+export const groups = { step: { by: ["num"], guidance: "A step migrates one thing." } };
+export const frozen = true;
+```
+
+```js
+// espalier/features/checkout/ESPALIER.mjs
+export const instanceOf = "../[feature]";
+```
+
+```js
+// espalier/features/checkout/steps/0001_[t=a+].sql.mjs
+export const instanceOf = "[num=0000]_[t=a+].sql.mjs";
+export const frozen = false;
+export const guidance = "Checkout's first step is being rewritten.";
+```
+
+Checkout's step `0001` is open; `orders`' step `0001` stays frozen with the
+rest. The declaration does everything one beside the rule does, for the
+instance's files only: it is required in that one directory, and generated
+guidance states it in the instance's own document. The directory must be a
+named instance, not a pattern.
+
+### Adding to an inherited grouping
+
+An instance that restates its contract's rule can add to an inherited
+grouping without replacing it. Name the grouping and leave out `by`:
+
+```js
+// espalier/features/checkout/steps/[num=0000]_[t=a+].sql.mjs
+export const groups = {
+  step: { abstract: true, guidance: "In checkout every step is declared." },
+};
+```
+
+Such a grouping may set `abstract` or `sealed` to `true`, add `guidance`,
+which is stated after the inherited grouping's, and add a `lint`, which runs
+beside the inherited one. It never replaces or loosens what the contract
+promises every instance: a `description`, `abstract = false` or
+`sealed = false` is `module_invalid_export`, and a grouping with an inherited
+grouping's name and its own `by` is `invalid_instance`. A grouping with
+another name is the instance's own. Without `by` outside a restated rule, or
+naming no inherited grouping, it is refused. Groups the instance declares
+attach to the nearest grouping, so they count for the inherited one as well:
+a group declared beside the contract satisfies an instance's abstract
+grouping, and the other way round.
 
 ## Abstract groupings
 

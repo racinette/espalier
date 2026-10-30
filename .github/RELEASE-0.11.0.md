@@ -134,6 +134,13 @@ unless it exports `optional`, reported as `missing_required_group`. A grouping
 with `abstract: true` reports an undeclared group as `undeclared_instance`.
 `runGroup` runs a declared group's `lint` when given its module.
 
+A named directory instance can declare groups of the groupings it inherits,
+in its own directory, and they hold only its files: `features/checkout/` can
+open its own step `0001` while every other feature's stays frozen. An
+instance that restates its contract's rule can also add to an inherited
+grouping by naming it without `by`: make it abstract or sealed, add guidance
+or a check, but never replace or loosen it.
+
 ## Alternatives in names
 
 Braces holding a comma match exactly one of their alternatives, anywhere in a

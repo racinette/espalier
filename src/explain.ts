@@ -8,7 +8,7 @@
 import path from "node:path";
 import { fail } from "./errors.js";
 import type { ConstraintAnswer, DeclaredGroupAnswer, RuleAnswer } from "./explainText.js";
-import { declaredGroup, directoryFrozen, directoryLock, type GroupInstance, type Lock } from "./compile.js";
+import { declaredGroup, directoryFrozen, directoryLock, rootGrouping, type GroupInstance, type Grouping, type Lock } from "./compile.js";
 import {
   isDirectoryOwnership,
   directorySeals,
@@ -24,6 +24,7 @@ import type { Reporter } from "./output.js";
 import { closedSet, constraintGroups, mapEntries, requiredUnder, subtree } from "./render.js";
 import { delegated } from "./nested.js";
 import { open } from "./repository.js";
+import type { CaptureValue } from "./pattern.js";
 import { admitConstraint } from "./targets.js";
 
 export interface ExplainOptions {
@@ -151,7 +152,8 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
           name: grouping.name, by: grouping.by, description: grouping.description, guidance: grouping.guidance.trim(),
           ...(grouping.abstract ? { abstract: true as const } : {}),
           ...(grouping.sealed ? { sealed: true as const } : {}),
-          ...(grouping.instances.length > 0 ? { instances: grouping.instances.map(declaredAnswer) } : {}),
+          ...((here) => here.length > 0 ? { instances: here.map(declaredAnswer) } : {})(grouping.instances.filter((instance) =>
+            instance.directory === null || instance.directory === path.posix.dirname(`${prefix}${visit.at}`))),
         })) } : {}),
       }));
 
@@ -239,18 +241,29 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
   }
 
   // A file is in one group per grouping of each rule that checks it, keyed by
-  // the shared captures. docs/cli/explain/README.MD "Groupings".
-  const memberships = structuralChecks(owner.rule, target, owner.captures).flatMap(({ rule, captures }) =>
-    rule.module.groups.map((grouping) => {
-      const declared = declaredGroup(grouping, captures);
-      return {
-        name: grouping.name, by: grouping.by, description: grouping.description, guidance: grouping.guidance.trim(),
-        ...(grouping.abstract ? { abstract: true as const } : {}),
-        ...(grouping.sealed ? { sealed: true as const } : {}),
-        captures: Object.fromEntries(grouping.by.map((name) => [name, captures[name]!])),
-        ...(declared === undefined ? {} : { instance: declaredAnswer(declared) }),
-      };
-    }));
+  // the shared captures. A grouping a restating rule adds to is one grouping:
+  // its guidance gathers, and the nearest declared group answers.
+  // docs/cli/explain/README.MD "Groupings".
+  const directory = path.posix.dirname(target) === "." ? "" : path.posix.dirname(target);
+  const gathered = new Map<Grouping, { grouping: Grouping; guidance: string[]; abstract: boolean; sealed: boolean; captures: Record<string, CaptureValue>; declared?: GroupInstance }>();
+  for (const { rule, captures } of structuralChecks(owner.rule, target, owner.captures)) {
+    for (const grouping of rule.module.groups) {
+      const root = rootGrouping(grouping);
+      const entry = gathered.get(root) ?? { grouping: root, guidance: [], abstract: false, sealed: false, captures };
+      gathered.set(root, entry);
+      if (grouping.guidance.trim() !== "") entry.guidance.push(grouping.guidance.trim());
+      entry.abstract ||= grouping.abstract;
+      entry.sealed ||= grouping.sealed;
+      entry.declared = declaredGroup(grouping, captures, directory) ?? entry.declared;
+    }
+  }
+  const memberships = [...gathered.values()].map(({ grouping, guidance, abstract, sealed, captures, declared }) => ({
+    name: grouping.name, by: grouping.by, description: grouping.description, guidance: guidance.join("\n\n"),
+    ...(abstract ? { abstract: true as const } : {}),
+    ...(sealed ? { sealed: true as const } : {}),
+    captures: Object.fromEntries(grouping.by.map((name) => [name, captures[name]!])),
+    ...(declared === undefined ? {} : { instance: declaredAnswer(declared) }),
+  }));
 
   reporter.explanation({
     kind: "explanation",
