@@ -261,13 +261,17 @@ test("masks are rejected when they are not in the vocabulary", () => {
     ["[a=0(2..6)+]", /cannot follow another repetition/],
     ["[a=0(2..)+]", /cannot follow another repetition/],
     ["[a=0(..6)]", /must require at least one character/],
-    ["[a=kebab-case]", /"e" is not a mask character.*written "kebab"/],
-    ["[a=snake_case]", /written "snake"/],
-    ["[a=Snake]", /written "snake"/],
-    ["[a=SCREAMING_SNAKE_CASE]", /written "SNAKE"/],
-    ["[a=PascalCase]", /written "Pascal"/],
-    ["[a=pascal]", /written "Pascal"/],
-    ["[a=camelCase]", /written "camel"/],
+    ["[a=kebab-case]", /"e" is not a mask character.*a case style is written "\[a@kebab\]"/],
+    ["[a=snake]", /a case style follows "@", as in "\[a@snake\]"/],
+    ["[a@kebab-case]", /"kebab-case" is not a case style; it is written "kebab"/],
+    ["[a@snake_case]", /it is written "snake"/],
+    ["[a@Snake]", /it is written "snake"/],
+    ["[a@SCREAMING_SNAKE_CASE]", /it is written "SNAKE"/],
+    ["[a@PascalCase]", /it is written "Pascal"/],
+    ["[a@pascal]", /it is written "Pascal"/],
+    ["[a@camelCase]", /it is written "camel"/],
+    ["[a@a+]", /"a\+" is not a case style; the case styles are kebab, snake, KEBAB, SNAKE, camel, Pascal/],
+    ["{a@snake}", /carries no mask or case style/],
     ["[a=L]", /a letter of either case is "l"/],
     ["[a=W+]", /a letter or digit of either case is "w"/],
     ["[a=0++]", /cannot follow another repetition/],
@@ -334,7 +338,7 @@ test("k, K, s and S admit the characters of kebab and snake names, and nothing a
     for (const text of yes) assert.equal(accepts(mask, text), true, `${mask} accepts ${text}`);
     for (const text of no) assert.equal(accepts(mask, text), false, `${mask} rejects ${text}`);
   }
-  assert.equal(isStrictSubset(leaf("[n=kebab].ts"), leaf("[n=k+].ts")), true, "the style orders the characters k admits");
+  assert.equal(isStrictSubset(leaf("[n@kebab].ts"), leaf("[n=k+].ts")), true, "the style orders the characters k admits");
   assert.equal(isStrictSubset(leaf("[n=x+].ts"), leaf("[n=k+].ts")), true);
   assert.equal(commonName(leaf("[n=k+].ts"), leaf("[n=K+].ts")), "0.ts", "digits are both lowercase and screaming");
   assert.equal(commonName(leaf("[n=k+]x.ts"), leaf("[n=s+]x.ts")), "ax.ts");
@@ -343,7 +347,7 @@ test("k, K, s and S admit the characters of kebab and snake names, and nothing a
 });
 
 test("a case style names a naming convention, leniently about capitals and digits", () => {
-  const accepts = (style: string, text: string): boolean => matchSegment(parseSegment(`[n=${style}]`, "test"), text) !== null;
+  const accepts = (style: string, text: string): boolean => matchSegment(parseSegment(`[n@${style}]`, "test"), text) !== null;
   const table: [string, string[], string[]][] = [
     ["kebab", ["user", "user-id", "utf-8", "a1-b2"], ["User", "user_id", "userId", "user--id", "-user", "user-", "1-user"]],
     ["snake", ["user", "user_id", "utf_8"], ["User", "user-id", "userId", "user__id", "_user", "user_"]],
@@ -356,34 +360,34 @@ test("a case style names a naming convention, leniently about capitals and digit
     for (const text of yes) assert.equal(accepts(style, text), true, `${style} accepts ${text}`);
     for (const text of no) assert.equal(accepts(style, text), false, `${style} rejects ${text}`);
   }
-  assert.deepEqual(matchSegment(leaf("[Name=Pascal].test.tsx"), "HTMLView.test.tsx"), { Name: "HTMLView" });
+  assert.deepEqual(matchSegment(leaf("[Name@Pascal].test.tsx"), "HTMLView.test.tsx"), { Name: "HTMLView" });
 });
 
 test("an overlap is shown by the shortest name both segments match", () => {
-  assert.equal(commonName(leaf("[n=kebab].ts"), leaf("[n=camel].ts")), "a.ts");
+  assert.equal(commonName(leaf("[n@kebab].ts"), leaf("[n@camel].ts")), "a.ts");
   assert.equal(commonName(leaf("[name]-test.ts"), leaf("test-[name].ts")), "test-test.ts");
-  assert.equal(commonName(leaf("[n=Pascal].ts"), leaf("[n=camel].ts")), null, "disjoint");
+  assert.equal(commonName(leaf("[n@Pascal].ts"), leaf("[n@camel].ts")), null, "disjoint");
   assert.equal(commonName(parseSegment("{a}-[x]", "test"), parseSegment("[y]-{a}", "test")), null, "a back-reference is one instance's value");
 });
 
 test("case styles narrow for containment, overlap on one lowercase word, and split like any capture", () => {
-  assert.equal(isStrictSubset(leaf("[n=kebab].ts"), leaf("[n].ts")), true);
-  assert.equal(isStrictSubset(leaf("[n=a+].ts"), leaf("[n=kebab].ts")), true, "one lowercase word is kebab-case");
-  assert.equal(isStrictSubset(leaf("[n=kebab].ts"), leaf("[n=x+].ts")), false, "dashes are not letters");
-  assert.equal(isStrictSubset(leaf("[n=camel].ts"), leaf("[n=w+].ts")), true);
-  assert.equal(isStrictSubset(leaf("[n=Pascal].ts"), leaf("[n=w+].ts")), true);
-  assert.equal(isStrictSubset(leaf("[n=SNAKE].ts"), leaf("[n=S+].ts")), true);
-  assert.equal(intersectSegments(leaf("[n=SNAKE].ts"), leaf("[n=snake].ts")), false, "the first letter decides");
-  assert.equal(intersectSegments(leaf("[n=KEBAB].ts"), leaf("[n=SNAKE].ts")), true, "one capital word is both");
-  assert.equal(intersectSegments(leaf("[n=kebab].ts"), leaf("[n=camel].ts")), true, "user.ts is both");
-  assert.equal(intersectSegments(leaf("[n=kebab].ts"), leaf("[n=snake].ts")), true);
-  assert.equal(intersectSegments(leaf("[n=Pascal].ts"), leaf("[n=camel].ts")), false, "the first letter decides");
-  assert.equal(intersectSegments(leaf("[n=Pascal].ts"), leaf("[n=kebab].ts")), false);
-  assert.notEqual(trieKey(leaf("[n=kebab].ts")), trieKey(leaf("[n=snake].ts")));
-  assert.equal(ambiguousSplit(leaf("[a=kebab]_[b=kebab].ts")), null, "kebab-case has no underscore");
-  assert.equal(ambiguousSplit(leaf("[a=snake]-[b=Pascal].ts")), null);
-  assert.deepEqual(ambiguousSplit(leaf("[a=kebab]-[b].ts"))?.parses, [{ a: "a", b: "a-a" }, { a: "a-a", b: "a" }]);
-  assert.notEqual(ambiguousSplit(leaf("[a=camel][B=Pascal].ts")), null, "fooBarBaz splits at either capital");
+  assert.equal(isStrictSubset(leaf("[n@kebab].ts"), leaf("[n].ts")), true);
+  assert.equal(isStrictSubset(leaf("[n=a+].ts"), leaf("[n@kebab].ts")), true, "one lowercase word is kebab-case");
+  assert.equal(isStrictSubset(leaf("[n@kebab].ts"), leaf("[n=x+].ts")), false, "dashes are not letters");
+  assert.equal(isStrictSubset(leaf("[n@camel].ts"), leaf("[n=w+].ts")), true);
+  assert.equal(isStrictSubset(leaf("[n@Pascal].ts"), leaf("[n=w+].ts")), true);
+  assert.equal(isStrictSubset(leaf("[n@SNAKE].ts"), leaf("[n=S+].ts")), true);
+  assert.equal(intersectSegments(leaf("[n@SNAKE].ts"), leaf("[n@snake].ts")), false, "the first letter decides");
+  assert.equal(intersectSegments(leaf("[n@KEBAB].ts"), leaf("[n@SNAKE].ts")), true, "one capital word is both");
+  assert.equal(intersectSegments(leaf("[n@kebab].ts"), leaf("[n@camel].ts")), true, "user.ts is both");
+  assert.equal(intersectSegments(leaf("[n@kebab].ts"), leaf("[n@snake].ts")), true);
+  assert.equal(intersectSegments(leaf("[n@Pascal].ts"), leaf("[n@camel].ts")), false, "the first letter decides");
+  assert.equal(intersectSegments(leaf("[n@Pascal].ts"), leaf("[n@kebab].ts")), false);
+  assert.notEqual(trieKey(leaf("[n@kebab].ts")), trieKey(leaf("[n@snake].ts")));
+  assert.equal(ambiguousSplit(leaf("[a@kebab]_[b@kebab].ts")), null, "kebab-case has no underscore");
+  assert.equal(ambiguousSplit(leaf("[a@snake]-[b@Pascal].ts")), null);
+  assert.deepEqual(ambiguousSplit(leaf("[a@kebab]-[b].ts"))?.parses, [{ a: "a", b: "a-a" }, { a: "a-a", b: "a" }]);
+  assert.notEqual(ambiguousSplit(leaf("[a@camel][B@Pascal].ts")), null, "fooBarBaz splits at either capital");
 });
 
 test("a mask narrows a capture for containment, and the trie keys on it", () => {

@@ -1257,7 +1257,7 @@ interface GroupDeclaration {
 function nameTokens(name: string): Array<{ text: string; capture?: string }> {
   const tokens: Array<{ text: string; capture?: string }> = [];
   let last = 0;
-  for (const found of name.matchAll(/\[([A-Za-z_][A-Za-z0-9_]*)(?:=[^\]]*)?\]/g)) {
+  for (const found of name.matchAll(/\[([A-Za-z_][A-Za-z0-9_]*)(?:[=@][^\]]*)?\]/g)) {
     if (found.index! > last) tokens.push({ text: name.slice(last, found.index) });
     tokens.push({ text: found[0], capture: found[1]! });
     last = found.index! + found[0].length;

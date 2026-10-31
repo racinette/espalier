@@ -171,8 +171,8 @@ same with `_`. `l` is a letter and `w` a letter or digit of either case. `0` is
 a digit, `#` an optional digit, and `-` or `_` itself. `+` repeats the element
 before it one or more times, `(n)` exactly n times, and `(m..n)`, `(m..)` and
 `(..n)` between m and n times, at least m, or at most n. `[name={a,b}]` accepts
-exactly the listed names. `[name=kebab]`, `[name=snake]`, `[NAME=KEBAB]`,
-`[NAME=SNAKE]`, `[name=camel]` and `[Name=Pascal]` accept a name in that case
+exactly the listed names. `[name@kebab]`, `[name@snake]`, `[NAME@KEBAB]`,
+`[NAME@SNAKE]`, `[name@camel]` and `[Name@Pascal]` accept a name in that case
 style; capitals may run together, as in `HTMLParser`.
 
 ```text
@@ -180,7 +180,7 @@ style; capitals may run together, as in `HTMLParser`.
 [at=0(14)]_[name].rb.mjs              a fourteen-digit timestamp
 [v=0(2..4)].md.mjs                    two to four digits
 [kind={tables,views}].sql.mjs         tables.sql and views.sql only
-[Name=Pascal].tsx.mjs                 SubmitButton.tsx; not submit-button.tsx
+[Name@Pascal].tsx.mjs                 SubmitButton.tsx; not submit-button.tsx
 ```
 
 A mask describes shape, not meaning; whether fourteen digits are a valid date

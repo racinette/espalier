@@ -5,11 +5,11 @@
 ## Project layout
 
     constants/
-    └─ [NAME=SNAKE].ts 0+  a constant
+    └─ [NAME@SNAKE].ts 0+  a constant
 
 A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
-`[NAME=SNAKE]` accepts a SCREAMING_SNAKE_CASE name: capital words of letters and digits joined by underscores, starting with a letter. `espalier help matching` has the full grammar.
+`[NAME@SNAKE]` accepts a SCREAMING_SNAKE_CASE name: capital words of letters and digits joined by underscores, starting with a letter. `espalier help matching` has the full grammar.
 
 ## Other repository paths
 

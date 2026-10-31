@@ -213,23 +213,24 @@ A back-reference repeats the bound text and carries no mask of its own:
 `{seq=0+}` is rejected. A name is declared once per path, mask included, so
 `[seq=000000]` and a later `[seq=0+]` are a duplicate, not a refinement.
 
-Anything after `=` that is not a mask, a list or a [case style](#case-styles)
-is rejected as `malformed_placeholder`, naming the offending character. The
-vocabulary is built from characters every filesystem accepts, which is why the separator is `=` rather than `:`, and why `?` and
-`*` do not appear.
+Anything after `=` that is not a mask or a list is rejected as
+`malformed_placeholder`, naming the offending character. The vocabulary is
+built from characters every filesystem accepts, which is why the separators
+are `=` and `@` rather than `:`, and why `?` and `*` do not appear.
 
 ### Case styles
 
-A capture may require a naming convention instead of a mask, by writing the
-style's name, in that style, after `=`:
+A capture may require a naming convention instead of a mask. `=` pictures
+the characters of a name; `@` names a convention, and the style's name is
+written in that style:
 
 ```text
-[Name=Pascal].tsx                    SubmitButton.tsx, HTMLView.tsx
-[name=camel].ts                      useCart.ts, parseHTML.ts
-[slug=kebab].ts                      order-history.ts, utf-8.ts
-[name=snake].py                      send_email.py
-[NAME=SNAKE].ts                      MAX_RETRIES.ts
-[NAME=KEBAB].txt                     CONTENT-TYPE.txt
+[Name@Pascal].tsx                    SubmitButton.tsx, HTMLView.tsx
+[name@camel].ts                      useCart.ts, parseHTML.ts
+[slug@kebab].ts                      order-history.ts, utf-8.ts
+[name@snake].py                      send_email.py
+[NAME@SNAKE].ts                      MAX_RETRIES.ts
+[NAME@KEBAB].txt                     CONTENT-TYPE.txt
 ```
 
 | Style | Usually called | Accepts | Not |
@@ -248,8 +249,8 @@ lowercase or a capital letter; capitals may run together, so an acronym is
 accepted either way it is written. None of them contains a dot.
 
 A style is the whole constraint: it cannot be combined with a mask, and the
-names are case-sensitive and exact, so `[name=kebab-case]` is rejected with a
-pointer to `kebab`. A single lowercase word, such as `user`, is kebab, snake
+names are case-sensitive and exact, so `[name@kebab-case]` is rejected with a
+pointer to `kebab`, and `[name=kebab]` with a pointer to `[name@kebab]`. A single lowercase word, such as `user`, is kebab, snake
 and camel at once, and a single capital word is KEBAB and SNAKE, so sibling
 rules in two such styles overlap and are [rejected](#ambiguity-is-rejected); a
 bare `[name]` beside a style is a fallback, as beside a mask.

@@ -5,11 +5,11 @@
 ## Project layout
 
     revisions/
-    └─ [rev=h(12)]_[name=snake].py 0+  a revision
+    └─ [rev=h(12)]_[name@snake].py 0+  a revision
 
 A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
-In `[rev=h(12)]`, the text after `=` is a mask: each character matches one character of the name. `h` matches a digit or a lowercase a to f. `(n)` repeats the element before it exactly n times. `[name=snake]` accepts a snake_case name: lowercase words of letters and digits joined by underscores, starting with a letter. `espalier help matching` has the full grammar.
+In `[rev=h(12)]`, the text after `=` is a mask: each character matches one character of the name. `h` matches a digit or a lowercase a to f. `(n)` repeats the element before it exactly n times. `[name@snake]` accepts a snake_case name: lowercase words of letters and digits joined by underscores, starting with a letter. `espalier help matching` has the full grammar.
 
 ## Other repository paths
 

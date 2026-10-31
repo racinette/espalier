@@ -166,12 +166,12 @@ rejected with a pointer to `l` and `w`.
 
 ```text
 [code=A(2..3)0(..2)].txt             EU.txt, USA12.txt; not eu.txt
-[rev=h(12)]_[name=snake].py          3f9a2c1b4d5e_add_users.py
+[rev=h(12)]_[name@snake].py          3f9a2c1b4d5e_add_users.py
 [id=w(11)].json                      dQw4w9WgXcQ.json
-[seq=0(4..)]_[name=snake].sql        0001_add_users.sql
-[Name=Pascal].tsx                    SubmitButton.tsx, HTMLView.tsx
-[slug=kebab].ts                      order-history.ts
-[NAME=SNAKE].ts                      MAX_RETRIES.ts
+[seq=0(4..)]_[name@snake].sql        0001_add_users.sql
+[Name@Pascal].tsx                    SubmitButton.tsx, HTMLView.tsx
+[slug@kebab].ts                      order-history.ts
+[NAME@SNAKE].ts                      MAX_RETRIES.ts
 ```
 
 - `h` and `H` are a hex digit, lowercase or capital.
@@ -180,8 +180,9 @@ rejected with a pointer to `l` and `w`.
   any order.
 - `(m..n)`, `(m..)` and `(..n)` repeat an element between two counts,
   extending `(n)`.
-- A capture can require a case style by its name written in that style:
-  `kebab`, `snake`, `KEBAB`, `SNAKE`, `camel` and `Pascal`. They allow digits
+- A capture can require a case style after `@`, where `=` takes a mask: its
+  name written in that style, `kebab`, `snake`, `KEBAB`, `SNAKE`, `camel` or
+  `Pascal`. They allow digits
   after the first letter and capitals in runs, so acronyms pass either way
   they are written. A single lowercase word fits three styles at once, so two
   sibling rules in those styles are rejected as overlapping.

@@ -72,7 +72,7 @@
       "severity": "error",
       "metadata": {
         "declared": [
-          "[NAME=SNAKE].ts"
+          "[NAME@SNAKE].ts"
         ]
       }
     },
@@ -82,7 +82,7 @@
       "severity": "error",
       "metadata": {
         "declared": [
-          "[NAME=KEBAB].txt"
+          "[NAME@KEBAB].txt"
         ]
       }
     },
@@ -92,7 +92,7 @@
       "severity": "error",
       "metadata": {
         "declared": [
-          "[name=camel].ts"
+          "[name@camel].ts"
         ]
       }
     },
@@ -102,7 +102,7 @@
       "severity": "error",
       "metadata": {
         "declared": [
-          "[name=snake].py"
+          "[name@snake].py"
         ]
       }
     },
@@ -112,7 +112,7 @@
       "severity": "error",
       "metadata": {
         "declared": [
-          "[seq=0(4..)]_[name=snake].sql"
+          "[seq=0(4..)]_[name@snake].sql"
         ]
       }
     },
@@ -122,42 +122,42 @@
       "severity": "error",
       "metadata": {
         "declared": [
-          "[rev=h(12)]_[name=snake].py"
+          "[rev=h(12)]_[name@snake].py"
         ]
       }
     }
   ],
   "ownership": {
-    "components/SubmitButton.tsx": "components/[Name=Pascal].tsx.mjs",
-    "components/HTMLView.tsx": "components/[Name=Pascal].tsx.mjs",
+    "components/SubmitButton.tsx": "components/[Name@Pascal].tsx.mjs",
+    "components/HTMLView.tsx": "components/[Name@Pascal].tsx.mjs",
     "components/submit-button.tsx": "components/[name].tsx.mjs",
-    "hooks/useCart.ts": "hooks/[name=camel].ts.mjs",
+    "hooks/useCart.ts": "hooks/[name@camel].ts.mjs",
     "hooks/UseCart.ts": null,
-    "routes/order-history.ts": "routes/[slug=kebab].ts.mjs",
-    "routes/utf-8.ts": "routes/[slug=kebab].ts.mjs",
+    "routes/order-history.ts": "routes/[slug@kebab].ts.mjs",
+    "routes/utf-8.ts": "routes/[slug@kebab].ts.mjs",
     "routes/order_history.ts": "routes/[name].ts.mjs",
-    "jobs/send_email.py": "jobs/[name=snake].py.mjs",
+    "jobs/send_email.py": "jobs/[name@snake].py.mjs",
     "jobs/sendEmail.py": null,
-    "migrations/0001_add_users.sql": "migrations/[seq=0(4..)]_[name=snake].sql.mjs",
-    "migrations/20240131_add_orders.sql": "migrations/[seq=0(4..)]_[name=snake].sql.mjs",
+    "migrations/0001_add_users.sql": "migrations/[seq=0(4..)]_[name@snake].sql.mjs",
+    "migrations/20240131_add_orders.sql": "migrations/[seq=0(4..)]_[name@snake].sql.mjs",
     "migrations/001_bad.sql": null,
     "codes/EU.txt": "codes/[code=A(2..3)0(..2)].txt.mjs",
     "codes/USA12.txt": "codes/[code=A(2..3)0(..2)].txt.mjs",
     "codes/E.txt": null,
     "codes/USA123.txt": null,
-    "constants/MAX_RETRIES.ts": "constants/[NAME=SNAKE].ts.mjs",
-    "constants/HTTP2.ts": "constants/[NAME=SNAKE].ts.mjs",
+    "constants/MAX_RETRIES.ts": "constants/[NAME@SNAKE].ts.mjs",
+    "constants/HTTP2.ts": "constants/[NAME@SNAKE].ts.mjs",
     "constants/maxRetries.ts": null,
-    "headers/CONTENT-TYPE.txt": "headers/[NAME=KEBAB].txt.mjs",
+    "headers/CONTENT-TYPE.txt": "headers/[NAME@KEBAB].txt.mjs",
     "headers/Content-Type.txt": null,
-    "revisions/3f9a2c1b4d5e_add_users.py": "revisions/[rev=h(12)]_[name=snake].py.mjs",
+    "revisions/3f9a2c1b4d5e_add_users.py": "revisions/[rev=h(12)]_[name@snake].py.mjs",
     "revisions/3F9A2C1B4D5E_add_users.py": null
   },
   "explain": {
     "components/HTMLView.tsx": {
       "exit": 0,
       "object": {
-        "rule": "components/[Name=Pascal].tsx.mjs",
+        "rule": "components/[Name@Pascal].tsx.mjs",
         "captures": {
           "Name": "HTMLView"
         }
@@ -166,7 +166,7 @@
     "migrations/20240131_add_orders.sql": {
       "exit": 0,
       "object": {
-        "rule": "migrations/[seq=0(4..)]_[name=snake].sql.mjs",
+        "rule": "migrations/[seq=0(4..)]_[name@snake].sql.mjs",
         "captures": {
           "seq": "20240131",
           "name": "add_orders"

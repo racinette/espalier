@@ -124,7 +124,7 @@ const MASK_CLASSES: Record<string, MaskClass> = {
 };
 
 /** `(n)` and `+` apply to the element before them, so an element is parsed and then possibly repeated. */
-function parseMask(source: string, context: string, placeholder: string): Constraint {
+function parseMask(source: string, context: string, placeholder: string, name: string): Constraint {
   const elements: MaskElement[] = [];
   const terms: MaskTerm[] = [];
   const bad = (reason: string): never =>
@@ -142,7 +142,7 @@ function parseMask(source: string, context: string, placeholder: string): Constr
     } else if (char === "L" || char === "W") {
       return bad(`"${char}" is not a mask character; ${char === "L" ? "a letter" : "a letter or digit"} of either case is "${char.toLowerCase()}"`);
     } else {
-      return bad(`"${char}" is not a mask character; the mask vocabulary is 0 # a A l x X w h H k K s S - _ with +, (n) and (m..n) for repetition${styleHint(source)}`);
+      return bad(`"${char}" is not a mask character; the mask vocabulary is 0 # a A l x X w h H k K s S - _ with +, (n) and (m..n) for repetition${meantStyle(source) === undefined ? "" : `; a case style is written "[${name}@${meantStyle(source)}]"`}`);
     }
     i += 1;
     // `(n)` is exactly n copies; `(m..n)`, `(m..)` and `(..n)` are m required
@@ -188,14 +188,13 @@ function parseMask(source: string, context: string, placeholder: string): Constr
   return { kind: "mask", source, terms, elements };
 }
 
-/** A pointer to the case style a misspelled mask seems to mean, such as `kebab`. */
-function styleHint(source: string): string {
+/** The case style a misspelling seems to mean, such as `kebab` for `kebab-case`. */
+function meantStyle(source: string): CaseStyle | undefined {
   // `kebab-case`, `Snake`, `SCREAMING_SNAKE_CASE`, `pascal`: the word, then the case it was written in.
   const word = source.toLowerCase().replace(/[-_]/g, "").replace(/case$/, "").replace(/^screaming/, "");
   const screaming = /^screaming/i.test(source) || (source === source.toUpperCase() && source !== source.toLowerCase());
-  const meant = (Object.keys(CASE_STYLES) as CaseStyle[]).find((style) => style.toLowerCase() === word
+  return (Object.keys(CASE_STYLES) as CaseStyle[]).find((style) => style.toLowerCase() === word
     && (style === "camel" || style === "Pascal" || (style === style.toUpperCase()) === screaming));
-  return meant === undefined ? "" : `; the case style is written "${meant}"`;
 }
 
 /** `{a,b}`: literal alternatives, at least two, built from name characters and the two mask literals. */
@@ -213,19 +212,30 @@ function parseList(source: string, context: string, placeholder: string): Constr
   return { kind: "list", source, values };
 }
 
-/** `name` or `name=constraint`, the inside of a `[…]` that is not recursive. */
+/**
+ * `name`, `name=mask`, `name={a,b}` or `name@style`, the inside of a `[…]`
+ * that is not recursive: `=` pictures the characters, `@` names a convention.
+ */
 function parseCapture(inner: string, context: string): { name: string; constraint?: Constraint } {
-  const equals = inner.indexOf("=");
-  const name = equals === -1 ? inner : inner.slice(0, equals);
+  const at = inner.search(/[=@]/);
+  const name = at === -1 ? inner : inner.slice(0, at);
   if (!CAPTURE_NAME.test(name)) {
     fail("malformed_placeholder", `"[${inner}]" is not a valid capture name (${context})`);
   }
-  if (equals === -1) return { name };
-  const rest = inner.slice(equals + 1);
+  if (at === -1) return { name };
+  const rest = inner.slice(at + 1);
   const placeholder = `"[${inner}]"`;
-  const constraint: Constraint = isCaseStyle(rest)
-    ? { kind: "style", source: rest }
-    : rest.startsWith("{") ? parseList(rest, context, placeholder) : parseMask(rest, context, placeholder);
+  if (inner[at] === "@") {
+    if (isCaseStyle(rest)) return { name, constraint: { kind: "style", source: rest } };
+    const meant = meantStyle(rest);
+    return fail("malformed_placeholder", `${placeholder}: "${rest}" is not a case style; ${meant === undefined
+      ? `the case styles are ${(Object.keys(CASE_STYLES) as CaseStyle[]).join(", ")}`
+      : `it is written "${meant}"`} (${context})`);
+  }
+  if (isCaseStyle(rest)) {
+    fail("malformed_placeholder", `${placeholder}: a case style follows "@", as in "[${name}@${rest}]"; "=" is followed by a mask or a list (${context})`);
+  }
+  const constraint: Constraint = rest.startsWith("{") ? parseList(rest, context, placeholder) : parseMask(rest, context, placeholder, name);
   return { name, constraint };
 }
 
@@ -315,8 +325,8 @@ function parseParts(text: string, source: string, context: string, backrefs: boo
         i = close + 1;
         continue;
       }
-      if (inner.includes("=")) {
-        fail("malformed_placeholder", `"{${inner}}" is a back-reference, which repeats bound text and carries no mask (${context})`);
+      if (inner.includes("=") || inner.includes("@")) {
+        fail("malformed_placeholder", `"{${inner}}" is a back-reference, which repeats bound text and carries no mask or case style (${context})`);
       }
       if (!CAPTURE_NAME.test(inner)) {
         fail("malformed_placeholder", `"{${inner}}" is not a valid capture name (${context})`);
@@ -437,7 +447,7 @@ export function trieKey(segment: Segment): string {
   // A placeholder keys with a NUL, which no filename can contain, so a
   // literal name such as `[slug]` can never share a node with a capture.
   const key = (part: SimplePart): string =>
-    part.kind === "literal" ? part.text : part.kind === "capture" && part.constraint ? `\0=${part.constraint.source}` : "\0*";
+    part.kind === "literal" ? part.text : part.kind === "capture" && part.constraint ? `\0${part.constraint.kind === "style" ? "@" : "="}${part.constraint.source}` : "\0*";
   const stem = segment.parts
     .map((part) => part.kind === "alternatives"
       ? `\0{${part.branches.map((branch) => branch.map(key).join("")).join("\0|")}\0}`

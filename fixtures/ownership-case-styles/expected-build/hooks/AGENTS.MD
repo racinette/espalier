@@ -5,11 +5,11 @@
 ## Project layout
 
     hooks/
-    └─ [name=camel].ts 0+  a hook
+    └─ [name@camel].ts 0+  a hook
 
 A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
-`[name=camel]` accepts a camelCase name: letters and digits starting with a lowercase letter. `espalier help matching` has the full grammar.
+`[name@camel]` accepts a camelCase name: letters and digits starting with a lowercase letter. `espalier help matching` has the full grammar.
 
 ## Other repository paths
 

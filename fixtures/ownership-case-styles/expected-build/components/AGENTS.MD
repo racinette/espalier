@@ -5,13 +5,13 @@
 ## Project layout
 
     components/
-    ├─ [Name=Pascal].tsx 0+  a component
+    ├─ [Name@Pascal].tsx 0+  a component
     │
     └─ [name].tsx 0+         anything else
 
 A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
-`[Name=Pascal]` accepts a PascalCase name: letters and digits starting with a capital letter. `espalier help matching` has the full grammar.
+`[Name@Pascal]` accepts a PascalCase name: letters and digits starting with a capital letter. `espalier help matching` has the full grammar.
 
 ## Other repository paths
 

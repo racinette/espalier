@@ -1374,7 +1374,7 @@ export function maskLegend(names: readonly Segment[]): string | null {
     }
     if (part.kind !== "capture" || part.constraint === undefined) return;
     const { constraint } = part;
-    const placeholder = `[${part.name}=${constraint.source}]`;
+    const placeholder = `[${part.name}${constraint.kind === "style" ? "@" : "="}${constraint.source}]`;
     if (constraint.kind === "list") listed ??= placeholder;
     else if (constraint.kind === "style") {
       if (!styles.has(constraint.source)) styles.set(constraint.source, placeholder);

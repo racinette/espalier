@@ -5,11 +5,11 @@
 ## Project layout
 
     headers/
-    └─ [NAME=KEBAB].txt 0+  a header
+    └─ [NAME@KEBAB].txt 0+  a header
 
 A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
-`[NAME=KEBAB]` accepts a SCREAMING-KEBAB-CASE name: capital words of letters and digits joined by dashes, starting with a letter. `espalier help matching` has the full grammar.
+`[NAME@KEBAB]` accepts a SCREAMING-KEBAB-CASE name: capital words of letters and digits joined by dashes, starting with a letter. `espalier help matching` has the full grammar.
 
 ## Other repository paths
 
