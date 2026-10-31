@@ -1,2 +1,5 @@
 node_modules/
 espalier/.cache/
+
+# Version control metadata, once the example is under Git.
+.git/

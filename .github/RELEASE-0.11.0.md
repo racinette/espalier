@@ -245,7 +245,8 @@ rejected with a pointer to `l` and `w`.
    and `w`, which match what they did, rewriting the literal `instanceOf` paths
    that name them. Where a mask meant capitals, tighten it back to `A` or `X`.
 3. Replace any computed guidance or description that reads
-   `config.build.guidanceMode` with the context's `locked`.
+   `config.build.guidanceMode` with the context's `locked`; `migrate` names
+   each module that does in a warning.
 4. Run `espalier lint`, `espalier build`, and `espalier build --check`. Every
    generated map changes notation; review the documents before committing the
    upgrade.

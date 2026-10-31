@@ -136,6 +136,7 @@ test("migrating from 0.10 keeps what A and X masks matched, once", () => {
 
     const migrated = run(root, ["migrate"]);
     assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
+    assert.match(migrated.stdout + migrated.stderr, /`A` and `X` in masks now mean capitals only/);
     const at = (relative: string): boolean => existsSync(path.join(root, "espalier", relative));
     assert.ok(at("codes/[code=lll].txt.mjs") && !at("codes/[code=AAA].txt.mjs"));
     assert.ok(at("codes/[kind={A,X}].sql.mjs"), "a list keeps its letters");
@@ -148,8 +149,29 @@ test("migrating from 0.10 keeps what A and X masks matched, once", () => {
 
     // The pin is gone, so a capitals-only A written since stays one.
     write("espalier/codes/[code=AAA].md.mjs", "export const description = \"a capital code\";\n");
-    assert.equal(run(root, ["migrate"]).status, 0);
+    const again = run(root, ["migrate"]);
+    assert.equal(again.status, 0);
     assert.ok(at("codes/[code=AAA].md.mjs"));
+    assert.doesNotMatch(again.stdout + again.stderr, /mean capitals only/);
+  });
+});
+
+test("migrate names each module whose code reads the removed guidance mode, and nothing that only mentions it", () => {
+  scratch((root) => {
+    const write = (relative: string, contents: string): void => {
+      mkdirSync(path.dirname(path.join(root, relative)), { recursive: true });
+      writeFileSync(path.join(root, relative), contents);
+    };
+    write("espalier.config.yaml", "pin: 0.10.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write("espalier/a.ts.mjs", "export const guidance = ({ config }) => config.build.guidanceMode === \"fixed\" ? \"Fixed.\" : \"Evolving.\";\n");
+    write("espalier/b.ts.mjs", "export const guidance = ({ config }) => `Mode: ${config.build[\"guidanceMode\"]}.`;\n");
+    write("espalier/c.ts.mjs", "// guidanceMode is gone\nexport const guidance = \"The guidanceMode setting is gone.\";\n");
+    const migrated = run(root, ["migrate"]);
+    assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
+    const said = migrated.stdout + migrated.stderr;
+    assert.match(said, /espalier\/a\.ts\.mjs: reads `build\.guidanceMode`, which no longer exists; read the context's `locked` instead/);
+    assert.match(said, /espalier\/b\.ts\.mjs: reads `build\.guidanceMode`/, "a read inside a template literal counts");
+    assert.doesNotMatch(said, /c\.ts\.mjs/, "prose and comments do not");
   });
 });
 

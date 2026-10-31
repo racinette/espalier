@@ -17,7 +17,11 @@ Migration preserves an explicit `lint.jobs` setting and validates it before
 writing that project's migration files. It removes `build.guidanceMode`: a
 `fixed` mode becomes `export const locked = true;` on the espalier root's
 `ESPALIER.mjs`, created when there is none, and `evolving`, the unlocked
-default, needs nothing. See [LOCKS.MD](../../LOCKS.MD).
+default, needs nothing. See [LOCKS.MD](../../LOCKS.MD). Computed guidance that
+read `config.build.guidanceMode` now reads nothing, without an error, so
+migration names each rule module whose code reads it in a warning. It parses
+the module without running it: a read inside a template literal counts, and
+prose or a comment that names the setting does not.
 
 ## Usage
 
@@ -57,7 +61,8 @@ path holds one is renamed, a directory that empties is removed, and an
 `instanceOf` written as a literal path is rewritten to the new name. A list
 such as `[kind={A,X}]` and a literal name keep their letters. The version
 record is removed in the same run, so a later `migrate` leaves an `A` written
-since alone.
+since alone. A run that renames any mask says so in a warning, since a mask
+that meant capitals should be tightened back to `A` or `X` by hand.
 
 **`rule` to `guidance`.** A rule module's `rule` export, string or function,
 is renamed `guidance`, and so is `rule` inside each entry of `groups`. Only a

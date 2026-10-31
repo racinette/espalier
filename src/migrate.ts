@@ -7,6 +7,7 @@
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { parse } from "acorn";
 import { isMap, isNode, parseDocument } from "yaml";
 import { findChildren } from "./children.js";
 import {
@@ -260,7 +261,12 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
   if (legacyGuidanceMode(values) === "fixed") lockRoot(root, espalierRoot, changes);
   // Every config before 0.11.0 records its version, and this run removes it,
   // so masks are rewritten exactly once.
-  if ("pin" in values || "version" in values) planEitherCaseMasks(root, espalierRoot, skip, changes);
+  if ("pin" in values || "version" in values) {
+    if (planEitherCaseMasks(root, espalierRoot, skip, changes) > 0) {
+      reporter.warning("`A` and `X` in masks now mean capitals only; masks that used them were renamed to `l` and `w`, which match what they did. Tighten any that meant capitals back to `A` or `X`.");
+    }
+  }
+  reviewGuidanceMode(path.join(root, espalierRoot), espalierRoot, skip, reporter);
   for (const change of changes) {
     if (!options.dryRun) {
       mkdirSync(path.dirname(change.path), { recursive: true });
@@ -455,13 +461,14 @@ export function eitherCaseMasks(name: string): string {
  * Rename every module whose path holds an `A` or `X` mask, and rewrite the
  * `instanceOf` paths that name one, on top of the conversions already planned.
  */
-function planEitherCaseMasks(root: string, rules: string, skip: string[], changes: Array<{ path: string; contents: string; remove?: string }>): void {
+function planEitherCaseMasks(root: string, rules: string, skip: string[], changes: Array<{ path: string; contents: string; remove?: string }>): number {
   const directory = path.join(root, rules);
-  if (!existsSync(directory)) return;
+  if (!existsSync(directory)) return 0;
+  let renamed = 0;
   const entries = listEntries(directory, compileIgnore(skip, "skip"));
   const literal = (file: string): boolean => existsSync(file) && /\bliteralName\s*[=:]\s*true\b/.test(sourceCode(readFileSync(file, "utf8")));
   // A segment keeps its letters when its own module declares a literal name.
-  const renamed = (entry: string): string => {
+  const rename = (entry: string): string => {
     const segments = entry.split("/");
     return segments.map((segment, index) => {
       const last = index === segments.length - 1;
@@ -477,13 +484,42 @@ function planEitherCaseMasks(root: string, rules: string, skip: string[], change
     const source = planned?.contents ?? readFileSync(absolute, "utf8");
     const contents = source.replace(instanceOf, (_, lead: string, quote: string, target: string) => `${lead}${quote}${eitherCaseMasks(target)}${quote}`);
     // A planned conversion, such as ESPALIER.MD to ESPALIER.mjs, moves with its directory.
-    const destination = path.join(directory, renamed(path.relative(directory, planned?.path ?? absolute).split(path.sep).join("/")));
+    const destination = path.join(directory, rename(path.relative(directory, planned?.path ?? absolute).split(path.sep).join("/")));
+    if (destination !== (planned?.path ?? absolute)) renamed += 1;
     if (planned !== undefined) {
       planned.contents = contents;
       if (destination !== planned.path) { planned.remove ??= absolute; planned.path = destination; }
     } else if (destination !== absolute || contents !== source) {
       changes.push({ path: destination, contents, ...(destination === absolute ? {} : { remove: absolute }) });
     }
+  }
+  return renamed;
+}
+
+/**
+ * Computed guidance that read \`config.build.guidanceMode\` now reads nothing,
+ * and its text changes without an error. Migration does not run authored code
+ * or rewrite it, so it names each module whose code reads the setting: parsed,
+ * so a read inside a template literal counts and prose that names it does not.
+ */
+function reviewGuidanceMode(directory: string, source: string, skip: string[], reporter: Reporter): void {
+  if (!existsSync(directory)) return;
+  const reads = (node: unknown): boolean => {
+    if (node === null || typeof node !== "object") return false;
+    const record = node as Record<string, unknown>;
+    if (record["type"] === "Identifier" && record["name"] === "guidanceMode") return true;
+    if (record["type"] === "MemberExpression" && record["computed"] === true) {
+      const property = record["property"] as Record<string, unknown>;
+      if (property["type"] === "Literal" && property["value"] === "guidanceMode") return true;
+    }
+    return Object.values(record).some((value) => Array.isArray(value) ? value.some(reads) : reads(value));
+  };
+  for (const entry of listEntries(directory, compileIgnore(skip, "skip"))) {
+    if (!entry.endsWith(".mjs")) continue;
+    let program: unknown;
+    // A module that does not parse is lint's to report, not migration's.
+    try { program = parse(readFileSync(path.join(directory, entry), "utf8"), { ecmaVersion: "latest", sourceType: "module" }); } catch { continue; }
+    if (reads(program)) reporter.warning(`${source}/${entry}: reads \`build.guidanceMode\`, which no longer exists; read the context's \`locked\` instead`);
   }
 }
 
