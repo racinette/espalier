@@ -338,7 +338,8 @@ node declared `literalName` carries `"literal":true`, rendered as
 `"frozen":true`, rendered as ❄️; and a node whose module seals its files
 `"sealed":true`, rendered as 📦. Human maps use
 the same [marks](../build/README.MD#marks) as generated documents, with the
-same legend under the map.
+same legends under the map: one for the marks, and one for the masks, lists
+and case styles the map shows.
 The drawing is not in the JSON, because branch characters and line breaks are a rendering, and a consumer of this format is not reading prose.
 
 `closedSet` is a single unwrapped string, for the same reason.

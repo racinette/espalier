@@ -166,7 +166,8 @@ one grouping can judge them, rather than splitting them across sibling rules:
 A placeholder can constrain the text it accepts. `[name=mask]` pictures the
 text one character at a time: `0` is a digit, `#` an optional digit, `A` a
 letter, `a` a lowercase letter, `X` a letter or digit, `x` a lowercase letter
-or digit, and `-` or `_` itself. `+` repeats the element before it one or more
+or digit, `k` and `K` a lowercase or capital letter, digit or `-`, `s` and `S`
+the same with `_`, and `-` or `_` itself. `+` repeats the element before it one or more
 times, `(n)` exactly n times, and `(m..n)`, `(m..)` and `(..n)` between m and
 n times, at least m, or at most n. `[name={a,b}]` accepts exactly the listed
 names. `[name=kebab-case]`, `[name=snake_case]`, `[name=camelCase]` and

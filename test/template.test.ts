@@ -1085,6 +1085,15 @@ test("create refuses a declared path excluded by repository policy", () => {
   });
 });
 
+test("a name the directory does not declare is refused with what it does declare", () => {
+  scratch(`export const description = "a hook";\n`, (root) => {
+    const result = run(root, ["create", "hooks/UseCart.ts"]);
+    assert.equal(result.status, 2);
+    assert.match(result.stdout, /not structurally declared; hooks\/ declares `\[name=camelCase\]\.ts`/);
+    assert.equal(existsSync(path.join(root, "hooks")), false);
+  }, "hooks/[name=camelCase].ts.mjs");
+});
+
 test("file preview renders creation arguments without creating its parent", () => {
   scratch(SCHEMA_TEMPLATE, (root) => {
     const args = ["--varname", "answer", "--with-export", "--tag", "public", "--tag", "stable"];

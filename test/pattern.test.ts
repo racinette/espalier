@@ -4,7 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ambiguousSplit, captureNames, intersectSegments, isStrictSubset, matchSegment, optionalCaptureNames, parseSegment, parseStructuralLeaf, resolveSegment, trieKey } from "../src/pattern.js";
+import { ambiguousSplit, captureNames, commonName, intersectSegments, isStrictSubset, matchSegment, optionalCaptureNames, parseSegment, parseStructuralLeaf, resolveSegment, trieKey } from "../src/pattern.js";
 
 const overlaps = (a: string, b: string): boolean => intersectSegments(parseSegment(a, "test"), parseSegment(b, "test"));
 
@@ -261,7 +261,7 @@ test("masks are rejected when they are not in the vocabulary", () => {
     ["[a=0(2..6)+]", /cannot follow another repetition/],
     ["[a=0(2..)+]", /cannot follow another repetition/],
     ["[a=0(..6)]", /must require at least one character/],
-    ["[a=kebab]", /"k" is not a mask character.*written "kebab-case"/],
+    ["[a=kebab]", /"e" is not a mask character.*written "kebab-case"/],
     ["[a=snake-case]", /written "snake_case"/],
     ["[a=Pascal]", /written "PascalCase"/],
     ["[a=camelcase]", /written "camelCase"/],
@@ -295,6 +295,26 @@ test("a range repeats the element before it between two counts, either one left 
   assert.notEqual(ambiguousSplit(leaf("[a=0(2..4)][b=0(1..2)].ts")), null, "12345 splits as 123|45 or 1234|5");
 });
 
+test("k, K, s and S admit the characters of kebab-case and snake_case names, and nothing about their order", () => {
+  const accepts = (mask: string, text: string): boolean => matchSegment(parseSegment(`[n=${mask}]`, "test"), text) !== null;
+  const table: [string, string[], string[]][] = [
+    ["k+", ["user-id", "utf-8", "---", "-a-"], ["User", "user_id", "a.b"]],
+    ["K+", ["MAX-RETRIES", "UTF-8", "---"], ["Max", "MAX_RETRIES"]],
+    ["s+", ["user_id", "utf_8", "___"], ["User", "user-id"]],
+    ["S+", ["MAX_RETRIES", "HTTP2", "___"], ["Max_Retries", "MAX-RETRIES"]],
+  ];
+  for (const [mask, yes, no] of table) {
+    for (const text of yes) assert.equal(accepts(mask, text), true, `${mask} accepts ${text}`);
+    for (const text of no) assert.equal(accepts(mask, text), false, `${mask} rejects ${text}`);
+  }
+  assert.equal(isStrictSubset(leaf("[n=kebab-case].ts"), leaf("[n=k+].ts")), true, "the style orders the characters k admits");
+  assert.equal(isStrictSubset(leaf("[n=x+].ts"), leaf("[n=k+].ts")), true);
+  assert.equal(commonName(leaf("[n=k+].ts"), leaf("[n=K+].ts")), "0.ts", "digits are both lowercase and screaming");
+  assert.equal(commonName(leaf("[n=k+]x.ts"), leaf("[n=s+]x.ts")), "ax.ts");
+  assert.equal(ambiguousSplit(leaf("[a=k+]-[b=0+].ts")), null, "the digits after the last dash");
+  assert.deepEqual(ambiguousSplit(leaf("[a=s+]_[b].ts"))?.text, "a__a.ts");
+});
+
 test("a case style names a naming convention, leniently about capitals and digits", () => {
   const accepts = (style: string, text: string): boolean => matchSegment(parseSegment(`[n=${style}]`, "test"), text) !== null;
   const table: [string, string[], string[]][] = [
@@ -308,6 +328,13 @@ test("a case style names a naming convention, leniently about capitals and digit
     for (const text of no) assert.equal(accepts(style, text), false, `${style} rejects ${text}`);
   }
   assert.deepEqual(matchSegment(leaf("[Name=PascalCase].test.tsx"), "HTMLView.test.tsx"), { Name: "HTMLView" });
+});
+
+test("an overlap is shown by the shortest name both segments match", () => {
+  assert.equal(commonName(leaf("[n=kebab-case].ts"), leaf("[n=camelCase].ts")), "a.ts");
+  assert.equal(commonName(leaf("[name]-test.ts"), leaf("test-[name].ts")), "test-test.ts");
+  assert.equal(commonName(leaf("[n=PascalCase].ts"), leaf("[n=camelCase].ts")), null, "disjoint");
+  assert.equal(commonName(parseSegment("{a}-[x]", "test"), parseSegment("[y]-{a}", "test")), null, "a back-reference is one instance's value");
 });
 
 test("case styles narrow for containment, overlap on one lowercase word, and split like any capture", () => {

@@ -22,6 +22,7 @@ import {
   ambiguousSplit,
   backrefNames,
   captureNames,
+  commonName,
   intersectSegments,
   isStrictSubset,
   parseSegment,
@@ -831,10 +832,11 @@ function checkSiblings(node: TrieNode, at: string): void {
         const narrowerWinner = left.segment.dynamic && right.segment.dynamic
           && (isStrictSubset(left.segment, right.segment) || isStrictSubset(right.segment, left.segment));
         if (!narrowerWinner) {
+          const name = commonName(left.segment, right.segment);
           fail(
             "ambiguous_siblings",
-            `${at === "" ? "" : `${at}/`}${left.display} and ${at === "" ? "" : `${at}/`}${right.display} can both match one name without a strictly narrower winner, so ownership would be undecidable`,
-            { left: left.display, right: right.display },
+            `${at === "" ? "" : `${at}/`}${left.display} and ${at === "" ? "" : `${at}/`}${right.display} can both match one name${name === null ? "" : `, such as "${name}",`} without a strictly narrower winner, so ownership would be undecidable`,
+            { left: left.display, right: right.display, ...(name === null ? {} : { name }) },
           );
         }
       }

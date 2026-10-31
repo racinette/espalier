@@ -166,11 +166,15 @@ an element between two counts:
 [slug=kebab-case].ts                 order-history.ts
 [seq=0(4..)]_[name=snake_case].sql   0001_add_users.sql
 [code=A(2..3)0(..2)].txt             EU.txt, USA12.txt
+[NAME=S+].ts                         MAX_RETRIES.ts
 ```
 
 `kebab-case`, `snake_case`, `camelCase` and `PascalCase` allow digits after
 the first letter and capitals in runs, so acronyms pass either way they are
-written. `(m..n)`, `(m..)` and `(..n)` extend `(n)`. A single lowercase word
+written. `(m..n)`, `(m..)` and `(..n)` extend `(n)`. Four mask characters
+admit the characters of those names in any order: `k` a lowercase letter,
+digit or dash, `K` the same with capitals, and `s` and `S` the same with an
+underscore. A single lowercase word
 fits three styles at once, so two sibling rules in those styles are rejected
 as overlapping.
 

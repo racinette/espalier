@@ -6,7 +6,7 @@
 // the other does not get.
 
 import type { CaptureValue } from "./match.js";
-import { drawMap, marksLegend, type MapEntry, readInside } from "./render.js";
+import { drawMap, marksLegend, maskLegend, type MapEntry, readInside } from "./render.js";
 
 /** Descriptions align here, on every line that has one. */
 const COLUMN = 41;
@@ -329,8 +329,9 @@ export function renderExplanation(answer: Explanation, concise = false): string 
           ...drawMap(answer.map, WIDTH + 2 - 4).map((line) => `    ${line}`.trimEnd()),
         ].join("\n"),
       );
-      const legend = marksLegend(answer.map);
-      if (legend !== null) blocks.push(wrap(legend));
+      for (const legend of [marksLegend(answer.map), maskLegend(answer.map.map((entry) => entry.segment))]) {
+        if (legend !== null) blocks.push(wrap(legend));
+      }
     }
 
     if (answer.closedSet !== null) blocks.push(wrap(answer.closedSet));

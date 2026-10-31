@@ -145,6 +145,10 @@ The mask vocabulary is deliberately small:
 | `a` | ASCII lowercase letter |
 | `X` | ASCII letter or digit |
 | `x` | ASCII lowercase letter or digit |
+| `k` | ASCII lowercase letter, digit or `-` |
+| `K` | ASCII capital letter, digit or `-` |
+| `s` | ASCII lowercase letter, digit or `_` |
+| `S` | ASCII capital letter, digit or `_` |
 | `-` `_` | that character, literally |
 
 Suffixes repeat the element before them: `+` means one or more times, and
@@ -165,6 +169,12 @@ same reason: a timestamp is fourteen digits in one migration tool and ten in
 another, and the mask spells whichever one the repository uses. The one
 exception is a [case style](#case-styles), a convention for names that a mask
 cannot spell.
+
+`k`, `K`, `s` and `S` are the characters kebab-case and snake_case names are
+written in, lowercase or screaming, and say nothing about their order:
+`[NAME=S+]` accepts `MAX_RETRIES` and also `___`. A digit or a separator is
+both lowercase and screaming, so `k+` and `K+` both accept `---`. To require
+the words and their separators in order, use a [case style](#case-styles).
 
 Masks never contain a dot, so the dot restriction on structural captures is
 unaffected: every mask class excludes `.`, and a bare `[name]` keeps excluding
@@ -226,7 +236,8 @@ either way it is written. None of them contains a dot.
 
 A style is the whole constraint: it cannot be combined with a mask, and the
 names are case-sensitive and exact, so `[name=kebab]` is rejected with a
-pointer to `kebab-case`. A single lowercase word, such as `user`, is
+pointer to `kebab-case`. There is no SCREAMING_SNAKE_CASE style; `[NAME=S+]`
+is the nearest mask. A single lowercase word, such as `user`, is
 kebab-case, snake_case and camelCase at once, so sibling rules in two of those
 styles overlap and are [rejected](#ambiguity-is-rejected); a bare `[name]`
 beside a style is a fallback, as beside a mask.
@@ -593,7 +604,8 @@ linted. The following configuration errors stop compilation and exit `2`.
 
 **Overlapping dynamic siblings.** Two dynamic patterns competing for files or
 directories conflict when they overlap and neither matches a strict subset of
-the other's names. Equivalent patterns also conflict:
+the other's names, and the error names the shortest name both match.
+Equivalent patterns also conflict:
 
 ```text
 [component].tsx

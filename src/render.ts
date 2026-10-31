@@ -1358,7 +1358,7 @@ function heading(name: string | null, at: string): string[] {
  * reason. docs/MATCHING.MD "Masks" and "Case styles";
  * docs/cli/build/README.MD "The map".
  */
-function maskLegend(names: readonly Segment[]): string | null {
+export function maskLegend(names: readonly Segment[]): string | null {
   const symbols = new Set<string>();
   const repeats = new Set<"many" | "exact" | "range">();
   const styles = new Map<CaseStyle, string>();
@@ -1396,6 +1396,10 @@ function maskLegend(names: readonly Segment[]): string | null {
     ["a", "a lowercase letter"],
     ["X", "a letter or digit"],
     ["x", "a lowercase letter or digit"],
+    ["k", "a lowercase letter, digit or dash"],
+    ["K", "a capital letter, digit or dash"],
+    ["s", "a lowercase letter, digit or underscore"],
+    ["S", "a capital letter, digit or underscore"],
     ["-", "a dash"],
     ["_", "an underscore"],
   ];

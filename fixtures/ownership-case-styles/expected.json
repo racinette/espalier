@@ -16,6 +16,10 @@
       },
       {
         "kind": "written",
+        "path": "constants/AGENTS.MD"
+      },
+      {
+        "kind": "written",
         "path": "hooks/AGENTS.MD"
       },
       {
@@ -51,6 +55,16 @@
       "metadata": {
         "declared": [
           "[code=A(2..3)0(..2)].txt"
+        ]
+      }
+    },
+    {
+      "path": "constants/maxRetries.ts",
+      "code": "unexpected_path",
+      "severity": "error",
+      "metadata": {
+        "declared": [
+          "[NAME=S+].ts"
         ]
       }
     },
@@ -102,7 +116,10 @@
     "codes/EU.txt": "codes/[code=A(2..3)0(..2)].txt.mjs",
     "codes/USA12.txt": "codes/[code=A(2..3)0(..2)].txt.mjs",
     "codes/E.txt": null,
-    "codes/USA123.txt": null
+    "codes/USA123.txt": null,
+    "constants/MAX_RETRIES.ts": "constants/[NAME=S+].ts.mjs",
+    "constants/HTTP2.ts": "constants/[NAME=S+].ts.mjs",
+    "constants/maxRetries.ts": null
   },
   "explain": {
     "components/HTMLView.tsx": {

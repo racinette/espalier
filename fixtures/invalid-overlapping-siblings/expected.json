@@ -1,5 +1,5 @@
 {
   "exit": 2,
-  "error": "ambiguous_siblings",
+  "error": { "code": "ambiguous_siblings", "detail": { "name": "test-test.ts" } },
   "issues": []
 }

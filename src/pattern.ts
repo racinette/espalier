@@ -6,8 +6,12 @@ import { fail } from "./errors.js";
 /** A `[name]` captures a string; a `[...name]` captures the segments it spanned. */
 export type CaptureValue = string | string[];
 
-/** One character class of a mask. docs/MATCHING.MD "Masks". `upper` has no mask character; a case style uses it. */
-export type MaskClass = "digit" | "letter" | "lower" | "upper" | "alnum" | "lowerAlnum";
+/**
+ * One character class of a mask. docs/MATCHING.MD "Masks". `upper` has no
+ * mask character; a case style uses it. The last four are the characters of
+ * kebab-case and snake_case names, lowercase or screaming.
+ */
+export type MaskClass = "digit" | "letter" | "lower" | "upper" | "alnum" | "lowerAlnum" | "kebab" | "screamingKebab" | "snake" | "screamingSnake";
 
 /** One element of a mask, after `(n)` or `(m..n)` has been expanded into copies. */
 export interface MaskElement {
@@ -101,6 +105,10 @@ const MASK_CLASSES: Record<string, MaskClass> = {
   a: "lower",
   X: "alnum",
   x: "lowerAlnum",
+  k: "kebab",
+  K: "screamingKebab",
+  s: "snake",
+  S: "screamingSnake",
 };
 
 /** `(n)` and `+` apply to the element before them, so an element is parsed and then possibly repeated. */
@@ -120,7 +128,7 @@ function parseMask(source: string, context: string, placeholder: string): Constr
     } else if (char === "+" || char === "(") {
       return bad(`"${char}" repeats the mask element before it, and nothing precedes it`);
     } else {
-      return bad(`"${char}" is not a mask character; the mask vocabulary is 0 # A a X x - _ with +, (n) and (m..n) for repetition${styleHint(source)}`);
+      return bad(`"${char}" is not a mask character; the mask vocabulary is 0 # A a X x k K s S - _ with +, (n) and (m..n) for repetition${styleHint(source)}`);
     }
     i += 1;
     // `(n)` is exactly n copies; `(m..n)`, `(m..)` and `(..n)` are m required
@@ -455,6 +463,10 @@ const CLASS_REGEX: Record<MaskClass, string> = {
   upper: "[A-Z]",
   alnum: "[A-Za-z0-9]",
   lowerAlnum: "[a-z0-9]",
+  kebab: "[a-z0-9-]",
+  screamingKebab: "[A-Z0-9-]",
+  snake: "[a-z0-9_]",
+  screamingSnake: "[A-Z0-9_]",
 };
 
 /**
@@ -608,12 +620,14 @@ export function matchSegment(
  * one character neither pattern mentions. The "bound" cell exists only for
  * the split check, where a back-reference stands for text no capture absorbs.
  */
-type Cell = "digit" | "lower" | "upper" | "dot" | "other" | "bound";
+type Cell = "digit" | "lower" | "upper" | "dash" | "underscore" | "dot" | "other" | "bound";
 
 function cellOf(char: string): Cell {
   // A NUL-prefixed symbol is a back-reference's sentinel; NUL is in no filename. Astral characters are two code units.
   if (char.startsWith("\0")) return "bound";
   if (char === ".") return "dot";
+  if (char === "-") return "dash";
+  if (char === "_") return "underscore";
   if (char >= "0" && char <= "9") return "digit";
   if (char >= "a" && char <= "z") return "lower";
   if (char >= "A" && char <= "Z") return "upper";
@@ -627,7 +641,11 @@ const CLASS_CELLS: Record<MaskClass | "any", readonly Cell[]> = {
   upper: ["upper"],
   alnum: ["digit", "lower", "upper"],
   lowerAlnum: ["digit", "lower"],
-  any: ["digit", "lower", "upper", "other", "dot"],
+  kebab: ["digit", "lower", "dash"],
+  screamingKebab: ["digit", "upper", "dash"],
+  snake: ["digit", "lower", "underscore"],
+  screamingSnake: ["digit", "upper", "underscore"],
+  any: ["digit", "lower", "upper", "dash", "underscore", "other", "dot"],
 };
 
 /**
@@ -654,7 +672,8 @@ function admits(token: Token, char: string): boolean {
 
 /** Every symbol the product automata need to try: mentioned literals, one representative per other cell. */
 function alphabet(branches: Token[][]): string[] {
-  const mentioned = new Set<string>(["."]);
+  // The dash and underscore are cells of their own, which some classes admit.
+  const mentioned = new Set<string>([".", "-", "_"]);
   for (const branch of branches) for (const token of branch) if (token.kind === "literal") mentioned.add(token.char);
   const representative = (candidates: string): string | null => {
     for (const char of candidates) if (!mentioned.has(char)) return char;
@@ -762,6 +781,18 @@ function intersectBoundTokens(left: Token[], right: Token[]): boolean {
   // Remaining bindings are over-approximated as wildcards, never used to
   // declare potentially overlapping rules disjoint.
   return intersectTokens(left.slice(start, leftEnd), right.slice(start, rightEnd));
+}
+
+/**
+ * The shortest name two segments both match, to show why they overlap; null
+ * when they are disjoint, or when a back-reference would make the name one
+ * no single instance could have.
+ */
+export function commonName(left: Segment, right: Segment): string | null {
+  const a = segmentVariants(left);
+  const b = segmentVariants(right);
+  if ([...a, ...b].some((branch) => branch.some((token) => token.kind === "class" && token.binding !== undefined))) return null;
+  return commonText(a, b);
 }
 
 /** Compare all exact structural extension branches, preserving dot-free captures. */
@@ -925,7 +956,7 @@ function splitOf(simple: SimplePart[], dotless: boolean): AmbiguousSplit | null 
   // so "a_b_c" is reported before "___".
   type Pair = { a: State; b: State; text: string };
   const pairKey = (pair: Pair): string => `${key(pair.a)}|${key(pair.b)}`;
-  const cost = (char: string): number => (cellOf(char) === "other" || cellOf(char) === "dot" ? 3 : 1);
+  const cost = (char: string): number => (["other", "dot", "dash", "underscore"].includes(cellOf(char)) ? 3 : 1);
   const search = (from: Pair, goal: (pair: Pair) => boolean): Pair | null => {
     const buckets: Pair[][] = [[from]];
     const seen = new Set<string>([pairKey(from)]);

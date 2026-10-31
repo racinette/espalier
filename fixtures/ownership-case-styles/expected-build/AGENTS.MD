@@ -7,6 +7,7 @@
     ./
     ├─ codes/
     ├─ components/
+    ├─ constants/
     ├─ hooks/
     ├─ jobs/
     ├─ migrations/

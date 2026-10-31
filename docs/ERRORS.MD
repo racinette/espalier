@@ -63,7 +63,7 @@ repository linting begins.
 | `duplicate_placeholder_name` | the same capture name twice in one path |
 | `unbound_backreference` | a `{name}` with no `[name]` earlier in the same path |
 | `extension_list_on_structural_leaf` | `{ts,tsx}` on a literal structural leaf, or alternatives in a name with no placeholder, such as `README{,.local}.MD`, where it is unclear which alternative must exist; a name with a placeholder may hold alternatives |
-| `ambiguous_siblings` | overlapping siblings in one tier without a provably strictly narrower winner |
+| `ambiguous_siblings` | overlapping siblings in one tier without a provably strictly narrower winner; names one file both match when it can |
 | `inconsistent_capture_names` | one dynamic directory described under two names |
 | `duplicate_structural_rule` | two modules governing the same path |
 
@@ -135,7 +135,7 @@ See [CONFIG.MD](CONFIG.MD#addons).
 | `guard_unsupported_module` | a module `guard` would change does not parse, or could not be changed in a way that restores exactly |
 | `guard_invalid` | the guarded espalier would not compile, so the guard was taken back; `detail.cause` names the compile failure |
 | `guard_tampered` | `unguard` found a guarded module edited since the guard; restore it by hand |
-| `invalid_create_target` | `create` was given a path outside the repository, excluded by repository policy, not structurally declared as a file or directory, or admitted by an abstract contract without being declared as an instance |
+| `invalid_create_target` | `create` was given a path outside the repository, excluded by repository policy, not structurally declared as a file or directory (naming what its deepest recognized directory declares), or admitted by an abstract contract without being declared as an instance |
 | `invalid_template_arguments` | create options or optional-leaf selections are invalid; template arguments are unknown, missing, outside schema choices, before `--`, or supplied to `help` |
 | `create_target_exists` | the requested file or directory already exists; `create` never overwrites |
 | `template_threw` | a template renderer threw instead of producing source |

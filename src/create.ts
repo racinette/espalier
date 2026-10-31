@@ -674,7 +674,12 @@ export async function create(options: CreateOptions, reporter: Reporter): Promis
   const recognition = (
     !isDirectoryOwnership(directoryAnswer) ? directoryAnswer : fileAnswer
   ) as Recognition;
-  fail("invalid_create_target", `${options.target} resolves to ${target || "."} in project ${root}, which is not structurally declared (paths are relative to the working directory)`, {
+  // The names the deepest recognized directory does declare, so a name that
+  // misses a mask or case style shows what it missed.
+  const shown = recognition.declared.slice(0, 10).map((name) => `\`${name}\``).join(", ");
+  const more = recognition.declared.length > 10 ? `, and ${recognition.declared.length - 10} more` : "";
+  const declares = recognition.recognized === null || recognition.declared.length === 0 ? "" : `; ${recognition.recognized}/ declares ${shown}${more}`;
+  fail("invalid_create_target", `${options.target} resolves to ${target || "."} in project ${root}, which is not structurally declared${declares} (paths are relative to the working directory)`, {
     path: target,
     recognized: recognition.recognized,
     declared: recognition.declared,
