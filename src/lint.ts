@@ -173,18 +173,19 @@ async function lintOne(
       try {
         const head = { config, espalier, rules: path.join(config.root, config.espalierRoot) };
         for (const violation of await lockViolations(base.side, head)) {
+          if ("file" in violation) {
+            if (!inScope(violation.file)) continue;
+            builtin(violation.file, violation.code, violation.message, { via: violation.file, modules: violation.modules, lockedBy: violation.lockedBy });
+            continue;
+          }
           const target = `${config.espalierRoot}/${violation.module}`;
           if (!inScope(target)) continue;
-          builtin(target, violation.code, violation.message, {
-            module: violation.module,
-            lockedBy: violation.lockedBy,
-            ...(violation.via === undefined ? {} : { via: violation.via }),
-          });
+          builtin(target, violation.code, violation.message, { module: violation.module, lockedBy: violation.lockedBy });
         }
         for (const violation of frozenViolations(base, config.root)) {
           if (!inScope(violation.path)) continue;
           builtin(violation.path, "frozen_file_changed",
-            `this file is frozen${violation.frozenBy === null ? "" : ` by ${violation.frozenBy}`} and ${violation.deleted ? "was removed" : "changed"} since ${options.base}; add a new file instead where the contract admits one`,
+            `this file is frozen${violation.frozenBy === null ? "" : ` by ${violation.frozenBy}`} and ${violation.deleted ? "was removed" : "changed"} since ${options.base}${violation.appendable ? "; add a new file instead where the contract admits one" : "; changing it needs explicit authorization"}`,
             { frozenBy: violation.frozenBy, deleted: violation.deleted, base: options.base });
         }
         for (const violation of sealedViolations(base, repository)) {

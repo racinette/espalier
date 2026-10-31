@@ -84,7 +84,7 @@ espalier lint --base origin/main
 `--base` names a git revision. Lint reads the repository as it was there and
 reports every change in the working tree that a lock, freeze or seal in force
 there covers: `locked_module_changed`, `locked_directory_changed`,
-`locked_contract_changed`, `lock_changed`, `untraceable_import`,
+`lock_changed`, `untraceable_import`,
 `frozen_file_changed` and `sealed_collection_changed`. A locked module is
 compared with every repository file it imports, so a locked module must import
 by literal paths. Both sides are read by the installed espalier; anything that

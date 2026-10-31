@@ -22,12 +22,24 @@ import { init, parse } from "es-module-lexer";
 export interface LockViolation {
   /** Espalier-relative module path. */
   module: string;
-  code: "locked_module_changed" | "locked_directory_changed" | "locked_contract_changed" | "lock_changed" | "untraceable_import";
+  code: "locked_module_changed" | "locked_directory_changed" | "lock_changed" | "untraceable_import";
   message: string;
   /** The module whose `locked` export decided it; null for a lock change, which needs no lock. */
   lockedBy: string | null;
-  /** A file the module imports, when that file is what changed. */
-  via?: string;
+}
+
+/**
+ * A repository file that changed and that locked modules import, reported
+ * once on the file rather than once per module, since one edit is one change.
+ */
+export interface ImportViolation {
+  /** Repository-relative path of the file that changed. */
+  file: string;
+  code: "locked_module_changed";
+  message: string;
+  /** The locked modules that import it, and the modules whose `locked` exports decided each. */
+  modules: string[];
+  lockedBy: string[];
 }
 
 /** Both sides of the comparison: an espalier and where its files live. */
@@ -113,6 +125,8 @@ export interface FrozenViolation {
   /** The module whose `frozen` export decided it. */
   frozenBy: string | null;
   deleted: boolean;
+  /** Its rule is a pattern, so a new file can take its place; a named file has no such sibling. */
+  appendable: boolean;
 }
 
 /**
@@ -121,12 +135,12 @@ export interface FrozenViolation {
  * append-only. docs/LOCKS.MD "Frozen files".
  */
 export function frozenViolations(base: Base, root: string): FrozenViolation[] {
-  const frozen: Array<{ path: string; by: string | null }> = [];
+  const frozen: Array<{ path: string; by: string | null; appendable: boolean }> = [];
   for (const file of base.repository.visible) {
     const owner = base.repository.resolve(file);
     if (!isOwnership(owner)) continue;
     const freeze = fileFrozen(base.repository.espalier, file, owner);
-    if (freeze.frozen && base.tree.has(file)) frozen.push({ path: file, by: freeze.by });
+    if (freeze.frozen && base.tree.has(file)) frozen.push({ path: file, by: freeze.by, appendable: owner.rule.segments?.at(-1)?.dynamic === true });
   }
   const exists = (file: string): boolean => { try { lstatSync(path.join(root, file)); return true; } catch { return false; } };
   const present = new Set(frozen.filter((entry) => exists(entry.path)).map((entry) => entry.path));
@@ -143,7 +157,7 @@ export function frozenViolations(base: Base, root: string): FrozenViolation[] {
       try { target = readlinkSync(path.join(root, entry.path)); } catch { /* no longer a link */ }
       changed = target !== linked.get(was.object)!.toString("utf8");
     } else changed = hashes.get(entry.path) !== was.object;
-    if (changed) violations.push({ path: entry.path, frozenBy: entry.by, deleted: !present.has(entry.path) });
+    if (changed) violations.push({ path: entry.path, frozenBy: entry.by, deleted: !present.has(entry.path), appendable: entry.appendable });
   }
   return violations;
 }
@@ -244,11 +258,10 @@ function closure(entry: string, root: string, extra: string[] = []): Closure {
   return { files, untraceable };
 }
 
-/** The repository-relative file a closure entry differs on, or null when both sides agree. */
-function differs(before: Closure, after: Closure): string | null {
-  for (const [file, contents] of after.files) if (before.files.get(file) !== contents) return file;
-  for (const file of before.files.keys()) if (!after.files.has(file)) return file;
-  return null;
+/** The repository-relative files two closures differ on. */
+function differs(before: Closure, after: Closure): string[] {
+  const files = [...after.files].filter(([file, contents]) => before.files.get(file) !== contents).map(([file]) => file);
+  return [...files, ...[...before.files.keys()].filter((file) => !after.files.has(file))];
 }
 
 /** "locked by src/core/ESPALIER.mjs", or "locked" when the module locks itself. */
@@ -258,9 +271,10 @@ const lockedBy = (module: string, by: string | null): string => by === null || b
  * Every change between the base's espalier and this one that a base lock
  * covers, and every lock export added, removed or changed.
  */
-export async function lockViolations(base: Side, head: Side): Promise<LockViolation[]> {
+export async function lockViolations(base: Side, head: Side): Promise<Array<LockViolation | ImportViolation>> {
   await init;
-  const violations: LockViolation[] = [];
+  const violations: Array<LockViolation | ImportViolation> = [];
+  const importers = new Map<string, Array<{ module: string; lockedBy: string | null }>>();
   const addons = (side: Side): string[] => side.config.addons === null ? [] : [path.resolve(side.config.root, side.config.addons)];
   const record = (side: Side, module: string): ModuleRecord | undefined => side.espalier.modules.get(module);
   const isRule = (module: string): boolean => !/(^|\/)ESPALIER\.(mjs|MD)$/.test(module);
@@ -270,14 +284,6 @@ export async function lockViolations(base: Side, head: Side): Promise<LockViolat
     // A directory module is added to its directory, which its parent's lock governs.
     const cut = module.lastIndexOf("/");
     return cut === -1 ? "" : module.slice(0, cut);
-  };
-  // A declaration joins or leaves its contract's member list, which a locked
-  // abstract contract declares. A declared group belongs to an abstract grouping.
-  const contractLocked = (declared: ModuleRecord | undefined): ModuleRecord | null => {
-    if (declared?.contract === undefined) return null;
-    const contract = record(base, declared.contract);
-    if (contract === undefined || !contract.locked) return null;
-    return contract.abstract || contract.abstractGroupings.length > 0 ? contract : null;
   };
 
   const all = new Set([...base.espalier.modules.keys(), ...head.espalier.modules.keys()]);
@@ -293,22 +299,22 @@ export async function lockViolations(base: Side, head: Side): Promise<LockViolat
     }
 
     if (before !== undefined && after !== undefined) {
-      const via = differs(closureOf(base, module), closureOf(head, module));
-      if (via !== null && before.locked) {
-        const itself = via === path.relative(base.config.root, path.join(base.rules, module)).split(path.sep).join("/");
-        violations.push({
-          module, code: "locked_module_changed", lockedBy: before.lockedBy, ...(itself ? {} : { via }),
-          message: itself
-            ? `${module} is ${lockedBy(module, before.lockedBy)} and changed`
-            : `${module} is ${lockedBy(module, before.lockedBy)}, and ${via}, which it imports, changed`,
-        });
-      }
-      if (before.contract !== after.contract) {
-        for (const contract of [contractLocked(before), contractLocked(after)]) {
-          if (contract !== null) violations.push({
-            module, code: "locked_contract_changed", lockedBy: contract.lockedBy,
-            message: `${module} changes which contract it belongs to, and the member list of ${contract.path} is ${lockedBy(contract.path, contract.lockedBy)}`,
-          });
+      const was = closureOf(base, module);
+      const now = closureOf(head, module);
+      const changed = differs(was, now);
+      const itself = path.relative(base.config.root, path.join(base.rules, module)).split(path.sep).join("/");
+      if (changed.length > 0 && before.locked) {
+        // The module's own edit is its own; an imported file's is reported once, on that file.
+        if (changed.includes(itself)) {
+          violations.push({ module, code: "locked_module_changed", lockedBy: before.lockedBy, message: `${module} is ${lockedBy(module, before.lockedBy)} and changed` });
+        }
+        // A file it imports counts when that file itself changed or went away;
+        // one it merely stopped or started importing is its own edit's doing.
+        const touched = changed.filter((file) => file !== itself && (now.files.has(file)
+          ? was.files.has(file)
+          : !existsSync(path.join(head.config.root, file))));
+        for (const file of touched) {
+          importers.set(file, [...importers.get(file) ?? [], { module, lockedBy: before.lockedBy }]);
         }
       }
     } else {
@@ -323,13 +329,6 @@ export async function lockViolations(base: Side, head: Side): Promise<LockViolat
             : `${module} is removed, and it is ${lockedBy(module, by)}`,
         });
       }
-      const contract = contractLocked(added ? after : before);
-      if (contract !== null) {
-        violations.push({
-          module, code: "locked_contract_changed", lockedBy: contract.lockedBy,
-          message: `${module} ${added ? "declares a new member of" : "removes a member of"} ${contract.path}, whose member list is ${lockedBy(contract.path, contract.lockedBy)}`,
-        });
-      }
     }
 
     // A lock is only as good as the reading of what the module depends on.
@@ -339,6 +338,18 @@ export async function lockViolations(base: Side, head: Side): Promise<LockViolat
         message: `${module} is ${lockedBy(module, after.lockedBy)} and imports a computed path, which no check can follow; import with a literal path`,
       });
     }
+  }
+  for (const [file, modules] of [...importers].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
+    const named = modules.slice(0, 3).map((entry) => entry.module).join(", ");
+    const more = modules.length > 3 ? ` and ${modules.length - 3} more` : "";
+    violations.push({
+      file, code: "locked_module_changed",
+      modules: modules.map((entry) => entry.module),
+      lockedBy: [...new Set(modules.flatMap((entry) => entry.lockedBy === null ? [] : [entry.lockedBy]))],
+      message: modules.length === 1
+        ? `${file} changed, and ${modules[0]!.module}, which imports it, is ${lockedBy(modules[0]!.module, modules[0]!.lockedBy)}`
+        : `${file} changed, and ${modules.length} locked modules import it: ${named}${more}`,
+    });
   }
   return violations;
 }

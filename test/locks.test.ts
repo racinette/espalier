@@ -12,7 +12,7 @@ import { check } from "../src/api.js";
 
 const RULE = 'export const description = "x"; export const guidance = "";\n';
 
-const CHECKS = ["locked_module_changed", "locked_directory_changed", "locked_contract_changed", "lock_changed", "untraceable_import", "frozen_file_changed", "sealed_collection_changed"];
+const CHECKS = ["locked_module_changed", "locked_directory_changed", "lock_changed", "untraceable_import", "frozen_file_changed", "sealed_collection_changed"];
 
 /** Runs git in a scratch repository, failing loudly. */
 function git(root: string, ...args: string[]): void {
@@ -28,6 +28,7 @@ async function compare(
   base: Record<string, string>,
   change: (put: (name: string, contents: string) => void, remove: (name: string) => void) => void,
   config = `root: espalier\nignoreFiles: []\nskip: []\n`,
+  describe = (issue: { code: string; path: string; message: string }): string => `${issue.code} ${issue.path}`,
 ): Promise<string[]> {
   const root = mkdtempSync(path.join(os.tmpdir(), "espalier-locks-"));
   try {
@@ -43,7 +44,7 @@ async function compare(
     git(root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base");
     change(put, (name) => rmSync(path.join(root, name), { recursive: true }));
     const issues = await check({ cwd: root, jobs: 1, base: "HEAD" });
-    return issues.filter((issue) => CHECKS.includes(issue.code)).map((issue) => `${issue.code} ${issue.path}`).sort();
+    return issues.filter((issue) => CHECKS.includes(issue.code)).map(describe).sort();
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -55,19 +56,26 @@ const CLIENTS = {
   "clients/stripe.ts": "",
 };
 
-test("a locked abstract contract freezes itself and its member list, not its members", async () => {
+test("a locked contract freezes what it says, and its members are its directory's to lock", async () => {
   assert.deepEqual(await compare(CLIENTS, (put) => {
     put("espalier/clients/stripe.ts.mjs", 'export const instanceOf = "[provider].ts.mjs"; export const description = "stripe"; export const guidance = "Intents only.";\n');
   }), []);
+  // In an unlocked directory a member may be declared or removed: that is a module joining or leaving it.
   assert.deepEqual(await compare(CLIENTS, (put) => {
     put("espalier/clients/adyen.ts.mjs", 'export const instanceOf = "[provider].ts.mjs"; export const description = "adyen"; export const guidance = "";\n');
     put("clients/adyen.ts", "");
-  }), ["locked_contract_changed espalier/clients/adyen.ts.mjs"]);
+  }), []);
   assert.deepEqual(await compare(CLIENTS, (put, remove) => {
     remove("espalier/clients/stripe.ts.mjs");
     remove("clients/stripe.ts");
     put("espalier/clients/[provider].ts.mjs", `${RULE}export const abstract = true; export const locked = true; // edited\n`);
-  }), ["locked_contract_changed espalier/clients/stripe.ts.mjs", "locked_module_changed espalier/clients/[provider].ts.mjs"]);
+  }), ["locked_module_changed espalier/clients/[provider].ts.mjs"]);
+  // The directory's lock is what closes the member list.
+  const closed = { ...CLIENTS, "espalier/clients/ESPALIER.mjs": "export const locked = true;\n" };
+  assert.deepEqual(await compare(closed, (put) => {
+    put("espalier/clients/adyen.ts.mjs", 'export const instanceOf = "[provider].ts.mjs"; export const description = "adyen"; export const guidance = "";\n');
+    put("clients/adyen.ts", "");
+  }), ["locked_directory_changed espalier/clients/adyen.ts.mjs"]);
 });
 
 test("a non-abstract contract's lock leaves its members to its directory", async () => {
@@ -96,7 +104,40 @@ test("a locked directory freezes its modules and their imports, and an unlocked 
     put("lib/helper.mjs", 'export const helper = "Retry twice.";\n');
     put("espalier/src/core/retry.ts.mjs", RULE);
     put("src/core/retry.ts", "");
-  }), ["locked_directory_changed espalier/src/core/retry.ts.mjs", "locked_module_changed espalier/src/core/http.ts.mjs"]);
+  }), ["locked_directory_changed espalier/src/core/retry.ts.mjs", "locked_module_changed lib/helper.mjs"]);
+});
+
+test("a changed file locked modules import is reported once, on the file, naming them", async () => {
+  const twice = {
+    ...CORE,
+    "espalier/src/core/client.ts.mjs": 'import { helper } from "../../../lib/helper.mjs";\nexport const description = "client"; export const guidance = helper;\n',
+    "src/core/client.ts": "",
+  };
+  const root = mkdtempSync(path.join(os.tmpdir(), "espalier-locks-"));
+  try {
+    const put = (name: string, contents: string): void => {
+      mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+      writeFileSync(path.join(root, name), contents);
+    };
+    put("espalier.config.yaml", "root: espalier\nignoreFiles: []\nskip: []\n");
+    put(".espalierignore", "lib/\n.git\n");
+    for (const [name, contents] of Object.entries(twice)) if (name !== ".espalierignore") put(name, contents);
+    git(root, "init", "-q");
+    git(root, "add", "-A");
+    git(root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base");
+    put("lib/helper.mjs", 'export const helper = "Retry twice.";\n');
+    const issues = (await check({ cwd: root, jobs: 1, base: "HEAD" })).filter((issue) => issue.code === "locked_module_changed");
+    assert.equal(issues.length, 1);
+    assert.equal(issues[0]!.path, "lib/helper.mjs");
+    assert.deepEqual(issues[0]!.metadata, {
+      via: "lib/helper.mjs",
+      modules: ["src/core/client.ts.mjs", "src/core/http.ts.mjs"],
+      lockedBy: ["src/core/ESPALIER.mjs"],
+    });
+    assert.match(issues[0]!.message, /lib\/helper\.mjs changed, and 2 locked modules import it: src\/core\/client\.ts\.mjs, src\/core\/http\.ts\.mjs/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("changing a lock always needs authorization, unlocking included", async () => {
@@ -130,7 +171,7 @@ test("the addons module counts as part of every locked rule", async () => {
   };
   assert.deepEqual(await compare(base, (put) => {
     put("tools/addons.mjs", "export default { prepare: () => ({ more: true }) };\n");
-  }, config), ["locked_module_changed espalier/main.ts.mjs"]);
+  }, config), ["locked_module_changed tools/addons.mjs"]);
 });
 
 test("a base without an espalier has no locks", async () => {
@@ -184,6 +225,24 @@ test("a frozen group keeps its files; other groups and new files stay open", asy
   assert.deepEqual(await compare(MIGRATIONS, (put) => {
     put("migrations/000101_users.sql", "create table users (id int);\n");
   }), ["frozen_file_changed migrations/000101_users.sql"]);
+});
+
+test("a frozen file whose rule admits others is told to add one; a named file is not", async () => {
+  const base = {
+    "espalier/ESPALIER.mjs": "export const frozen = true;\n",
+    "espalier/main.ts.mjs": RULE,
+    "espalier/migrations/[n=0000].sql.mjs": RULE,
+    "main.ts": "a\n",
+    "migrations/0001.sql": "a\n",
+  };
+  const said = await compare(base, (put) => {
+    put("main.ts", "b\n");
+    put("migrations/0001.sql", "b\n");
+  }, undefined, (issue) => `${issue.path}: ${issue.message.slice(issue.message.indexOf("; ") + 2)}`);
+  assert.deepEqual(said, [
+    "main.ts: changing it needs explicit authorization",
+    "migrations/0001.sql: add a new file instead where the contract admits one",
+  ]);
 });
 
 test("a frozen directory keeps every file beneath it, and deleting or renaming one is a change", async () => {
@@ -338,14 +397,17 @@ const FEATURES = (rule: string, more: Record<string, string> = {}): Record<strin
 });
 const STEP = (name: string, exports = ""): string => `export const instanceOf = "[num=0000]_[t=a+].sql.mjs"; export const description = "${name}";${exports}\n`;
 
-test("a group a named instance declares counts against its contract's locked abstract grouping", async () => {
+test("a group a named instance declares is its directory's to allow, whatever locks the grouping", async () => {
   const base = FEATURES(`${RULE}export const locked = true; export const groups = { step: { by: ["num"], abstract: true } };\n`, {
     "espalier/features/[feature]/steps/0001_[t=a+].sql.mjs": STEP("first"),
   });
-  assert.deepEqual(await compare(base, (put) => {
+  const declare = (put: (name: string, contents: string) => void): void => {
     put("espalier/features/checkout/steps/0002_[t=a+].sql.mjs", STEP("checkout's second"));
     put("features/checkout/steps/0002_a.sql", "a\n");
-  }), ["locked_contract_changed espalier/features/checkout/steps/0002_[t=a+].sql.mjs"]);
+  };
+  assert.deepEqual(await compare(base, declare), []);
+  assert.deepEqual(await compare({ ...base, "espalier/features/ESPALIER.mjs": "export const locked = true;\n" }, declare),
+    ["locked_directory_changed espalier/features/checkout/steps/0002_[t=a+].sql.mjs"]);
 });
 
 test("a seal an instance adds to an inherited grouping holds only its own files", async () => {

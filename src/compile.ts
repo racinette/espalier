@@ -314,10 +314,6 @@ export interface ModuleRecord {
   lockedBy: string | null;
   /** The module path of the contract it declares an instance or group of. */
   contract?: string;
-  /** Every match must be declared: its member list is part of what it declares. */
-  abstract: boolean;
-  /** Groupings whose declared groups are part of what it declares. */
-  abstractGroupings: string[];
 }
 
 export interface Espalier {
@@ -889,8 +885,6 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
       ...(module.instanceOf === undefined ? {} : {
         contract: `${modulePath.slice(0, cut + 1)}${module.instanceOf.replace(/^\.\//, "").replace(/\.mjs$/, "")}.mjs`,
       }),
-      abstract: module.abstract,
-      abstractGroupings: module.groups.filter((grouping) => grouping.abstract).map((grouping) => grouping.name),
     });
     return module;
   };
@@ -905,8 +899,6 @@ export async function compile(root: string, espalierRoot: string, skip: string[]
       ...(doc.instanceOf === undefined ? {} : {
         contract: `${path.posix.normalize(path.posix.join(at, doc.instanceOf))}/${NODE_DESCRIPTION}`,
       }),
-      abstract: doc.abstract === true,
-      abstractGroupings: [],
     });
   }
 

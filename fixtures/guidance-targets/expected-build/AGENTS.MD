@@ -137,8 +137,8 @@ is everything under it until a 🔓 reopens it. Work inside a locked module is
 ordinary: editing, creating, and deleting files the espalier already admits
 needs nothing more. A change to the espalier that alters what a locked module
 declares needs explicit authorization naming that change, however obvious it
-is: the module's own guidance, checks, or requirements, the modules in a
-locked directory, or the members of a locked abstract contract. Report the
+is: the module's own guidance, checks, or requirements, or which modules exist
+in a locked directory, the members declared there included. Report the
 path and architectural role the work needs, pause the affected work, and
 continue with anything else that fits. Do not design around the lock, place
 the work in a catch-all, or widen an unlocked pattern to admit it.

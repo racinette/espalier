@@ -11,10 +11,10 @@ run. Exit `2` means that output cannot establish conformance. Programmatic
 Six codes are **issues** rather than failures and are not listed here:
 `unexpected_path`, `missing_required_file`, `missing_required_directory`,
 `missing_required_match`, `missing_required_group` and `undeclared_instance`. They come from matching, exit `1`, and are documented in [MATCHING.MD](MATCHING.MD#built-in-issues) and [cli/lint/README.MD](cli/lint/README.MD#built-in-issues).
-Seven more come from checking a change against a base revision and are documented
+Six more come from checking a change against a base revision and are documented
 in [LOCKS.MD](LOCKS.MD#checking-against-a-base-revision): `locked_module_changed`,
-`locked_directory_changed`, `locked_contract_changed`, `lock_changed`,
-`untraceable_import`, `frozen_file_changed` and `sealed_collection_changed`.
+`locked_directory_changed`, `lock_changed`, `untraceable_import`,
+`frozen_file_changed` and `sealed_collection_changed`.
 One more, `guard_in_place`, is a warning that a module still carries a guard,
 documented in [cli/guard/README.MD](cli/guard/README.MD#one-guard-at-a-time).
 

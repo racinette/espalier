@@ -49,18 +49,21 @@ A lock freezes everything the locked module declares, and nothing else:
 | Module | What it declares |
 |---|---|
 | A directory module | its guidance and flags, and which modules exist in its directory |
-| A structural rule | its description, guidance, lint, template, requirements and groupings |
-| An abstract rule or directory | the same, and its member list: the declarations of its instances |
-| A rule with an abstract grouping | the same, and that grouping's declared groups, its named instances' included |
+| A structural rule | its description, guidance, lint, template, requirements and groupings, `abstract` included |
 | A constraint | its selection, guidance and lint |
-| An instance or group declaration | that one member's description, guidance and lint |
+| An instance or group declaration | that one member's description, guidance, lint and the contract it names |
 
 So a change needs explicit authorization when it:
 
 - edits, removes or moves a locked module;
-- adds a module to a locked directory;
-- declares or removes a member of a locked abstract contract or grouping, or
-  moves a declaration to or from one.
+- adds a module to a locked directory.
+
+A contract's members are modules, so whether one may be declared is a question
+for the directory it is declared in, not for the contract. A locked abstract
+contract in an open directory keeps its guidance, checks and its demand that
+every member be declared, while new members are declared freely; locking the
+directory as well closes the member list. This is how a template keeps its own
+contracts fixed and leaves room for the members a project adds.
 
 Adding, removing or changing a `locked` export always needs explicit
 authorization, whatever is locked around it. That is what makes `locked =
@@ -199,17 +202,19 @@ consults git, and its answer depends on the working tree alone.
 |---|---|
 | `locked_module_changed` | a locked module, or a repository file it imports, changed; or a locked module was removed |
 | `locked_directory_changed` | a module was added to a locked directory |
-| `locked_contract_changed` | a member of a locked abstract contract or grouping was declared or removed, or a declaration moved to or from one |
 | `lock_changed` | a `locked` export was added, removed or changed |
 | `untraceable_import` | a locked module imports a computed path |
 | `frozen_file_changed` | a file frozen at the base changed, or was removed or renamed |
 | `sealed_collection_changed` | a file joined or left a collection sealed at the base |
 
 The issues are errors. A lock issue sits on the module's path under the
-espalier root, with metadata naming the `module`, the module whose export
-decided the lock as `lockedBy`, and, when an imported file is what changed,
-that file as `via`. A frozen issue sits on the file, with `frozenBy`, `deleted`
-and the `base` revision. A sealed issue sits on the file that joined or left,
+espalier root, with metadata naming the `module` and the module whose export
+decided the lock as `lockedBy`. A repository file that locked modules import
+is reported once, on that file, however many import it: its metadata names it
+as `via`, the importing locked `modules`, and every module that locked them as
+`lockedBy`. A frozen issue sits on the file, with `frozenBy`, `deleted`
+and the `base` revision; its message suggests adding a new file instead only
+where the file's rule is a pattern that admits one. A sealed issue sits on the file that joined or left,
 with `sealedBy`, every module whose seal it changed, `added`, and the `base`
 revision. Both sides are read by the base's espalier, so a file the change
 moves to a new rule is still judged by the collections it belonged to. Path
@@ -217,7 +222,9 @@ arguments scope them like any other issue.
 
 A module is compared together with every repository file it imports by a
 relative path, followed transitively, because a locked rule changes when a
-helper it imports does. Rules also receive the configured addons module, so
+helper it imports does. An imported file counts when its own content changed
+or it was deleted; one a module merely stopped or started importing is part of
+that module's own change. Rules also receive the configured addons module, so
 that module and its imports count as part of every locked rule. Packages and
 `node:` built-ins are not followed: their versions are the lockfile's to pin.
 A module that computes an import path cannot be followed, so a locked module
