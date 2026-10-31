@@ -9,16 +9,13 @@ release procedure itself is `RELEASING.md`, written for the person running it.
 ## Project layout
 
     .github/
-    ├─ workflows/            GitHub Actions workflows
+    ├─ workflows/         GitHub Actions workflows
     │  │
-    │  ├─ ci.yml ❗          the checks every push and pull request runs
+    │  ├─ ci.yml ❗       the checks every push and pull request runs
     │  │
-    │  └─ release.yml ❗     validating and publishing a GitHub release to npm
+    │  └─ release.yml ❗  validating and publishing a GitHub release to npm
     │
-    ├─ RELEASE-0.11.0.md ❗  the notes of the release being prepared (instance
-    │                        of RELEASE-[major=0+].[minor=0+].[patch=0+].md)
-    │
-    ├─ RELEASING.md ❗       how a release is prepared and published
+    ├─ RELEASING.md ❗    how a release is prepared and published
     │
     └─ RELEASE-[major=0+].[minor=0+].[patch=0+].md ❄️ 1+
        one release's notes, published as its GitHub release
@@ -44,17 +41,6 @@ Published notes are frozen: the GitHub release already carries them, so a
 correction is a new release's notes. The notes of the release being prepared
 are reopened by a declaration of their own, `RELEASE-X.Y.Z.md.mjs` with
 `frozen = false`, deleted once that release is published.
-
-Concrete instances, each bound by this contract and by its own section:
-
-### `RELEASE-0.11.0.md` — the notes of the release being prepared
-
-Not yet published, so still editable. Delete this declaration once 0.11.0 is
-published, which freezes these notes with the others.
-
-### Adding new instances
-
-A `RELEASE-[major=0+].[minor=0+].[patch=0+].md` needs no declaration. Declaring one gives it its own guidance; see `espalier help instances`.
 
 ## `workflows/` — GitHub Actions workflows
 
