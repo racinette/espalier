@@ -8,7 +8,7 @@
 import { directoryFrozen, directoryLock, directorySealed, groupingAbstract, rootGrouping, type Constraint, type Espalier, type GroupInstance, type LoadedModule, type NodeDoc, type StructuralRule, type TrieNode } from "./compile.js";
 import path from "node:path";
 import { PROVENANCE } from "./files.js";
-import { matchSegment, resolveSegment, type CaptureValue, backrefNames, isStrictSubset, parseSegment, parseStructuralLeaf, type Segment } from "./pattern.js";
+import { CASE_STYLES, matchSegment, resolveSegment, type CaptureValue, type CaseStyle, backrefNames, isStrictSubset, parseSegment, type Part, type Segment } from "./pattern.js";
 import { admissionGlobs } from "./targets.js";
 
 const WORKFLOW = `## Working with Espalier
@@ -473,6 +473,12 @@ export interface MapEntry {
   frozen?: true;
   /** No file joins or leaves the node's module's files. docs/LOCKS.MD "Sealed collections". */
   sealed?: true;
+  /**
+   * The last segment as shown, parsed: a back-reference the walk resolved is
+   * its literal text. What the map's marks and legends read; explain's JSON
+   * leaves it out.
+   */
+  segment: Segment;
 }
 
 export function mapEntries(
@@ -512,10 +518,12 @@ export function mapEntries(
     if (stopAt.some((boundary) => absolute.startsWith(`${boundary}/`))) continue;
 
     const directory = isDirectory(visit.node);
+    const shown = display.get(visit.at) ?? visit.at;
+    const leaf = shown.slice(shown.lastIndexOf("/") + 1);
     const reference = directory ? visit.node.instanceOf : visit.node.rule?.module.instanceOf;
     const contract = reference?.slice(reference.lastIndexOf("/") + 1);
     entries.push({
-      path: (display.get(visit.at) ?? visit.at) + (directory ? "/" : ""),
+      path: shown + (directory ? "/" : ""),
       description: directory
         ? (espalier.nodes.get(absolute)?.description ?? null)
         : (visit.node.rule?.module.description ?? null),
@@ -530,6 +538,7 @@ export function mapEntries(
         visit.node.instanceOf !== undefined ? !visit.node.optional : directory || (visit.node.segment.dynamic && visit.node.rule?.module.optional !== false)
           ? null
           : visit.node.rule?.module.optional !== true,
+      segment: leaf === visit.node.display ? visit.node.segment : parseSegment(leaf, "map", { literal: true }),
     });
   }
 
@@ -561,22 +570,13 @@ function nodeSealed(espalier: Espalier, node: TrieNode, authored: string): boole
   return directorySealed(espalier.nodes, node.rule === null ? authored : cut === -1 ? "" : authored.slice(0, cut)).locked;
 }
 
-/** The parsed name of a map entry's last segment. */
-function entrySegment(entry: MapEntry): Segment {
-  const name = entry.path.endsWith("/") ? entry.path.slice(0, -1) : entry.path;
-  const leaf = name.slice(name.lastIndexOf("/") + 1);
-  return entry.path.endsWith("/")
-    ? parseSegment(leaf, "map", { literal: entry.literal })
-    : parseStructuralLeaf(leaf, "map", { literal: entry.literal });
-}
-
 /**
  * The compact marks that follow a name: 🔒 locked, ❄️ frozen, 📦 sealed, 📋 abstract, ❗ required,
  * and for a pattern the fewest matches that must exist. The legend under the
  * map explains the ones a document uses. docs/cli/build/README.MD "Marks".
  */
 export function entryMarks(entry: MapEntry): string {
-  const dynamic = entrySegment(entry).dynamic;
+  const { dynamic } = entry.segment;
   const symbols = [
     ...(entry.locked === true ? ["🔒"] : []),
     ...(entry.frozen === true ? ["❄️"] : []),
@@ -591,7 +591,7 @@ export function entryMarks(entry: MapEntry): string {
 /** Annotations that need words: an instance's contract, a literal name, a back-reference. */
 function suffixes(entry: MapEntry): string[] {
   const marks: string[] = [];
-  const segment = entrySegment(entry);
+  const { segment } = entry;
 
   if (entry.literal === true) marks.push("literal name");
   if (entry.instanceOf !== undefined) marks.push(`instance of ${entry.instanceOf}`);
@@ -733,13 +733,9 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
   return lines;
 }
 
-function renderMap(
-  espalier: Espalier,
-  point: Placement,
-  stopAt: readonly string[] = [],
-): string | null {
+function renderMap(espalier: Espalier, point: Placement, entries: MapEntry[]): string | null {
   if (point.node === null) return null;
-  const lines = drawMap(mapEntries(espalier, point.node, point.at, stopAt), WIDTH - 4);
+  const lines = drawMap(entries, WIDTH - 4);
   // A map without its root is a forest. The espalier root has no authored
   // directory name, so `./` names it without confusing the config's project
   // name for a path; every deeper point can name its repository-relative path.
@@ -1016,10 +1012,10 @@ export function constraintGroups(espalier: Espalier): ConstraintGroup[] {
 export { isDirectory, subtree };
 
 /** A structural path as seen from the document section that introduces it. */
-function constraintHeading(group: ConstraintGroup, level: number): string[] {
+function constraintHeading(group: ConstraintGroup, level: number, shown: Shown): string[] {
   const description = group.members[0]!.module.description;
   const heading = description === null ? "" : ` — ${description}`;
-  return [`${"#".repeat(level)} ${group.name}${lockMark(group.members[0]!.module.locked)}${heading}`];
+  return [`${"#".repeat(level)} ${group.name}${lockMark(shown, group.members[0]!.module.locked)}${heading}`];
 }
 
 function constraintBody(group: ConstraintGroup): string[] {
@@ -1068,9 +1064,34 @@ function parentOfSection(point: Placement, at: string): TrieNode | null {
 const HELP_INSTANCES = `See ${codeSpan("espalier help instances")}.`;
 
 /** The lock, freeze and seal marks a section heading carries after its name. */
-function lockMark(locked: boolean, frozen = false, sealed = false): string {
+function lockMark(shown: Shown, locked: boolean, frozen = false, sealed = false): string {
+  if (locked) shown.marks.add("locked");
+  if (frozen) shown.marks.add("frozen");
+  if (sealed) shown.marks.add("sealed");
   const marks = `${locked ? "🔒" : ""}${frozen ? "❄️" : ""}${sealed ? "📦" : ""}`;
   return marks === "" ? "" : ` ${marks}`;
+}
+
+/**
+ * What a document's headings show beside its map, recorded as they are
+ * rendered so its legends explain exactly that: the names, parsed, and the
+ * marks after them.
+ */
+interface Shown {
+  names: Segment[];
+  marks: Set<"locked" | "frozen" | "sealed">;
+}
+
+/** The segments of a placement-relative section path, from the placement down. */
+function segmentsAt(point: Placement, at: string): Segment[] {
+  const segments: Segment[] = [];
+  let node = point.node;
+  const relative = at === point.at ? "" : displayPath(point, at);
+  for (const part of relative.split("/").filter(Boolean)) {
+    node = node === null ? null : [...node.children.values()].find((child) => child.display === part) ?? null;
+    if (node !== null) segments.push(node.segment);
+  }
+  return segments;
 }
 
 /**
@@ -1103,11 +1124,12 @@ function ruleBody(module: LoadedModule): string[] {
 const groupingTitle = (by: string[]): string => by.length === 0 ? "all files in a directory" : `by ${listing(by.map((name) => codeSpan(name)))}`;
 
 /** A declared group's heading and its own guidance. */
-function groupInstanceBlocks(instance: GroupInstance, directory: string, level: number): string[] {
+function groupInstanceBlocks(instance: GroupInstance, directory: string, level: number, shown: Shown): string[] {
   const name = instance.pattern.slice(instance.pattern.lastIndexOf("/") + 1);
   const described = instance.module.description === null ? "" : ` — ${instance.module.description}`;
+  shown.names.push(instance.segment);
   return [
-    `${"#".repeat(level)} ${codeSpan(`${directory}${name}`)}${lockMark(instance.module.locked, instance.module.frozenExport === true, instance.module.sealed === true)}${described}`,
+    `${"#".repeat(level)} ${codeSpan(`${directory}${name}`)}${lockMark(shown, instance.module.locked, instance.module.frozenExport === true, instance.module.sealed === true)}${described}`,
     ...(instance.module.guidance.trim() === "" ? [] : [instance.module.guidance.trim()]),
   ];
 }
@@ -1122,16 +1144,16 @@ const declaresGroupsHere = (rule: StructuralRule, directory: string): boolean =>
  * own files, so they are stated here, under the rule, rather than beside the
  * contract that defines the grouping.
  */
-function declaredHereSections(rule: StructuralRule, at: string, shown: string, level: number): string[] {
+function declaredHereSections(rule: StructuralRule, at: string, display: string, level: number, shown: Shown): string[] {
   const here = at.slice(0, Math.max(at.lastIndexOf("/"), 0));
-  const directory = shown.slice(0, shown.lastIndexOf("/") + 1);
+  const directory = display.slice(0, display.lastIndexOf("/") + 1);
   return [...(rule.inherited ?? []), rule].flatMap((source) => source.module.groups.flatMap((grouping) => {
     const instances = grouping.instances.filter((instance) => instance.directory !== null && instance.directory === here);
     if (instances.length === 0) return [];
     return [
       `${"#".repeat(level)} Together, ${groupingTitle(grouping.by)}, declared here`,
       `Groups of the inherited ${codeSpan(grouping.name)} grouping, each bound by it and by its own section:`,
-      ...instances.flatMap((instance) => groupInstanceBlocks(instance, directory, level + 1)),
+      ...instances.flatMap((instance) => groupInstanceBlocks(instance, directory, level + 1, shown)),
     ];
   }));
 }
@@ -1142,15 +1164,15 @@ function declaredHereSections(rule: StructuralRule, at: string, shown: string, l
  * under it as a contract's instances nest under the contract, named by the
  * rule's name with their values written in. docs/cli/build/README.MD "Groupings".
  */
-function groupingSections(module: LoadedModule, shown: string, level: number): string[] {
-  const directory = shown.slice(0, shown.lastIndexOf("/") + 1);
+function groupingSections(module: LoadedModule, display: string, level: number, shown: Shown): string[] {
+  const directory = display.slice(0, display.lastIndexOf("/") + 1);
   return module.groups.flatMap((grouping) => {
     // Groups a named instance declares are stated in its own document.
     const instances = grouping.instances.filter((instance) => instance.directory === null);
     const abstract = groupingAbstract(grouping);
     const { description } = rootGrouping(grouping);
     const blocks = [
-      `${"#".repeat(level)} Together, ${groupingTitle(grouping.by)}${lockMark(false, false, grouping.sealed)}${description === null ? "" : ` — ${description}`}`,
+      `${"#".repeat(level)} Together, ${groupingTitle(grouping.by)}${lockMark(shown, false, false, grouping.sealed)}${description === null ? "" : ` — ${description}`}`,
       ...(grouping.extends ? [`Adds to the inherited ${codeSpan(grouping.name)} grouping.`] : []),
       ...(grouping.guidance.trim() === "" ? [] : [grouping.guidance.trim()]),
     ];
@@ -1158,7 +1180,7 @@ function groupingSections(module: LoadedModule, shown: string, level: number): s
     blocks.push(instances.length === 0
       ? "No groups are declared yet."
       : "Declared groups, each bound by this grouping and by its own section:");
-    for (const instance of instances) blocks.push(...groupInstanceBlocks(instance, directory, level + 1));
+    for (const instance of instances) blocks.push(...groupInstanceBlocks(instance, directory, level + 1, shown));
     blocks.push(
       `${"#".repeat(level + 1)} Adding new groups`,
       abstract
@@ -1182,6 +1204,8 @@ interface Documents {
   current: string;
   /** Which document renders the section at an authored path. */
   homes: ReadonlyMap<string, string>;
+  /** What its headings have shown so far, for its legends. */
+  shown: Shown;
 }
 
 /**
@@ -1231,7 +1255,8 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
       const instances = node === null || parent === null ? [] : instancesOf(parent, node);
       const abstract = node?.abstract === true;
       const heading = section.doc.description === null ? "" : ` — ${section.doc.description}`;
-      blocks.push(`${hashes} ${codeSpan(`${displayPath(point, section.at)}/`)}${lockMark(directoryLock(espalier.nodes, section.at).locked, directoryFrozen(espalier.nodes, section.at).locked, directorySealed(espalier.nodes, section.at).locked)}${heading}`);
+      documents.shown.names.push(...segmentsAt(point, section.at));
+      blocks.push(`${hashes} ${codeSpan(`${displayPath(point, section.at)}/`)}${lockMark(documents.shown, directoryLock(espalier.nodes, section.at).locked, directoryFrozen(espalier.nodes, section.at).locked, directorySealed(espalier.nodes, section.at).locked)}${heading}`);
       if (section.doc.body !== "") blocks.push(section.doc.body);
       if (instances.length > 0 || abstract) {
         const prefix = section.at.includes("/") ? section.at.slice(0, section.at.lastIndexOf("/") + 1) : "";
@@ -1270,9 +1295,10 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
     if (body.length === 0 && module.groups.length === 0 && instances.length === 0 && !module.abstract) continue;
 
     const heading = module.description === null ? "" : ` — ${module.description}`;
-    blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${lockMark(module.locked, node !== null && nodeFrozen(espalier, node, section.at), node !== null ? nodeSealed(espalier, node, section.at) : module.sealed === true)}${heading}`, ...body);
-    if (!inherited) blocks.push(...groupingSections(module, displayPath(point, section.at), level + 1));
-    blocks.push(...declaredHereSections(section.rule, section.at, displayPath(point, section.at), level + 1));
+    documents.shown.names.push(...segmentsAt(point, section.at));
+    blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${lockMark(documents.shown, module.locked, node !== null && nodeFrozen(espalier, node, section.at), node !== null ? nodeSealed(espalier, node, section.at) : module.sealed === true)}${heading}`, ...body);
+    if (!inherited) blocks.push(...groupingSections(module, displayPath(point, section.at), level + 1, documents.shown));
+    blocks.push(...declaredHereSections(section.rule, section.at, displayPath(point, section.at), level + 1, documents.shown));
 
     if (instances.length > 0 || module.abstract) {
       blocks.push(instances.length === 0
@@ -1283,8 +1309,9 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
         const own = ruleBody(instance.rule.module);
         const described = instance.rule.module.description === null ? "" : ` — ${instance.rule.module.description}`;
         const instanceNode = nodeAt(point, instance.at);
-        blocks.push(`${hashes}# ${codeSpan(displayPath(point, instance.at))}${lockMark(instance.rule.module.locked, instanceNode !== null && nodeFrozen(espalier, instanceNode, instance.at), instanceNode !== null ? nodeSealed(espalier, instanceNode, instance.at) : instance.rule.module.sealed === true)}${described}`, ...own);
-        blocks.push(...groupingSections(instance.rule.module, displayPath(point, instance.at), level + 2));
+        documents.shown.names.push(...segmentsAt(point, instance.at));
+        blocks.push(`${hashes}# ${codeSpan(displayPath(point, instance.at))}${lockMark(documents.shown, instance.rule.module.locked, instanceNode !== null && nodeFrozen(espalier, instanceNode, instance.at), instanceNode !== null ? nodeSealed(espalier, instanceNode, instance.at) : instance.rule.module.sealed === true)}${described}`, ...own);
+        blocks.push(...groupingSections(instance.rule.module, displayPath(point, instance.at), level + 2, documents.shown));
       }
       blocks.push(...addingInstances(node!.display, false, module.abstract, level + 1));
     }
@@ -1296,7 +1323,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
     blocks.push(`${hashes} Constraints`);
     for (const group of groups) {
       blocks.push(
-        ...constraintHeading(group, level + 1),
+        ...constraintHeading(group, level + 1, documents.shown),
         ...constraintSelection(group),
         ...constraintBody(group),
       );
@@ -1327,22 +1354,41 @@ function heading(name: string | null, at: string): string[] {
  * A masked placeholder means nothing to a reader who has not seen the mask
  * vocabulary, so a map that shows one is followed by a legend of the symbols
  * it uses — those and no others, since a legend for `X` under a map that
- * never writes it is noise. docs/MATCHING.MD "Masks";
+ * never writes it is noise. A case style is named once, for the same
+ * reason. docs/MATCHING.MD "Masks" and "Case styles";
  * docs/cli/build/README.MD "The map".
  */
-function maskLegend(paths: string[]): string | null {
-  const used = new Set<string>();
+function maskLegend(names: readonly Segment[]): string | null {
+  const symbols = new Set<string>();
+  const repeats = new Set<"many" | "exact" | "range">();
+  const styles = new Map<CaseStyle, string>();
   let masked: string | null = null;
   let listed: string | null = null;
-  for (const shown of paths) {
-    for (const [placeholder, constraint] of shown.matchAll(/\[[A-Za-z_][A-Za-z0-9_]*=([^\]]*)\]/g)) {
-      if (constraint!.startsWith("{")) listed ??= placeholder;
-      else {
-        masked ??= placeholder;
-        for (const char of constraint!) used.add(char);
+  let optional: string | null = null;
+  const visit = (part: Part): void => {
+    if (part.kind === "alternatives") {
+      // `{ts,tsx}` reads as brace expansion to anyone; an empty alternative does not.
+      if (part.branches.some((branch) => branch.length === 0)) optional ??= part.source;
+      for (const inner of part.branches.flat()) visit(inner);
+      return;
+    }
+    if (part.kind !== "capture" || part.constraint === undefined) return;
+    const { constraint } = part;
+    const placeholder = `[${part.name}=${constraint.source}]`;
+    if (constraint.kind === "list") listed ??= placeholder;
+    else if (constraint.kind === "style") {
+      if (!styles.has(constraint.source)) styles.set(constraint.source, placeholder);
+    } else {
+      masked ??= placeholder;
+      for (const term of constraint.terms) {
+        symbols.add(term.symbol);
+        if (term.many) repeats.add("many");
+        if (term.count !== undefined) repeats.add(term.count[0] === term.count[1] ? "exact" : "range");
       }
     }
-  }
+  };
+  for (const name of names) for (const part of name.parts) visit(part);
+
   const meanings: [string, string][] = [
     ["0", "a digit"],
     ["#", "an optional digit"],
@@ -1353,7 +1399,7 @@ function maskLegend(paths: string[]): string | null {
     ["-", "a dash"],
     ["_", "an underscore"],
   ];
-  const classes = meanings.filter(([char]) => used.has(char)).map(([char, meaning]) => `${codeSpan(char)} ${meaning}`);
+  const classes = meanings.filter(([char]) => symbols.has(char)).map(([char, meaning]) => `${codeSpan(char)} ${meaning}`);
   const sentences: string[] = [];
   if (masked !== null) {
     // Shown on a placeholder the reader has just seen in the map.
@@ -1361,16 +1407,16 @@ function maskLegend(paths: string[]): string | null {
     // "`0` matches a digit, `a` a lowercase letter and `-` a dash."
     const [first, ...rest] = classes;
     sentences.push(`${listing([first!.replace(" ", " matches "), ...rest])}.`);
-    const repeats = [
-      ...(used.has("+") ? [`${codeSpan("+")} repeats the element before it one or more times`] : []),
-      ...(used.has("(") ? [`${used.has("+") ? codeSpan("(n)") + " repeats it" : codeSpan("(n)") + " repeats the element before it"} exactly n times`] : []),
-    ];
-    if (repeats.length > 0) sentences.push(`${repeats.join(", and ")}.`);
+    const told: string[] = [];
+    const subject = (notation: string): string => `${codeSpan(notation)} ${told.length > 0 ? "repeats it" : "repeats the element before it"}`;
+    if (repeats.has("many")) told.push(`${subject("+")} one or more times`);
+    if (repeats.has("exact")) told.push(`${subject("(n)")} exactly n times`);
+    if (repeats.has("range")) told.push(`${subject("(m..n)")} m to n times, ${codeSpan("(m..)")} at least m times and ${codeSpan("(..n)")} at most n times`);
+    if (told.length > 0) sentences.push(`${told.join(", and ")}.`);
   }
   if (listed !== null) sentences.push(`${codeSpan(listed)} accepts exactly the listed names.`);
-  // `{ts,tsx}` reads as brace expansion to anyone; an empty alternative does not.
-  const optional = paths.flatMap(alternativeGroups).find((group) => group.startsWith("{,") || group.endsWith(",}") || group.includes(",,"));
-  if (optional !== undefined) {
+  for (const [style, placeholder] of styles) sentences.push(`${codeSpan(placeholder)} accepts a ${style} name: ${CASE_STYLES[style].words}.`);
+  if (optional !== null) {
     sentences.push(`${codeSpan(optional)} matches one of its comma-separated alternatives, and the empty one makes that part of the name optional.`);
   }
   if (sentences.length === 0) return null;
@@ -1379,66 +1425,30 @@ function maskLegend(paths: string[]): string | null {
 }
 
 /**
- * One sentence for each mark a document's map uses, and none for the rest.
- * docs/cli/build/README.MD "Marks".
+ * The marks a map and its document's headings carry, each explained once.
+ * Explain's map has no headings. docs/cli/build/README.MD "Marks".
  */
-export function marksLegend(entries: readonly MapEntry[], headings: readonly string[] = []): string | null {
-  const marks = [...entries.map(entryMarks), ...headings];
+export function marksLegend(entries: readonly MapEntry[], headings: ReadonlySet<"locked" | "frozen" | "sealed"> = new Set()): string | null {
   const sentences: string[] = [];
-  if (marks.some((mark) => mark.includes("🔒"))) {
+  if (headings.has("locked") || entries.some((entry) => entry.locked === true)) {
     sentences.push(`🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (${codeSpan("espalier help locks")}).`);
   }
-  if (marks.some((mark) => mark.includes("❄️"))) {
+  if (headings.has("frozen") || entries.some((entry) => entry.frozen === true)) {
     sentences.push(`❄️ marks frozen files: an existing file keeps its content and is never removed; add a new one instead where the contract admits it (${codeSpan("espalier help locks")}).`);
   }
-  if (marks.some((mark) => mark.includes("📦"))) {
+  if (headings.has("sealed") || entries.some((entry) => entry.sealed === true)) {
     sentences.push(`📦 marks a sealed collection: no file, or for a grouping no group, joins or leaves it (${codeSpan("espalier help locks")}).`);
   }
-  if (marks.some((mark) => mark.includes("📋"))) {
+  if (entries.some((entry) => entry.abstract === true)) {
     sentences.push("📋 marks an abstract contract: every match must be declared in the espalier, and an undeclared one is reported.");
   }
-  if (marks.some((mark) => mark.includes("❗"))) {
+  if (entries.some((entry) => !entry.segment.dynamic && entry.required === true)) {
     sentences.push("❗ marks a named file or directory that must exist; one without it may be absent.");
   }
-  if (marks.some((mark) => /\d\+$/.test(mark))) {
+  if (entries.some((entry) => entry.segment.dynamic)) {
     sentences.push(`A count after a pattern, such as ${codeSpan("0+")} or ${codeSpan("1+")}, is the fewest matching names that must exist.`);
   }
   return sentences.length === 0 ? null : sentences.join(" ");
-}
-
-/** Each `{a,b}` in a name, outside placeholders; `{name}` is a back-reference, not a group. */
-function alternativeGroups(shown: string): string[] {
-  const groups: string[] = [];
-  let bracket = 0;
-  for (let i = 0; i < shown.length; i += 1) {
-    if (shown[i] === "[") bracket += 1;
-    else if (shown[i] === "]") bracket -= 1;
-    else if (shown[i] === "{" && bracket === 0) {
-      let depth = 0;
-      let end = i;
-      for (; end < shown.length; end += 1) {
-        if (shown[end] === "[" || shown[end] === "{") depth += 1;
-        if (shown[end] === "]" || shown[end] === "}") depth -= 1;
-        if (depth === 0) break;
-      }
-      const group = shown.slice(i, end + 1);
-      if (splitTop(group.slice(1, -1)) > 1) groups.push(group);
-      i = end;
-    }
-  }
-  return groups;
-}
-
-/** How many comma-separated alternatives a group's inside holds at its top level. */
-function splitTop(inner: string): number {
-  let depth = 0;
-  let count = 1;
-  for (const char of inner) {
-    if (char === "[" || char === "{") depth += 1;
-    else if (char === "]" || char === "}") depth -= 1;
-    else if (char === "," && depth === 0) count += 1;
-  }
-  return count;
 }
 
 /** `a`, `a and b`, `a, b and c`. */
@@ -1486,7 +1496,7 @@ function core(
   homes: ReadonlyMap<string, string> = new Map(),
 ): string[] {
   const blocks: string[] = [];
-  const documents: Documents = { below: stopAt, filename, current: point.at, homes };
+  const documents: Documents = { below: stopAt, filename, current: point.at, homes, shown: { names: [], marks: new Set() } };
 
   blocks.push(...directoryProse(espalier, point, documents));
   if (espalierGuidance && nested && point.at === "") {
@@ -1495,24 +1505,15 @@ function core(
 ${architectureGuidance(espalier)}`);
   }
 
-  const map = renderMap(espalier, point, stopAt);
+  const entries = point.node === null ? [] : mapEntries(espalier, point.node, point.at, stopAt);
+  const map = renderMap(espalier, point, entries);
   const closed = renderClosedSet(point);
 
-  // One legend per document, for every mask it shows, under the map where
-  // masks first appear. docs/cli/build/README.MD "The map".
-  const shown = [
-    ...(map === null ? [] : mapEntries(espalier, point.node!, point.at, stopAt).map((entry) => entry.path)),
-    ...[point, ...point.folded].flatMap((each) => each.sections.flatMap((section) => [
-      section.at,
-      ...(section.kind === "rule" ? section.rule.module.groups.flatMap((grouping) => grouping.instances.map((instance) => instance.pattern)) : []),
-    ])),
-  ];
-  const legend = maskLegend(shown);
   if (map !== null) blocks.push(`${"#".repeat(level)} Project layout`, map);
-  // The marks legend also covers marks that only a section heading carries,
-  // such as a frozen declared group's, so it is placed once the headings exist.
+  // The legends sit under the map but explain the section headings too, such
+  // as a declared group's name or a frozen group's mark, so they are placed
+  // once the headings have been rendered. docs/cli/build/README.MD "The map".
   const legendAt = blocks.length;
-  if (legend !== null) blocks.push(legend);
 
   blocks.push(...renderChildren(point.at, named, level));
   blocks.push(...renderSections(espalier, point, level, documents));
@@ -1521,16 +1522,18 @@ ${architectureGuidance(espalier)}`);
     body.push(...renderSections(espalier, folded, level + 1, documents));
     if (body.length === 0) continue;
     const description = folded.doc?.description == null ? "" : ` — ${folded.doc.description}`;
-    blocks.push(`${"#".repeat(level)} ${codeSpan(`${displayPath(point, folded.at)}/`)}${lockMark(directoryLock(espalier.nodes, folded.at).locked, directoryFrozen(espalier.nodes, folded.at).locked, directorySealed(espalier.nodes, folded.at).locked)}${description}`, ...body);
+    documents.shown.names.push(...segmentsAt(point, folded.at));
+    blocks.push(`${"#".repeat(level)} ${codeSpan(`${displayPath(point, folded.at)}/`)}${lockMark(documents.shown, directoryLock(espalier.nodes, folded.at).locked, directoryFrozen(espalier.nodes, folded.at).locked, directorySealed(espalier.nodes, folded.at).locked)}${description}`, ...body);
   }
   blocks.push(...renderOutside(outside, level));
   if (closed !== null) blocks.push(closed);
-  const headings = [
-    ...(directoryLock(espalier.nodes, point.at).locked ? ["🔒"] : []),
-    ...blocks.slice(legendAt).filter((block) => block.startsWith("#")).map((block) => (block.split("\n")[0]!.match(/🔒|❄️|📦/gu) ?? []).join("")),
-  ];
-  const marks = marksLegend(map === null ? [] : mapEntries(espalier, point.node!, point.at, stopAt), headings);
-  if (marks !== null) blocks.splice(legendAt, 0, marks);
+  // The map's root line carries the document's own directory's lock.
+  if (directoryLock(espalier.nodes, point.at).locked) documents.shown.marks.add("locked");
+  const legends = [
+    marksLegend(entries, documents.shown.marks),
+    maskLegend([...entries.map((entry) => entry.segment), ...documents.shown.names]),
+  ].filter((legend): legend is string => legend !== null);
+  blocks.splice(legendAt, 0, ...legends);
   return blocks;
 }
 

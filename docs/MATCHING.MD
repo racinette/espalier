@@ -131,6 +131,8 @@ character of the name.
 [code=AAA]-[n=00]                    three letters, a dash, two digits
 [slug=a+]                            lowercase letters, one or more
 [day=0(4)-0(2)-0(2)]_[title].md      a date, captured as one value
+[seq=0(4..)]_[name].sql              four digits or more
+[code=A(2..3)0(..2)]                 two or three letters, then up to two digits
 ```
 
 The mask vocabulary is deliberately small:
@@ -145,17 +147,24 @@ The mask vocabulary is deliberately small:
 | `x` | ASCII lowercase letter or digit |
 | `-` `_` | that character, literally |
 
-Two suffixes repeat the element before them: `+` means one or more times, and
-`(n)` means exactly `n` times. `0+` is one or more digits; `0(4)#(2)` is four
-to six; `0000##` says the same thing written out. `#+` is zero or more digits,
-which is legal only beside something required: a mask must require at least
-one character, so a capture never matches the empty string, mask or no mask.
+Suffixes repeat the element before them: `+` means one or more times, and
+`(n)` means exactly `n` times. A range counts between two bounds, either of
+which may be left open: `(m..n)` is `m` to `n` times, `(m..)` at least `m`
+times, and `(..n)` at most `n` times, none included. `0+` is one or more
+digits; `0(4..6)` is four to six, and so are `0(4)#(2)` and `0000##`. `a(..3)`
+is up to three letters, which `#` cannot say. `#+`, `a(0..)` and `a(..3)` may
+match nothing, so they are legal only beside something required: a mask must
+require at least one character, so a capture never matches the empty string,
+mask or no mask. A range's bounds must differ, as `(4)` already says
+`(4..4)`, and a range takes no `+`.
 
 A mask describes the shape of a name, not its meaning. `0(14)` is fourteen
 digits whether or not they form a date; whether they do is a question for the
 rule's `lint`, which receives the capture. There are no named formats for the
 same reason: a timestamp is fourteen digits in one migration tool and ten in
-another, and the mask spells whichever one the repository uses.
+another, and the mask spells whichever one the repository uses. The one
+exception is a [case style](#case-styles), a convention for names that a mask
+cannot spell.
 
 Masks never contain a dot, so the dot restriction on structural captures is
 unaffected: every mask class excludes `.`, and a bare `[name]` keeps excluding
@@ -184,10 +193,43 @@ A back-reference repeats the bound text and carries no mask of its own:
 `{seq=0+}` is rejected. A name is declared once per path, mask included, so
 `[seq=000000]` and a later `[seq=0+]` are a duplicate, not a refinement.
 
-Anything else after `=` is rejected as `malformed_placeholder`, naming the
-offending character. The vocabulary is built from characters every filesystem
+Anything after `=` that is not a mask, a list or a [case style](#case-styles)
+is rejected as `malformed_placeholder`, naming the offending character. The
+vocabulary is built from characters every filesystem
 accepts, which is why the separator is `=` rather than `:`, and why `?` and
 `*` do not appear.
+
+### Case styles
+
+A capture may require a naming convention instead of a mask, by writing the
+style's own name after `=`:
+
+```text
+[Name=PascalCase].tsx                SubmitButton.tsx, HTMLView.tsx
+[name=camelCase].ts                  useCart.ts, parseHTML.ts
+[slug=kebab-case].ts                 order-history.ts, utf-8.ts
+[name=snake_case].py                 send_email.py
+```
+
+| Style | Accepts | Not |
+|---|---|---|
+| `kebab-case` | `user`, `user-id`, `utf-8` | `User`, `user_id`, `user--id`, `-user`, `1-user` |
+| `snake_case` | `user`, `user_id`, `utf_8` | `User`, `user-id`, `user__id`, `_user` |
+| `camelCase` | `user`, `userId`, `parseHTML`, `v2Api` | `User`, `user-id`, `2fa` |
+| `PascalCase` | `User`, `UserId`, `HTMLParser`, `V2` | `user`, `User_Id`, `2Fa` |
+
+`kebab-case` and `snake_case` are lowercase words of letters and digits,
+joined by single dashes or single underscores, starting with a letter.
+`camelCase` and `PascalCase` are letters and digits, starting with a lowercase
+or a capital letter; capitals may run together, so an acronym is accepted
+either way it is written. None of them contains a dot.
+
+A style is the whole constraint: it cannot be combined with a mask, and the
+names are case-sensitive and exact, so `[name=kebab]` is rejected with a
+pointer to `kebab-case`. A single lowercase word, such as `user`, is
+kebab-case, snake_case and camelCase at once, so sibling rules in two of those
+styles overlap and are [rejected](#ambiguity-is-rejected); a bare `[name]`
+beside a style is a fallback, as beside a mask.
 
 ### Captures must be unambiguous
 

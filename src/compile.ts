@@ -103,6 +103,8 @@ export interface GroupInstance {
    * where it speaks for every directory the rule reaches.
    */
   directory: string | null;
+  /** Its name as a generated document shows it, parsed: the captures it binds are text. */
+  segment: Segment;
   module: LoadedModule;
 }
 
@@ -1378,7 +1380,14 @@ function attachGroup(root: TrieNode, entry: GroupDeclaration, modules: Map<strin
   if (scoped && entry.directory.some((segment) => segment.dynamic || segment.resolved)) {
     fail("invalid_instance", `${modulePath}: declares a group of ${owner.pattern} away from it; declare it beside that rule, or in one named instance directory`);
   }
-  const instance: GroupInstance = { modulePath, pattern: declaration(modulePath), captures: bound, directory: scoped ? directory : null, module };
+  const instance: GroupInstance = {
+    modulePath,
+    pattern: declaration(modulePath),
+    captures: bound,
+    directory: scoped ? directory : null,
+    segment: parseStructuralLeaf(entry.name, modulePath),
+    module,
+  };
   groupInstances.set(module, instance);
   grouping.instances.push(instance);
   grouping.instances.sort((left, right) => left.pattern.localeCompare(right.pattern));

@@ -6,10 +6,10 @@ import { fail } from "./errors.js";
 /** A `[name]` captures a string; a `[...name]` captures the segments it spanned. */
 export type CaptureValue = string | string[];
 
-/** One character class of a mask. docs/MATCHING.MD "Masks". */
-export type MaskClass = "digit" | "letter" | "lower" | "alnum" | "lowerAlnum";
+/** One character class of a mask. docs/MATCHING.MD "Masks". `upper` has no mask character; a case style uses it. */
+export type MaskClass = "digit" | "letter" | "lower" | "upper" | "alnum" | "lowerAlnum";
 
-/** One element of a mask, after `(n)` has been expanded into n copies. */
+/** One element of a mask, after `(n)` or `(m..n)` has been expanded into copies. */
 export interface MaskElement {
   match: { kind: "class"; cls: MaskClass } | { kind: "char"; char: string };
   /** `#`, or any element followed by `+` after `#`: may match nothing. */
@@ -18,10 +18,37 @@ export interface MaskElement {
   many: boolean;
 }
 
-/** What a `[name=…]` accepts: a mask, or a list of literal names. */
+/**
+ * One mask character as written, with its repetition: what a legend explains.
+ * `elements` is what matching uses, with every repetition expanded.
+ */
+export interface MaskTerm {
+  /** `0`, `#`, `A`, `a`, `X`, `x`, `-` or `_`. */
+  symbol: string;
+  /** `(n)` as [n, n], `(m..n)` as [m, n], `(m..)` as [m, null], `(..n)` as [0, n]; absent when not written. */
+  count?: [number, number | null];
+  /** Followed by `+`. */
+  many: boolean;
+}
+
+/** A naming convention a capture may require by name. docs/MATCHING.MD "Case styles". */
+export type CaseStyle = "kebab-case" | "snake_case" | "camelCase" | "PascalCase";
+
+/** What a `[name=…]` accepts: a mask, a list of literal names, or a case style. */
 export type Constraint =
-  | { kind: "mask"; source: string; elements: MaskElement[] }
-  | { kind: "list"; source: string; values: string[] };
+  | { kind: "mask"; source: string; terms: MaskTerm[]; elements: MaskElement[] }
+  | { kind: "list"; source: string; values: string[] }
+  | { kind: "style"; source: CaseStyle };
+
+/** Each style as a regular expression, and in words for generated guidance. */
+export const CASE_STYLES: Record<CaseStyle, { regex: string; words: string }> = {
+  "kebab-case": { regex: "[a-z][a-z0-9]*(?:-[a-z0-9]+)*", words: "lowercase words of letters and digits joined by dashes, starting with a letter" },
+  "snake_case": { regex: "[a-z][a-z0-9]*(?:_[a-z0-9]+)*", words: "lowercase words of letters and digits joined by underscores, starting with a letter" },
+  "camelCase": { regex: "[a-z][A-Za-z0-9]*", words: "letters and digits starting with a lowercase letter" },
+  "PascalCase": { regex: "[A-Z][A-Za-z0-9]*", words: "letters and digits starting with a capital letter" },
+};
+
+const isCaseStyle = (source: string): source is CaseStyle => Object.hasOwn(CASE_STYLES, source);
 
 /** A part of one alternative: alternatives do not nest. */
 export type SimplePart =
@@ -33,7 +60,7 @@ export type SimplePart =
  * `{a,b}` in a name: exactly one alternative matches, and an empty one makes
  * the part optional. docs/MATCHING.MD "Alternatives".
  */
-export type Part = SimplePart | { kind: "alternatives"; branches: SimplePart[][] };
+export type Part = SimplePart | { kind: "alternatives"; source: string; branches: SimplePart[][] };
 
 export interface Segment {
   /** As authored: `clients`, `[provider]`, `test-[name].ts`, `[...path]`. */
@@ -79,6 +106,7 @@ const MASK_CLASSES: Record<string, MaskClass> = {
 /** `(n)` and `+` apply to the element before them, so an element is parsed and then possibly repeated. */
 function parseMask(source: string, context: string, placeholder: string): Constraint {
   const elements: MaskElement[] = [];
+  const terms: MaskTerm[] = [];
   const bad = (reason: string): never =>
     fail("malformed_placeholder", `${placeholder}: ${reason} (${context})`);
   if (source === "") bad("a mask after \"=\" cannot be empty");
@@ -92,28 +120,60 @@ function parseMask(source: string, context: string, placeholder: string): Constr
     } else if (char === "+" || char === "(") {
       return bad(`"${char}" repeats the mask element before it, and nothing precedes it`);
     } else {
-      return bad(`"${char}" is not a mask character; the mask vocabulary is 0 # A a X x - _ with + and (n) for repetition`);
+      return bad(`"${char}" is not a mask character; the mask vocabulary is 0 # A a X x - _ with +, (n) and (m..n) for repetition${styleHint(source)}`);
     }
     i += 1;
-    let count = 1;
+    // `(n)` is exactly n copies; `(m..n)`, `(m..)` and `(..n)` are m required
+    // copies followed by optional ones, or by a repeating one.
+    let least = 1;
+    let most: number | null = 1;
+    const term: MaskTerm = { symbol: char, many: false };
     if (source[i] === "(") {
       const close = source.indexOf(")", i);
-      const digits = close === -1 ? "" : source.slice(i + 1, close);
-      if (!/^[1-9][0-9]*$/.test(digits)) return bad(`"(" must be followed by a count and ")"`);
-      count = Number(digits);
+      const inside = close === -1 ? "" : source.slice(i + 1, close);
+      const range = /^(0|[1-9][0-9]*)?\.\.([1-9][0-9]*)?$/.exec(inside);
+      if (/^[1-9][0-9]*$/.test(inside)) {
+        least = most = Number(inside);
+      } else if (range !== null && (range[1] !== undefined || range[2] !== undefined)) {
+        least = Number(range[1] ?? 0);
+        most = range[2] === undefined ? null : Number(range[2]);
+        if (most !== null && least >= most) return bad(`"(${inside})" needs a smaller count before ".." than after it; exactly n times is written "(n)"`);
+      } else {
+        return bad(`"(" must be followed by a count or a range, such as (4), (2..6), (2..) or (..6), and ")"`);
+      }
+      term.count = [least, most];
       i = close + 1;
     }
     if (source[i] === "+") {
-      element.many = true;
+      if (most !== least) return bad(`"+" cannot follow another repetition`);
+      most = null;
+      term.many = true;
       i += 1;
     }
+    terms.push(term);
     if (source[i] === "(" || source[i] === "+") return bad(`"${source[i]}" cannot follow another repetition`);
-    for (let n = 0; n < count; n += 1) elements.push({ ...element });
+    for (let n = 0; n < least; n += 1) elements.push({ ...element });
+    if (most === null) {
+      if (least === 0) elements.push({ ...element, optional: true, many: true });
+      else elements.at(-1)!.many = true;
+    } else {
+      for (let n = least; n < most; n += 1) elements.push({ ...element, optional: true });
+    }
   }
   if (!elements.some((element) => !element.optional)) {
-    bad("a mask must require at least one character; \"#\" and \"#+\" alone match nothing");
+    bad("a mask must require at least one character; \"#\", \"#+\" and a range from 0, such as \"a(..6)\", alone match nothing");
   }
-  return { kind: "mask", source, elements };
+  return { kind: "mask", source, terms, elements };
+}
+
+/** A pointer to the case style a misspelled mask seems to mean, such as `kebab`. */
+function styleHint(source: string): string {
+  const loose = source.toLowerCase().replace(/[-_]/g, "");
+  const meant = (Object.keys(CASE_STYLES) as CaseStyle[]).find((style) => {
+    const word = style.toLowerCase().replace(/[-_]/g, "");
+    return loose === word || loose === word.replace(/case$/, "");
+  });
+  return meant === undefined ? "" : `; the case style is written "${meant}"`;
 }
 
 /** `{a,b}`: literal alternatives, at least two, built from name characters and the two mask literals. */
@@ -141,7 +201,9 @@ function parseCapture(inner: string, context: string): { name: string; constrain
   if (equals === -1) return { name };
   const rest = inner.slice(equals + 1);
   const placeholder = `"[${inner}]"`;
-  const constraint = rest.startsWith("{") ? parseList(rest, context, placeholder) : parseMask(rest, context, placeholder);
+  const constraint: Constraint = isCaseStyle(rest)
+    ? { kind: "style", source: rest }
+    : rest.startsWith("{") ? parseList(rest, context, placeholder) : parseMask(rest, context, placeholder);
   return { name, constraint };
 }
 
@@ -225,6 +287,7 @@ function parseParts(text: string, source: string, context: string, backrefs: boo
         flush();
         parts.push({
           kind: "alternatives",
+          source: `{${inner}}`,
           branches: branches.map((branch) => parseParts(branch, source, context, backrefs, false) as SimplePart[]),
         });
         i = close + 1;
@@ -389,6 +452,7 @@ const CLASS_REGEX: Record<MaskClass, string> = {
   digit: "[0-9]",
   letter: "[A-Za-z]",
   lower: "[a-z]",
+  upper: "[A-Z]",
   alnum: "[A-Za-z0-9]",
   lowerAlnum: "[a-z0-9]",
 };
@@ -401,6 +465,7 @@ const CLASS_REGEX: Record<MaskClass, string> = {
 function captureRegex(constraint: Constraint | undefined, dotless: boolean): string {
   if (constraint === undefined) return dotless ? "([^.]+?)" : "(.+?)";
   if (constraint.kind === "list") return `(${constraint.values.map(escape).join("|")})`;
+  if (constraint.kind === "style") return `(${CASE_STYLES[constraint.source].regex})`;
   const body = constraint.elements.map((element) => {
     const atom = element.match.kind === "class" ? CLASS_REGEX[element.match.cls] : escape(element.match.char);
     return `${atom}${element.many ? (element.optional ? "*" : "+") : element.optional ? "?" : ""}`;
@@ -559,19 +624,28 @@ const CLASS_CELLS: Record<MaskClass | "any", readonly Cell[]> = {
   digit: ["digit"],
   letter: ["lower", "upper"],
   lower: ["lower"],
+  upper: ["upper"],
   alnum: ["digit", "lower", "upper"],
   lowerAlnum: ["digit", "lower"],
   any: ["digit", "lower", "upper", "other", "dot"],
 };
 
+/**
+ * `open` and `close` bracket a group that matches nothing themselves: the
+ * group may be skipped, from `open` to past its `close` `span` tokens on,
+ * and re-entered from `close`. Only a case style's repeated words use one.
+ */
 type Token =
   | { kind: "literal"; char: string }
-  | { kind: "class"; cls: MaskClass | "any"; dotless: boolean; optional: boolean; many: boolean; binding?: string };
+  | { kind: "class"; cls: MaskClass | "any"; dotless: boolean; optional: boolean; many: boolean; binding?: string }
+  | { kind: "open"; span: number }
+  | { kind: "close"; span: number };
 
 const wildcard = (dotless: boolean, binding?: string): Token =>
   ({ kind: "class", cls: "any", dotless, optional: false, many: true, ...(binding === undefined ? {} : { binding }) });
 
 function admits(token: Token, char: string): boolean {
+  if (token.kind === "open" || token.kind === "close") return false;
   if (token.kind === "literal") return token.char === char;
   const cell = cellOf(char);
   if (token.dotless && cell === "dot") return false;
@@ -600,18 +674,24 @@ interface Machine {
 
 /**
  * A union of token sequences as one NFA. States are token positions; an
- * optional token may be skipped, a repeating one re-entered. State sets are
- * kept closed over skips and sorted, so a set is also its own key.
+ * optional token or group may be skipped, a repeating one re-entered. State
+ * sets are kept closed over skips and sorted, so a set is also its own key.
  */
 function machine(branches: Token[][]): Machine {
   const tokens: (Token | undefined)[] = [];
   const starts = new Set<number>();
-  const closure = (state: number, into: Set<number>): void => {
-    for (let at = state; ; at += 1) {
-      into.add(at);
-      const token = tokens[at];
-      if (token === undefined || token.kind !== "class" || !token.optional) return;
-    }
+  const closure = (at: number, into: Set<number>): void => {
+    if (into.has(at)) return;
+    into.add(at);
+    const token = tokens[at];
+    if (token === undefined || token.kind === "literal") return;
+    if (token.kind === "open") {
+      closure(at + 1, into);
+      closure(at + token.span + 1, into);
+    } else if (token.kind === "close") {
+      closure(at + 1, into);
+      closure(at - token.span + 1, into);
+    } else if (token.optional) closure(at + 1, into);
   };
   for (const branch of branches) {
     const start = tokens.length;
@@ -705,9 +785,24 @@ function partTokens(part: Part, dotless: boolean): Token[][] {
   const constraint = part.constraint;
   if (constraint === undefined) return [[wildcard(dotless)]];
   if (constraint.kind === "list") return constraint.values.map(literal);
+  if (constraint.kind === "style") return [styleTokens(constraint.source)];
   return [constraint.elements.map((element): Token => element.match.kind === "char"
     ? { kind: "literal", char: element.match.char }
     : { kind: "class", cls: element.match.cls, dotless: false, optional: element.optional, many: element.many })];
+}
+
+/** A case style as tokens: CASE_STYLES' expressions, transcribed. */
+function styleTokens(style: CaseStyle): Token[] {
+  const one = (cls: MaskClass): Token => ({ kind: "class", cls, dotless: false, optional: false, many: false });
+  const any = (cls: MaskClass): Token => ({ kind: "class", cls, dotless: false, optional: true, many: true });
+  if (style === "camelCase") return [one("lower"), any("alnum")];
+  if (style === "PascalCase") return [one("upper"), any("alnum")];
+  // A first word, then any number of separated words: (sep [a-z0-9]+)*.
+  const separator: Token = { kind: "literal", char: style === "kebab-case" ? "-" : "_" };
+  return [
+    one("lower"), any("lowerAlnum"),
+    { kind: "open", span: 3 }, separator, { kind: "class", cls: "lowerAlnum", dotless: false, optional: false, many: true }, { kind: "close", span: 3 },
+  ];
 }
 
 /** Every branch of a segment: the product of its list captures and extension union. */

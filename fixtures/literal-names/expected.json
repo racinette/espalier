@@ -27,6 +27,7 @@
     "app/[slug]/loading.tsx": "app/[slug]/loading.tsx.mjs",
     "app/about/page.tsx": "app/[route]/page.tsx.mjs",
     "pages/[id].tsx": "pages/[id].tsx.mjs",
+    "pages/[lang=a+].tsx": "pages/[lang=a+].tsx.mjs",
     "pages/index.tsx": "pages/index.tsx.mjs"
   },
   "explain": {

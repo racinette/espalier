@@ -157,6 +157,13 @@ test("explain needs a path", () => {
   });
 });
 
+test("explain's JSON map carries what the map says, not the parsed names it is drawn from", () => {
+  scratch((root) => {
+    const answer = JSON.parse(run(root, ["explain", "src/", "--format", "jsonl"]).stdout) as { map: Record<string, unknown>[] };
+    assert.deepEqual(answer.map, [{ path: "[name].ts", description: "a source file", required: null }]);
+  });
+});
+
 test("concise explain preserves output routing and operational failures", () => {
   scratch((root) => {
     const args = ["explain", "src/a.ts", "--concise"];

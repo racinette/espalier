@@ -3,7 +3,7 @@
 Parts of the espalier can be locked, files can be frozen, and collections
 sealed; `espalier lint --base` checks a change against all three at a git
 revision. One group of a grouping can be declared with its own guidance, a name
-can hold alternatives, and generated maps use compact marks instead of
+can hold alternatives or require a case style, and generated maps use compact marks instead of
 parenthesized words.
 
 There are breaking changes to configuration, which no longer records a
@@ -155,6 +155,24 @@ structural path, and an empty alternative makes that part optional:
 A capture in an alternative the name did not take is absent, not empty, so a
 grouping may not group by it. A name two combinations of alternatives could
 both match is rejected at compile time.
+
+## Case styles and repeat ranges
+
+A capture can require a naming convention by its name, and a mask can repeat
+an element between two counts:
+
+```text
+[Name=PascalCase].tsx                SubmitButton.tsx, HTMLView.tsx
+[slug=kebab-case].ts                 order-history.ts
+[seq=0(4..)]_[name=snake_case].sql   0001_add_users.sql
+[code=A(2..3)0(..2)].txt             EU.txt, USA12.txt
+```
+
+`kebab-case`, `snake_case`, `camelCase` and `PascalCase` allow digits after
+the first letter and capitals in runs, so acronyms pass either way they are
+written. `(m..n)`, `(m..)` and `(..n)` extend `(n)`. A single lowercase word
+fits three styles at once, so two sibling rules in those styles are rejected
+as overlapping.
 
 ## Generated documents
 

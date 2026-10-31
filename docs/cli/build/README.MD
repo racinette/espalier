@@ -181,9 +181,13 @@ In `[num=0000]`, the text after `=` is a mask: each character matches one charac
 ```
 
 The legend is stated once per document, not once per section. A document
-with no masked or listed name says nothing about masks. A name with an empty
+with no masked or listed name says nothing about masks, and a
+[literal name](../../MATCHING.MD#literal-names) such as `[lang=a+].tsx` is a
+name, not a mask. A name with an empty
 [alternative](../../MATCHING.MD#alternatives), such as `{,.[role=a+]}`, adds
-one sentence saying the empty one makes that part optional. Ordinary
+one sentence saying the empty one makes that part optional, and each
+[case style](../../MATCHING.MD#case-styles) a document shows adds one sentence
+describing it. Ordinary
 alternatives such as `{ts,tsx}` read as brace expansion and are not explained.
 
 A name too long to leave a readable column beside it, under 30 characters,

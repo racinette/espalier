@@ -55,7 +55,7 @@ repository linting begins.
 | Code | |
 |---|---|
 | `invalid_espalier_entry` | a file that is neither a `.mjs` module nor an `ESPALIER.mjs`, and is not skipped |
-| `malformed_placeholder` | an unclosed `[` or `{`, an unmatched `]`, a name that is not an identifier, or a mask or list after `=` that is not in the vocabulary |
+| `malformed_placeholder` | an unclosed `[` or `{`, an unmatched `]`, a name that is not an identifier, or a mask, list or case style after `=` that is not in the vocabulary |
 | `ambiguous_captures` | a segment whose captures could split some name in two ways; the message shows the name and both splits |
 | `malformed_constraint_leaf` | a constraint missing both selection forms, or a malformed filename extension selector |
 | `malformed_node_description` | invalid directory metadata, conflicting guidance formats, or a description/guidance function that throws or returns a non-string |

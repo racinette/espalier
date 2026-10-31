@@ -1,0 +1,128 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      {
+        "kind": "written",
+        "path": "AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "codes/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "components/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "hooks/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "jobs/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "migrations/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "routes/AGENTS.MD"
+      }
+    ]
+  },
+  "exit": 1,
+  "issues": [
+    {
+      "path": "codes/E.txt",
+      "code": "unexpected_path",
+      "severity": "error",
+      "metadata": {
+        "declared": [
+          "[code=A(2..3)0(..2)].txt"
+        ]
+      }
+    },
+    {
+      "path": "codes/USA123.txt",
+      "code": "unexpected_path",
+      "severity": "error",
+      "metadata": {
+        "declared": [
+          "[code=A(2..3)0(..2)].txt"
+        ]
+      }
+    },
+    {
+      "path": "hooks/UseCart.ts",
+      "code": "unexpected_path",
+      "severity": "error",
+      "metadata": {
+        "declared": [
+          "[name=camelCase].ts"
+        ]
+      }
+    },
+    {
+      "path": "jobs/sendEmail.py",
+      "code": "unexpected_path",
+      "severity": "error",
+      "metadata": {
+        "declared": [
+          "[name=snake_case].py"
+        ]
+      }
+    },
+    {
+      "path": "migrations/001_bad.sql",
+      "code": "unexpected_path",
+      "severity": "error",
+      "metadata": {
+        "declared": [
+          "[seq=0(4..)]_[name=snake_case].sql"
+        ]
+      }
+    }
+  ],
+  "ownership": {
+    "components/SubmitButton.tsx": "components/[Name=PascalCase].tsx.mjs",
+    "components/HTMLView.tsx": "components/[Name=PascalCase].tsx.mjs",
+    "components/submit-button.tsx": "components/[name].tsx.mjs",
+    "hooks/useCart.ts": "hooks/[name=camelCase].ts.mjs",
+    "hooks/UseCart.ts": null,
+    "routes/order-history.ts": "routes/[slug=kebab-case].ts.mjs",
+    "routes/utf-8.ts": "routes/[slug=kebab-case].ts.mjs",
+    "routes/order_history.ts": "routes/[name].ts.mjs",
+    "jobs/send_email.py": "jobs/[name=snake_case].py.mjs",
+    "jobs/sendEmail.py": null,
+    "migrations/0001_add_users.sql": "migrations/[seq=0(4..)]_[name=snake_case].sql.mjs",
+    "migrations/20240131_add_orders.sql": "migrations/[seq=0(4..)]_[name=snake_case].sql.mjs",
+    "migrations/001_bad.sql": null,
+    "codes/EU.txt": "codes/[code=A(2..3)0(..2)].txt.mjs",
+    "codes/USA12.txt": "codes/[code=A(2..3)0(..2)].txt.mjs",
+    "codes/E.txt": null,
+    "codes/USA123.txt": null
+  },
+  "explain": {
+    "components/HTMLView.tsx": {
+      "exit": 0,
+      "object": {
+        "rule": "components/[Name=PascalCase].tsx.mjs",
+        "captures": {
+          "Name": "HTMLView"
+        }
+      }
+    },
+    "migrations/20240131_add_orders.sql": {
+      "exit": 0,
+      "object": {
+        "rule": "migrations/[seq=0(4..)]_[name=snake_case].sql.mjs",
+        "captures": {
+          "seq": "20240131",
+          "name": "add_orders"
+        }
+      }
+    }
+  }
+}

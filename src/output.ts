@@ -187,7 +187,9 @@ class JsonlReporter implements Reporter {
   }
 
   explanation(answer: Explanation): void {
-    this.destination.write(`${JSON.stringify(answer)}\n`);
+    // A map entry's parsed name is for drawing the map, not part of the answer.
+    const map = "map" in answer && answer.map !== null ? { map: answer.map.map(({ segment: _, ...entry }) => entry) } : {};
+    this.destination.write(`${JSON.stringify({ ...answer, ...map })}\n`);
   }
 
   help(text: string): void {

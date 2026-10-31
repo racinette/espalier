@@ -10,4 +10,5 @@ declared with `literalName` on its rule module.
 Pins that a literal node is static: it owns its path ahead of the dynamic
 sibling, its files are required by default, and it reports no capture of its
 own, while the inherited `[route]` rule still sees `route = "[slug]"`. The map
-marks the node `literal name`.
+marks the node `literal name`. A literal
+`[lang=a+].tsx` is a name, not a mask, so its document explains no mask.
