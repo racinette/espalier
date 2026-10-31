@@ -4,7 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ambiguousSplit, captureNames, commonName, intersectSegments, isStrictSubset, matchSegment, optionalCaptureNames, parseSegment, parseStructuralLeaf, resolveSegment, trieKey } from "../src/pattern.js";
+import { ambiguousSplit, bindSegment, captureNames, commonName, specificity, intersectSegments, isStrictSubset, matchSegment, optionalCaptureNames, parseSegment, parseStructuralLeaf, resolveSegment, trieKey } from "../src/pattern.js";
 
 const overlaps = (a: string, b: string): boolean => intersectSegments(parseSegment(a, "test"), parseSegment(b, "test"));
 
@@ -361,6 +361,22 @@ test("a case style names a naming convention, leniently about capitals and digit
     for (const text of no) assert.equal(accepts(style, text), false, `${style} rejects ${text}`);
   }
   assert.deepEqual(matchSegment(leaf("[Name@Pascal].test.tsx"), "HTMLView.test.tsx"), { Name: "HTMLView" });
+});
+
+test("a name tied to its instance outranks one that is not, whether it names one file or many", () => {
+  assert.deepEqual(["client.ts", "{provider}.ts", "[step]_{provider}.sql", "[name].ts"].map((source) => specificity(leaf(source))), [0, 1, 2, 3]);
+});
+
+test("a bound back-reference is written in as its value, and a capture stays a capture", () => {
+  const bound = (source: string, captures: Record<string, string>) => bindSegment(leaf(source), captures);
+  const step = bound("[step=0000]_{feature}.[kind={up,down}].sql", { feature: "checkout" });
+  assert.equal(step.source, "[step=0000]_checkout.[kind={up,down}].sql");
+  assert.equal(step.dynamic, true);
+  assert.deepEqual(matchSegment(step, "0001_checkout.up.sql"), { step: "0001", kind: "up" });
+  const entry = bound("{feature}.ts", { feature: "checkout" });
+  assert.deepEqual([entry.source, entry.dynamic, entry.resolved], ["checkout.ts", false, false]);
+  assert.equal(bound("{feature}.ts", {}).source, "{feature}.ts", "an unbound back-reference stays one");
+  assert.equal(bound("[n=x+]{,-{feature}}.md", { feature: "eu" }).source, "[n=x+]{,-eu}.md");
 });
 
 test("an overlap is shown by the shortest name both segments match", () => {

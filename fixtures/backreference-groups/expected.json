@@ -1,0 +1,201 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      {
+        "kind": "written",
+        "path": "AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/checkout/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/checkout/steps/AGENTS.MD"
+      }
+    ]
+  },
+  "exit": 1,
+  "issues": [
+    {
+      "path": "features/Check-Out/Check-Out.ts",
+      "code": "unexpected_path",
+      "severity": "error",
+      "metadata": {
+        "declared": [
+          "[name=a+].ts",
+          "steps/",
+          "{feature}.ts"
+        ]
+      }
+    },
+    {
+      "path": "features/orders/orders.ts",
+      "code": "missing_required_file",
+      "severity": "error"
+    },
+    {
+      "path": "features/checkout/steps/",
+      "code": "undeclared_instance",
+      "severity": "error",
+      "metadata": {
+        "contract": "features/[feature]/steps/[step=0000]_{feature}.[kind={up,down}].sql",
+        "group": "step",
+        "captures": {
+          "step": "0003"
+        }
+      }
+    },
+    {
+      "path": "features/orders/steps/",
+      "code": "undeclared_instance",
+      "severity": "error",
+      "metadata": {
+        "contract": "features/[feature]/steps/[step=0000]_{feature}.[kind={up,down}].sql",
+        "group": "step",
+        "captures": {
+          "step": "0002"
+        }
+      }
+    },
+    {
+      "path": "features/checkout/",
+      "code": "module_group",
+      "severity": "info",
+      "metadata": {
+        "members": [
+          "features/checkout/cart.ts",
+          "features/checkout/checkout.ts"
+        ]
+      }
+    },
+    {
+      "path": "features/Check-Out/steps/",
+      "code": "feature_step",
+      "severity": "info",
+      "metadata": {
+        "members": [
+          "features/Check-Out/steps/0001_Check-Out.up.sql"
+        ]
+      }
+    },
+    {
+      "path": "features/checkout/steps/",
+      "code": "feature_step",
+      "severity": "info",
+      "metadata": {
+        "members": [
+          "features/checkout/steps/0002_checkout.up.sql"
+        ]
+      }
+    },
+    {
+      "path": "features/checkout/steps/",
+      "code": "other_step",
+      "severity": "info",
+      "metadata": {
+        "members": [
+          "features/checkout/steps/0001_cart.sql"
+        ]
+      }
+    },
+    {
+      "path": "features/checkout/steps/",
+      "code": "feature_step",
+      "severity": "info",
+      "metadata": {
+        "members": [
+          "features/checkout/steps/0001_checkout.down.sql",
+          "features/checkout/steps/0001_checkout.up.sql"
+        ]
+      }
+    },
+    {
+      "path": "features/checkout/steps/",
+      "code": "feature_step",
+      "severity": "info",
+      "metadata": {
+        "members": [
+          "features/checkout/steps/0003_checkout.up.sql"
+        ]
+      }
+    },
+    {
+      "path": "features/orders/",
+      "code": "module_group",
+      "severity": "info",
+      "metadata": {
+        "members": [
+          "features/orders/items.ts"
+        ]
+      }
+    },
+    {
+      "path": "features/orders/steps/",
+      "code": "feature_step",
+      "severity": "info",
+      "metadata": {
+        "members": [
+          "features/orders/steps/0002_orders.up.sql"
+        ]
+      }
+    },
+    {
+      "path": "features/orders/steps/",
+      "code": "feature_step",
+      "severity": "info",
+      "metadata": {
+        "members": [
+          "features/orders/steps/0001_orders.up.sql"
+        ]
+      }
+    }
+  ],
+  "ownership": {
+    "features/Check-Out/Check-Out.ts": null,
+    "features/Check-Out/steps/0001_Check-Out.up.sql": "features/[feature]/steps/[step=0000]_{feature}.[kind={up,down}].sql.mjs",
+    "features/checkout/cart.ts": "features/[feature]/[name=a+].ts.mjs",
+    "features/checkout/checkout.ts": "features/[feature]/{feature}.ts.mjs",
+    "features/checkout/steps/0001_cart.sql": "features/[feature]/steps/[step=0000]_[name=a+].sql.mjs",
+    "features/checkout/steps/0001_checkout.down.sql": "features/[feature]/steps/[step=0000]_{feature}.[kind={up,down}].sql.mjs",
+    "features/checkout/steps/0001_checkout.up.sql": "features/[feature]/steps/[step=0000]_{feature}.[kind={up,down}].sql.mjs",
+    "features/checkout/steps/0002_checkout.up.sql": "features/[feature]/steps/[step=0000]_{feature}.[kind={up,down}].sql.mjs",
+    "features/checkout/steps/0003_checkout.up.sql": "features/[feature]/steps/[step=0000]_{feature}.[kind={up,down}].sql.mjs",
+    "features/orders/items.ts": "features/[feature]/[name=a+].ts.mjs",
+    "features/orders/steps/0001_orders.up.sql": "features/[feature]/steps/[step=0000]_{feature}.[kind={up,down}].sql.mjs",
+    "features/orders/steps/0002_orders.up.sql": "features/[feature]/steps/[step=0000]_{feature}.[kind={up,down}].sql.mjs"
+  },
+  "explain": {
+    "features/checkout/checkout.ts": {
+      "exit": 0,
+      "object": {
+        "rule": "features/[feature]/{feature}.ts.mjs",
+        "captures": {
+          "feature": "checkout",
+          "name": "checkout"
+        },
+        "inherited": [
+          {
+            "rule": "features/[feature]/[name=a+].ts.mjs"
+          }
+        ]
+      }
+    },
+    "features/checkout/steps/0001_checkout.up.sql": {
+      "exit": 0,
+      "object": {
+        "rule": "features/[feature]/steps/[step=0000]_{feature}.[kind={up,down}].sql.mjs",
+        "captures": {
+          "feature": "checkout",
+          "step": "0001",
+          "kind": "up"
+        }
+      }
+    }
+  }
+}

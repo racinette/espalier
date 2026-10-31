@@ -2,7 +2,7 @@
 // docs/MATCHING.MD "Ownership", "What must exist", "The deepest recognized node".
 
 import { contractDirectories, declaredGroup, declaredGroups, directoryFrozen, rootGrouping, NODE_DESCRIPTION, type Constraint, type Espalier, type GroupInstance, type Grouping, type StructuralRule, type TrieNode } from "./compile.js";
-import { captureNames, isStrictSubset, matchSegment, resolveSegment, type CaptureValue } from "./pattern.js";
+import { captureNames, isStrictSubset, matchSegment, resolveSegment, specificity, type CaptureValue } from "./pattern.js";
 
 // Defined beside the parser, because what a capture can hold is a fact about
 // segments rather than about matching. Re-exported here: every reader of an
@@ -80,14 +80,22 @@ function selectChild(
   }
   for (const child of node.children.values()) {
     if (child.segment.resolved && usable(child) && resolveSegment(child.segment, captures) === name) {
-      return { node: child, captures: child.baseSegment ? matchSegment(child.baseSegment, name, captures) ?? {} : {} };
+      if (child.baseSegment === undefined) return { node: child, captures: {} };
+      // An instance named by back-references names nothing where its value is
+      // not a member of its contract. docs/INSTANCES.MD.
+      const found = matchSegment(child.baseSegment, name, captures);
+      if (found !== null) return { node: child, captures: found };
     }
   }
+  // A pattern holding a back-reference outranks one without; within a rank,
+  // compilation proved overlapping siblings ordered by containment.
   let winner: { node: TrieNode; captures: Record<string, string> } | null = null;
   for (const child of node.children.values()) {
     if (!child.segment.dynamic || !usable(child)) continue;
     const found = matchSegment(child.segment, name, captures);
-    if (found !== null && (winner === null || isStrictSubset(child.segment, winner.node.segment))) {
+    if (found === null) continue;
+    const rank = specificity(child.segment) - (winner === null ? 4 : specificity(winner.node.segment));
+    if (rank < 0 || (rank === 0 && isStrictSubset(child.segment, winner!.node.segment))) {
       winner = { node: child, captures: found };
     }
   }
@@ -221,6 +229,9 @@ export function requirements(
     for (const child of parent.children.values()) {
       const here = child.segment.resolved ? resolveSegment(child.segment, captures) : child.display;
       if (here === null) continue;
+      // An instance named by back-references names nothing where its value is
+      // not a member of its contract, so it requires nothing there either.
+      if (child.segment.resolved && child.baseSegment !== undefined && matchSegment(child.baseSegment, here, captures) === null) continue;
       const at = prefix === "" ? here : `${prefix}/${here}`;
 
       if (child.rule !== null && child.segment.dynamic) {

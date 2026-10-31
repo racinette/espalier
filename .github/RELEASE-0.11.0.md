@@ -158,6 +158,20 @@ A capture in an alternative the name did not take is absent, not empty, so a
 grouping may not group by it. A name two combinations of alternatives could
 both match is rejected at compile time.
 
+## Back-references beside patterns
+
+- A pattern holding a back-reference now outranks a plain pattern, the way a
+  resolved name does: `[step]_{feature}.sql` owns `0001_checkout.sql` in
+  `features/checkout/steps/` beside `[step]_[name].sql`, where the two were
+  refused as ambiguous siblings. Generated maps list such patterns before the
+  plain ones.
+- A file named by back-references, such as `{feature}.ts`, can be declared an
+  instance of a sibling pattern, so each feature's entry file joins the
+  pattern's groups and runs its checks. Where the value is not a member of the
+  contract, the declaration names nothing.
+- A named instance's documents write the values it binds into names:
+  `[step]_checkout.sql` and `checkout.ts` under `features/checkout/`.
+
 ## Masks: case, hex, ranges and case styles
 
 A lowercase mask character now means lowercase and a capital means capitals.

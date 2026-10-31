@@ -27,6 +27,7 @@ import {
   isStrictSubset,
   parseSegment,
   parseStructuralLeaf,
+  specificity,
   trieKey,
   type CaptureValue,
   type Segment,
@@ -813,10 +814,8 @@ function checkSiblings(node: TrieNode, at: string): void {
   // Within a tier only. Static names cannot collide with each other, and a
   // static or resolved sibling beside a dynamic one is settled by specificity
   // rather than by guessing. docs/MATCHING.MD "Ambiguity is rejected".
-  const tiers = [
-    children.filter((child) => child.segment.dynamic),
-    children.filter((child) => child.segment.resolved),
-  ];
+  // Only siblings of one specificity compete; docs/MATCHING.MD "Ownership".
+  const tiers = ([1, 2, 3] as const).map((rank) => children.filter((child) => specificity(child.segment) === rank));
 
   for (const peers of tiers) {
     for (let i = 0; i < peers.length; i += 1) {
@@ -1539,7 +1538,8 @@ function materializeInstances(root: TrieNode, docs: Map<string, NodeDoc>): void 
     if (unresolved) fail("invalid_instance", `${child.display}: may shadow inherited back-reference ${unresolved.display}; specialize only where its binding is known`);
     if (child.segment.dynamic || child.segment.resolved) return undefined;
     return [...parent.children.values()].filter((node) => usable(node) && node.segment.dynamic && matchSegment(node.segment, child.display, captures) !== null)
-      .sort((a, b) => isStrictSubset(a.segment, b.segment) ? -1 : isStrictSubset(b.segment, a.segment) ? 1 : 0)[0];
+      .sort((a, b) => specificity(a.segment) - specificity(b.segment)
+        || (isStrictSubset(a.segment, b.segment) ? -1 : isStrictSubset(b.segment, a.segment) ? 1 : 0))[0];
   };
   const compose = (local: TrieNode, base: TrieNode, at: string, captures: Record<string, string>): void => {
     if (local.rule !== null) {
@@ -1592,14 +1592,25 @@ function materializeInstances(root: TrieNode, docs: Map<string, NodeDoc>): void 
     active.add(node);
     const ref = node.rule?.module.instanceOf ?? node.instanceOf;
     if (ref !== undefined) {
-      if (node.segment.dynamic || node.segment.resolved) fail("invalid_instance", `${at}: instanceOf requires a static name`);
+      // A file named by a back-reference is one file per instance, as a static
+      // name is one file; its value is checked against the contract when matched.
+      const resolvedFile = node.segment.resolved && node.rule !== null;
+      if (node.segment.dynamic || (node.segment.resolved && !resolvedFile)) fail("invalid_instance", `${at}: instanceOf requires a static name, or a file named by back-references`);
       const name = referenceName(ref, node.rule === null);
       const base = parent && [...parent.children.values()].find((candidate) => candidate.display === name);
       if (!base || !base.segment.dynamic || base.segment.recursive !== null || base === node) fail("invalid_instance", `${at}: instanceOf must name a matching sibling dynamic contract`);
       expand(base, at.split("/").slice(0, -1).concat(base.display).join("/"), parent);
-      const winner = parent && choose({ ...parent, children: new Map([...parent.children].filter(([, child]) => child !== node)) }, node, {});
-      if (winner === undefined) fail("invalid_instance", `${at}: the name does not match the named contract ${base.display}`);
-      if (winner !== base) fail("invalid_instance", `${at}: the named contract ${base.display} would not own this instance; ${winner.display} would`);
+      if (resolvedFile) {
+        if (!intersectSegments(node.segment, base.segment)) fail("invalid_instance", `${at}: the name can never match the named contract ${base.display}`);
+        const rival = [...parent!.children.values()].find((other) => other !== node && other !== base && other.rule !== null && other.segment.dynamic
+          && intersectSegments(node.segment, other.segment)
+          && (specificity(other.segment) < specificity(base.segment) || (specificity(other.segment) === specificity(base.segment) && isStrictSubset(other.segment, base.segment))));
+        if (rival !== undefined) fail("invalid_instance", `${at}: the named contract ${base.display} would not own this instance wherever ${rival.display} matches it`);
+      } else {
+        const winner = parent && choose({ ...parent, children: new Map([...parent.children].filter(([, child]) => child !== node)) }, node, {});
+        if (winner === undefined) fail("invalid_instance", `${at}: the name does not match the named contract ${base.display}`);
+        if (winner !== base) fail("invalid_instance", `${at}: the named contract ${base.display} would not own this instance; ${winner.display} would`);
+      }
       compose(node, base, at, {});
     } else {
       for (const child of node.children.values()) expand(child, at ? `${at}/${child.display}` : child.display, node);

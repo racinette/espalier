@@ -206,6 +206,31 @@ const cases: Case[] = [
     espalier: { "src/[...path]/no-fetch.{ts,ts}.mjs": INERT },
   },
   {
+    what: "a file named by back-references declared an instance of a contract it can never match",
+    code: "invalid_instance",
+    espalier: {
+      "src/[dir]/[name=0+].ts.mjs": INERT,
+      "src/[dir]/{dir}x.ts.mjs": 'export const instanceOf = "[name=0+].ts.mjs";\n',
+    },
+  },
+  {
+    what: "a file named by back-references declared an instance where a narrower sibling could own its name",
+    code: "invalid_instance",
+    espalier: {
+      "src/[dir]/[name].ts.mjs": INERT,
+      "src/[dir]/[a]-x.ts.mjs": INERT,
+      "src/[dir]/{dir}.ts.mjs": 'export const instanceOf = "[name].ts.mjs";\n',
+    },
+  },
+  {
+    what: "a directory named by a back-reference declared an instance",
+    code: "invalid_instance",
+    espalier: {
+      "src/[dir]/[sub]/a.ts.mjs": INERT,
+      "src/[dir]/{dir}/ESPALIER.mjs": 'export const instanceOf = "../[sub]";\n',
+    },
+  },
+  {
     what: "overlapping structural extension unions with no narrower winner",
     code: "ambiguous_siblings",
     espalier: {

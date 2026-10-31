@@ -8,7 +8,7 @@
 import { directoryFrozen, directoryLock, directorySealed, groupingAbstract, rootGrouping, type Constraint, type Espalier, type GroupInstance, type LoadedModule, type NodeDoc, type StructuralRule, type TrieNode } from "./compile.js";
 import path from "node:path";
 import { PROVENANCE } from "./files.js";
-import { CASE_STYLES, matchSegment, resolveSegment, type CaptureValue, type CaseStyle, backrefNames, isStrictSubset, parseSegment, type Part, type Segment } from "./pattern.js";
+import { CASE_STYLES, bindSegment, specificity, matchSegment, type CaptureValue, type CaseStyle, backrefNames, isStrictSubset, type Part, type Segment } from "./pattern.js";
 import { admissionGlobs } from "./targets.js";
 
 const WORKFLOW = `## Working with Espalier
@@ -216,12 +216,9 @@ function ordered(node: TrieNode): TrieNode[] {
   const remaining = [...node.children.values()].sort((left, right) => {
     const kind = Number(!isDirectory(left)) - Number(!isDirectory(right));
     if (kind !== 0) return kind;
-    // static, then resolved, then dynamic — the same specificity order the
-    // matcher uses. docs/cli/build/README.MD "Generation".
-    const tier = (node: TrieNode): number =>
-      node.segment.dynamic ? 2 : node.segment.resolved ? 1 : 0;
-    const specificity = tier(left) - tier(right);
-    if (specificity !== 0) return specificity;
+    // The specificity order the matcher uses. docs/cli/build/README.MD "Generation".
+    const rank = specificity(left.segment) - specificity(right.segment);
+    if (rank !== 0) return rank;
     return left.display < right.display ? -1 : left.display > right.display ? 1 : 0;
   });
 
@@ -481,6 +478,24 @@ export interface MapEntry {
   segment: Segment;
 }
 
+/** What a named instance's static name binds of its contract's captures, which its subtree's back-references read. */
+function instanceCaptures(node: TrieNode, name: string, captures: Record<string, CaptureValue>): Record<string, string> {
+  return node.baseSegment && !node.segment.dynamic && !node.segment.resolved ? matchSegment(node.baseSegment, name, captures) ?? {} : {};
+}
+
+/** The captures the named instance directories down to `at` bind. */
+function bindingsAt(espalier: Espalier, at: string): Record<string, CaptureValue> {
+  const bindings: Record<string, CaptureValue> = {};
+  let node = espalier.root;
+  for (const part of at.split("/").filter(Boolean)) {
+    const next = [...node.children.values()].find((child) => child.display === part);
+    if (!next) break;
+    Object.assign(bindings, instanceCaptures(next, part, bindings));
+    node = next;
+  }
+  return bindings;
+}
+
 export function mapEntries(
   espalier: Espalier,
   node: TrieNode,
@@ -488,26 +503,19 @@ export function mapEntries(
   stopAt: readonly string[] = [],
 ): MapEntry[] {
   const entries: MapEntry[] = [];
-  const bindings: Record<string, CaptureValue> = {};
-  let ancestor = espalier.root;
-  for (const part of at.split("/").filter(Boolean)) {
-    const next = [...ancestor.children.values()].find((child) => child.display === part);
-    if (!next) break;
-    if (next.baseSegment && !next.segment.dynamic && !next.segment.resolved) Object.assign(bindings, matchSegment(next.baseSegment, part, bindings));
-    ancestor = next;
-  }
   const display = new Map<string, string>();
+  const segments = new Map<string, Segment>();
   const names = (parent: TrieNode, authored: string, rendered: string, captures: Record<string, CaptureValue>): void => {
     for (const child of parent.children.values()) {
-      const name = child.segment.resolved ? resolveSegment(child.segment, captures) ?? child.display : child.display;
+      const segment = bindSegment(child.segment, captures);
       const key = under(authored, child.display);
-      const shown = under(rendered, name);
+      const shown = under(rendered, segment.source);
       display.set(key, shown);
-      const bound = child.baseSegment && !child.segment.dynamic ? matchSegment(child.baseSegment, name, captures) : null;
-      names(child, key, shown, { ...captures, ...bound });
+      segments.set(key, segment);
+      names(child, key, shown, { ...captures, ...instanceCaptures(child, segment.source, captures) });
     }
   };
-  names(node, "", "", bindings);
+  names(node, "", "", bindingsAt(espalier, at));
 
   for (const visit of subtree(node)) {
     const absolute = under(at, visit.at);
@@ -519,7 +527,6 @@ export function mapEntries(
 
     const directory = isDirectory(visit.node);
     const shown = display.get(visit.at) ?? visit.at;
-    const leaf = shown.slice(shown.lastIndexOf("/") + 1);
     const reference = directory ? visit.node.instanceOf : visit.node.rule?.module.instanceOf;
     const contract = reference?.slice(reference.lastIndexOf("/") + 1);
     entries.push({
@@ -538,7 +545,7 @@ export function mapEntries(
         visit.node.instanceOf !== undefined ? !visit.node.optional : directory || (visit.node.segment.dynamic && visit.node.rule?.module.optional !== false)
           ? null
           : visit.node.rule?.module.optional !== true,
-      segment: leaf === visit.node.display ? visit.node.segment : parseSegment(leaf, "map", { literal: true }),
+      segment: segments.get(visit.at) ?? visit.node.segment,
     });
   }
 
@@ -1082,16 +1089,24 @@ interface Shown {
   marks: Set<"locked" | "frozen" | "sealed">;
 }
 
-/** The segments of a placement-relative section path, from the placement down. */
-function segmentsAt(point: Placement, at: string): Segment[] {
+/**
+ * A placement-relative section path as a heading shows it: each segment from
+ * the placement down, with the back-references the named instances above it
+ * bind written in, and the captures in force at its end.
+ */
+function shownAt(espalier: Espalier, point: Placement, at: string): { text: string; segments: Segment[]; captures: Record<string, CaptureValue> } {
   const segments: Segment[] = [];
+  const captures = bindingsAt(espalier, point.at);
   let node = point.node;
   const relative = at === point.at ? "" : displayPath(point, at);
   for (const part of relative.split("/").filter(Boolean)) {
     node = node === null ? null : [...node.children.values()].find((child) => child.display === part) ?? null;
-    if (node !== null) segments.push(node.segment);
+    if (node === null) return { text: relative, segments, captures };
+    const segment = bindSegment(node.segment, captures);
+    segments.push(segment);
+    Object.assign(captures, instanceCaptures(node, segment.source, captures));
   }
-  return segments;
+  return { text: segments.map((segment) => segment.source).join("/"), segments, captures };
 }
 
 /**
@@ -1124,10 +1139,11 @@ function ruleBody(module: LoadedModule): string[] {
 const groupingTitle = (by: string[]): string => by.length === 0 ? "all files in a directory" : `by ${listing(by.map((name) => codeSpan(name)))}`;
 
 /** A declared group's heading and its own guidance. */
-function groupInstanceBlocks(instance: GroupInstance, directory: string, level: number, shown: Shown): string[] {
-  const name = instance.pattern.slice(instance.pattern.lastIndexOf("/") + 1);
+function groupInstanceBlocks(instance: GroupInstance, directory: string, captures: Record<string, CaptureValue>, level: number, shown: Shown): string[] {
+  const segment = bindSegment(instance.segment, captures);
+  const name = segment.source;
   const described = instance.module.description === null ? "" : ` — ${instance.module.description}`;
-  shown.names.push(instance.segment);
+  shown.names.push(segment);
   return [
     `${"#".repeat(level)} ${codeSpan(`${directory}${name}`)}${lockMark(shown, instance.module.locked, instance.module.frozenExport === true, instance.module.sealed === true)}${described}`,
     ...(instance.module.guidance.trim() === "" ? [] : [instance.module.guidance.trim()]),
@@ -1144,16 +1160,16 @@ const declaresGroupsHere = (rule: StructuralRule, directory: string): boolean =>
  * own files, so they are stated here, under the rule, rather than beside the
  * contract that defines the grouping.
  */
-function declaredHereSections(rule: StructuralRule, at: string, display: string, level: number, shown: Shown): string[] {
+function declaredHereSections(rule: StructuralRule, at: string, title: { text: string; captures: Record<string, CaptureValue> }, level: number, shown: Shown): string[] {
   const here = at.slice(0, Math.max(at.lastIndexOf("/"), 0));
-  const directory = display.slice(0, display.lastIndexOf("/") + 1);
+  const directory = title.text.slice(0, title.text.lastIndexOf("/") + 1);
   return [...(rule.inherited ?? []), rule].flatMap((source) => source.module.groups.flatMap((grouping) => {
     const instances = grouping.instances.filter((instance) => instance.directory !== null && instance.directory === here);
     if (instances.length === 0) return [];
     return [
       `${"#".repeat(level)} Together, ${groupingTitle(grouping.by)}, declared here`,
       `Groups of the inherited ${codeSpan(grouping.name)} grouping, each bound by it and by its own section:`,
-      ...instances.flatMap((instance) => groupInstanceBlocks(instance, directory, level + 1, shown)),
+      ...instances.flatMap((instance) => groupInstanceBlocks(instance, directory, title.captures, level + 1, shown)),
     ];
   }));
 }
@@ -1164,8 +1180,8 @@ function declaredHereSections(rule: StructuralRule, at: string, display: string,
  * under it as a contract's instances nest under the contract, named by the
  * rule's name with their values written in. docs/cli/build/README.MD "Groupings".
  */
-function groupingSections(module: LoadedModule, display: string, level: number, shown: Shown): string[] {
-  const directory = display.slice(0, display.lastIndexOf("/") + 1);
+function groupingSections(module: LoadedModule, title: { text: string; captures: Record<string, CaptureValue> }, level: number, shown: Shown): string[] {
+  const directory = title.text.slice(0, title.text.lastIndexOf("/") + 1);
   return module.groups.flatMap((grouping) => {
     // Groups a named instance declares are stated in its own document.
     const instances = grouping.instances.filter((instance) => instance.directory === null);
@@ -1180,7 +1196,7 @@ function groupingSections(module: LoadedModule, display: string, level: number, 
     blocks.push(instances.length === 0
       ? "No groups are declared yet."
       : "Declared groups, each bound by this grouping and by its own section:");
-    for (const instance of instances) blocks.push(...groupInstanceBlocks(instance, directory, level + 1, shown));
+    for (const instance of instances) blocks.push(...groupInstanceBlocks(instance, directory, title.captures, level + 1, shown));
     blocks.push(
       `${"#".repeat(level + 1)} Adding new groups`,
       abstract
@@ -1255,8 +1271,9 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
       const instances = node === null || parent === null ? [] : instancesOf(parent, node);
       const abstract = node?.abstract === true;
       const heading = section.doc.description === null ? "" : ` — ${section.doc.description}`;
-      documents.shown.names.push(...segmentsAt(point, section.at));
-      blocks.push(`${hashes} ${codeSpan(`${displayPath(point, section.at)}/`)}${lockMark(documents.shown, directoryLock(espalier.nodes, section.at).locked, directoryFrozen(espalier.nodes, section.at).locked, directorySealed(espalier.nodes, section.at).locked)}${heading}`);
+      const title = shownAt(espalier, point, section.at);
+      documents.shown.names.push(...title.segments);
+      blocks.push(`${hashes} ${codeSpan(`${title.text}/`)}${lockMark(documents.shown, directoryLock(espalier.nodes, section.at).locked, directoryFrozen(espalier.nodes, section.at).locked, directorySealed(espalier.nodes, section.at).locked)}${heading}`);
       if (section.doc.body !== "") blocks.push(section.doc.body);
       if (instances.length > 0 || abstract) {
         const prefix = section.at.includes("/") ? section.at.slice(0, section.at.lastIndexOf("/") + 1) : "";
@@ -1295,10 +1312,11 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
     if (body.length === 0 && module.groups.length === 0 && instances.length === 0 && !module.abstract) continue;
 
     const heading = module.description === null ? "" : ` — ${module.description}`;
-    documents.shown.names.push(...segmentsAt(point, section.at));
-    blocks.push(`${hashes} ${codeSpan(displayPath(point, section.at))}${lockMark(documents.shown, module.locked, node !== null && nodeFrozen(espalier, node, section.at), node !== null ? nodeSealed(espalier, node, section.at) : module.sealed === true)}${heading}`, ...body);
-    if (!inherited) blocks.push(...groupingSections(module, displayPath(point, section.at), level + 1, documents.shown));
-    blocks.push(...declaredHereSections(section.rule, section.at, displayPath(point, section.at), level + 1, documents.shown));
+    const title = shownAt(espalier, point, section.at);
+    documents.shown.names.push(...title.segments);
+    blocks.push(`${hashes} ${codeSpan(title.text)}${lockMark(documents.shown, module.locked, node !== null && nodeFrozen(espalier, node, section.at), node !== null ? nodeSealed(espalier, node, section.at) : module.sealed === true)}${heading}`, ...body);
+    if (!inherited) blocks.push(...groupingSections(module, title, level + 1, documents.shown));
+    blocks.push(...declaredHereSections(section.rule, section.at, title, level + 1, documents.shown));
 
     if (instances.length > 0 || module.abstract) {
       blocks.push(instances.length === 0
@@ -1309,9 +1327,10 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
         const own = ruleBody(instance.rule.module);
         const described = instance.rule.module.description === null ? "" : ` — ${instance.rule.module.description}`;
         const instanceNode = nodeAt(point, instance.at);
-        documents.shown.names.push(...segmentsAt(point, instance.at));
-        blocks.push(`${hashes}# ${codeSpan(displayPath(point, instance.at))}${lockMark(documents.shown, instance.rule.module.locked, instanceNode !== null && nodeFrozen(espalier, instanceNode, instance.at), instanceNode !== null ? nodeSealed(espalier, instanceNode, instance.at) : instance.rule.module.sealed === true)}${described}`, ...own);
-        blocks.push(...groupingSections(instance.rule.module, displayPath(point, instance.at), level + 2, documents.shown));
+        const named = shownAt(espalier, point, instance.at);
+        documents.shown.names.push(...named.segments);
+        blocks.push(`${hashes}# ${codeSpan(named.text)}${lockMark(documents.shown, instance.rule.module.locked, instanceNode !== null && nodeFrozen(espalier, instanceNode, instance.at), instanceNode !== null ? nodeSealed(espalier, instanceNode, instance.at) : instance.rule.module.sealed === true)}${described}`, ...own);
+        blocks.push(...groupingSections(instance.rule.module, named, level + 2, documents.shown));
       }
       blocks.push(...addingInstances(node!.display, false, module.abstract, level + 1));
     }
@@ -1530,8 +1549,9 @@ ${architectureGuidance(espalier)}`);
     body.push(...renderSections(espalier, folded, level + 1, documents));
     if (body.length === 0) continue;
     const description = folded.doc?.description == null ? "" : ` — ${folded.doc.description}`;
-    documents.shown.names.push(...segmentsAt(point, folded.at));
-    blocks.push(`${"#".repeat(level)} ${codeSpan(`${displayPath(point, folded.at)}/`)}${lockMark(documents.shown, directoryLock(espalier.nodes, folded.at).locked, directoryFrozen(espalier.nodes, folded.at).locked, directorySealed(espalier.nodes, folded.at).locked)}${description}`, ...body);
+    const title = shownAt(espalier, point, folded.at);
+    documents.shown.names.push(...title.segments);
+    blocks.push(`${"#".repeat(level)} ${codeSpan(`${title.text}/`)}${lockMark(documents.shown, directoryLock(espalier.nodes, folded.at).locked, directoryFrozen(espalier.nodes, folded.at).locked, directorySealed(espalier.nodes, folded.at).locked)}${description}`, ...body);
   }
   blocks.push(...renderOutside(outside, level));
   if (closed !== null) blocks.push(closed);

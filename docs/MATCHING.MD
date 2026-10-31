@@ -360,7 +360,10 @@ an inherited `{provider}.ts` requires `stripe/stripe.ts`. An unbound
 
 It carries literal text like any other segment part: `[provider]/{provider}.test.ts`, `[provider]/test-{provider}.ts`. Nothing stops it appearing in a directory segment either — `[provider]/{provider}-config/settings.ts` — though the leaf is where it earns its keep.
 
-A segment may hold a back-reference **and** a placeholder: `[provider]/{provider}-[kind].ts` names one file per provider per kind. Such a segment is dynamic rather than resolved, because it still matches many — the tier is decided by how many files a segment can name, not by whether a back-reference appears in it. It therefore competes with dynamic siblings and is checked against them for ambiguity.
+A segment may hold a back-reference **and** a placeholder: `[provider]/{provider}-[kind].ts` names one file per provider per kind. Such a segment is *bound* rather than resolved, because it still matches many, and it outranks every plain dynamic sibling, because each of its names is tied to its instance. It competes only with bound siblings, and is checked against them for ambiguity.
+
+A generated document for one named instance writes its bound values in:
+under `stripe/`, `{provider}-[kind].ts` is shown as `stripe-[kind].ts`.
 
 Back-references state naming relationships directly in the tree.
 `[provider]/[implementation].ts` captures the filename stem independently of
@@ -567,13 +570,13 @@ file is a violation, not a second kind of valid ownership.
 Structural rules compile into a trie, one node per path segment. Matching walks the trie segment by segment, and at each level a more specific node wins:
 
 ```text
-static  >  resolved  >  dynamic
+static  >  resolved  >  bound  >  dynamic
 ```
 
 A **static** segment is a literal, including a bracketed name declared
-`literalName` (see [Literal names](#literal-names)). A **resolved** segment contains a back-reference and becomes a literal once the captures above it are bound. A **dynamic** segment contains a `[name]` and matches many.
+`literalName` (see [Literal names](#literal-names)). A **resolved** segment contains a back-reference and becomes a literal once the captures above it are bound. A **bound** segment contains both a `[name]` and a back-reference, such as `[step]_{feature}.sql`: it matches many, but only names tied to its instance. A **dynamic** segment contains a `[name]` and no back-reference.
 
-The order is specificity, not a table to memorise: a segment that names one file beats one that names many, and a segment that always names the same file beats one that names a different file per instance.
+The order is specificity, not a table to memorise: a segment that names one file beats one that names many, a segment that always names the same file beats one that names a different file per instance, and a name tied to its instance beats one that is not. Only siblings of one kind compete, so `[step]_{feature}.sql` owns `0001_checkout.sql` in `checkout/` beside `[step]_[name].sql`, whatever either admits elsewhere.
 
 Within dynamic siblings, a pattern that matches a strict subset of another
 pattern's names wins. Every name matched by the narrower pattern also matches
@@ -768,7 +771,7 @@ An empty `clients/` is valid. Once `clients/stripe/client.ts` exists, `clients/s
 
 Any governed file under the instance instantiates it, whether or not a structural rule owns that file. `clients/stripe/notes.md` alone is enough: something is there, so the directory exists, and a `clients/stripe/` that exists without a client is exactly the drift this reports. Ungoverned files do not count.
 
-**An independent directory a more specific sibling describes is not an instance.** Requiredness uses the same specificity as ownership: static, then resolved, then the narrowest matching dynamic pattern. Thus `clients/` beside `[area]/` is `clients/`, and nothing under it is asked to satisfy `[area]/`. A directory declaring `instanceOf` retains its inherited requirements. Likewise `[name]-checksonly/` beside `[world]/` requires only the checksonly branch's descendants in matching directories. Otherwise a broad pattern would demand files inside a directory a different rule describes. The two questions — who owns this file, and what must exist — are answered from one tree and must be answered the same way.
+**An independent directory a more specific sibling describes is not an instance.** Requiredness uses the same specificity as ownership: static, then resolved, then bound, then the narrowest matching dynamic pattern. Thus `clients/` beside `[area]/` is `clients/`, and nothing under it is asked to satisfy `[area]/`. A directory declaring `instanceOf` retains its inherited requirements. Likewise `[name]-checksonly/` beside `[world]/` requires only the checksonly branch's descendants in matching directories. Otherwise a broad pattern would demand files inside a directory a different rule describes. The two questions — who owns this file, and what must exist — are answered from one tree and must be answered the same way.
 
 **Optional descendants stay optional per instance.** `clients/[provider]/webhook.ts.mjs` marked optional means any provider may have a webhook and none has to. The shared files remain required for every instance; the optional file has
 an explicit rule whenever it is present.
@@ -892,7 +895,9 @@ Declaring the shape of `backend/` is a separate, structural job. The constraint 
 A static directory may export `instanceOf = "../[group]"` from its
 `ESPALIER.mjs`. The reference names one matching sibling dynamic directory.
 A static file may export `instanceOf = "[module].ts.mjs"`, naming a matching
-sibling dynamic leaf in the effective inherited directory. References are
+sibling dynamic leaf in the effective inherited directory. So may a file named
+by back-references, such as `{feature}.ts`, which names one file per instance;
+see [INSTANCES.MD](INSTANCES.MD#declaring-a-file). References are
 contract names, not JavaScript imports. A directory inherits its base's entire
 structure. Local declarations may specialize admitted children but cannot add
 paths absent from the base. Same-name inherited static children are refined

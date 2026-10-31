@@ -427,6 +427,17 @@ export function parseStructuralLeaf(source: string, context: string, options: { 
 }
 
 /** The captures a segment refers back to, in order. */
+/**
+ * docs/MATCHING.MD "Ownership": static, resolved, then a pattern holding a
+ * back-reference, then any other pattern. A name tied to its instance is the
+ * more specific, whether it names one file or many.
+ */
+export function specificity(segment: Segment): 0 | 1 | 2 | 3 {
+  if (segment.resolved) return 1;
+  if (!segment.dynamic) return 0;
+  return backrefNames(segment).length > 0 ? 2 : 3;
+}
+
 export function backrefNames(segment: Segment): string[] {
   return segment.parts.flatMap((part) => part.kind === "backref" ? [part.name]
     : part.kind === "alternatives" ? part.branches.flat().flatMap((inner) => inner.kind === "backref" ? [inner.name] : []) : []);
@@ -549,6 +560,40 @@ export function resolveSegment(
     text += value;
   }
   return text;
+}
+
+/**
+ * A segment with every back-reference whose capture is bound written in as
+ * its value: what a document for one named instance shows, `[step]_checkout.sql`
+ * for `[step]_{feature}.sql`. Captures stay captures, so a pattern stays a
+ * pattern, and a back-reference left unbound stays one.
+ */
+export function bindSegment(segment: Segment, bound: Record<string, CaptureValue>): Segment {
+  const value = (name: string): string | null => typeof bound[name] === "string" ? bound[name] : null;
+  if (!backrefNames(segment).some((name) => value(name) !== null)) return segment;
+  const bindPart = (part: SimplePart): SimplePart => part.kind === "backref" && value(part.name) !== null
+    ? { kind: "literal", text: value(part.name)! } : part;
+  const print = (part: Part): string => {
+    if (part.kind === "literal") return part.text;
+    if (part.kind === "backref") return `{${part.name}}`;
+    if (part.kind === "alternatives") return `{${part.branches.map((branch) => branch.map(print).join("")).join(",")}}`;
+    const { constraint } = part;
+    return `[${part.name}${constraint === undefined ? "" : `${constraint.kind === "style" ? "@" : "="}${constraint.source}`}]`;
+  };
+  const parts = segment.parts.map((part): Part => {
+    if (part.kind !== "alternatives") return bindPart(part);
+    const branches = part.branches.map((branch) => branch.map(bindPart));
+    return { kind: "alternatives", branches, source: print({ ...part, branches }) };
+  });
+  const stem = parts.map(print).join("");
+  const rest = segment.source.slice((segment.fileStem ?? segment).source.length);
+  return {
+    ...segment,
+    source: segment.fileStem === undefined ? stem : stem + rest,
+    parts,
+    resolved: !segment.dynamic && backrefNames({ ...segment, parts }).length > 0,
+    ...(segment.fileStem === undefined ? {} : { fileStem: { ...segment.fileStem, source: stem, parts } }),
+  };
 }
 
 /**

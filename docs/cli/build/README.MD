@@ -100,7 +100,7 @@ The root file additionally carries the project preamble.
 6. Write with a provenance header, in deterministic order. A file whose rendered bytes match what is already on disk is left alone rather than rewritten. An unchanged human-format run confirms completion without reporting writes.
 
 Sibling declarations appear with directories before files, then static names,
-resolved names, and dynamic patterns within each kind. Within dynamic siblings,
+resolved names, bound patterns and dynamic patterns within each kind. Within dynamic siblings,
 every strictly narrower pattern appears before its broader fallbacks, using the
 same containment relation as ownership. Thus `test-[name].ts` appears before
 `[file].ts`, and `[name]-special-checksonly/` before `[name]-checksonly/`,

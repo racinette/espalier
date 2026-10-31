@@ -23,6 +23,22 @@ export const description = "the Stripe client";
 export const guidance = `Uses payment intents, never charges.`;
 ```
 
+A file named by back-references can be declared the same way. Each
+feature's entry file, named after its feature, joins the feature's modules:
+
+```js
+// espalier/features/[feature]/{feature}.ts.mjs
+export const instanceOf = "[name=a+].ts.mjs";
+```
+
+`features/checkout/checkout.ts` is then an instance of `[name=a+].ts`, with
+`name = "checkout"`, and counts in that rule's groups. Its value is checked
+when it is matched: in `features/Check-Out/` the name is not a member of the
+contract, so the declaration names nothing there and requires nothing. The
+name must be one the contract could admit, and no sibling the contract would
+lose a name to may match it, or compilation fails with `invalid_instance`. A
+directory named by a back-reference cannot be declared an instance.
+
 `description` and `guidance` are what a declaration usually carries, and like
 every rule export they are optional: a declaration may exist only to
 [freeze or seal](LOCKS.MD) one member. `lint` is optional too, and adds to the
