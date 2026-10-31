@@ -7,11 +7,13 @@ import { fail } from "./errors.js";
 export type CaptureValue = string | string[];
 
 /**
- * One character class of a mask. docs/MATCHING.MD "Masks". `upper` has no
- * mask character; a case style uses it. The last four are the characters of
+ * One character class of a mask. docs/MATCHING.MD "Masks". `letter` and
+ * `alnum` are either case; `kebab` to `screamingSnake` are the characters of
  * kebab-case and snake_case names, lowercase or screaming.
  */
-export type MaskClass = "digit" | "letter" | "lower" | "upper" | "alnum" | "lowerAlnum" | "kebab" | "screamingKebab" | "snake" | "screamingSnake";
+export type MaskClass =
+  | "digit" | "letter" | "lower" | "upper" | "alnum" | "lowerAlnum" | "upperAlnum" | "lowerHex" | "upperHex"
+  | "kebab" | "screamingKebab" | "snake" | "screamingSnake";
 
 /** One element of a mask, after `(n)` or `(m..n)` has been expanded into copies. */
 export interface MaskElement {
@@ -36,7 +38,7 @@ export interface MaskTerm {
 }
 
 /** A naming convention a capture may require by name. docs/MATCHING.MD "Case styles". */
-export type CaseStyle = "kebab-case" | "snake_case" | "camelCase" | "PascalCase";
+export type CaseStyle = "kebab" | "snake" | "KEBAB" | "SNAKE" | "camel" | "Pascal";
 
 /** What a `[name=…]` accepts: a mask, a list of literal names, or a case style. */
 export type Constraint =
@@ -44,12 +46,17 @@ export type Constraint =
   | { kind: "list"; source: string; values: string[] }
   | { kind: "style"; source: CaseStyle };
 
-/** Each style as a regular expression, and in words for generated guidance. */
-export const CASE_STYLES: Record<CaseStyle, { regex: string; words: string }> = {
-  "kebab-case": { regex: "[a-z][a-z0-9]*(?:-[a-z0-9]+)*", words: "lowercase words of letters and digits joined by dashes, starting with a letter" },
-  "snake_case": { regex: "[a-z][a-z0-9]*(?:_[a-z0-9]+)*", words: "lowercase words of letters and digits joined by underscores, starting with a letter" },
-  "camelCase": { regex: "[a-z][A-Za-z0-9]*", words: "letters and digits starting with a lowercase letter" },
-  "PascalCase": { regex: "[A-Z][A-Za-z0-9]*", words: "letters and digits starting with a capital letter" },
+/**
+ * Each style, written in itself: its regular expression, its usual name, and
+ * what it accepts in words for generated guidance.
+ */
+export const CASE_STYLES: Record<CaseStyle, { regex: string; name: string; words: string }> = {
+  kebab: { regex: "[a-z][a-z0-9]*(?:-[a-z0-9]+)*", name: "kebab-case", words: "lowercase words of letters and digits joined by dashes, starting with a letter" },
+  snake: { regex: "[a-z][a-z0-9]*(?:_[a-z0-9]+)*", name: "snake_case", words: "lowercase words of letters and digits joined by underscores, starting with a letter" },
+  KEBAB: { regex: "[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*", name: "SCREAMING-KEBAB-CASE", words: "capital words of letters and digits joined by dashes, starting with a letter" },
+  SNAKE: { regex: "[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*", name: "SCREAMING_SNAKE_CASE", words: "capital words of letters and digits joined by underscores, starting with a letter" },
+  camel: { regex: "[a-z][A-Za-z0-9]*", name: "camelCase", words: "letters and digits starting with a lowercase letter" },
+  Pascal: { regex: "[A-Z][A-Za-z0-9]*", name: "PascalCase", words: "letters and digits starting with a capital letter" },
 };
 
 const isCaseStyle = (source: string): source is CaseStyle => Object.hasOwn(CASE_STYLES, source);
@@ -98,13 +105,18 @@ export interface Segment {
 
 const CAPTURE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+/** A lowercase character means lowercase and a capital capitals; only `l` and `w` mean either case. */
 const MASK_CLASSES: Record<string, MaskClass> = {
   "0": "digit",
   "#": "digit",
-  A: "letter",
   a: "lower",
-  X: "alnum",
+  A: "upper",
+  l: "letter",
   x: "lowerAlnum",
+  X: "upperAlnum",
+  w: "alnum",
+  h: "lowerHex",
+  H: "upperHex",
   k: "kebab",
   K: "screamingKebab",
   s: "snake",
@@ -127,8 +139,10 @@ function parseMask(source: string, context: string, placeholder: string): Constr
       element = { match: { kind: "char", char }, optional: false, many: false };
     } else if (char === "+" || char === "(") {
       return bad(`"${char}" repeats the mask element before it, and nothing precedes it`);
+    } else if (char === "L" || char === "W") {
+      return bad(`"${char}" is not a mask character; ${char === "L" ? "a letter" : "a letter or digit"} of either case is "${char.toLowerCase()}"`);
     } else {
-      return bad(`"${char}" is not a mask character; the mask vocabulary is 0 # A a X x k K s S - _ with +, (n) and (m..n) for repetition${styleHint(source)}`);
+      return bad(`"${char}" is not a mask character; the mask vocabulary is 0 # a A l x X w h H k K s S - _ with +, (n) and (m..n) for repetition${styleHint(source)}`);
     }
     i += 1;
     // `(n)` is exactly n copies; `(m..n)`, `(m..)` and `(..n)` are m required
@@ -176,11 +190,11 @@ function parseMask(source: string, context: string, placeholder: string): Constr
 
 /** A pointer to the case style a misspelled mask seems to mean, such as `kebab`. */
 function styleHint(source: string): string {
-  const loose = source.toLowerCase().replace(/[-_]/g, "");
-  const meant = (Object.keys(CASE_STYLES) as CaseStyle[]).find((style) => {
-    const word = style.toLowerCase().replace(/[-_]/g, "");
-    return loose === word || loose === word.replace(/case$/, "");
-  });
+  // `kebab-case`, `Snake`, `SCREAMING_SNAKE_CASE`, `pascal`: the word, then the case it was written in.
+  const word = source.toLowerCase().replace(/[-_]/g, "").replace(/case$/, "").replace(/^screaming/, "");
+  const screaming = /^screaming/i.test(source) || (source === source.toUpperCase() && source !== source.toLowerCase());
+  const meant = (Object.keys(CASE_STYLES) as CaseStyle[]).find((style) => style.toLowerCase() === word
+    && (style === "camel" || style === "Pascal" || (style === style.toUpperCase()) === screaming));
   return meant === undefined ? "" : `; the case style is written "${meant}"`;
 }
 
@@ -463,6 +477,9 @@ const CLASS_REGEX: Record<MaskClass, string> = {
   upper: "[A-Z]",
   alnum: "[A-Za-z0-9]",
   lowerAlnum: "[a-z0-9]",
+  upperAlnum: "[A-Z0-9]",
+  lowerHex: "[0-9a-f]",
+  upperHex: "[0-9A-F]",
   kebab: "[a-z0-9-]",
   screamingKebab: "[A-Z0-9-]",
   snake: "[a-z0-9_]",
@@ -620,7 +637,8 @@ export function matchSegment(
  * one character neither pattern mentions. The "bound" cell exists only for
  * the split check, where a back-reference stands for text no capture absorbs.
  */
-type Cell = "digit" | "lower" | "upper" | "dash" | "underscore" | "dot" | "other" | "bound";
+/** Hex letters are cells of their own, since `h` and `H` admit only them. */
+type Cell = "digit" | "hexLower" | "lower" | "hexUpper" | "upper" | "dash" | "underscore" | "dot" | "other" | "bound";
 
 function cellOf(char: string): Cell {
   // A NUL-prefixed symbol is a back-reference's sentinel; NUL is in no filename. Astral characters are two code units.
@@ -629,23 +647,28 @@ function cellOf(char: string): Cell {
   if (char === "-") return "dash";
   if (char === "_") return "underscore";
   if (char >= "0" && char <= "9") return "digit";
-  if (char >= "a" && char <= "z") return "lower";
-  if (char >= "A" && char <= "Z") return "upper";
+  if (char >= "a" && char <= "f") return "hexLower";
+  if (char >= "g" && char <= "z") return "lower";
+  if (char >= "A" && char <= "F") return "hexUpper";
+  if (char >= "G" && char <= "Z") return "upper";
   return "other";
 }
 
 const CLASS_CELLS: Record<MaskClass | "any", readonly Cell[]> = {
   digit: ["digit"],
-  letter: ["lower", "upper"],
-  lower: ["lower"],
-  upper: ["upper"],
-  alnum: ["digit", "lower", "upper"],
-  lowerAlnum: ["digit", "lower"],
-  kebab: ["digit", "lower", "dash"],
-  screamingKebab: ["digit", "upper", "dash"],
-  snake: ["digit", "lower", "underscore"],
-  screamingSnake: ["digit", "upper", "underscore"],
-  any: ["digit", "lower", "upper", "dash", "underscore", "other", "dot"],
+  letter: ["hexLower", "lower", "hexUpper", "upper"],
+  lower: ["hexLower", "lower"],
+  upper: ["hexUpper", "upper"],
+  alnum: ["digit", "hexLower", "lower", "hexUpper", "upper"],
+  lowerAlnum: ["digit", "hexLower", "lower"],
+  upperAlnum: ["digit", "hexUpper", "upper"],
+  lowerHex: ["digit", "hexLower"],
+  upperHex: ["digit", "hexUpper"],
+  kebab: ["digit", "hexLower", "lower", "dash"],
+  screamingKebab: ["digit", "hexUpper", "upper", "dash"],
+  snake: ["digit", "hexLower", "lower", "underscore"],
+  screamingSnake: ["digit", "hexUpper", "upper", "underscore"],
+  any: ["digit", "hexLower", "lower", "hexUpper", "upper", "dash", "underscore", "other", "dot"],
 };
 
 /**
@@ -681,7 +704,10 @@ function alphabet(branches: Token[][]): string[] {
   };
   // `/` cannot occur inside a segment, so it is always free to stand for "another character".
   // Representatives first: a witness built from them reads like a filename.
-  const extra = [representative("abcdefghijklmnopqrstuvwxyz"), representative("0123456789"), representative("ABCDEFGHIJKLMNOPQRSTUVWXYZ")];
+  const extra = [
+    representative("abcdef"), representative("ghijklmnopqrstuvwxyz"), representative("0123456789"),
+    representative("ABCDEF"), representative("GHIJKLMNOPQRSTUVWXYZ"),
+  ];
   return [...extra.filter((char): char is string => char !== null), ...mentioned, "/"];
 }
 
@@ -826,13 +852,15 @@ function partTokens(part: Part, dotless: boolean): Token[][] {
 function styleTokens(style: CaseStyle): Token[] {
   const one = (cls: MaskClass): Token => ({ kind: "class", cls, dotless: false, optional: false, many: false });
   const any = (cls: MaskClass): Token => ({ kind: "class", cls, dotless: false, optional: true, many: true });
-  if (style === "camelCase") return [one("lower"), any("alnum")];
-  if (style === "PascalCase") return [one("upper"), any("alnum")];
+  if (style === "camel") return [one("lower"), any("alnum")];
+  if (style === "Pascal") return [one("upper"), any("alnum")];
   // A first word, then any number of separated words: (sep [a-z0-9]+)*.
-  const separator: Token = { kind: "literal", char: style === "kebab-case" ? "-" : "_" };
+  const screaming = style === "KEBAB" || style === "SNAKE";
+  const word: MaskClass = screaming ? "upperAlnum" : "lowerAlnum";
+  const separator: Token = { kind: "literal", char: style.toLowerCase() === "kebab" ? "-" : "_" };
   return [
-    one("lower"), any("lowerAlnum"),
-    { kind: "open", span: 3 }, separator, { kind: "class", cls: "lowerAlnum", dotless: false, optional: false, many: true }, { kind: "close", span: 3 },
+    one(screaming ? "upper" : "lower"), any(word),
+    { kind: "open", span: 3 }, separator, { kind: "class", cls: word, dotless: false, optional: false, many: true }, { kind: "close", span: 3 },
   ];
 }
 

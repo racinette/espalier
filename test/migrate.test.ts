@@ -9,7 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { SHIPPED_SKIP, shippedAuthoring, AUTHORING_SENTINEL } from "../src/config.js";
-import { rewriteConfigText } from "../src/migrate.js";
+import { eitherCaseMasks, rewriteConfigText } from "../src/migrate.js";
 
 const cli = path.join(
   path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".."),
@@ -109,6 +109,47 @@ test("migrate rewrites an old config and is then loadable", () => {
 
     const lint = run(root, ["lint", "--format", "jsonl"]);
     assert.equal(lint.status, 0, lint.stdout + lint.stderr);
+  });
+});
+
+test("A and X masks become l and w, and nothing else does", () => {
+  assert.equal(eitherCaseMasks("[code=AAA]-[n=X(2)0]"), "[code=lll]-[n=w(2)0]");
+  assert.equal(eitherCaseMasks("[kind={A,X}].sql"), "[kind={A,X}].sql", "a list is names");
+  assert.equal(eitherCaseMasks("AX-[n].ts"), "AX-[n].ts", "literal text");
+  assert.equal(eitherCaseMasks("{,.[role=A+]}"), "{,.[role=l+]}");
+});
+
+test("migrating from 0.10 keeps what A and X masks matched, once", () => {
+  scratch((root) => {
+    const write = (relative: string, contents: string): void => {
+      mkdirSync(path.dirname(path.join(root, relative)), { recursive: true });
+      writeFileSync(path.join(root, relative), contents);
+    };
+    write("espalier.config.yaml", "pin: 0.10.0\nroot: espalier\nignoreFiles: []\nskip: []\n");
+    write("espalier/codes/[code=AAA].txt.mjs", "export const description = \"a code\";\n");
+    write("espalier/codes/[kind={A,X}].sql.mjs", "export const description = \"a kind\";\n");
+    write("espalier/pages/[id=AA].tsx.mjs", "export const literalName = true;\n");
+    write("espalier/regions/[region=X+]/ESPALIER.mjs", "export const description = \"a region\";\n");
+    write("espalier/regions/[region=X+]/api.ts.mjs", "export const description = \"its api\";\n");
+    write("espalier/regions/eu/ESPALIER.mjs", "export const instanceOf = \"../[region=X+]\";\n");
+    for (const file of ["codes/usa.txt", "codes/A.sql", "pages/[id=AA].tsx", "regions/eu/api.ts", "regions/us/api.ts"]) write(file, "");
+
+    const migrated = run(root, ["migrate"]);
+    assert.equal(migrated.status, 0, migrated.stdout + migrated.stderr);
+    const at = (relative: string): boolean => existsSync(path.join(root, "espalier", relative));
+    assert.ok(at("codes/[code=lll].txt.mjs") && !at("codes/[code=AAA].txt.mjs"));
+    assert.ok(at("codes/[kind={A,X}].sql.mjs"), "a list keeps its letters");
+    assert.ok(at("pages/[id=AA].tsx.mjs"), "a literal name keeps its letters");
+    assert.ok(at("regions/[region=w+]/api.ts.mjs") && !at("regions/[region=X+]"), "the directory moves, and the old one goes");
+    assert.equal(readFileSync(path.join(root, "espalier/regions/eu/ESPALIER.mjs"), "utf8"), "export const instanceOf = \"../[region=w+]\";\n");
+
+    const lint = run(root, ["lint", "--format", "jsonl"]);
+    assert.equal(lint.status, 0, lint.stdout + lint.stderr);
+
+    // The pin is gone, so a capitals-only A written since stays one.
+    write("espalier/codes/[code=AAA].md.mjs", "export const description = \"a capital code\";\n");
+    assert.equal(run(root, ["migrate"]).status, 0);
+    assert.ok(at("codes/[code=AAA].md.mjs"));
   });
 });
 

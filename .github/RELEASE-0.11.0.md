@@ -7,8 +7,8 @@ can hold alternatives or require a case style, and generated maps use compact ma
 parenthesized words.
 
 There are breaking changes to configuration, which no longer records a
-version, to computed guidance that read the configuration, and to the shape of
-generated documents. Review the upgrade
+version, to computed guidance that read the configuration, to the `A` and `X`
+mask characters, and to the shape of generated documents. Review the upgrade
 instructions below before migrating.
 
 ## No more `pin`
@@ -156,27 +156,35 @@ A capture in an alternative the name did not take is absent, not empty, so a
 grouping may not group by it. A name two combinations of alternatives could
 both match is rejected at compile time.
 
-## Case styles and repeat ranges
+## Masks: case, hex, ranges and case styles
 
-A capture can require a naming convention by its name, and a mask can repeat
-an element between two counts:
+A lowercase mask character now means lowercase and a capital means capitals.
+`A` is a capital letter and `X` a capital letter or digit; what they matched
+before, a letter or a letter and digit of either case, is `l` and `w`, and
+`espalier migrate` renames the modules that use them. `L` and `W` are
+rejected with a pointer to `l` and `w`.
 
 ```text
-[Name=PascalCase].tsx                SubmitButton.tsx, HTMLView.tsx
-[slug=kebab-case].ts                 order-history.ts
-[seq=0(4..)]_[name=snake_case].sql   0001_add_users.sql
-[code=A(2..3)0(..2)].txt             EU.txt, USA12.txt
-[NAME=S+].ts                         MAX_RETRIES.ts
+[code=A(2..3)0(..2)].txt             EU.txt, USA12.txt; not eu.txt
+[rev=h(12)]_[name=snake].py          3f9a2c1b4d5e_add_users.py
+[id=w(11)].json                      dQw4w9WgXcQ.json
+[seq=0(4..)]_[name=snake].sql        0001_add_users.sql
+[Name=Pascal].tsx                    SubmitButton.tsx, HTMLView.tsx
+[slug=kebab].ts                      order-history.ts
+[NAME=SNAKE].ts                      MAX_RETRIES.ts
 ```
 
-`kebab-case`, `snake_case`, `camelCase` and `PascalCase` allow digits after
-the first letter and capitals in runs, so acronyms pass either way they are
-written. `(m..n)`, `(m..)` and `(..n)` extend `(n)`. Four mask characters
-admit the characters of those names in any order: `k` a lowercase letter,
-digit or dash, `K` the same with capitals, and `s` and `S` the same with an
-underscore. A single lowercase word
-fits three styles at once, so two sibling rules in those styles are rejected
-as overlapping.
+- `h` and `H` are a hex digit, lowercase or capital.
+- `k` and `K` are a letter, digit or dash, and `s` and `S` a letter, digit or
+  underscore, lowercase or capital: the characters of kebab and snake names in
+  any order.
+- `(m..n)`, `(m..)` and `(..n)` repeat an element between two counts,
+  extending `(n)`.
+- A capture can require a case style by its name written in that style:
+  `kebab`, `snake`, `KEBAB`, `SNAKE`, `camel` and `Pascal`. They allow digits
+  after the first letter and capitals in runs, so acronyms pass either way
+  they are written. A single lowercase word fits three styles at once, so two
+  sibling rules in those styles are rejected as overlapping.
 
 ## Generated documents
 
@@ -193,8 +201,10 @@ as overlapping.
 ## Upgrading from 0.10.0
 
 1. Install `espalier@0.11.0` and preview migration with `espalier migrate --dry-run`.
-2. Run `espalier migrate`. It removes `pin`, removes `build.guidanceMode`, and
-   for `fixed` adds `locked = true` to the espalier root's `ESPALIER.mjs`.
+2. Run `espalier migrate`. It removes `pin`, removes `build.guidanceMode`,
+   for `fixed` adds `locked = true` to the espalier root's `ESPALIER.mjs`, and
+   renames modules whose masks use `A` or `X` to `l` and `w`, which match what
+   they did. Where a mask meant capitals, tighten it back to `A` or `X`.
 3. Replace any computed guidance or description that reads
    `config.build.guidanceMode` with the context's `locked`.
 4. Run `espalier lint`, `espalier build`, and `espalier build --check`. Every

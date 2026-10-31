@@ -9,7 +9,7 @@
 
 A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
-In `[code=A(2..3)0(..2)]`, the text after `=` is a mask: each character matches one character of the name. `0` matches a digit and `A` a letter. `(m..n)` repeats the element before it m to n times, `(m..)` at least m times and `(..n)` at most n times. `espalier help matching` has the full grammar.
+In `[code=A(2..3)0(..2)]`, the text after `=` is a mask: each character matches one character of the name. `0` matches a digit and `A` a capital letter. `(m..n)` repeats the element before it m to n times, `(m..)` at least m times and `(..n)` at most n times. `espalier help matching` has the full grammar.
 
 ## Other repository paths
 

@@ -1392,10 +1392,14 @@ export function maskLegend(names: readonly Segment[]): string | null {
   const meanings: [string, string][] = [
     ["0", "a digit"],
     ["#", "an optional digit"],
-    ["A", "a letter"],
     ["a", "a lowercase letter"],
-    ["X", "a letter or digit"],
+    ["A", "a capital letter"],
+    ["l", "a letter of either case"],
     ["x", "a lowercase letter or digit"],
+    ["X", "a capital letter or digit"],
+    ["w", "a letter or digit of either case"],
+    ["h", "a digit or a lowercase a to f"],
+    ["H", "a digit or a capital A to F"],
     ["k", "a lowercase letter, digit or dash"],
     ["K", "a capital letter, digit or dash"],
     ["s", "a lowercase letter, digit or underscore"],
@@ -1419,7 +1423,7 @@ export function maskLegend(names: readonly Segment[]): string | null {
     if (told.length > 0) sentences.push(`${told.join(", and ")}.`);
   }
   if (listed !== null) sentences.push(`${codeSpan(listed)} accepts exactly the listed names.`);
-  for (const [style, placeholder] of styles) sentences.push(`${codeSpan(placeholder)} accepts a ${style} name: ${CASE_STYLES[style].words}.`);
+  for (const [style, placeholder] of styles) sentences.push(`${codeSpan(placeholder)} accepts a ${CASE_STYLES[style].name} name: ${CASE_STYLES[style].words}.`);
   if (optional !== null) {
     sentences.push(`${codeSpan(optional)} matches one of its comma-separated alternatives, and the empty one makes that part of the name optional.`);
   }

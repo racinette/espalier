@@ -5,13 +5,13 @@
 ## Project layout
 
     routes/
-    ├─ [slug=kebab-case].ts 0+  a route
+    ├─ [slug=kebab].ts 0+  a route
     │
-    └─ [name].ts 0+             a legacy route
+    └─ [name].ts 0+        a legacy route
 
 A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
-`[slug=kebab-case]` accepts a kebab-case name: lowercase words of letters and digits joined by dashes, starting with a letter. `espalier help matching` has the full grammar.
+`[slug=kebab]` accepts a kebab-case name: lowercase words of letters and digits joined by dashes, starting with a letter. `espalier help matching` has the full grammar.
 
 ## Other repository paths
 

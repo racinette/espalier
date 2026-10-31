@@ -128,28 +128,38 @@ character of the name.
 ```text
 [seq=000000]_[name].tables.sql       six digits, an underscore, then anything
 [at=0(14)]_[name].rb                 fourteen digits
-[code=AAA]-[n=00]                    three letters, a dash, two digits
+[code=AAA]-[n=00]                    three capital letters, a dash, two digits
 [slug=a+]                            lowercase letters, one or more
 [day=0(4)-0(2)-0(2)]_[title].md      a date, captured as one value
 [seq=0(4..)]_[name].sql              four digits or more
-[code=A(2..3)0(..2)]                 two or three letters, then up to two digits
+[code=A(2..3)0(..2)]                 two or three capitals, then up to two digits
+[rev=h(12)]_[name].py                twelve lowercase hex digits
+[id=w(11)]                           eleven letters or digits, either case
 ```
 
-The mask vocabulary is deliberately small:
+The mask vocabulary is deliberately small. A lowercase mask character means
+lowercase and a capital means capitals; only `l` and `w` mean either case:
 
-| Mask | Matches one |
+| Mask | Matches one ASCII |
 |---|---|
-| `0` | ASCII digit |
-| `#` | ASCII digit, or nothing |
-| `A` | ASCII letter |
-| `a` | ASCII lowercase letter |
-| `X` | ASCII letter or digit |
-| `x` | ASCII lowercase letter or digit |
-| `k` | ASCII lowercase letter, digit or `-` |
-| `K` | ASCII capital letter, digit or `-` |
-| `s` | ASCII lowercase letter, digit or `_` |
-| `S` | ASCII capital letter, digit or `_` |
+| `0` | digit |
+| `#` | digit, or nothing |
+| `a` | lowercase letter |
+| `A` | capital letter |
+| `l` | letter of either case |
+| `x` | lowercase letter or digit |
+| `X` | capital letter or digit |
+| `w` | letter or digit of either case |
+| `h` | digit or `a` to `f` |
+| `H` | digit or `A` to `F` |
+| `k` | lowercase letter, digit or `-` |
+| `K` | capital letter, digit or `-` |
+| `s` | lowercase letter, digit or `_` |
+| `S` | capital letter, digit or `_` |
 | `-` `_` | that character, literally |
+
+`L` and `W` are rejected with a pointer to `l` and `w`, so no capital means
+either case.
 
 Suffixes repeat the element before them: `+` means one or more times, and
 `(n)` means exactly `n` times. A range counts between two bounds, either of
@@ -170,11 +180,11 @@ another, and the mask spells whichever one the repository uses. The one
 exception is a [case style](#case-styles), a convention for names that a mask
 cannot spell.
 
-`k`, `K`, `s` and `S` are the characters kebab-case and snake_case names are
-written in, lowercase or screaming, and say nothing about their order:
-`[NAME=S+]` accepts `MAX_RETRIES` and also `___`. A digit or a separator is
-both lowercase and screaming, so `k+` and `K+` both accept `---`. To require
-the words and their separators in order, use a [case style](#case-styles).
+`k`, `K`, `s` and `S` are the characters kebab and snake names are written
+in, lowercase or screaming, and say nothing about their order: `[NAME=S+]`
+accepts `MAX_RETRIES` and also `___`. A digit or a separator is both lowercase
+and screaming, so `k+` and `K+` both accept `---`. To require the words and
+their separators in order, use a [case style](#case-styles).
 
 Masks never contain a dot, so the dot restriction on structural captures is
 unaffected: every mask class excludes `.`, and a bare `[name]` keeps excluding
@@ -205,42 +215,44 @@ A back-reference repeats the bound text and carries no mask of its own:
 
 Anything after `=` that is not a mask, a list or a [case style](#case-styles)
 is rejected as `malformed_placeholder`, naming the offending character. The
-vocabulary is built from characters every filesystem
-accepts, which is why the separator is `=` rather than `:`, and why `?` and
+vocabulary is built from characters every filesystem accepts, which is why the separator is `=` rather than `:`, and why `?` and
 `*` do not appear.
 
 ### Case styles
 
 A capture may require a naming convention instead of a mask, by writing the
-style's own name after `=`:
+style's name, in that style, after `=`:
 
 ```text
-[Name=PascalCase].tsx                SubmitButton.tsx, HTMLView.tsx
-[name=camelCase].ts                  useCart.ts, parseHTML.ts
-[slug=kebab-case].ts                 order-history.ts, utf-8.ts
-[name=snake_case].py                 send_email.py
+[Name=Pascal].tsx                    SubmitButton.tsx, HTMLView.tsx
+[name=camel].ts                      useCart.ts, parseHTML.ts
+[slug=kebab].ts                      order-history.ts, utf-8.ts
+[name=snake].py                      send_email.py
+[NAME=SNAKE].ts                      MAX_RETRIES.ts
+[NAME=KEBAB].txt                     CONTENT-TYPE.txt
 ```
 
-| Style | Accepts | Not |
-|---|---|---|
-| `kebab-case` | `user`, `user-id`, `utf-8` | `User`, `user_id`, `user--id`, `-user`, `1-user` |
-| `snake_case` | `user`, `user_id`, `utf_8` | `User`, `user-id`, `user__id`, `_user` |
-| `camelCase` | `user`, `userId`, `parseHTML`, `v2Api` | `User`, `user-id`, `2fa` |
-| `PascalCase` | `User`, `UserId`, `HTMLParser`, `V2` | `user`, `User_Id`, `2Fa` |
+| Style | Usually called | Accepts | Not |
+|---|---|---|---|
+| `kebab` | kebab-case | `user`, `user-id`, `utf-8` | `User`, `user_id`, `user--id`, `-user`, `1-user` |
+| `snake` | snake_case | `user`, `user_id`, `utf_8` | `User`, `user-id`, `user__id`, `_user` |
+| `KEBAB` | SCREAMING-KEBAB-CASE | `USER`, `USER-ID`, `UTF-8` | `User`, `USER_ID`, `USER--ID` |
+| `SNAKE` | SCREAMING_SNAKE_CASE | `MAX`, `MAX_RETRIES`, `HTTP2` | `Max`, `MAX-RETRIES`, `_MAX` |
+| `camel` | camelCase | `user`, `userId`, `parseHTML`, `v2Api` | `User`, `user-id`, `2fa` |
+| `Pascal` | PascalCase | `User`, `UserId`, `HTMLParser`, `V2` | `user`, `User_Id`, `2Fa` |
 
-`kebab-case` and `snake_case` are lowercase words of letters and digits,
-joined by single dashes or single underscores, starting with a letter.
-`camelCase` and `PascalCase` are letters and digits, starting with a lowercase
-or a capital letter; capitals may run together, so an acronym is accepted
-either way it is written. None of them contains a dot.
+`kebab`, `snake`, `KEBAB` and `SNAKE` are words of letters and digits,
+lowercase or capital, joined by single dashes or single underscores, starting
+with a letter. `camel` and `Pascal` are letters and digits, starting with a
+lowercase or a capital letter; capitals may run together, so an acronym is
+accepted either way it is written. None of them contains a dot.
 
 A style is the whole constraint: it cannot be combined with a mask, and the
-names are case-sensitive and exact, so `[name=kebab]` is rejected with a
-pointer to `kebab-case`. There is no SCREAMING_SNAKE_CASE style; `[NAME=S+]`
-is the nearest mask. A single lowercase word, such as `user`, is
-kebab-case, snake_case and camelCase at once, so sibling rules in two of those
-styles overlap and are [rejected](#ambiguity-is-rejected); a bare `[name]`
-beside a style is a fallback, as beside a mask.
+names are case-sensitive and exact, so `[name=kebab-case]` is rejected with a
+pointer to `kebab`. A single lowercase word, such as `user`, is kebab, snake
+and camel at once, and a single capital word is KEBAB and SNAKE, so sibling
+rules in two such styles overlap and are [rejected](#ambiguity-is-rejected); a
+bare `[name]` beside a style is a fallback, as beside a mask.
 
 ### Captures must be unambiguous
 

@@ -50,6 +50,15 @@ below 0.7.0, or a `version` key, is read once first: such a config predates
 dot-prefixed paths becoming eligible, so `migrate` also excludes `.git` and
 reviews the rule tree's hidden entries.
 
+**`A` and `X` masks.** In a config that still records a `pin` or `version`,
+a mask's `A` becomes `l` and its `X` becomes `w`: since 0.11.0 `A` and `X`
+are capitals only, and `l` and `w` match what they did. Every module whose
+path holds one is renamed, a directory that empties is removed, and an
+`instanceOf` written as a literal path is rewritten to the new name. A list
+such as `[kind={A,X}]` and a literal name keep their letters. The version
+record is removed in the same run, so a later `migrate` leaves an `A` written
+since alone.
+
 **`rule` to `guidance`.** A rule module's `rule` export, string or function,
 is renamed `guidance`, and so is `rule` inside each entry of `groups`. Only a
 direct declaration is rewritten; a destructured or re-exported `rule` is

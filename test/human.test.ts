@@ -84,11 +84,11 @@ test("an unrecognized path shows where recognition stopped, and what it captured
 
 test("explain's map explains the masks and case styles it shows, as a generated document does", () => {
   scratch((root) => {
-    write(root, "espalier/hooks/[name=camelCase].ts.mjs", RULE);
+    write(root, "espalier/hooks/[name=camel].ts.mjs", RULE);
     write(root, "espalier/hooks/[seq=0(2..)]_[name].ts.mjs", RULE);
     const shown = run(root, ["explain", "hooks/"]).stdout.replace(/\n +/g, " ");
     assert.match(shown, /In `\[seq=0\(2\.\.\)\]`, the text after `=` is a mask/);
-    assert.match(shown, /`\[name=camelCase\]` accepts a camelCase name/);
+    assert.match(shown, /`\[name=camel\]` accepts a camelCase name/);
   });
 });
 

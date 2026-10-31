@@ -5,11 +5,11 @@
 ## Project layout
 
     jobs/
-    └─ [name=snake_case].py 0+  a job
+    └─ [name=snake].py 0+  a job
 
 A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
-`[name=snake_case]` accepts a snake_case name: lowercase words of letters and digits joined by underscores, starting with a letter. `espalier help matching` has the full grammar.
+`[name=snake]` accepts a snake_case name: lowercase words of letters and digits joined by underscores, starting with a letter. `espalier help matching` has the full grammar.
 
 ## Other repository paths
 

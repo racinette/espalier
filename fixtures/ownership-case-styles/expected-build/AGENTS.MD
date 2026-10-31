@@ -8,9 +8,11 @@
     ├─ codes/
     ├─ components/
     ├─ constants/
+    ├─ headers/
     ├─ hooks/
     ├─ jobs/
     ├─ migrations/
+    ├─ revisions/
     └─ routes/
 
 ## Other repository paths

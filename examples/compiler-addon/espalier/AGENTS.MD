@@ -164,22 +164,23 @@ one grouping can judge them, rather than splitting them across sibling rules:
 `role` is captured only when the name has it, and is absent otherwise.
 
 A placeholder can constrain the text it accepts. `[name=mask]` pictures the
-text one character at a time: `0` is a digit, `#` an optional digit, `A` a
-letter, `a` a lowercase letter, `X` a letter or digit, `x` a lowercase letter
-or digit, `k` and `K` a lowercase or capital letter, digit or `-`, `s` and `S`
-the same with `_`, and `-` or `_` itself. `+` repeats the element before it one or more
-times, `(n)` exactly n times, and `(m..n)`, `(m..)` and `(..n)` between m and
-n times, at least m, or at most n. `[name={a,b}]` accepts exactly the listed
-names. `[name=kebab-case]`, `[name=snake_case]`, `[name=camelCase]` and
-`[Name=PascalCase]` accept a name in that case style; capitals may run
-together, as in `HTMLParser`.
+text one character at a time. A lowercase character means lowercase and a
+capital capitals: `a` and `A` are a letter, `x` and `X` a letter or digit, `h`
+and `H` a hex digit, `k` and `K` a letter, digit or `-`, and `s` and `S` the
+same with `_`. `l` is a letter and `w` a letter or digit of either case. `0` is
+a digit, `#` an optional digit, and `-` or `_` itself. `+` repeats the element
+before it one or more times, `(n)` exactly n times, and `(m..n)`, `(m..)` and
+`(..n)` between m and n times, at least m, or at most n. `[name={a,b}]` accepts
+exactly the listed names. `[name=kebab]`, `[name=snake]`, `[NAME=KEBAB]`,
+`[NAME=SNAKE]`, `[name=camel]` and `[Name=Pascal]` accept a name in that case
+style; capitals may run together, as in `HTMLParser`.
 
 ```text
 [seq=0(6)]_[name=x+].tables.sql.mjs   000100_init.tables.sql; not abc_init.tables.sql
 [at=0(14)]_[name].rb.mjs              a fourteen-digit timestamp
 [v=0(2..4)].md.mjs                    two to four digits
 [kind={tables,views}].sql.mjs         tables.sql and views.sql only
-[Name=PascalCase].tsx.mjs             SubmitButton.tsx; not submit-button.tsx
+[Name=Pascal].tsx.mjs                 SubmitButton.tsx; not submit-button.tsx
 ```
 
 A mask describes shape, not meaning; whether fourteen digits are a valid date

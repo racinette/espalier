@@ -5,7 +5,7 @@
 // to see the old file, edit it as text, and visit children the way `lint` and
 // `build` do.
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { isMap, isNode, parseDocument } from "yaml";
 import { findChildren } from "./children.js";
@@ -258,6 +258,9 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
   }
   const changes = planGrammarMigration(root, espalierRoot, skip, inline === true);
   if (legacyGuidanceMode(values) === "fixed") lockRoot(root, espalierRoot, changes);
+  // Every config before 0.11.0 records its version, and this run removes it,
+  // so masks are rewritten exactly once.
+  if ("pin" in values || "version" in values) planEitherCaseMasks(root, espalierRoot, skip, changes);
   for (const change of changes) {
     if (!options.dryRun) {
       mkdirSync(path.dirname(change.path), { recursive: true });
@@ -266,6 +269,18 @@ function migrateOne(options: MigrateOptions, reporter: Reporter): { root: string
     }
     reporter.record({ kind: "written", path: path.relative(root, change.path).split(path.sep).join("/") });
     if (change.remove) reporter.record({ kind: "deleted", path: path.relative(root, change.remove).split(path.sep).join("/") });
+  }
+  // A directory a rename emptied goes with it, deepest first.
+  if (!options.dryRun) {
+    const rules = path.join(root, espalierRoot);
+    const emptied = [...new Set(changes.flatMap((change) => change.remove === undefined ? [] : [path.dirname(change.remove)]))]
+      .sort((a, b) => b.length - a.length);
+    for (let directory of emptied) {
+      while (directory.startsWith(rules + path.sep) && existsSync(directory) && readdirSync(directory).length === 0) {
+        rmdirSync(directory);
+        directory = path.dirname(directory);
+      }
+    }
   }
   const reported = path.relative(root, configPath).split(path.sep).join("/") || CONFIG_FILENAME;
   if (wanted === text) {
@@ -424,6 +439,52 @@ function renameRuleExport(source: string, entry: string): string {
   let out = source;
   for (const [start, end] of edits.sort((a, b) => b[0] - a[0])) out = `${out.slice(0, start)}guidance${out.slice(end)}`;
   return out;
+}
+
+/**
+ * 0.11.0 made `A` and `X` capitals only; what they matched before is `l` and
+ * `w`. Only a mask changes: a list keeps its letters, and so does a literal
+ * name, which is not a pattern. docs/MATCHING.MD "Masks".
+ */
+export function eitherCaseMasks(name: string): string {
+  return name.replace(/\[([A-Za-z_][A-Za-z0-9_]*)=([^\]{][^\]]*)\]/g, (_, capture: string, mask: string) =>
+    `[${capture}=${mask.replace(/A/g, "l").replace(/X/g, "w")}]`);
+}
+
+/**
+ * Rename every module whose path holds an `A` or `X` mask, and rewrite the
+ * `instanceOf` paths that name one, on top of the conversions already planned.
+ */
+function planEitherCaseMasks(root: string, rules: string, skip: string[], changes: Array<{ path: string; contents: string; remove?: string }>): void {
+  const directory = path.join(root, rules);
+  if (!existsSync(directory)) return;
+  const entries = listEntries(directory, compileIgnore(skip, "skip"));
+  const literal = (file: string): boolean => existsSync(file) && /\bliteralName\s*[=:]\s*true\b/.test(sourceCode(readFileSync(file, "utf8")));
+  // A segment keeps its letters when its own module declares a literal name.
+  const renamed = (entry: string): string => {
+    const segments = entry.split("/");
+    return segments.map((segment, index) => {
+      const last = index === segments.length - 1;
+      const own = last ? [path.join(directory, entry)]
+        : ["ESPALIER.mjs", "ESPALIER.MD"].map((name) => path.join(directory, ...segments.slice(0, index + 1), name));
+      return own.some(literal) ? segment : eitherCaseMasks(segment);
+    }).join("/");
+  };
+  const instanceOf = /(\bexport\s+const\s+instanceOf\s*=\s*)(["'`])([^"'`]*)\2/;
+  for (const entry of entries) {
+    const absolute = path.join(directory, entry);
+    const planned = changes.find((change) => change.path === absolute || change.remove === absolute);
+    const source = planned?.contents ?? readFileSync(absolute, "utf8");
+    const contents = source.replace(instanceOf, (_, lead: string, quote: string, target: string) => `${lead}${quote}${eitherCaseMasks(target)}${quote}`);
+    // A planned conversion, such as ESPALIER.MD to ESPALIER.mjs, moves with its directory.
+    const destination = path.join(directory, renamed(path.relative(directory, planned?.path ?? absolute).split(path.sep).join("/")));
+    if (planned !== undefined) {
+      planned.contents = contents;
+      if (destination !== planned.path) { planned.remove ??= absolute; planned.path = destination; }
+    } else if (destination !== absolute || contents !== source) {
+      changes.push({ path: destination, contents, ...(destination === absolute ? {} : { remove: absolute }) });
+    }
+  }
 }
 
 /** Plan all syntax conversions before changing configuration or authored inputs. */
