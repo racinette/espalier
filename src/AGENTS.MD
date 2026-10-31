@@ -298,7 +298,8 @@ Formats an `Explanation` and computes nothing. Its interfaces are the
 with `JSON.stringify`. A field the human layout needs is added to the answer,
 where JSONL carries it too; the one exception is a map entry's parsed
 `segment`, which the drawing and legends read and `output.ts` leaves out
-of JSONL. `--concise` is presentation only: it drops prose
+of JSONL, where the entry's `rank`, `captures` and `backReferences`
+summarize it instead. `--concise` is presentation only: it drops prose
 here, never from the payload. The map comes from `render.ts`'s `drawMap`, its legends from
 `marksLegend` and `maskLegend`, and the governed-elsewhere sentence from
 `readInside`, so a prefix reads as the generated document does; do not

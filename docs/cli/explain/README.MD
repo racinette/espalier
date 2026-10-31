@@ -336,7 +336,23 @@ node declared `literalName` carries `"literal":true`, rendered as
 `literal name`; an abstract contract carries `"abstract":true`, rendered as
 📋; a locked node carries `"locked":true`, rendered as 🔒; a frozen node
 `"frozen":true`, rendered as ❄️; and a node whose module seals its files
-`"sealed":true`, rendered as 📦. Human maps use
+`"sealed":true`, rendered as 📦.
+
+Each entry also summarizes its declared name. `rank` is how specific it is for
+[ownership](../../MATCHING.MD#ownership): `static`, `resolved`, `bound` or
+`dynamic`. `captures` lists its captures in order, each with its `name` and,
+when constrained, its `mask`, `list` or case `style`, and `optional: true` for
+one an alternative can leave out. `backReferences` names the captures it
+repeats with `{name}`. Both are left out when empty. In a named instance's map
+`path` shows the values the instance binds, `[step=0000]_checkout.sql`, while
+`rank` and `backReferences` still describe the declaration,
+`[step=0000]_{feature}.sql`:
+
+```json
+{"path":"[step=0000]_checkout.sql","description":"a step","required":null,"rank":"bound","captures":[{"name":"step","mask":"0000"}],"backReferences":["feature"]}
+```
+
+Human maps use
 the same [marks](../build/README.MD#marks) as generated documents, with the
 same legends under the map: one for the marks, and one for the masks, lists
 and case styles the map shows.

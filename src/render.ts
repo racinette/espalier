@@ -8,7 +8,7 @@
 import { directoryFrozen, directoryLock, directorySealed, groupingAbstract, rootGrouping, type Constraint, type Espalier, type GroupInstance, type LoadedModule, type NodeDoc, type StructuralRule, type TrieNode } from "./compile.js";
 import path from "node:path";
 import { PROVENANCE } from "./files.js";
-import { CASE_STYLES, bindSegment, specificity, matchSegment, type CaptureValue, type CaseStyle, backrefNames, isStrictSubset, type Part, type Segment } from "./pattern.js";
+import { CASE_STYLES, bindSegment, optionalCaptureNames, specificity, matchSegment, type CaptureValue, type CaseStyle, backrefNames, isStrictSubset, type Part, type Segment } from "./pattern.js";
 import { admissionGlobs } from "./targets.js";
 
 const WORKFLOW = `## Working with Espalier
@@ -470,12 +470,57 @@ export interface MapEntry {
   frozen?: true;
   /** No file joins or leaves the node's module's files. docs/LOCKS.MD "Sealed collections". */
   sealed?: true;
+  /** How specific the declared name is: docs/MATCHING.MD "Ownership". */
+  rank: "static" | "resolved" | "bound" | "dynamic";
+  /** The name's captures, in order, each with what it accepts; absent when it has none. */
+  captures?: MapCapture[];
+  /** The captures the declared name repeats with `{name}`, even where `path` shows their values; absent when it repeats none. */
+  backReferences?: string[];
   /**
    * The last segment as shown, parsed: a back-reference the walk resolved is
    * its literal text. What the map's marks and legends read; explain's JSON
-   * leaves it out.
+   * leaves it out, carrying `rank`, `captures` and `backReferences` instead.
    */
   segment: Segment;
+}
+
+/** One capture of a map entry's name: a mask or list after `=`, or a case style after `@`. */
+export interface MapCapture {
+  name: string;
+  mask?: string;
+  list?: string[];
+  style?: string;
+  /** Absent from names that take an alternative without it. */
+  optional?: true;
+}
+
+const RANKS = ["static", "resolved", "bound", "dynamic"] as const;
+
+/** The public summary of a parsed name, for explain's JSON. */
+function nameSummary(segment: Segment): Pick<MapEntry, "rank" | "captures" | "backReferences"> {
+  const optional = new Set(optionalCaptureNames(segment));
+  const seen = new Set<string>();
+  const captures: MapCapture[] = [];
+  const visit = (part: Part): void => {
+    if (part.kind === "alternatives") return part.branches.flat().forEach(visit);
+    if (part.kind !== "capture" || seen.has(part.name)) return;
+    seen.add(part.name);
+    const { constraint } = part;
+    captures.push({
+      name: part.name,
+      ...(constraint?.kind === "mask" ? { mask: constraint.source } : {}),
+      ...(constraint?.kind === "list" ? { list: constraint.values } : {}),
+      ...(constraint?.kind === "style" ? { style: constraint.source } : {}),
+      ...(optional.has(part.name) ? { optional: true as const } : {}),
+    });
+  };
+  segment.parts.forEach(visit);
+  const references = [...new Set(backrefNames(segment))];
+  return {
+    rank: RANKS[specificity(segment)],
+    ...(captures.length === 0 ? {} : { captures }),
+    ...(references.length === 0 ? {} : { backReferences: references }),
+  };
 }
 
 /** What a named instance's static name binds of its contract's captures, which its subtree's back-references read. */
@@ -545,6 +590,9 @@ export function mapEntries(
         visit.node.instanceOf !== undefined ? !visit.node.optional : directory || (visit.node.segment.dynamic && visit.node.rule?.module.optional !== false)
           ? null
           : visit.node.rule?.module.optional !== true,
+      // The declaration's rank and back-references, as ownership sees them;
+      // `path` shows the values a named instance binds.
+      ...nameSummary(visit.node.segment),
       segment: segments.get(visit.at) ?? visit.node.segment,
     });
   }

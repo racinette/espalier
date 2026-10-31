@@ -220,7 +220,9 @@ rejected with a pointer to `l` and `w`.
 
 - `explain` gives a prefix's map the same legends a generated document has,
   for its marks and for its masks, lists and case styles, and lines up its
-  labelled values in one column.
+  labelled values in one column. Each JSON map entry summarizes its name:
+  `rank`, `captures` with their masks, lists and case styles, and
+  `backReferences`.
 - `create` refused a name its directory does not declare without saying what
   it does declare; it now names those patterns, so a name that misses a mask
   or case style shows what it missed.

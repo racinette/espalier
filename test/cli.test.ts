@@ -157,10 +157,22 @@ test("explain needs a path", () => {
   });
 });
 
-test("explain's JSON map carries what the map says, not the parsed names it is drawn from", () => {
+test("explain's JSON map summarizes each name, not the parsed names it is drawn from", () => {
   scratch((root) => {
     const answer = JSON.parse(run(root, ["explain", "src/", "--format", "jsonl"]).stdout) as { map: Record<string, unknown>[] };
-    assert.deepEqual(answer.map, [{ path: "[name].ts", description: "a source file", required: null }]);
+    assert.deepEqual(answer.map, [{ path: "[name].ts", description: "a source file", required: null, rank: "dynamic", captures: [{ name: "name" }] }]);
+
+    mkdirSync(path.join(root, "espalier", "ui", "[area=a+]"), { recursive: true });
+    writeFileSync(path.join(root, "espalier", "ui", "[area=a+]", "[Name@Pascal]{,.[kind={test,spec}]}-{area}.tsx.mjs"), RULE);
+    const summary = JSON.parse(run(root, ["explain", "ui/", "--format", "jsonl"]).stdout) as { map: Record<string, unknown>[] };
+    assert.deepEqual(summary.map.map(({ path: _, description: __, required: ___, ...entry }) => entry), [
+      { rank: "dynamic", captures: [{ name: "area", mask: "a+" }] },
+      {
+        rank: "bound",
+        captures: [{ name: "Name", style: "Pascal" }, { name: "kind", list: ["test", "spec"], optional: true }],
+        backReferences: ["area"],
+      },
+    ]);
   });
 });
 
