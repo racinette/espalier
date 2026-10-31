@@ -46,7 +46,7 @@ aggregate form.
 | `lint` | no | deterministic validation; a module with nothing to check exports none |
 | `referenceImplementation` | no | a path to a canonical conforming file |
 | `optional` | no | whether a named file may be absent |
-| `instanceOf` | no | matching inherited contract for a named member |
+| `instanceOf` | no | matching inherited contract for a named member, or a file named by back-references |
 | `minMatches` | no | minimum membership of a dynamic collection |
 | `literalName` | no | the filename's brackets or braces are the name, not placeholders |
 | `abstract` | no | on a dynamic leaf, every match must be a declared instance |
@@ -56,7 +56,7 @@ aggregate form.
 | `aggregate` | no | run a constraint once over its complete match set |
 | `targets` | no | positive globs selecting files for an extensionless constraint; required when the filename has no extension selector |
 | `template` | no | a schema and renderer from which `espalier create` can create this kind of file |
-| `groups` | no | named groupings of a dynamic rule's files by shared captures, each with its own `description`, `guidance` and optional `lint` |
+| `groups` | no | named groupings of a dynamic rule's files by shared captures, each with its `by` and optional `description`, `guidance`, `lint`, `abstract` and `sealed` |
 
 ### `description`
 
@@ -323,8 +323,10 @@ constraints reject `minMatches`.
 
 ### `instanceOf`
 
-`instanceOf` is a nonempty contract reference on a named structural leaf or
-on a directory module. It is not valid on constraints. On a dynamic name it
+`instanceOf` is a nonempty contract reference on a named structural leaf, on a
+file named by back-references such as `{feature}.ts`, or on a static
+directory's module; see [Declaring a file](INSTANCES.MD#declaring-a-file). It
+is not valid on constraints. On a dynamic name it
 declares one group of the named rule's files rather than a file; see
 [Declaring a group](INSTANCES.MD#declaring-a-group).
 Named structural rules keep their optional `description`, `guidance` and
@@ -641,7 +643,7 @@ export const groups = {
 };
 ```
 
-Both helpers accept two optional type parameters, captures first and addons
+Each helper accepts two optional type parameters, captures first and addons
 second:
 
 ```ts

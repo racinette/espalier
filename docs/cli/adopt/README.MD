@@ -18,7 +18,7 @@ adds, removes or changes a `locked` export.
 ## Usage
 
 ```text
-espalier adopt <path> [--force]
+espalier adopt <path> [--dry-run] [--force]
 
   <path>           directory to bring under the espalier
   --dry-run        print what would be written, write nothing

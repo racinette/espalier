@@ -296,10 +296,13 @@ the two spellings of one question cannot answer differently. See
 Formats an `Explanation` and computes nothing. Its interfaces are the
 `--format jsonl` payload, which `explain.ts` builds and `output.ts` writes
 with `JSON.stringify`. A field the human layout needs is added to the answer,
-where JSONL carries it too. `--concise` is presentation only: it drops prose
-here, never from the payload. The map comes from `render.ts`'s `drawMap` and
-the governed-elsewhere sentence from its `readInside`, so a prefix reads as
-the generated document does; do not reimplement either. Column, rule and wrap
+where JSONL carries it too; the one exception is a map entry's parsed
+`segment`, which the drawing and legends read and `output.ts` leaves out
+of JSONL. `--concise` is presentation only: it drops prose
+here, never from the payload. The map comes from `render.ts`'s `drawMap`, its legends from
+`marksLegend` and `maskLegend`, and the governed-elsewhere sentence from
+`readInside`, so a prefix reads as the generated document does; do not
+reimplement any of them. Column, rule and wrap
 widths, and the rule that author text is indented but never re-wrapped, are
 fixed by `docs/cli/explain/README.MD` "Human layout".
 
@@ -434,7 +437,8 @@ espalier that `compile.ts` has already accepted. `docs/MATCHING.MD`
 "Ownership", "What must exist" and "The deepest recognized node" specify the
 answers, and `docs/INSTANCES.MD` "Declaring a group" specifies required groups.
 It is pure and imports the compiler for types only. One `selectChild` chooses
-the winner for files, directories and requirements alike, which keeps lint,
+the winner for files, directories and requirements alike, by `pattern.ts`'s
+`specificity` first and proven containment second, which keeps lint,
 explain, create and the API in agreement about who owns a path. Keep it the
 only place a child is chosen. It never backtracks to a broader sibling and
 raises no failures. Ambiguity was compile's to reject, and a path that does not
@@ -478,7 +482,11 @@ since none of them has a format or destination to honour. JSONL is a stream
 of events whose completion is the exit code. The human formatter buffers and
 writes the summaries itself, which is why it takes a `Mode` and commands only
 record entries. `nested.ts` re-roots every path a Reporter carries for a child
-espalier, so a new path-bearing field must be translated there too. The
+espalier, so a new path-bearing field must be translated there too. The JSONL
+explanation leaves out each map entry's parsed `segment`, which only the
+human layout reads. A standard-stream destination drops writes once its reader
+has closed, so piping into `head` ends the output, not the run, and the exit
+code still reports the result. The
 encodings are specified under "Output" in `docs/cli/lint/README.MD` and
 `docs/cli/build/README.MD`.
 
@@ -488,9 +496,11 @@ Parses one path segment and answers what it matches. It transcribes
 `docs/MATCHING.MD` "Placeholders" and its subsections, so a change to the
 grammar starts in that document. It is pure: it uses no filesystem, trie or
 repository, so `compile.ts`, `match.ts`, `targets.ts`, `render.ts` and
-`migrate.ts` share one reading of a segment. The overlap and containment tests
-decide whether compilation rejects two siblings, so they may err in one
-direction only. An overlap may be over-reported but never missed, and
+`migrate.ts` share one reading of a segment. `specificity` ranks a segment static, resolved, bound or
+dynamic; that one ranking orders ownership in `match.ts` and siblings in
+generated maps, and only siblings of one rank can be ambiguous. The overlap and
+containment tests decide whether compilation rejects two siblings, so they may
+err in one direction only. An overlap may be over-reported but never missed, and
 `isStrictSubset` is true only when containment is proven. `matchSegment`
 relies on compilation having proven that every segment splits one way
 ("Captures must be unambiguous"). `trieKey` is internal identity, not a glob:
@@ -506,12 +516,15 @@ repeats it pays for the repetition in tokens. Where that guidance also applies
 somewhere else, such as an instance's document, a file that inherits a rule, or
 a section that builds on another, refer to where it is rendered: name the
 contract and the document that carries it, or say it is above. Never paste it.
-This holds wherever generated text is composed, the instance preface that
-`compile.ts` builds included.
+This holds wherever generated text is composed, the instance preface
+included.
 
 Fixed text the tool writes itself, such as headings, the closing account and
-the mask legend, may repeat when it is short and a reference would cost the
-reader more. Decide by tokens: what the reader spends on the inline text,
+the legends, may repeat when it is short and a reference would cost the
+reader more. Each document has one legend for its marks and one for its
+masks, lists and case styles, built from what the document shows: the map's
+entries and the names and marks its headings record as they are rendered,
+never by reading the rendered text back. Decide by tokens: what the reader spends on the inline text,
 against what they would spend reading the reference's target. The mask legend
 stays inline because the page explaining masks is two orders of magnitude
 longer, and even so it appears once per document, not once per section.

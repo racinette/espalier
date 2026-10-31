@@ -26,7 +26,7 @@ espalier lint [paths...]
 
 ## What it does
 
-1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, build the matcher, and render computed descriptions, guidance, and directory guidance. Anything wrong here — an ambiguous espalier, a module that fails to import, a missing `guidance` export, a guidance callback that fails — stops the run before repository linting begins. Workers receive rendered guidance text and descriptions; they do not evaluate those callbacks. `--no-guidance` suppresses output, not compilation or callback validation.
+1. **Compile the espalier.** Load the config, read the tree, parse every path into a pattern, import every rule module, validate its exports, build the matcher, and render computed descriptions, guidance, and directory guidance. Anything wrong here — an ambiguous espalier, a module that fails to import, an export with an invalid value, a guidance callback that fails — stops the run before repository linting begins. Workers receive rendered guidance text and descriptions; they do not evaluate those callbacks. `--no-guidance` suppresses output, not compilation or callback validation.
 2. **Collect files.** Walk the filesystem from the repository root, never descending into a directory an exclusion matches, then drop the unconditionally invisible paths. Symlinks are followed, a link onto a directory containing it is not, and a traversal failure stops the run. The walk never consults git; only `--base` reads a revision from it, separately. See [CONFIG.MD](../../CONFIG.MD).
 3. **Resolve ownership.** Each file gets exactly one structural owner, or none. Files with no owner report `unexpected_path` and are otherwise left alone. A match of an abstract contract that no instance declares reports `undeclared_instance`. Required named leaves with no file report `missing_required_file`; absent required named directory instances report `missing_required_directory`; collections below their minimum report `missing_required_match`. See [MATCHING.MD](../../MATCHING.MD).
 4. **Prepare execution.** Capture governed source contents, await addon preparation, and initialize all participating workers.
@@ -378,7 +378,7 @@ and reports the failure through the chosen format and destination:
 
 - config missing, malformed, or contradictory
 - the espalier is ambiguous, or a rule path is invalid
-- a rule module fails to import, or is missing a required export
+- a rule module fails to import, or exports an invalid value
 - addon preparation, setup, or disposal fails
 - prepared data cannot be cloned, or a worker exits unexpectedly
 - a path under the root cannot be read

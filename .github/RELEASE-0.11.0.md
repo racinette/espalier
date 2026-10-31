@@ -218,8 +218,9 @@ rejected with a pointer to `l` and `w`.
 
 ## Smaller changes
 
-- `explain` gives a prefix's map the same mask legend a generated document
-  has, and lines up its labelled values in one column.
+- `explain` gives a prefix's map the same legends a generated document has,
+  for its marks and for its masks, lists and case styles, and lines up its
+  labelled values in one column.
 - `create` refused a name its directory does not declare without saying what
   it does declare; it now names those patterns, so a name that misses a mask
   or case style shows what it missed.
@@ -232,10 +233,11 @@ rejected with a pointer to `l` and `w`.
 ## Upgrading from 0.10.0
 
 1. Install `espalier@0.11.0` and preview migration with `espalier migrate --dry-run`.
-2. Run `espalier migrate`. It removes `pin`, removes `build.guidanceMode`,
-   for `fixed` adds `locked = true` to the espalier root's `ESPALIER.mjs`, and
-   renames modules whose masks use `A` or `X` to `l` and `w`, which match what
-   they did. Where a mask meant capitals, tighten it back to `A` or `X`.
+2. Run `espalier migrate`. It removes `pin` (or `version`), removes
+   `build.guidanceMode`, for `fixed` adds `locked = true` to the espalier
+   root's `ESPALIER.mjs`, and renames modules whose masks use `A` or `X` to `l`
+   and `w`, which match what they did, rewriting the literal `instanceOf` paths
+   that name them. Where a mask meant capitals, tighten it back to `A` or `X`.
 3. Replace any computed guidance or description that reads
    `config.build.guidanceMode` with the context's `locked`.
 4. Run `espalier lint`, `espalier build`, and `espalier build --check`. Every

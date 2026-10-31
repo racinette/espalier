@@ -44,12 +44,13 @@ espalier
 └─ main.ts.mjs
 ```
 
-Each structural rule file in this tree declares:
+A structural rule file's name declares the path it governs. It may also
+export:
 
 - a **description** — what kind of file this represents
 - **guidance** — the natural-language conventions that file must follow
-- optionally, a **lint function** — the deterministic check that verifies adherence
-- optionally, a **template** — a typed, documented way to create that kind of file
+- a **lint function** — the deterministic check that verifies adherence
+- a **template** — a typed, documented way to create that kind of file
 
 From this single source, `espalier` produces two standing surfaces and an
 optional construction entry point:
@@ -274,7 +275,7 @@ migrations
 └─ [kind={tables,views}].sql.mjs            exactly tables.sql and views.sql
 ```
 
-`0` is a digit, `#` an optional digit, `A` a letter, `a` a lowercase letter, `X` a letter or digit, `x` a lowercase letter or digit, and `-` or `_` itself; `+` repeats the previous element one or more times and `(n)` exactly n times. A masked placeholder is a strict subset of a bare one, so `[seq=0+]_[name].tables.sql.mjs` and `[stem].tables.sql.mjs` can sit beside it and own what it does not. Two captures in one name must be separated by text neither can absorb; `[a]_[b]` is rejected at compile time with a name that splits two ways.
+A lowercase mask character means lowercase and a capital means capitals: `a` and `A` are a letter, `x` and `X` a letter or digit, `h` and `H` a hex digit, `k` and `K` a letter, digit or `-`, and `s` and `S` the same with `_`. `l` is a letter and `w` a letter or digit of either case, `0` a digit, `#` an optional digit, and `-` or `_` itself. `+` repeats the previous element one or more times, `(n)` exactly n times, and `(m..n)`, `(m..)` and `(..n)` between two counts. After `@` instead of `=`, a placeholder names a case style: `[name@kebab]`, `@snake`, `@KEBAB`, `@SNAKE`, `@camel` or `@Pascal`. A masked placeholder is a strict subset of a bare one, so `[seq=0+]_[name].tables.sql.mjs` and `[stem].tables.sql.mjs` can sit beside it and own what it does not. Two captures in one name must be separated by text neither can absorb; `[a]_[b]` is rejected at compile time with a name that splits two ways.
 
 The alternative is guidance asking politely and a `lint` function checking afterwards, for a fact the espalier can simply state. Stating it also puts the requirement in the generated documentation, where an agent reads it before writing the file rather than after.
 
@@ -288,7 +289,8 @@ A dynamic rule can also judge its files in groups. `groups` names the
 captures a group shares, such as a migration set's number and name, and each
 grouping carries its own guidance and, optionally, a `lint` that runs once per
 group with the members. One group can be declared with guidance of its own,
-and an abstract grouping requires that of every group. See
+and an abstract grouping requires that of every group; a named instance can
+declare groups that hold only its own files. See
 [groups](docs/TYPES.MD#groups) and
 [declaring a group](docs/INSTANCES.MD#declaring-a-group).
 
@@ -296,7 +298,8 @@ Full grammar, matching precedence, and requiredness: [docs/MATCHING.MD](docs/MAT
 
 Named directory and file instances can specialize dynamic contracts with
 `instanceOf`. They retain inherited structure and checks while supplying
-domain-specific guidance and additional requirements. Named members are
+domain-specific guidance and additional requirements. A file named by a
+back-reference, such as `{provider}.ts`, can be an instance too. Named members are
 required by default; `optional` controls their presence and `minMatches`
 controls dynamic collection size. A contract exporting `abstract = true`
 insists on declarations, reporting any member that lacks one. See [named instances](docs/MATCHING.MD#named-instances)
@@ -305,9 +308,10 @@ converting Markdown directory guidance to `ESPALIER.mjs`.
 
 ## Writing rules
 
-Every rule file exports `guidance`; most also export `lint`. Structural rules also require a
-`description`. This structural example shows the exports; its check is an
-outline, not an implementation:
+Every rule export is optional: a rule file's name already declares its path,
+so an empty module requires its file. Most rules export a `description`,
+`guidance` and `lint`. This structural example shows the exports; its check is
+an outline, not an implementation:
 
 ```js
 export const description =

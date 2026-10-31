@@ -8,12 +8,15 @@ repeats it pays for the repetition in tokens. Where that guidance also applies
 somewhere else, such as an instance's document, a file that inherits a rule, or
 a section that builds on another, refer to where it is rendered: name the
 contract and the document that carries it, or say it is above. Never paste it.
-This holds wherever generated text is composed, the instance preface that
-\`compile.ts\` builds included.
+This holds wherever generated text is composed, the instance preface
+included.
 
 Fixed text the tool writes itself, such as headings, the closing account and
-the mask legend, may repeat when it is short and a reference would cost the
-reader more. Decide by tokens: what the reader spends on the inline text,
+the legends, may repeat when it is short and a reference would cost the
+reader more. Each document has one legend for its marks and one for its
+masks, lists and case styles, built from what the document shows: the map's
+entries and the names and marks its headings record as they are rendered,
+never by reading the rendered text back. Decide by tokens: what the reader spends on the inline text,
 against what they would spend reading the reference's target. The mask legend
 stays inline because the page explaining masks is two orders of magnitude
 longer, and even so it appears once per document, not once per section.

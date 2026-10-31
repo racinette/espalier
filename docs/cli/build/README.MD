@@ -930,7 +930,7 @@ No record of past runs is kept. Finding orphans is a scan of the candidate files
 
 For domain-local notes in an ordinary dynamic instance, declare an optional
 static leaf such as `src/features/[feature]/AGENTS.md.mjs`. Give it a description,
-rule, lint function, and a template for its initial heading. The
+guidance, an optional lint function, and a template for its initial heading. The
 [authoring recipe](../../../authoring/AGENTS.MD#handwritten-guidance-in-dynamic-instances)
 contains a complete module and creation commands.
 
@@ -1050,7 +1050,7 @@ Every operational failure code is listed in [ERRORS.MD](../../ERRORS.MD).
 
 A directory declaring `instanceOf` has inherited structure and locally authored
 domain guidance. Its concrete layout includes inherited files. Its document
-opens by naming its contract and restating the contract's guidance, and a
+opens by naming its contract and the document where the contract's guidance is stated, and a
 contract inherited into it gets a section there when something inside is
 declared an instance of it, as described under [Contracts](#contracts).
 `fold` still controls placement. Optional named directory instances receive their local generated documents

@@ -11,7 +11,9 @@ espalier create src/constants.ts -- --varname answer
 The argument is a concrete file or directory path, resolved from the current
 working directory. Config discovery finds the governing project; it does not
 change the base for resolving the target. An undeclared-target diagnostic
-names the resolved repository-relative path and project root. Espalier
+names the resolved repository-relative path and project root, and lists what
+the deepest recognized directory declares, so a name that misses a mask or case
+style shows what it missed. Espalier
 resolves files and directories with the same
 [structural specificity](../../MATCHING.MD#ownership) used by `lint` and
 `explain`, including narrower placeholder patterns, so creation follows the

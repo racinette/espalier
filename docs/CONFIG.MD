@@ -424,7 +424,7 @@ Each nested project and each programmatic `check` has its own preparation and
 worker lifetime. Worker-local addon state does not survive between projects
 or runs. Coordinator imports follow the module-lifetime rules documented under
 [`check`](API.MD#checkoptions), including Node's CommonJS module caching.
-Tests using `runRule` or `runAggregate` supply and dispose their own addon objects.
+Tests using `runRule`, `runAggregate` or `runGroup` supply and dispose their own addon objects.
 
 Read repository inputs through the supplied context and pass contents to helpers.
 Neither preparation helpers nor worker addons should open governed source files

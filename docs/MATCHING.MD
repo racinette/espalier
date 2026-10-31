@@ -41,7 +41,8 @@ export const fold = false;
 These exports are optional. `description` and `guidance` may instead be
 sync/async functions of the [compilation context](TYPES.MD#directory-modules).
 The full list, including `instanceOf`, `literalName` and `abstract`, is in
-[TYPES.MD](TYPES.MD#directory-modules).
+[TYPES.MD](TYPES.MD#directory-modules); `locked`, `frozen` and `sealed` are in
+[LOCKS.MD](LOCKS.MD).
 `fold = true` folds this directory and its entire subtree
 into the nearest enclosing generated document. It changes placement only.
 See [Named instances](#named-instances) for context and inheritance.
@@ -164,7 +165,7 @@ either case.
 Suffixes repeat the element before them: `+` means one or more times, and
 `(n)` means exactly `n` times. A range counts between two bounds, either of
 which may be left open: `(m..n)` is `m` to `n` times, `(m..)` at least `m`
-times, and `(..n)` at most `n` times, none included. `0+` is one or more
+times, and `(..n)` at most `n` times, zero included. `0+` is one or more
 digits; `0(4..6)` is four to six, and so are `0(4)#(2)` and `0000##`. `a(..3)`
 is up to three letters, which `#` cannot say. `#+`, `a(0..)` and `a(..3)` may
 match nothing, so they are legal only beside something required: a mask must
@@ -250,10 +251,11 @@ accepted either way it is written. None of them contains a dot.
 
 A style is the whole constraint: it cannot be combined with a mask, and the
 names are case-sensitive and exact, so `[name@kebab-case]` is rejected with a
-pointer to `kebab`, and `[name=kebab]` with a pointer to `[name@kebab]`. A single lowercase word, such as `user`, is kebab, snake
-and camel at once, and a single capital word is KEBAB and SNAKE, so sibling
-rules in two such styles overlap and are [rejected](#ambiguity-is-rejected); a
-bare `[name]` beside a style is a fallback, as beside a mask.
+pointer to `kebab`, and `[name=kebab]` with a pointer to `[name@kebab]`. A
+single lowercase word, such as `user`, is kebab, snake and camel at once, and a
+single capital word is KEBAB and SNAKE, so sibling rules in two such styles
+overlap and are [rejected](#ambiguity-is-rejected); a bare `[name]` beside a
+style is a fallback, as beside a mask.
 
 ### Captures must be unambiguous
 
@@ -431,11 +433,12 @@ even if more than one branch or target glob could admit it.
 
 Per-file and aggregate constraint leaves may both list extensions. Each listed suffix may contain dots: `migration-order.{up.sql,down.sql}.mjs` selects both migration file kinds. Dynamic structural leaves may do the same. A literal structural leaf names one required file, however, so `main.{ts,tsx}.mjs` would leave requiredness ambiguous. It is rejected as `extension_list_on_structural_leaf`; write two literal rules or a dynamic rule, whichever reflects the intended structure.
 
-Braces therefore mean three things, and which one is decided by place and by
+Braces therefore mean four things, and which one is decided by place and by
 a comma:
 
 ```text
 braces after the rule name in a constraint leaf          an extension list
+braces after = inside a capture                          a list of names
 braces holding a comma, in a structural path             alternatives
 braces holding one name, in a structural path            a back-reference
 ```
@@ -678,7 +681,7 @@ contents. Back-references share their bound values; common bound prefixes and
 suffixes can be compared directly. If remaining back-references prevent
 Espalier from proving strict containment or disjointness, the overlap is rejected.
 
-Siblings only conflict within their own tier. Static names cannot collide with each other at all, and a static or resolved sibling beside a dynamic one is decided by specificity rather than by guessing — `requestModels.ts` beside `[implementation].ts`, or `{provider}.ts` beside `[implementation].ts`, are both fine. Two *resolved* siblings are also checked for ambiguity, because different back-references can resolve to the same text:
+Siblings only conflict within their own tier. Static names cannot collide with each other at all, and a static, resolved or bound sibling beside a dynamic one is decided by specificity rather than by guessing — `requestModels.ts`, `{provider}.ts` or `[kind]_{provider}.ts` beside `[implementation].ts` are all fine. Two bound siblings are checked for ambiguity as dynamic ones are. Two *resolved* siblings are also checked for ambiguity, because different back-references can resolve to the same text:
 
 ```text
 [region]/[provider]/{region}.ts
@@ -733,6 +736,10 @@ it exports `optional = true`; an absent required instance reports
 
 **Resolved leaves are required per instance.** `[provider]/{provider}.ts.mjs` means each provider directory must contain a file named after itself. It behaves as a static leaf does, one instance at a time: `clients/stripe/` without `stripe.ts` reports `missing_required_file`, and `optional` relaxes it the same way. A required named specialization can bind the placeholder and make the resolved
 file required without waiting for an unnamed dynamic instance to appear.
+
+**Bound leaves are collections per instance.** `[provider]/{provider}-[kind].ts.mjs`
+is a collection in each provider directory, counted and constrained by
+`minMatches` as a dynamic leaf is below.
 
 **Dynamic leaves are collections.** `[util].ts.mjs` allows zero or more owned
 files by default. `minMatches = N` requires at least N owned files in the
@@ -831,6 +838,9 @@ These issue codes come from matching rather than from a rule module. Their `rule
 
 `missing_required_file` — a required static or resolved leaf has no corresponding
 file. A leaf marked `optional = true` never reports it.
+
+`missing_required_directory` — a named directory instance declared with
+`instanceOf` is absent, and does not export `optional = true`.
 
 `missing_required_match` — a dynamic leaf with a positive `minMatches` owns too few
 files in an owning directory.

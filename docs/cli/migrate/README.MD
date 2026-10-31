@@ -130,7 +130,7 @@ A config that is already current is reported `skipped` and not written. The auth
 
 **It will not compile the espalier.** An older config may already hold an `AGENTS.MD` the current compiler would reject until `skip` is present. The rewrite is the whole of the command; `lint` and `build` run afterwards.
 
-**Rule changes are limited to the `rule` to `guidance` rename and the literal cardinality conversion above.** A new CLI version may change how rule
+**Rule changes are limited to those above:** the `rule` to `guidance` rename, the literal cardinality conversion, `locked = true` for a fixed guidance mode, and the `A` and `X` mask renames with the `instanceOf` paths that name them. A new CLI version may change how rule
 filenames or selectors are interpreted, and the config alone cannot reveal the
 author's intended match set. Review the rules against [MATCHING.MD](../../MATCHING.MD)
 and [TYPES.MD](../../TYPES.MD) before relying on the new version. `--dry-run`

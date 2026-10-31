@@ -113,7 +113,8 @@ one `.mjs` file, called a rule file.
 **`ESPALIER.mjs` describes the directory.** It exports a short `description`
 and `guidance`; either may be a string or a sync/async function returning a
 string. Each function receives its own isolated context with the resolved
-config, authored pattern, concrete path when known, and inherited captures.
+config, authored pattern, concrete path when known, inherited captures, and
+whether the directory is locked.
 It runs once per declaration during compilation, before lint workers start.
 `fold = true` folds the subtree's documents into its ancestor; `literalName`
 and `abstract` are described below.
@@ -235,12 +236,16 @@ without an earlier `[provider]` is an error.
 
 Once resolved, `{provider}.ts` names one file and wins over a placeholder
 sibling such as `[name].ts`. A literal filename still takes precedence over
-both.
+both. A name holding both a placeholder and a back-reference, such as
+`[step]_{feature}.sql`, matches many files, but only ones tied to its
+instance: it wins over plain placeholder siblings and is compared only with
+other such names. The order is literal, `{provider}.ts`,
+`[step]_{feature}.sql`, then `[name].ts`.
 
 A dynamic rule can state an obligation over several of its files at once by
 exporting `groups`. Each grouping names the captures whose shared values
-identify a group, describes what one group is, states the guidance for the
-group, and may lint each group with its members:
+identify a group, and may describe what one group is, state the guidance for
+the group, and lint each group with its members:
 
 ```js
 export const groups = {
@@ -262,8 +267,8 @@ When one group has a purpose of its own, such as the migration set that
 creates the users table, declare it rather than writing that into each file.
 The declaring module sits beside the rule, at the rule's name with the
 grouping's captures written as values, `0001[ord=00]_users.sql.mjs`. It
-exports `instanceOf` naming the rule, `description` and `guidance`, and may
-export `lint`. A grouping with `abstract: true` requires every group to be
+exports `instanceOf` naming the rule, and may export `description`,
+`guidance` and `lint`, or only freeze or seal that group. A grouping with `abstract: true` requires every group to be
 declared. A named directory instance can declare a group in its own
 directory, holding only its files, and its restated rule can add to an
 inherited grouping by naming it without `by`. `espalier help instances` has
@@ -357,10 +362,10 @@ create or change the governed files.
 `guidance` may also be a synchronous or asynchronous function returning Markdown.
 `description` likewise accepts a function returning its short label, with the
 same context and timing. Each callback receives its own isolated
-`{ config, pattern, path, captures }`: a resolved config snapshot,
+`{ config, pattern, path, captures, locked }`: a resolved config snapshot,
 the authored declaration without `.mjs`, a concrete structural path when known
-(null for constraints or unbound dynamic paths), and known named-instance
-captures. Keep these callbacks deterministic and free of side effects. Espalier
+(null for constraints or unbound dynamic paths), known named-instance
+captures, and whether the declaring module is locked. Keep these callbacks deterministic and free of side effects. Espalier
 renders each once per authored declaration during compilation, then uses the
 same text for build, explain, and findings. Per-file lint and template callbacks
 instead receive the concrete target's context. Inherited base prose keeps its
@@ -533,6 +538,8 @@ the demonstration's product requirements.
   supplied file context.
 - Use `runAggregate` to test an aggregate with a supplied set of matches,
   including an empty set.
+- Use `runGroup` to test a grouping's `lint`, or a declared group's, with a
+  supplied set of members.
 - Use `check` to test rules against a repository, including matching,
   ownership, and scoped runs. A scoped aggregate still receives its full
   selected set.
@@ -559,7 +566,9 @@ Use dynamic nodes for a repeated architectural role, and named instances to
 explain concrete domain responsibilities without copying its checks. A static
 directory exports `instanceOf = "../[group]"` from `ESPALIER.mjs`; a named file
 exports `instanceOf = "[module].ts.mjs"` to specialize a matching dynamic leaf
-in its inherited directory. These references name contracts, not JS imports.
+in its inherited directory. So may a file named by back-references, such as
+`[feature]/{feature}.ts.mjs`, where its value is one the contract admits; a
+directory named by a back-reference cannot be an instance. These references name contracts, not JS imports.
 
 A dynamic rule module, or a dynamic directory's `ESPALIER.mjs`, may export
 `abstract = true` to refuse anonymous members: every path it admits must then

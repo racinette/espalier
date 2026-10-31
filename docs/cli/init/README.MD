@@ -133,6 +133,8 @@ espalier init --no-common-ignore
 ```
 
 ```yaml
+name: my-project
+
 root: espalier
 
 ignoreFiles:
@@ -170,14 +172,14 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 tsconfig.json
-  - tsconfig.*.json
-  # …
+tsconfig.*.json
+# …
 
-  # python
-  - pyproject.toml
-  - setup.cfg
-  - requirements.txt
-  # …
+# python
+pyproject.toml
+setup.cfg
+requirements.txt
+# …
 ```
 
 These are not files `.gitignore` knows about. A lockfile is committed on purpose, and `pyproject.toml` is the point of a Python project — but neither is a placement decision anyone made, and a structural rule declaring them would be describing a package manager rather than an architecture.

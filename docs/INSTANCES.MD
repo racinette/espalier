@@ -68,8 +68,10 @@ composition and requiredness rules in full.
 
 ## What a declaration changes
 
-- The path is static. It is required by default, `optional = true` relaxes
-  that, and `create` makes it like any declared file or directory.
+- The path is static, or, for a file named by back-references, resolved per
+  instance. It is required by default, where a resolved one's value is a
+  member of its contract, `optional = true` relaxes that, and `create` makes it
+  like any declared file or directory.
 - In generated guidance a file gets its own sub-section under its contract,
   with the contract's guidance stated once above. A directory gets a line
   under the contract and its own document, which opens by naming the

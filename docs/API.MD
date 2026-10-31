@@ -185,7 +185,7 @@ The first argument is the module — whatever `import` gave you. It is not looke
 Nothing is inferred from `path`. A rule reading a file it was not given gets `read_failed` rather than an empty string, because a test that silently linted nothing is the failure mode this exists to prevent.
 
 For a function-valued `guidance` or `description`, supply
-`guidance: { config, pattern, path, captures }` with the declaration context you
+`guidance: { config, pattern, path, captures, locked }` with the declaration context you
 want to test. The helper evaluates each callback once before lint, using an
 isolated copy of that context. It does not discover
 configuration or infer declaration bindings from the lint match. Omitting
@@ -351,13 +351,15 @@ path, which it cannot see; compilation does.
 
 `DirectoryGuidanceContext` types a directory module's `guidance` and
 `description` functions. It contains an isolated `config` snapshot, the authored directory `pattern`, a
-concrete `path` when known (otherwise null), and known `captures`. Both functions may
+concrete `path` when known (otherwise null), known `captures`, and `locked`,
+whether the directory is locked. Both functions may
 return a string or a promise of one. See the
 [directory module contract](TYPES.MD#directory-modules) for an executable
 example, evaluation timing, and path semantics.
 
 `RuleGuidanceContext` types a file rule or constraint's `guidance` and `description`
-functions. It has the same four fields, with declaration-specific semantics described in
+functions. It has the same five fields, `locked` saying whether the declaring
+module is locked, with declaration-specific semantics described in
 [guidance](TYPES.MD#guidance). Repository commands render each declaration once
 before distributing lint jobs; workers receive the rendered string. Standalone
 `runRule` and `runAggregate` callers supply that context explicitly through

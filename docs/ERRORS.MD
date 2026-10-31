@@ -55,15 +55,15 @@ repository linting begins.
 | Code | |
 |---|---|
 | `invalid_espalier_entry` | a file that is neither a `.mjs` module nor an `ESPALIER.mjs`, and is not skipped |
-| `malformed_placeholder` | an unclosed `[` or `{`, an unmatched `]`, a name that is not an identifier, or a mask, list or case style after `=` that is not in the vocabulary |
+| `malformed_placeholder` | an unclosed `[` or `{`, an unmatched `]`, a name that is not an identifier, a mask or list after `=`, or a case style after `@`, that is not in the vocabulary, such as `[name=kebab]`, `[name@kebab-case]`, `L` or `W`, or a mask that requires no character |
 | `ambiguous_captures` | a segment whose captures could split some name in two ways; the message shows the name and both splits |
 | `malformed_constraint_leaf` | a constraint missing both selection forms, or a malformed filename extension selector |
 | `malformed_node_description` | invalid directory metadata, conflicting guidance formats, or a description/guidance function that throws or returns a non-string |
 | `multiple_recursive_placeholders` | more than one `[...name]` in one path |
 | `duplicate_placeholder_name` | the same capture name twice in one path |
-| `unbound_backreference` | a `{name}` with no `[name]` earlier in the same path |
+| `unbound_backreference` | a `{name}` with no `[name]` earlier in the effective contract path, inherited bindings included |
 | `extension_list_on_structural_leaf` | `{ts,tsx}` on a literal structural leaf, or alternatives in a name with no placeholder, such as `README{,.local}.MD`, where it is unclear which alternative must exist; a name with a placeholder may hold alternatives |
-| `ambiguous_siblings` | overlapping siblings in one tier without a provably strictly narrower winner; names one file both match when it can |
+| `ambiguous_siblings` | overlapping siblings in one tier without a provably strictly narrower winner; names one file both match when it can, in its message and as `detail.name` beside `detail.left` and `detail.right` |
 | `inconsistent_capture_names` | one dynamic directory described under two names |
 | `duplicate_structural_rule` | two modules governing the same path |
 

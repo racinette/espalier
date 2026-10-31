@@ -129,7 +129,7 @@ export const sealed = true;
 | A directory module | every file beneath it | a file is added beneath it, or one is removed or moved out |
 | A structural rule or instance declaration | the files it owns, a contract its instances' too | a file comes to match it, or one it owned is removed or renamed |
 | A grouping, `sealed: true` in `groups` | its groups, one per directory and capture values | a new group appears, or every file of one is gone |
-| A group declaration | that group's files | a file joins the group, or one leaves it |
+| A group declaration | that group's files | a file joins the group, or one leaves it; where a named instance and its contract both declare the group, the instance's declaration decides |
 
 A file added to an existing group of a sealed grouping changes the group, not
 the grouping. A named instance that seals a grouping it inherits seals only its
@@ -157,7 +157,10 @@ export const sealed = false;
 
 Only a directory reopens. A rule, grouping or group seal is a statement about
 that collection's own files, so on those `sealed = false` means only that the
-module seals nothing. A file in several sealed collections answers to each. A
+module seals nothing. The one exception is a group a named instance and its
+contract both declare: the instance's declaration decides `sealed` for its
+directory, as it decides `frozen`, so its `sealed = false` unseals a group the
+contract's declaration seals. A file in several sealed collections answers to each. A
 constraint owns no files and rejects `sealed`.
 
 ## Frozen and sealed together
@@ -272,7 +275,10 @@ result in its generated guidance, and `lint --base` against the guard commit
 reports anything it changes outside its opening. Editing is opened precisely,
 down to one file; adding files is opened by directory, since only a directory
 reopens a seal. A feature works within the architecture, so the espalier stays
-locked.
+locked. A target under a directory the espalier admits only through a contract
+needs that directory declared, so the guard writes an `ESPALIER.mjs` holding
+only `instanceOf` for each one on the way, and `unguard` deletes them with the
+rest.
 
 A guard marks every change it makes, and one guard is in place at a time. Lint
 reports a guard left in place as `guard_in_place`, so one is not merged by
