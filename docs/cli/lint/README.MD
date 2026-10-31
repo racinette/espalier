@@ -110,8 +110,9 @@ guidance text; the default issue path is the group's directory.
 
 A declared group's own `lint` runs beside its grouping's, once per directory
 holding the group, with the same context. Its issues carry the declaration's
-module path and guidance and the grouping's name. `--rule` selects either
-check by its module path. See [INSTANCES.MD](../../INSTANCES.MD#declaring-a-group).
+module path and guidance and the grouping's name. When the contract and a
+named instance both declare a group, both checks run in the instance's
+directory. `--rule` selects any of these checks by its module path. See [INSTANCES.MD](../../INSTANCES.MD#declaring-a-group).
 
 ## Scoping
 

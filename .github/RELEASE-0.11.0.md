@@ -139,7 +139,9 @@ in its own directory, and they hold only its files: `features/checkout/` can
 open its own step `0001` while every other feature's stays frozen. An
 instance that restates its contract's rule can also add to an inherited
 grouping by naming it without `by`: make it abstract or sealed, add guidance
-or a check, but never replace or loosen it.
+or a check, but never replace or loosen it. A group both the contract and an
+instance declare runs both checks, is required once, and takes `frozen` and
+`sealed` from the instance.
 
 ## Alternatives in names
 

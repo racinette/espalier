@@ -2,7 +2,7 @@
 
 import { statSync } from "node:fs";
 import path from "node:path";
-import { declaredGroup, groupDeclared, groupModulePath, groupName, type Constraint, type StructuralRule } from "./compile.js";
+import { declaredGroups, groupDeclared, groupModulePath, groupName, type Constraint, type StructuralRule } from "./compile.js";
 import { loadConfig } from "./config.js";
 import { fail } from "./errors.js";
 import { startImplementations } from "./implementation.js";
@@ -365,7 +365,6 @@ async function lintOne(
     if (scope !== null && !group.matches.some((match) => inScope(match.path))) continue;
     const at = group.directory === "" ? "." : `${group.directory}/`;
     const matches = group.matches.sort((left, right) => left.path.localeCompare(right.path));
-    const declared = declaredGroup(group.grouping, group.captures, group.directory);
     // A group an abstract grouping does not see declared is reported where a
     // missing member would be: on the directory that holds it.
     if (group.grouping.abstract && !groupDeclared(group.chain, group.grouping, group.captures, group.directory)) {
@@ -384,8 +383,10 @@ async function lintOne(
         matches,
       });
     }
-    // A declared group's own check runs beside the grouping's, over the same members.
-    if (declared?.module.lint !== undefined && (options.rule === undefined || options.rule === declared.modulePath)) {
+    // A declared group's own check runs beside the grouping's, over the same
+    // members; a group the contract and the instance both declare runs both.
+    for (const declared of declaredGroups(group.grouping, group.directory, group.captures)) {
+      if (declared.module.lint === undefined || (options.rule !== undefined && options.rule !== declared.modulePath)) continue;
       job.push({
         ...invocation(declared.modulePath, declared.module, declared.pattern, at, group.captures),
         group: group.grouping.name,

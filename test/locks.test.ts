@@ -326,3 +326,46 @@ test("a sealed declared group admits no file in or out, while other groups stay 
     put("migrations/000102_users.sql", "a\n");
   }), ["sealed_collection_changed migrations/000102_users.sql"]);
 });
+
+/** One contract for every feature's steps, and two named features. */
+const FEATURES = (rule: string, more: Record<string, string> = {}): Record<string, string> => ({
+  "espalier/features/[feature]/steps/[num=0000]_[t=a+].sql.mjs": rule,
+  "espalier/features/checkout/ESPALIER.mjs": 'export const instanceOf = "../[feature]";\n',
+  "espalier/features/orders/ESPALIER.mjs": 'export const instanceOf = "../[feature]";\n',
+  "features/checkout/steps/0001_a.sql": "a\n",
+  "features/orders/steps/0001_a.sql": "a\n",
+  ...more,
+});
+const STEP = (name: string, exports = ""): string => `export const instanceOf = "[num=0000]_[t=a+].sql.mjs"; export const description = "${name}";${exports}\n`;
+
+test("a group a named instance declares counts against its contract's locked abstract grouping", async () => {
+  const base = FEATURES(`${RULE}export const locked = true; export const groups = { step: { by: ["num"], abstract: true } };\n`, {
+    "espalier/features/[feature]/steps/0001_[t=a+].sql.mjs": STEP("first"),
+  });
+  assert.deepEqual(await compare(base, (put) => {
+    put("espalier/features/checkout/steps/0002_[t=a+].sql.mjs", STEP("checkout's second"));
+    put("features/checkout/steps/0002_a.sql", "a\n");
+  }), ["locked_contract_changed espalier/features/checkout/steps/0002_[t=a+].sql.mjs"]);
+});
+
+test("a seal an instance adds to an inherited grouping holds only its own files", async () => {
+  const base = FEATURES(`${RULE}export const groups = { step: { by: ["num"] } };\n`, {
+    "espalier/features/checkout/steps/[num=0000]_[t=a+].sql.mjs": "export const groups = { step: { sealed: true } };\n",
+  });
+  assert.deepEqual(await compare(base, (put) => {
+    put("features/checkout/steps/0001_b.sql", "a\n");
+    put("features/checkout/steps/0002_a.sql", "a\n");
+    put("features/orders/steps/0002_a.sql", "a\n");
+  }), ["sealed_collection_changed features/checkout/steps/0002_a.sql"]);
+});
+
+test("an instance's own declaration of a group answers before the contract's", async () => {
+  const base = FEATURES(`${RULE}export const groups = { step: { by: ["num"] } };\n`, {
+    "espalier/features/[feature]/steps/0001_[t=a+].sql.mjs": STEP("first", " export const frozen = true;"),
+    "espalier/features/checkout/steps/0001_[t=a+].sql.mjs": STEP("checkout's first", " export const frozen = false;"),
+  });
+  assert.deepEqual(await compare(base, (put) => {
+    put("features/checkout/steps/0001_a.sql", "b\n");
+    put("features/orders/steps/0001_a.sql", "b\n");
+  }), ["frozen_file_changed features/orders/steps/0001_a.sql"]);
+});

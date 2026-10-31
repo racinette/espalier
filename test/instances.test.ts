@@ -202,6 +202,23 @@ test('an abstract grouping refuses to create a member of an undeclared group and
   });
 });
 
+test('an abstract grouping an instance adds to refuses only its own undeclared groups', async () => {
+  await scratch(async (root, put) => {
+    const step = 'export const instanceOf = "[num=0000]_[t=a+].sql.mjs";';
+    put('espalier/[area]/[num=0000]_[t=a+].sql.mjs', `${rule}export const groups = { step: { by: ["num"] } };`);
+    put('espalier/[area]/0009_[t=a+].sql.mjs', `${step} export const optional = true;`);
+    put('espalier/a/ESPALIER.mjs', 'export const instanceOf = "../[area]";');
+    put('espalier/a/[num=0000]_[t=a+].sql.mjs', 'export const groups = { step: { abstract: true } };');
+    const refused = run(root, ['create', 'a/0001_x.sql']);
+    assert.equal(refused.status, 2);
+    assert.match(refused.stdout, /step group `0001_\[t=a\+\]\.sql`.*espalier\/a\/0001_\[t=a\+\]\.sql\.mjs/);
+    assert.equal(run(root, ['create', 'a/0009_x.sql']).status, 0);
+    assert.equal(run(root, ['create', 'b/0001_x.sql']).status, 0);
+    put('espalier/a/0001_[t=a+].sql.mjs', step);
+    assert.equal(run(root, ['create', 'a/0001_x.sql']).status, 0);
+  });
+});
+
 test('an abstract contract refuses to create an undeclared member and accepts a declared one', async () => {
   await scratch(async (root, put) => {
     put('espalier/clients/[provider].ts.mjs', `${rule}export const abstract = true;`);

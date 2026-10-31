@@ -8,7 +8,7 @@
 import path from "node:path";
 import { fail } from "./errors.js";
 import type { ConstraintAnswer, DeclaredGroupAnswer, RuleAnswer } from "./explainText.js";
-import { declaredGroup, directoryFrozen, directoryLock, rootGrouping, type GroupInstance, type Grouping, type Lock } from "./compile.js";
+import { declaredGroup, directoryFrozen, directoryLock, rootGrouping, type GroupInstance, type Grouping, type Lock, type StructuralRule } from "./compile.js";
 import {
   isDirectoryOwnership,
   directorySeals,
@@ -148,13 +148,13 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
         guidance: visit.node.rule!.module.guidance.trim(),
         referenceImplementation: visit.node.rule!.module.referenceImplementation,
         required: required.has(visit.at),
-        ...(visit.node.rule!.module.groups.length > 0 ? { groups: visit.node.rule!.module.groups.map((grouping) => ({
-          name: grouping.name, by: grouping.by, description: grouping.description, guidance: grouping.guidance.trim(),
-          ...(grouping.abstract ? { abstract: true as const } : {}),
-          ...(grouping.sealed ? { sealed: true as const } : {}),
-          ...((here) => here.length > 0 ? { instances: here.map(declaredAnswer) } : {})(grouping.instances.filter((instance) =>
-            instance.directory === null || instance.directory === path.posix.dirname(`${prefix}${visit.at}`))),
-        })) } : {}),
+        ...((groups) => groups.length > 0 ? { groups: groups.map(({ grouping, members, guidance, abstract, sealed }) => ({
+          name: grouping.name, by: grouping.by, description: grouping.description, guidance,
+          ...(abstract ? { abstract: true as const } : {}),
+          ...(sealed ? { sealed: true as const } : {}),
+          ...((here) => here.length > 0 ? { instances: here.map(declaredAnswer) } : {})(members.flatMap((member) => member.instances.filter((instance) =>
+            instance.directory === null || instance.directory === path.posix.dirname(`${prefix}${visit.at}`)))),
+        })) } : {})(gatherGroupings([...(visit.node.rule!.inherited ?? []), visit.node.rule!])),
       }));
 
     reporter.explanation({
@@ -245,20 +245,15 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
   // its guidance gathers, and the nearest declared group answers.
   // docs/cli/explain/README.MD "Groupings".
   const directory = path.posix.dirname(target) === "." ? "" : path.posix.dirname(target);
-  const gathered = new Map<Grouping, { grouping: Grouping; guidance: string[]; abstract: boolean; sealed: boolean; captures: Record<string, CaptureValue>; declared?: GroupInstance }>();
-  for (const { rule, captures } of structuralChecks(owner.rule, target, owner.captures)) {
-    for (const grouping of rule.module.groups) {
-      const root = rootGrouping(grouping);
-      const entry = gathered.get(root) ?? { grouping: root, guidance: [], abstract: false, sealed: false, captures };
-      gathered.set(root, entry);
-      if (grouping.guidance.trim() !== "") entry.guidance.push(grouping.guidance.trim());
-      entry.abstract ||= grouping.abstract;
-      entry.sealed ||= grouping.sealed;
-      entry.declared = declaredGroup(grouping, captures, directory) ?? entry.declared;
-    }
-  }
-  const memberships = [...gathered.values()].map(({ grouping, guidance, abstract, sealed, captures, declared }) => ({
-    name: grouping.name, by: grouping.by, description: grouping.description, guidance: guidance.join("\n\n"),
+  const checks = structuralChecks(owner.rule, target, owner.captures);
+  const memberships = gatherGroupings(checks.map((check) => check.rule)).map(({ grouping, members, guidance, abstract, sealed }) => {
+    // Every rule in the chain sees the file's captures under its own names; the grouping's are shared.
+    const captures = checks.find((check) => check.rule.module.groups.includes(members[0]!))!.captures;
+    let declared: GroupInstance | undefined;
+    for (const member of members) declared = declaredGroup(member, captures, directory) ?? declared;
+    return { grouping, guidance, abstract, sealed, captures, declared };
+  }).map(({ grouping, guidance, abstract, sealed, captures, declared }) => ({
+    name: grouping.name, by: grouping.by, description: grouping.description, guidance,
     ...(abstract ? { abstract: true as const } : {}),
     ...(sealed ? { sealed: true as const } : {}),
     captures: Object.fromEntries(grouping.by.map((name) => [name, captures[name]!])),
@@ -287,6 +282,24 @@ export async function explain(options: ExplainOptions, reporter: Reporter): Prom
   });
 
   return 0;
+}
+
+/**
+ * The groupings a chain of rules holds, contract first. A grouping a
+ * restating rule adds to is one grouping: its guidance gathers in order, and
+ * it is abstract or sealed when any part says so.
+ */
+function gatherGroupings(chain: readonly StructuralRule[]): { grouping: Grouping; members: Grouping[]; guidance: string; abstract: boolean; sealed: boolean }[] {
+  const gathered = new Map<Grouping, Grouping[]>();
+  for (const rule of chain) {
+    for (const grouping of rule.module.groups) gathered.set(rootGrouping(grouping), [...(gathered.get(rootGrouping(grouping)) ?? []), grouping]);
+  }
+  return [...gathered].map(([grouping, members]) => ({
+    grouping, members,
+    guidance: members.map((member) => member.guidance.trim()).filter((text) => text !== "").join("\n\n"),
+    abstract: members.some((member) => member.abstract),
+    sealed: members.some((member) => member.sealed),
+  }));
 }
 
 function declaredAnswer(instance: GroupInstance): DeclaredGroupAnswer {

@@ -193,6 +193,14 @@ instance's files only: it is required in that one directory, and generated
 guidance states it in the instance's own document. The directory must be a
 named instance, not a pattern.
 
+The contract and an instance may both declare one group, such as a step
+`0009` every feature reserves. The instance's declaration adds to the
+contract's, as a declared file adds to its contract: both checks run, each
+guidance is stated in its own document, and the group is required once when
+either requires it. The instance's is the more specific statement, so it
+decides `frozen` and `sealed`, and `explain` names it as the file's declared
+group.
+
 ### Adding to an inherited grouping
 
 An instance that restates its contract's rule can add to an inherited

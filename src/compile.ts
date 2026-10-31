@@ -1276,10 +1276,26 @@ export function groupModulePath(rule: StructuralRule, grouping: Grouping, captur
   return `${rule.pattern.slice(0, cut + 1)}${groupName(rule.pattern.slice(cut + 1), values)}.mjs`;
 }
 
-/** The declared group of `grouping` these captures name in `directory`, if one is declared for it. */
+/**
+ * The declared group of `grouping` these captures name in `directory`, if one
+ * is declared for it. A named instance's own declaration is the more specific
+ * statement, so it answers before one beside the contract.
+ */
 export function declaredGroup(grouping: Grouping, captures: Readonly<Record<string, CaptureValue>>, directory: string): GroupInstance | undefined {
-  return grouping.instances.find((instance) => (instance.directory === null || instance.directory === directory)
-    && grouping.by.every((name) => instance.captures[name] === captures[name]));
+  return declaredGroups(grouping, directory, captures)[0];
+}
+
+/**
+ * The declarations of `grouping` that speak for `directory`, the instance's
+ * own first; with `captures`, only those of that one group. Their checks and
+ * prose add up; the first one decides `frozen` and `sealed`.
+ */
+export function declaredGroups(grouping: Grouping, directory: string, captures?: Readonly<Record<string, CaptureValue>>): GroupInstance[] {
+  const named = (instance: GroupInstance): boolean => captures === undefined || grouping.by.every((name) => instance.captures[name] === captures[name]);
+  return [
+    ...grouping.instances.filter((instance) => instance.directory === directory && named(instance)),
+    ...grouping.instances.filter((instance) => instance.directory === null && named(instance)),
+  ];
 }
 
 /**

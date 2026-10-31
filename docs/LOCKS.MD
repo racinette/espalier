@@ -50,7 +50,7 @@ A lock freezes everything the locked module declares, and nothing else:
 | A directory module | its guidance and flags, and which modules exist in its directory |
 | A structural rule | its description, guidance, lint, template, requirements and groupings |
 | An abstract rule or directory | the same, and its member list: the declarations of its instances |
-| A rule with an abstract grouping | the same, and that grouping's declared groups |
+| A rule with an abstract grouping | the same, and that grouping's declared groups, its named instances' included |
 | A constraint | its selection, guidance and lint |
 | An instance or group declaration | that one member's description, guidance and lint |
 
@@ -92,8 +92,9 @@ on a structural rule, for the files it owns; on an instance declaration, for
 that instance's files; and on a group declaration, for that group's files. A
 file is frozen by the most specific statement about it: an instance
 declaration before the contract it declares, a declared group before the rule
-whose files it groups, and any of them before the nearest directory module
-above the file. A declared directory comes before its contract directory in
+whose files it groups, a named instance's declaration of a group before the
+contract's declaration of the same group, and any of them before the nearest
+directory module above the file. A declared directory comes before its contract directory in
 the same way, and so does every directory inside it: declaring a member gives
 it guidance of its own, and keeps it in its contract's collection. Locks differ
 here because they protect modules, and a declaration is a module of its own.
@@ -131,7 +132,8 @@ export const sealed = true;
 | A group declaration | that group's files | a file joins the group, or one leaves it |
 
 A file added to an existing group of a sealed grouping changes the group, not
-the grouping. A rename is one file leaving and another joining.
+the grouping. A named instance that seals a grouping it inherits seals only its
+own groups; see [INSTANCES.MD](INSTANCES.MD#adding-to-an-inherited-grouping). A rename is one file leaving and another joining.
 
 A sealed directory holding an unsealed rule still admits no new file: the
 rule's files are beneath it. A sealed contract directory seals each directory

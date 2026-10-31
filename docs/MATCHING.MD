@@ -766,7 +766,9 @@ file. A leaf marked `optional = true` never reports it.
 files in an owning directory.
 
 `missing_required_group` — a declared group has no files in a directory its
-rule reaches. A group declared `optional = true` never reports it.
+rule reaches, or, when a named instance declares it, in that instance's
+directory. A group declared `optional = true` never reports it, and a group
+both the contract and an instance declare is reported once.
 
 `undeclared_instance` — an abstract contract admits this file or directory and
 no instance declares it, or an abstract grouping has a group no module

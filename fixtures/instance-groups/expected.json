@@ -1,0 +1,198 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      {
+        "kind": "written",
+        "path": "AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/checkout/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/checkout/steps/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/orders/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/orders/steps/AGENTS.MD"
+      }
+    ]
+  },
+  "exit": 1,
+  "issues": [
+    {
+      "path": "features/checkout/steps/",
+      "code": "undeclared_instance",
+      "severity": "error",
+      "rule": null,
+      "message": "the step group `0002_[t=a+].sql` of the abstract grouping in `features/checkout/steps/[num=0000]_[t=a+].sql` is not declared; declare it in `espalier/features/checkout/steps/0002_[t=a+].sql.mjs`, or see `espalier help instances`",
+      "metadata": {
+        "contract": "features/checkout/steps/[num=0000]_[t=a+].sql",
+        "group": "step",
+        "captures": {
+          "num": "0002"
+        }
+      }
+    },
+    {
+      "path": "features/orders/steps/",
+      "code": "missing_required_group",
+      "severity": "error",
+      "rule": null,
+      "message": "the declared step group `0002_[t=a+].sql` has no files here; it is declared in `espalier/features/orders/steps/0002_[t=a+].sql.mjs`",
+      "metadata": {
+        "rule": "features/[feature]/steps/[num=0000]_[t=a+].sql.mjs",
+        "group": "step",
+        "captures": {
+          "num": "0002"
+        },
+        "declared": "features/orders/steps/0002_[t=a+].sql.mjs"
+      }
+    }
+  ],
+  "again": {
+    "apply": "after",
+    "exit": 0,
+    "issues": []
+  },
+  "ownership": {
+    "features/billing/steps/0001_bills.sql": "features/[feature]/steps/[num=0000]_[t=a+].sql.mjs",
+    "features/checkout/steps/0001_carts.sql": "features/checkout/steps/[num=0000]_[t=a+].sql.mjs",
+    "features/checkout/steps/0002_items.sql": "features/checkout/steps/[num=0000]_[t=a+].sql.mjs",
+    "features/checkout/steps/0009_fix.sql": "features/checkout/steps/[num=0000]_[t=a+].sql.mjs",
+    "features/orders/steps/0001_orders.sql": "features/[feature]/steps/[num=0000]_[t=a+].sql.mjs"
+  },
+  "explain": {
+    "features/checkout/steps/0001_carts.sql": {
+      "exit": 0,
+      "object": {
+        "rule": "features/checkout/steps/[num=0000]_[t=a+].sql.mjs",
+        "groups": [
+          {
+            "name": "step",
+            "description": "one release",
+            "guidance": "A step migrates one thing.\n\nIn checkout every step is declared.",
+            "abstract": true,
+            "captures": {
+              "num": "0001"
+            },
+            "instance": {
+              "rule": "features/checkout/steps/0001_[t=a+].sql.mjs",
+              "description": "create carts"
+            }
+          }
+        ]
+      }
+    },
+    "features/checkout/steps/0009_fix.sql": {
+      "exit": 0,
+      "object": {
+        "groups": [
+          {
+            "name": "step",
+            "abstract": true,
+            "captures": {
+              "num": "0009"
+            },
+            "instance": {
+              "rule": "features/[feature]/steps/0009_[t=a+].sql.mjs"
+            }
+          }
+        ]
+      }
+    },
+    "features/orders/steps/0001_orders.sql": {
+      "exit": 0,
+      "object": {
+        "rule": "features/[feature]/steps/[num=0000]_[t=a+].sql.mjs",
+        "groups": [
+          {
+            "name": "step",
+            "guidance": "A step migrates one thing.",
+            "captures": {
+              "num": "0001"
+            }
+          }
+        ]
+      }
+    },
+    "features/checkout/steps/": {
+      "exit": 0,
+      "object": {
+        "rules": [
+          {
+            "rule": "features/checkout/steps/[num=0000]_[t=a+].sql.mjs",
+            "groups": [
+              {
+                "name": "step",
+                "description": "one release",
+                "abstract": true,
+                "instances": [
+                  {
+                    "rule": "features/[feature]/steps/0009_[t=a+].sql.mjs"
+                  },
+                  {
+                    "rule": "features/checkout/steps/0001_[t=a+].sql.mjs"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "features/[feature]/steps/": {
+      "exit": 0,
+      "object": {
+        "rules": [
+          {
+            "rule": "features/[feature]/steps/[num=0000]_[t=a+].sql.mjs",
+            "groups": [
+              {
+                "name": "step",
+                "instances": [
+                  {
+                    "rule": "features/[feature]/steps/0009_[t=a+].sql.mjs"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "features/orders/steps/": {
+      "exit": 0,
+      "object": {
+        "rules": [
+          {
+            "rule": "features/[feature]/steps/[num=0000]_[t=a+].sql.mjs",
+            "groups": [
+              {
+                "name": "step",
+                "instances": [
+                  {
+                    "rule": "features/[feature]/steps/0009_[t=a+].sql.mjs"
+                  },
+                  {
+                    "rule": "features/orders/steps/0002_[t=a+].sql.mjs"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

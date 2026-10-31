@@ -216,3 +216,54 @@ test("an instance adds to an inherited grouping and never replaces or loosens it
     await assert.rejects(check({ cwd: root, jobs: 1 }), { code: "module_invalid_export" });
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test("a group counts as declared from the contract or the instance, and one group answers to one declaration", async () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "espalier-instance-declared-"));
+  const put = (name: string, contents: string) => {
+    mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+    writeFileSync(path.join(root, name), contents);
+  };
+  const step = `export const instanceOf = "[num=0000]_[t=a+].sql.mjs";\n`;
+  try {
+    put("espalier.config.yaml", `ignoreFiles: []\nskip: []\n`);
+    put("espalier/[area]/[num=0000]_[t=a+].sql.mjs", `export const groups = { step: { by: ["num"], abstract: true } };\n`);
+    put("espalier/[area]/0009_[t=a+].sql.mjs", `${step}export const optional = true;\n`);
+    put("espalier/a/ESPALIER.mjs", `export const instanceOf = "../[area]";\n`);
+    put("espalier/a/0001_[t=a+].sql.mjs", step);
+    // Tightening what the contract already makes abstract states nothing new.
+    put("espalier/a/[num=0000]_[t=a+].sql.mjs", `export const groups = { step: { abstract: true } };\n`);
+    for (const file of ["a/0001_x.sql", "a/0002_x.sql", "a/0009_x.sql", "b/0001_x.sql", "b/0009_x.sql"]) put(file, "");
+    const messages = async () => (await check({ cwd: root, jobs: 1 })).map((issue) => `${issue.code}: ${issue.path} ${issue.message.split(" of the")[0]}`).sort();
+    assert.deepEqual(await messages(), [
+      "undeclared_instance: a/ the step group `0002_[t=a+].sql`",
+      "undeclared_instance: b/ the step group `0001_[t=a+].sql`",
+    ]);
+
+    // The contract's declaration and the instance's name one group in a:
+    // both checks run there, and it is required once, as the instance's.
+    const said = (who: string) => `export function lint({ path, emit }) { emit({ code: "${who}", message: path, severity: "info" }); }\n`;
+    put("espalier/[area]/0001_[t=a+].sql.mjs", step + said("contract"));
+    put("espalier/a/0001_[t=a+].sql.mjs", step + said("instance"));
+    assert.deepEqual((await check({ cwd: root, jobs: 1 })).filter((issue) => issue.severity === "info").map((issue) => `${issue.code} ${issue.path}`).sort(),
+      ["contract a/", "contract b/", "instance a/"]);
+    rmSync(path.join(root, "a/0001_x.sql"));
+    assert.deepEqual((await check({ cwd: root, jobs: 1 })).filter((issue) => issue.code === "missing_required_group")
+      .map((issue) => `${issue.path} ${(issue.metadata as { declared: string }).declared}`), ["a/ a/0001_[t=a+].sql.mjs"]);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("a group of an inherited grouping is declared beside its rule or in one named instance, never under a pattern", async () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "espalier-instance-pattern-"));
+  const put = (name: string, contents: string) => {
+    mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
+    writeFileSync(path.join(root, name), contents);
+  };
+  try {
+    put("espalier.config.yaml", `ignoreFiles: []\nskip: []\n`);
+    put("espalier/[g]/[feature]/[num=0000]_[t=a+].sql.mjs", `export const groups = { step: { by: ["num"] } };\n`);
+    put("espalier/a/ESPALIER.mjs", `export const instanceOf = "../[g]";\n`);
+    put("espalier/a/[feature]/0001_[t=a+].sql.mjs", `export const instanceOf = "[num=0000]_[t=a+].sql.mjs";\n`);
+    await assert.rejects(check({ cwd: root, jobs: 1 }), (error: { code: string; message: string }) =>
+      error.code === "invalid_instance" && /away from it/.test(error.message));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

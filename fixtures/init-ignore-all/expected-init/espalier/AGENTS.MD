@@ -257,7 +257,10 @@ The declaring module sits beside the rule, at the rule's name with the
 grouping's captures written as values, `0001[ord=00]_users.sql.mjs`. It
 exports `instanceOf` naming the rule, `description` and `guidance`, and may
 export `lint`. A grouping with `abstract: true` requires every group to be
-declared. `espalier help instances` has the how-to.
+declared. A named directory instance can declare a group in its own
+directory, holding only its files, and its restated rule can add to an
+inherited grouping by naming it without `by`. `espalier help instances` has
+the how-to.
 
 **A per-file constraint does not own files.** It checks files already owned
 by structural rules. Its path contains `[...name]`, which matches any depth

@@ -1,7 +1,7 @@
 // Ownership, requiredness, and the deepest recognized node.
 // docs/MATCHING.MD "Ownership", "What must exist", "The deepest recognized node".
 
-import { contractDirectories, declaredGroup, directoryFrozen, NODE_DESCRIPTION, type Constraint, type Espalier, type GroupInstance, type Grouping, type StructuralRule, type TrieNode } from "./compile.js";
+import { contractDirectories, declaredGroup, declaredGroups, directoryFrozen, rootGrouping, NODE_DESCRIPTION, type Constraint, type Espalier, type GroupInstance, type Grouping, type StructuralRule, type TrieNode } from "./compile.js";
 import { captureNames, isStrictSubset, matchSegment, resolveSegment, type CaptureValue } from "./pattern.js";
 
 // Defined beside the parser, because what a capture can hold is a fact about
@@ -224,11 +224,18 @@ export function requirements(
       const at = prefix === "" ? here : `${prefix}/${here}`;
 
       if (child.rule !== null && child.segment.dynamic) {
-        for (const rule of [...(child.rule.inherited ?? []), child.rule]) {
+        // A group the contract and the instance both declare is required once,
+        // when either requires it, and named by the nearest declaration.
+        const seen = new Map<Grouping, Set<string>>();
+        for (const rule of [...(child.rule.inherited ?? []), child.rule].reverse()) {
           for (const grouping of rule.module.groups) {
-            for (const instance of grouping.instances) {
-              if (instance.directory !== null && instance.directory !== prefix) continue;
-              if (!instance.module.optional) groups.push({ path: prefix, rule, grouping, instance });
+            const named = seen.get(rootGrouping(grouping)) ?? new Set<string>();
+            seen.set(rootGrouping(grouping), named);
+            for (const instance of declaredGroups(grouping, prefix)) {
+              const key = JSON.stringify(grouping.by.map((name) => instance.captures[name]));
+              if (instance.module.optional || named.has(key)) continue;
+              named.add(key);
+              groups.push({ path: prefix, rule, grouping, instance });
             }
           }
         }
