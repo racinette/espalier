@@ -19,3 +19,7 @@ that could take the same files.
   `0002` are undeclared.
 - Checkout's documents write the feature into names: `[step=0000]_checkout…`
   and `0002_checkout…`, where the template's document shows `{feature}`.
+- The documents read in order: a contract's instances come before its
+  groupings, a grouping with nothing to say has no section, a rule whose only
+  grouping says nothing has none either, and checkout's map describes its
+  inherited `steps/` as the template's directory does.

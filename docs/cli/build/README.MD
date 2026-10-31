@@ -126,11 +126,11 @@ node prose                    the rendered ESPALIER.mjs guidance
 ## Project layout             the tree
 ## Governed elsewhere         child espaliers below this point, when any
 ## `<path>` — <description>   one per structural rule placed here
-### Together, by … — …        one per grouping of that rule
-#### `<group>` — …             one per declared group of that grouping
-#### Adding new groups         closes a grouping that has declared groups or is abstract
 ### `<instance>` — …          one per declared instance of that contract
 ### Adding new instances      closes a contract that has instances or is abstract
+### Together, by … — …        one per grouping of that rule with something to say
+#### `<group>` — …             one per declared group of that grouping
+#### Adding new groups         closes a grouping that has declared groups or is abstract
 ## Constraints                when any constraint is placed here
 ### <rule name> — …           one per constraint; selection and individual or
                                group scope precede its body
@@ -508,7 +508,11 @@ Steps are numbered from 01 with no gaps.
 
 A grouping with an empty `by` is headed "Together, all files in a directory".
 A rule whose own body is empty still gets its section when it declares a
-grouping, since the sub-section needs a parent.
+grouping, since the sub-section needs a parent. A grouping with no
+description, guidance or declared groups, that is neither abstract nor sealed,
+has nothing to say and no sub-section. A contract's instances come before its
+groupings, so the sentence introducing them sits under the rule's heading and
+not under a grouping's.
 
 Declared groups nest under their grouping, as a contract's instances nest
 under the contract. Each is headed by the name that declares it, with the
@@ -542,7 +546,12 @@ files, so they are stated in the instance's document rather than beside the
 contract: under the inherited rule's section, a sub-section headed "Together,
 by … , declared here" lists them. A grouping an instance's restated rule adds
 to says "Adds to the inherited `<name>` grouping." before its own guidance,
-and keeps the inherited grouping's description in its heading.
+and keeps the inherited grouping's description in its heading. Its list
+names only the groups declared there, "beside the inherited grouping's
+groups", which are stated with the inherited grouping; with none, it says no
+groups are declared there beyond the inherited grouping's. A restated rule
+without a `description` keeps its contract's, and a directory a named
+instance inherits keeps its contract directory's description in the map.
 
 ### Contracts
 

@@ -5,13 +5,13 @@
 ## Project layout
 
     features/checkout/steps/
-    └─ [num=0000]_[t=a+].sql 0+
+    └─ [num=0000]_[t=a+].sql 0+  a migration step
 
 A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 In `[num=0000]`, the text after `=` is a mask: each character matches one character of the name. `0` matches a digit and `a` a lowercase letter. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
 
-## `[num=0000]_[t=a+].sql`
+## `[num=0000]_[t=a+].sql` — a migration step
 
 Inherits `features/[feature]/steps/[num=0000]_[t=a+].sql`.
 
@@ -21,7 +21,7 @@ Adds to the inherited `step` grouping.
 
 In checkout every step is declared.
 
-Declared groups, each bound by this grouping and by its own section:
+Declared here, beside the inherited `step` grouping's groups, each bound by this grouping and by its own section:
 
 #### `0001_[t=a+].sql` — create carts
 

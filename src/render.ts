@@ -528,6 +528,23 @@ function instanceCaptures(node: TrieNode, name: string, captures: Record<string,
   return node.baseSegment && !node.segment.dynamic && !node.segment.resolved ? matchSegment(node.baseSegment, name, captures) ?? {} : {};
 }
 
+/**
+ * The authored directory a concrete one inherits from: each named instance on
+ * the way replaced by its contract, `features/[feature]/steps` for
+ * `features/checkout/steps`. An inherited directory is described by it.
+ */
+function contractDirectory(espalier: Espalier, at: string): string {
+  let node = espalier.root;
+  const parts: string[] = [];
+  for (const part of at.split("/").filter(Boolean)) {
+    const next = [...node.children.values()].find((child) => child.display === part && child.rule === null);
+    if (!next) return at;
+    parts.push(next.instanceOf === undefined ? next.display : next.instanceOf.replace(/^\.\.\//, ""));
+    node = next;
+  }
+  return parts.join("/");
+}
+
 /** The captures the named instance directories down to `at` bind. */
 function bindingsAt(espalier: Espalier, at: string): Record<string, CaptureValue> {
   const bindings: Record<string, CaptureValue> = {};
@@ -577,7 +594,7 @@ export function mapEntries(
     entries.push({
       path: shown + (directory ? "/" : ""),
       description: directory
-        ? (espalier.nodes.get(absolute)?.description ?? null)
+        ? (espalier.nodes.get(absolute)?.description ?? espalier.nodes.get(contractDirectory(espalier, absolute))?.description ?? null)
         : (visit.node.rule?.module.description ?? null),
       ...(visit.node.segment.dynamic && (visit.node.rule?.module.minMatches ?? 0) > 1 ? { minMatches: visit.node.rule!.module.minMatches } : {}),
       ...(contract === undefined ? {} : { instanceOf: directory ? `${contract}/` : contract.replace(/\.mjs$/, "") }),
@@ -1235,15 +1252,24 @@ function groupingSections(module: LoadedModule, title: { text: string; captures:
     const instances = grouping.instances.filter((instance) => instance.directory === null);
     const abstract = groupingAbstract(grouping);
     const { description } = rootGrouping(grouping);
+    // A grouping with nothing to say is omitted with its heading, as an empty
+    // rule section is. docs/cli/build/README.MD "Rendering".
+    if (!grouping.extends && description === null && grouping.guidance.trim() === "" && instances.length === 0 && !abstract && !grouping.sealed) return [];
     const blocks = [
       `${"#".repeat(level)} Together, ${groupingTitle(grouping.by)}${lockMark(shown, false, false, grouping.sealed)}${description === null ? "" : ` — ${description}`}`,
       ...(grouping.extends ? [`Adds to the inherited ${codeSpan(grouping.name)} grouping.`] : []),
       ...(grouping.guidance.trim() === "" ? [] : [grouping.guidance.trim()]),
     ];
     if (instances.length === 0 && !abstract) return blocks;
-    blocks.push(instances.length === 0
-      ? "No groups are declared yet."
-      : "Declared groups, each bound by this grouping and by its own section:");
+    // An addition to an inherited grouping lists only its own groups; the
+    // inherited grouping's are stated with it.
+    blocks.push(grouping.extends
+      ? instances.length === 0
+        ? `No groups are declared here beyond the inherited ${codeSpan(grouping.name)} grouping's.`
+        : `Declared here, beside the inherited ${codeSpan(grouping.name)} grouping's groups, each bound by this grouping and by its own section:`
+      : instances.length === 0
+        ? "No groups are declared yet."
+        : "Declared groups, each bound by this grouping and by its own section:");
     for (const instance of instances) blocks.push(...groupInstanceBlocks(instance, directory, title.captures, level + 1, shown));
     blocks.push(
       `${"#".repeat(level + 1)} Adding new groups`,
@@ -1357,15 +1383,19 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
     // A section with nothing to say is omitted entirely, along with its
     // heading. docs/cli/build/README.MD "Rendering". `adopt` writes an empty
     // guidance as a TODO, so a freshly adopted project hits this on every node.
-    if (body.length === 0 && module.groups.length === 0 && instances.length === 0 && !module.abstract) continue;
+    // Its groupings count only when they have something to say themselves.
+    const title = shownAt(espalier, point, section.at);
+    const groupings = [
+      ...(inherited ? [] : groupingSections(module, title, level + 1, documents.shown)),
+      ...declaredHereSections(section.rule, section.at, title, level + 1, documents.shown),
+    ];
+    if (body.length === 0 && groupings.length === 0 && instances.length === 0 && !module.abstract) continue;
 
     const heading = module.description === null ? "" : ` — ${module.description}`;
-    const title = shownAt(espalier, point, section.at);
     documents.shown.names.push(...title.segments);
     blocks.push(`${hashes} ${codeSpan(title.text)}${lockMark(documents.shown, module.locked, node !== null && nodeFrozen(espalier, node, section.at), node !== null ? nodeSealed(espalier, node, section.at) : module.sealed === true)}${heading}`, ...body);
-    if (!inherited) blocks.push(...groupingSections(module, title, level + 1, documents.shown));
-    blocks.push(...declaredHereSections(section.rule, section.at, title, level + 1, documents.shown));
-
+    // Instances first: a paragraph after a grouping's heading would read as
+    // part of that grouping.
     if (instances.length > 0 || module.abstract) {
       blocks.push(instances.length === 0
         ? "No instances are declared yet."
@@ -1382,6 +1412,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
       }
       blocks.push(...addingInstances(node!.display, false, module.abstract, level + 1));
     }
+    blocks.push(...groupings);
   }
 
   if (point.constraints.length > 0) {

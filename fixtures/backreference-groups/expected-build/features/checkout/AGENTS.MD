@@ -7,7 +7,7 @@ An instance of `features/[feature]/`.
 ## Project layout
 
     features/checkout/
-    ├─ steps/
+    ├─ steps/           the feature's database steps
     │
     ├─ checkout.ts ❗   the feature entry point (instance of [name=a+].ts)
     │

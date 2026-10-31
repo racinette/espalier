@@ -1,0 +1,65 @@
+{
+  "build": {
+    "exit": 0,
+    "report": [
+      {
+        "kind": "written",
+        "path": "AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "clients/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "clients/stripe/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/billing/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/billing/steps/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/checkout/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/checkout/steps/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/orders/AGENTS.MD"
+      },
+      {
+        "kind": "written",
+        "path": "features/orders/steps/AGENTS.MD"
+      }
+    ]
+  },
+  "exit": 0,
+  "issues": [],
+  "ownership": {
+    "clients/stripe/client.ts": "clients/stripe/client.ts.mjs",
+    "docs/guides/getting-started.md": "docs/guides/[g@kebab].md.mjs",
+    "features/billing/billing.ts": "features/[feature]/{feature}.ts.mjs",
+    "features/billing/steps/0001_x.sql": "features/billing/steps/[step=0000]_[t=a+].sql.mjs",
+    "features/checkout/cart.ts": "features/[feature]/[name=a+].ts.mjs",
+    "features/checkout/checkout.ts": "features/[feature]/{feature}.ts.mjs",
+    "features/checkout/payment.ts": "features/checkout/payment.ts.mjs",
+    "features/checkout/steps/0001_users.sql": "features/checkout/steps/[step=0000]_[t=a+].sql.mjs",
+    "features/checkout/steps/0002_orders.sql": "features/checkout/steps/[step=0000]_[t=a+].sql.mjs",
+    "features/orders/items.ts": "features/[feature]/[name=a+].ts.mjs",
+    "features/orders/orders.ts": "features/[feature]/{feature}.ts.mjs",
+    "features/orders/steps/0001_items.sql": "features/[feature]/steps/[step=0000]_[t=a+].sql.mjs",
+    "features/orders/steps/0002_items.sql": "features/[feature]/steps/[step=0000]_[t=a+].sql.mjs",
+    "main.ts": "main.ts.mjs"
+  }
+}

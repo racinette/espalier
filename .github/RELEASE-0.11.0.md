@@ -215,6 +215,10 @@ rejected with a pointer to `l` and `w`.
 - The legend for masks, lists and case styles is stated once per document,
   under the map, and explains exactly the ones the document shows.
 - A name too long for a readable column hangs its description below it.
+- A contract's instances are listed before its groupings, and a grouping with
+  nothing to say, or a rule whose only grouping has nothing to say, gets no
+  section. A restated rule keeps its contract's description, and so does a
+  directory a named instance inherits, in the map.
 
 ## Smaller changes
 

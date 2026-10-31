@@ -1,7 +1,7 @@
 // Generated documents state author guidance once. src/render.ts guidance;
 // docs/cli/build/README.MD "Stated once". Every fixture's expected documents
-// are read together, and no guidance an author wrote may appear in them more
-// often than the authors wrote it. Fixed text the tool writes is not checked:
+// are read together, and every guidance an author wrote must appear in them,
+// and no more often than the authors wrote it. Fixed text the tool writes is not checked:
 // it may repeat where that is cheaper than a reference.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -66,6 +66,7 @@ for (const name of readdirSync(fixtures).sort()) {
       const allowed = occurrences(corpus, text);
       const found = occurrences(generated, text);
       assert.ok(found <= allowed, `"${text.slice(0, 60)}…" appears ${found} times in the generated documents and is written ${allowed}`);
+      assert.ok(found >= 1, `"${text.slice(0, 60)}…" is written and appears in no generated document`);
     }
   });
 }

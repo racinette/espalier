@@ -9,7 +9,8 @@
     │                                      [feature]/)
     │
     └─ [feature]/ 0+
-       ├─ steps/
+       │
+       ├─ steps/                           the feature's database steps
        │  │
        │  ├─ [step=0000]_{feature}.[kind={up,down}].sql 0+
        │  │  a step of this feature ({feature} repeats what [feature] matched)
@@ -47,13 +48,7 @@ Declared groups, each bound by this grouping and by its own section:
 
 Every `step` group here is declared, and an undeclared one is reported. See `espalier help instances`.
 
-## `[feature]/steps/[step=0000]_[name=a+].sql` — a step of another table
-
-### Together, by `step`
-
 ## `[feature]/[name=a+].ts` — a module
-
-### Together, all files in a directory
 
 Concrete instances, each bound by this contract and by its own section:
 
@@ -62,6 +57,8 @@ Concrete instances, each bound by this contract and by its own section:
 ### Adding new instances
 
 A `[name=a+].ts` needs no declaration. Declaring one gives it its own guidance; see `espalier help instances`.
+
+### Together, all files in a directory — the feature's modules
 
 ## Other repository paths
 

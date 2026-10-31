@@ -1550,7 +1550,10 @@ function materializeInstances(root: TrieNode, docs: Map<string, NodeDoc>): void 
       }
       local.rule = { ...local.rule,
         inherited: [...(base.rule.inherited ?? []), base.rule],
+        // A restatement without a description keeps its contract's: the
+        // label says what the file is, which the restatement did not change.
         module: { ...local.rule.module, template: local.rule.module.template ?? base.rule.module.template,
+          description: local.rule.module.description ?? base.rule.module.description,
           ...(local.segment.dynamic ? { minMatches: local.rule.module.minMatches ?? base.rule.module.minMatches,
             optional: (local.rule.module.minMatches ?? base.rule.module.minMatches ?? 0) === 0 } : {}),
         },
