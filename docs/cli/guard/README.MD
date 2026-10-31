@@ -112,7 +112,9 @@ is written, and one that would not come back byte for byte is refused as
 
 Everything is planned and checked before the first write. The written espalier
 is then compiled, and a guard that would leave it unable to compile is taken
-back and reported as `guard_invalid`. Guard never touches git.
+back and reported as `guard_invalid`. `--dry-run` stops before writing, so it
+plans and checks the targets but does not compile the result. Guard never
+touches git.
 
 ## One guard at a time
 

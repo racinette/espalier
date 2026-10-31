@@ -96,8 +96,10 @@ real implementation as `0.1.0` through GitHub Actions.
 
 ## Subsequent releases
 
-Update `package.json` and both root version fields in `package-lock.json`
-together. Repositories record no espalier version, so nothing else names it.
+Update `package.json`, both root version fields in `package-lock.json`, and
+the compiler-addon example's `espalier` dependency and the version its README
+names, together. Repositories record no espalier version, so nothing else
+names it.
 
 Run the checks before committing:
 

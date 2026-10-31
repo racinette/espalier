@@ -2,8 +2,10 @@
 
 Parts of the espalier can be locked, files can be frozen, and collections
 sealed; `espalier lint --base` checks a change against all three at a git
-revision. One group of a grouping can be declared with its own guidance, a name
-can hold alternatives or require a case style, and generated maps use compact marks instead of
+revision, and `espalier guard` fences one piece of work with them. One group of
+a grouping can be declared with its own guidance, a name can hold
+alternatives, masks distinguish case and gain hex digits and ranges, a capture
+can require a case style, and generated maps use compact marks instead of
 parenthesized words.
 
 There are breaking changes to configuration, which no longer records a
@@ -180,12 +182,12 @@ rejected with a pointer to `l` and `w`.
   any order.
 - `(m..n)`, `(m..)` and `(..n)` repeat an element between two counts,
   extending `(n)`.
-- A capture can require a case style after `@`, where `=` takes a mask: its
-  name written in that style, `kebab`, `snake`, `KEBAB`, `SNAKE`, `camel` or
-  `Pascal`. They allow digits
-  after the first letter and capitals in runs, so acronyms pass either way
-  they are written. A single lowercase word fits three styles at once, so two
-  sibling rules in those styles are rejected as overlapping.
+- A capture can require a case style after `@`, as it takes a mask after `=`:
+  `kebab`, `snake`, `KEBAB`, `SNAKE`, `camel` or `Pascal`, each name written
+  in its own style. They allow digits after the first letter and capitals in
+  runs, so acronyms pass either way they are written. One lowercase word is
+  kebab, snake and camel at once, and one capital word KEBAB and SNAKE, so
+  sibling rules in two such styles are rejected as overlapping.
 
 ## Generated documents
 
@@ -196,8 +198,22 @@ rejected with a pointer to `l` and `w`.
 - Guidance an author writes is rendered once. An instance directory's document
   names where its contract's guidance is stated instead of repeating it, and a
   file that takes over an inherited one does the same.
-- The mask legend is stated once per document, under the map.
+- The legend for masks, lists and case styles is stated once per document,
+  under the map, and explains exactly the ones the document shows.
 - A name too long for a readable column hangs its description below it.
+
+## Smaller changes
+
+- `explain` gives a prefix's map the same mask legend a generated document
+  has, and lines up its labelled values in one column.
+- `create` refused a name its directory does not declare without saying what
+  it does declare; it now names those patterns, so a name that misses a mask
+  or case style shows what it missed.
+- `ambiguous_siblings` names one file both siblings would match, such as
+  `test-test.ts`, in its message and as `name` in its detail.
+- Piping `lint`, `explain` or `build` into a reader that leaves early, such as
+  `head`, no longer crashes; the output ends, and the run finishes with its
+  exit code.
 
 ## Upgrading from 0.10.0
 
