@@ -7,11 +7,11 @@ Preserve this authored project policy.
 ## Project layout
 
     ./ 🔒
-    └─ src/ 🔒
+    └─ src/
        │
-       └─ main.ts 🔒❗  source
+       └─ main.ts ❗  source
 
-🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent.
+🔒 marks where a lock begins: what it follows is locked, and so is everything under it; changing what a locked module declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent.
 
 ## Governed elsewhere
 
@@ -21,9 +21,9 @@ Preserve this authored project policy.
 
 Read the documentation inside each one.
 
-## `src/` 🔒
+## `src/`
 
-### `main.ts` 🔒 — source
+### `main.ts` — source
 
 Keep application policy here.
 
@@ -113,7 +113,8 @@ A new node can also bypass existing restrictions; check which rules will
 apply. When the work conflicts with the intended architecture, report the
 design gap instead of hiding it in a catch-all or relaxing the rules.
 
-Modules marked 🔒 in **Project layout** are locked. Work inside them is
+A module marked 🔒 in **Project layout** or in a heading is locked, and so
+is everything under it until a 🔓 reopens it. Work inside a locked module is
 ordinary: editing, creating, and deleting files the espalier already admits
 needs nothing more. A change to the espalier that alters what a locked module
 declares needs explicit authorization naming that change, however obvious it

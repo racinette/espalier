@@ -248,14 +248,14 @@ Constraints do not appear. They declare no file and permit none, so a map that l
 
 ### Marks
 
-Six marks follow a name, each true of that line and of nothing else, and the
-legend under the map explains the ones the document uses, its headings' included:
+Marks follow a name, and the legend under the map explains the ones the
+document uses, its headings' included:
 
 | Mark | Means |
 |---|---|
-| 🔒 | the node's module is locked: changing what it declares needs explicit authorization; see [LOCKS.MD](../../LOCKS.MD) |
-| ❄️ | the node's files are frozen: an existing file keeps its content and is never removed; see [LOCKS.MD](../../LOCKS.MD#frozen-files) |
-| 📦 | the node is sealed: no file joins or leaves it, by its own module's seal or a sealed directory's; see [LOCKS.MD](../../LOCKS.MD#sealed-collections) |
+| 🔒 🔓 | a lock begins, or ends: changing what a locked module declares needs explicit authorization; see [LOCKS.MD](../../LOCKS.MD) |
+| ❄️ ☀️ | a freeze begins, or ends: an existing frozen file keeps its content and is never removed; see [LOCKS.MD](../../LOCKS.MD#frozen-files) |
+| 📪 📬 | a seal begins, or ends: no file joins or leaves a sealed collection; see [LOCKS.MD](../../LOCKS.MD#sealed-collections) |
 | 📋 | an abstract contract: every match must be declared in the espalier, and an undeclared one is reported |
 | ❗ | a named file or named directory instance that must exist |
 | `0+`, `1+`, `3+` | on a pattern, the fewest matching names that must exist |
@@ -276,16 +276,18 @@ counts preserve the restrictions expressed by the pattern; none promises that
 an arbitrary name is accepted. On a 📋 contract the count is of declared
 members, since an undeclared match is reported rather than accepted.
 
-**🔒 marks every locked node**, whether its own export or a directory above it
-locked it, so a missing lock always means unlocked and no reader has to work
-out inheritance from the map. The first row carries it too when the
-document's own directory is locked, and a locked module's section heading
-carries it after the name. ❄️ follows the same rules for frozen nodes, and a
-frozen declared group carries it in its heading, since groups have no row in
-the map. 📦 follows them too: every node inside a sealed directory carries it,
-so a directory that reopens with `sealed = false` is the one row without it. A
-sealed rule carries it in its own row, and a sealed grouping or declared group
-in its heading.
+**A lock, freeze or seal is marked where it begins and where it ends**, never
+on what merely continues it, which is how they apply: a module takes its
+directory's state unless it says otherwise. The first row states the
+document's own directory, so every document stands alone: in a fully locked
+espalier it carries the only 🔒. Below it, 🔒, ❄️ or 📪 marks a node that
+closes where the node above it is open, and 🔓, ☀️ or 📬 one that reopens where
+the node above it is closed, so every row's state is read off the nearest mark
+above it. A section heading is marked the same way against its directory, and
+a declared group or grouping against its rule, since groups have no row in
+the map: a group that freezes itself carries ❄️, one that thaws itself ☀️,
+and a sealed grouping 📪. Only a directory can reopen a seal, so 📬 marks
+directories; a rule or group seal is always marked 📪.
 
 ### Suffixes
 

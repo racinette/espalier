@@ -7,7 +7,7 @@
     features/checkout/steps/
     └─ [step=0000]_[t=a+].sql 0+  a checkout step
 
-❄️ marks frozen files: an existing file keeps its content and is never removed; add a new one instead where the contract admits it (`espalier help locks`). 📦 marks a sealed collection: no file, or for a grouping no group, joins or leaves it (`espalier help locks`). A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+❄️ marks where a freeze begins: the files it follows are frozen, and so is everything under it; an existing file keeps its content and is never removed, so add a new one instead where the contract admits it (`espalier help locks`). 📪 marks where a seal begins: no file, or for a grouping no group, joins or leaves the collection there or under it (`espalier help locks`). A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 In `[step=0000]`, the text after `=` is a mask: each character matches one character of the name. `0` matches a digit and `a` a lowercase letter. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
 
@@ -17,7 +17,7 @@ Inherits `features/[feature]/steps/[step=0000]_[t=a+].sql`, whose guidance in `.
 
 G14 restated step rule guidance.
 
-### Together, by `step` 📦 — one step
+### Together, by `step` 📪 — one step
 
 Adds to the inherited `step` grouping.
 

@@ -4,17 +4,17 @@
 
 ## Project layout
 
-    components/
-    ├─ Checkout/ ❗        the checkout form, being built (instance of
-    │                      [component]/)
+    components/ 📪
+    ├─ Checkout/ 📬❗   the checkout form, being built (instance of
+    │                   [component]/)
     │
-    └─ [component]/ 📦 0+  one component
+    └─ [component]/ 0+  one component
        │
-       └─ index.tsx 📦❗   the component's entry point
+       └─ index.tsx ❗  the component's entry point
 
-📦 marks a sealed collection: no file, or for a grouping no group, joins or leaves it (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+📪 marks where a seal begins: no file, or for a grouping no group, joins or leaves the collection there or under it until a 📬 opens it again (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
-## `[component]/` 📦 — one component
+## `[component]/` — one component
 
 Concrete instances:
 - `Checkout/` — the checkout form, being built, in `Checkout/AGENTS.MD`
@@ -23,7 +23,7 @@ Concrete instances:
 
 A `[component]/` directory needs no declaration. Declaring one gives it its own guidance; see `espalier help instances`.
 
-## `[component]/index.tsx` 📦 — the component's entry point
+## `[component]/index.tsx` — the component's entry point
 
 Default-export the component.
 

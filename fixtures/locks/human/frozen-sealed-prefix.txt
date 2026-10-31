@@ -4,16 +4,24 @@ vendor/                                  third-party code, kept as received
   Sealed by  vendor/ESPALIER.mjs
 
   Declared here:
-    └─ [file].js ❄️📦 0+  a vendored script
+    ├─ patches/ ☀️         local patches to the vendored code
+    │  │
+    │  └─ [patch].diff 0+  a local patch
+    │
+    └─ [file].js 0+        a vendored script
 
-  ❄️ marks frozen files: an existing file keeps its content and is never
-  removed; add a new one instead where the contract admits it (`espalier help
-  locks`). 📦 marks a sealed collection: no file, or for a grouping no group,
-  joins or leaves it (`espalier help locks`). A count after a pattern, such as
-  `0+` or `1+`, is the fewest matching names that must exist.
+  ❄️ marks where a freeze begins: the files it follows are frozen, and so is
+  everything under it until a ☀️ thaws it; an existing file keeps its content
+  and is never removed, so add a new one instead where the contract admits it
+  (`espalier help locks`). A count after a pattern, such as `0+` or `1+`, is the
+  fewest matching names that must exist.
 
   Every path under vendor/ must fit the project layout or a documented
   repository-specific purpose.
+
+── vendor/patches/[patch].diff ───────────────────────────────────────
+
+  a local patch
 
 ── vendor/[file].js ──────────────────────────────────────────────────
 

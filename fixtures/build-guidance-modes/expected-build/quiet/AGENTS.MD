@@ -5,11 +5,11 @@ Preserve this authored child policy.
 ## Project layout
 
     ./ 🔒
-    └─ main.ts 🔒❗  source
+    └─ main.ts ❗  source
 
-🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent.
+🔒 marks where a lock begins: what it follows is locked, and so is everything under it; changing what a locked module declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent.
 
-## `main.ts` 🔒 — source
+## `main.ts` — source
 
 Keep application policy here.
 

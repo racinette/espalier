@@ -7,27 +7,27 @@ Local directory guidance (locked).
 ## Project layout
 
     flights/ 🔒
-    ├─ search.ts 🔒❗     flight search (locked) (instance of [module].ts)
+    ├─ search.ts ❗     flight search (locked) (instance of [module].ts)
     │
-    ├─ flights.json 🔒❗  flight manifest
+    ├─ flights.json ❗  flight manifest
     │
-    └─ [module].ts 🔒 0+  shared operation (locked)
+    └─ [module].ts 0+   shared operation (locked)
 
-🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+🔒 marks where a lock begins: what it follows is locked, and so is everything under it; changing what a locked module declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
-## `flights.json` 🔒 — flight manifest
+## `flights.json` — flight manifest
 
 Inherits `[group]/{group}.json`, whose guidance in `../AGENTS.MD` applies here.
 
 Resolved flights/{group}.json; path=flights/flights.json; captures={"group":"flights"}.
 
-## `[module].ts` 🔒 — shared operation (locked)
+## `[module].ts` — shared operation (locked)
 
 Inherited from `[group]/[module].ts`, whose guidance in `../AGENTS.MD` applies here.
 
 Concrete instances, each bound by this contract and by its own section:
 
-### `search.ts` 🔒 — flight search (locked)
+### `search.ts` — flight search (locked)
 
 Local flights/search.ts; path=flights/search.ts; captures={"group":"flights","module":"search"}; locked.
 
@@ -37,7 +37,7 @@ A `[module].ts` needs no declaration. Declaring one gives it its own guidance; s
 
 ## Constraints
 
-### policy 🔒
+### policy
 
 Each file with exactly `.ts` as its extension under `flights/` must follow this
 rule.

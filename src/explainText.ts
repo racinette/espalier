@@ -323,13 +323,15 @@ export function renderExplanation(answer: Explanation, concise = false): string 
     // The map `build` draws, from the same code and to the same width less
     // this indent. docs/cli/explain/README.MD "A prefix".
     if (answer.map !== null && answer.map.length > 0) {
+      // The prefix's own closures are stated above, so the map marks only where they change.
+      const root = { locked: answer.locked === true, frozen: answer.frozen === true, sealed: (answer.sealedBy?.length ?? 0) > 0 };
       blocks.push(
         [
           "  Declared here:",
-          ...drawMap(answer.map, WIDTH + 2 - 4).map((line) => `    ${line}`.trimEnd()),
+          ...drawMap(answer.map, WIDTH + 2 - 4, root).map((line) => `    ${line}`.trimEnd()),
         ].join("\n"),
       );
-      for (const legend of [marksLegend(answer.map), maskLegend(answer.map.map((entry) => entry.segment))]) {
+      for (const legend of [marksLegend(answer.map, root), maskLegend(answer.map.map((entry) => entry.segment))]) {
         if (legend !== null) blocks.push(wrap(legend));
       }
     }

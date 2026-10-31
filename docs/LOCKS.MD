@@ -15,7 +15,8 @@ the declaration a new member needs, is part of the task and is reported with
 it. An open design, with several reasonable places or roles, is proposed and
 agreed first. In a locked part, the agent reports the path and role the work
 needs and waits for authorization. Generated guidance states both behaviours
-and marks every locked module with 🔒.
+and marks with 🔒 where a lock begins and with 🔓 where one ends; see
+[In generated guidance](#in-generated-guidance).
 
 ## Declaring a lock
 
@@ -286,9 +287,11 @@ accident.
 
 ## In generated guidance
 
-Every locked module carries 🔒 after its name in the map and in its section's
-heading, every frozen node ❄️, and every sealed node 📦, a node inside a sealed
-directory included, so a reopened directory is the one without it; a declared group or a
+A lock is marked 🔒 where it begins and 🔓 where it ends, in the map and in
+section headings, and never on what merely continues it; a freeze is marked
+❄️ and ☀️, and a seal 📪 and 📬. The map's first row states the document's own
+directory, so a fully locked espalier carries one 🔒 per document, and each
+row's state is read off the nearest mark above it. A declared group or a
 grouping carries its marks in its heading. Each document's legend explains the
 marks it uses once. The working instructions describe the unlocked behaviour,
 the locked behaviour whenever the espalier has a lock, and the frozen and

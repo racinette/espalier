@@ -22,10 +22,10 @@ is: report the path and role the work needs and pause that part of the work.
 Do not hide the gap in a catch-all, and never add, remove or change a `locked`
 export without authorization. `espalier help locks` has the details. Creating
 declared files and regenerating guidance with `create` and `build` remain
-ordinary development operations everywhere. A file marked ❄️ is frozen: never
-edit, rename or delete it; add a new file where the contract admits one. A
-collection marked 📦 is sealed: never add a file to it or remove one from it
-without authorization.
+ordinary development operations everywhere. A file under a ❄️, until a ☀️, is
+frozen: never edit, rename or delete it; add a new file where the contract
+admits one. A collection under a 📪, until a 📬, is sealed: never add a file to
+it or remove one from it without authorization.
 
 In unlocked modules, a change that follows directly from the task, such as the
 declaration a new member needs, is part of the task: make it and report it.

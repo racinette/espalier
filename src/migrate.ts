@@ -119,14 +119,16 @@ function lockRoot(root: string, espalierRoot: string, changes: Array<{ path: str
   const destination = path.join(root, espalierRoot, "ESPALIER.mjs");
   const planned = changes.find((change) => change.path === destination);
   const declares = (source: string): boolean => /\bexport\s+const\s+locked\b/.test(sourceCode(source));
+  // Set apart from what the module already says, by one blank line.
+  const appended = (source: string): string =>
+    `${source}${source === "" || source.endsWith("\n\n") ? "" : source.endsWith("\n") ? "\n" : "\n\n"}export const locked = true;\n`;
   if (planned !== undefined) {
-    if (!declares(planned.contents)) planned.contents += "export const locked = true;\n";
+    if (!declares(planned.contents)) planned.contents = appended(planned.contents);
     return;
   }
   const current = existsSync(destination) ? readFileSync(destination, "utf8") : null;
   if (current !== null && declares(current)) return;
-  const contents = current === null ? "" : `${current}${current.endsWith("\n") || current === "" ? "" : "\n"}`;
-  changes.push({ path: destination, contents: `${contents}export const locked = true;\n` });
+  changes.push({ path: destination, contents: appended(current ?? "") });
 }
 
 /** Validate the obsolete setting before planning either migration write. */

@@ -334,9 +334,11 @@ contract name without a module suffix and with a trailing `/` for directories.
 Human maps, including `--concise`, render it as `instance of <contract>`. A
 node declared `literalName` carries `"literal":true`, rendered as
 `literal name`; an abstract contract carries `"abstract":true`, rendered as
-📋; a locked node carries `"locked":true`, rendered as 🔒; a frozen node
-`"frozen":true`, rendered as ❄️; and a node whose module seals its files
-`"sealed":true`, rendered as 📦.
+📋; a locked node carries `"locked":true`, a frozen node `"frozen":true`, and
+a node whose module seals its files `"sealed":true`. The JSON states each
+node's own state; a human map marks only where a state begins or ends, as a
+generated document does, 🔒 and 🔓, ❄️ and ☀️, 📪 and 📬, against the
+prefix's own state, which the answer states above the map.
 
 Each entry also summarizes its declared name. `rank` is how specific it is for
 [ownership](../../MATCHING.MD#ownership): `static`, `resolved`, `bound` or

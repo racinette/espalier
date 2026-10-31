@@ -39,8 +39,9 @@ Every flag may repeat, and their order does not matter: the closing flags are
 applied first, then the opening ones, and each file answers to the most
 specific statement about it. A target both closed and opened for the same
 thing is refused as `guard_conflict`. Without `--no-build`, the generated
-documents are rebuilt afterwards, so the guard and the 🔒❄️📦 marks the
-working agent reads are committed together.
+documents are rebuilt afterwards, so the guard and the marks the working agent
+reads, 🔒❄️📪 where it closes and 🔓☀️📬 where it opens, are committed
+together.
 
 ## Targets
 

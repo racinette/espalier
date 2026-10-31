@@ -11,7 +11,8 @@
       { "kind": "written", "path": "src/core/AGENTS.MD" },
       { "kind": "written", "path": "src/core/plugins/AGENTS.MD" },
       { "kind": "written", "path": "themes/AGENTS.MD" },
-      { "kind": "written", "path": "vendor/AGENTS.MD" }
+      { "kind": "written", "path": "vendor/AGENTS.MD" },
+      { "kind": "written", "path": "vendor/patches/AGENTS.MD" }
     ]
   },
   "exit": 0,
@@ -23,6 +24,7 @@
     "src/core/http.ts": "src/core/http.ts.mjs",
     "src/core/plugins/slack.ts": "src/core/plugins/[plugin].ts.mjs",
     "vendor/lib.js": "vendor/[file].js.mjs",
+    "vendor/patches/retry.diff": "vendor/patches/[patch].diff.mjs",
     "migrations/000101_users.sql": "migrations/[num=0000][ord=00]_[table=a+].sql.mjs",
     "migrations/000201_orders.sql": "migrations/[num=0000][ord=00]_[table=a+].sql.mjs",
     "locales/en.json": "locales/[lang=a+].json.mjs",

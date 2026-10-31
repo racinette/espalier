@@ -7,7 +7,7 @@
     migrations/
     └─ [num=0000][ord=00]_[table=a+].sql 0+  a migration step
 
-❄️ marks frozen files: an existing file keeps its content and is never removed; add a new one instead where the contract admits it (`espalier help locks`). 📦 marks a sealed collection: no file, or for a grouping no group, joins or leaves it (`espalier help locks`). A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+❄️ marks where a freeze begins: the files it follows are frozen, and so is everything under it; an existing file keeps its content and is never removed, so add a new one instead where the contract admits it (`espalier help locks`). 📪 marks where a seal begins: no file, or for a grouping no group, joins or leaves the collection there or under it (`espalier help locks`). A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 In `[num=0000]`, the text after `=` is a mask: each character matches one character of the name. `0` matches a digit and `a` a lowercase letter. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
 
@@ -21,7 +21,7 @@ Steps are numbered from 01.
 
 Declared groups, each bound by this grouping and by its own section:
 
-#### `0001[ord=00]_users.sql` ❄️📦 — the released users set
+#### `0001[ord=00]_users.sql` ❄️📪 — the released users set
 
 Shipped in 1.0.
 

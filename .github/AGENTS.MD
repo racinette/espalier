@@ -23,7 +23,7 @@ release procedure itself is `RELEASING.md`, written for the person running it.
     └─ RELEASE-[major=0+].[minor=0+].[patch=0+].md ❄️ 1+
        one release's notes, published as its GitHub release
 
-❄️ marks frozen files: an existing file keeps its content and is never removed; add a new one instead where the contract admits it (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+❄️ marks where a freeze begins: the files it follows are frozen, and so is everything under it; an existing file keeps its content and is never removed, so add a new one instead where the contract admits it (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 In `[major=0+]`, the text after `=` is a mask: each character matches one character of the name. `0` matches a digit. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
 

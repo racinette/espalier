@@ -9,17 +9,17 @@ G01 root directory guidance.
     ./
     ├─ clients/
     │
-    ├─ docs/ 📦                  documentation
+    ├─ docs/ 📪               documentation
     │  │
-    │  └─ guides/ 📦
+    │  └─ guides/
     │     │
-    │     └─ [g@kebab].md 📦 0+  a guide
+    │     └─ [g@kebab].md 0+  a guide
     │
-    ├─ features/                 product features
+    ├─ features/              product features
     │
-    └─ main.ts ❗                the entry point
+    └─ main.ts ❗             the entry point
 
-📦 marks a sealed collection: no file, or for a grouping no group, joins or leaves it (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+📪 marks where a seal begins: no file, or for a grouping no group, joins or leaves the collection there or under it (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 `[g@kebab]` accepts a kebab-case name: lowercase words of letters and digits joined by dashes, starting with a letter. `espalier help matching` has the full grammar.
 
@@ -36,13 +36,13 @@ rule.
 
 G21 global constraint guidance.
 
-## `docs/` 📦 — documentation
+## `docs/` 📪 — documentation
 
 G23 docs folded directory guidance.
 
-## `docs/guides/` 📦
+## `docs/guides/`
 
-### `[g@kebab].md` 📦 — a guide
+### `[g@kebab].md` — a guide
 
 G24 guide rule guidance.
 
@@ -132,7 +132,8 @@ A new node can also bypass existing restrictions; check which rules will
 apply. When the work conflicts with the intended architecture, report the
 design gap instead of hiding it in a catch-all or relaxing the rules.
 
-Modules marked 🔒 in **Project layout** are locked. Work inside them is
+A module marked 🔒 in **Project layout** or in a heading is locked, and so
+is everything under it until a 🔓 reopens it. Work inside a locked module is
 ordinary: editing, creating, and deleting files the espalier already admits
 needs nothing more. A change to the espalier that alters what a locked module
 declares needs explicit authorization naming that change, however obvious it
@@ -149,13 +150,15 @@ changing them is part of that agreement, and follow the project's review
 workflow. `espalier help locks` says exactly what each lock covers and how a
 project can enforce locks in review.
 
-Files marked ❄️ in **Project layout** are frozen. Never edit, rename, or delete
+Files where a ❄️ is marked in **Project layout** or in a heading are frozen, and
+so is everything under it until a ☀️ thaws it. Never edit, rename, or delete
 a frozen file, even to fix it: when the work needs different content, add a new
 file where the contract admits one, such as the next migration. A `frozen`
 export is part of the espalier, so changing one is governed like any other
 change to it.
 
-Collections marked 📦 are sealed: no file joins or leaves a sealed directory,
+Collections marked 📪 are sealed, and so is everything under them until a 📬
+opens it again: no file joins or leaves a sealed directory,
 rule, or declared group, and no group joins or leaves a sealed grouping. Their
 files stay editable unless frozen. When the work needs a file added to a sealed
 collection, or one removed or renamed, report the path it needs and wait for

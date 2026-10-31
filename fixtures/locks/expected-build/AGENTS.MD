@@ -7,7 +7,7 @@
     ./
     ├─ clients/
     │
-    ├─ components/ 📦  shared UI components
+    ├─ components/ 📪  shared UI components
     │
     ├─ locales/
     ├─ migrations/
@@ -17,9 +17,9 @@
     │
     ├─ themes/
     │
-    └─ vendor/ ❄️📦    third-party code, kept as received
+    └─ vendor/ ❄️📪    third-party code, kept as received
 
-🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). ❄️ marks frozen files: an existing file keeps its content and is never removed; add a new one instead where the contract admits it (`espalier help locks`). 📦 marks a sealed collection: no file, or for a grouping no group, joins or leaves it (`espalier help locks`).
+🔒 marks where a lock begins: what it follows is locked, and so is everything under it; changing what a locked module declares in the espalier needs explicit authorization (`espalier help locks`). ❄️ marks where a freeze begins: the files it follows are frozen, and so is everything under it; an existing file keeps its content and is never removed, so add a new one instead where the contract admits it (`espalier help locks`). 📪 marks where a seal begins: no file, or for a grouping no group, joins or leaves the collection there or under it (`espalier help locks`).
 
 ## Other repository paths
 
@@ -107,7 +107,8 @@ A new node can also bypass existing restrictions; check which rules will
 apply. When the work conflicts with the intended architecture, report the
 design gap instead of hiding it in a catch-all or relaxing the rules.
 
-Modules marked 🔒 in **Project layout** are locked. Work inside them is
+A module marked 🔒 in **Project layout** or in a heading is locked, and so
+is everything under it until a 🔓 reopens it. Work inside a locked module is
 ordinary: editing, creating, and deleting files the espalier already admits
 needs nothing more. A change to the espalier that alters what a locked module
 declares needs explicit authorization naming that change, however obvious it
@@ -124,13 +125,15 @@ changing them is part of that agreement, and follow the project's review
 workflow. `espalier help locks` says exactly what each lock covers and how a
 project can enforce locks in review.
 
-Files marked ❄️ in **Project layout** are frozen. Never edit, rename, or delete
+Files where a ❄️ is marked in **Project layout** or in a heading are frozen, and
+so is everything under it until a ☀️ thaws it. Never edit, rename, or delete
 a frozen file, even to fix it: when the work needs different content, add a new
 file where the contract admits one, such as the next migration. A `frozen`
 export is part of the espalier, so changing one is governed like any other
 change to it.
 
-Collections marked 📦 are sealed: no file joins or leaves a sealed directory,
+Collections marked 📪 are sealed, and so is everything under them until a 📬
+opens it again: no file joins or leaves a sealed directory,
 rule, or declared group, and no group joins or leaves a sealed grouping. Their
 files stay editable unless frozen. When the work needs a file added to a sealed
 collection, or one removed or renamed, report the path it needs and wait for

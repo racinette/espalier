@@ -7,13 +7,13 @@ Use the established runtime.
 ## Project layout
 
     src/core/ 🔒
-    ├─ plugins/      runtime plugins
+    ├─ plugins/ 🔓  runtime plugins
     │
-    └─ http.ts 🔒❗  the HTTP client
+    └─ http.ts ❗   the HTTP client
 
-🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent.
+🔒 marks where a lock begins: what it follows is locked, and so is everything under it until a 🔓 reopens it; changing what a locked module declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent.
 
-## `http.ts` 🔒 — the HTTP client
+## `http.ts` — the HTTP client
 
 One client for every outbound request.
 

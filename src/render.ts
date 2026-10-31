@@ -89,7 +89,8 @@ const FORCE_GUIDANCE = `Use \`espalier build --force\` only to restore a generat
 marker was removed; it authorizes overwriting an unmarked document at a
 planned output path.`;
 
-const LOCKED = `Modules marked 🔒 in **Project layout** are locked. Work inside them is
+const LOCKED = `A module marked 🔒 in **Project layout** or in a heading is locked, and so
+is everything under it until a 🔓 reopens it. Work inside a locked module is
 ordinary: editing, creating, and deleting files the espalier already admits
 needs nothing more. A change to the espalier that alters what a locked module
 declares needs explicit authorization naming that change, however obvious it
@@ -106,13 +107,15 @@ changing them is part of that agreement, and follow the project's review
 workflow. \`espalier help locks\` says exactly what each lock covers and how a
 project can enforce locks in review.`;
 
-const FROZEN = `Files marked ❄️ in **Project layout** are frozen. Never edit, rename, or delete
+const FROZEN = `Files where a ❄️ is marked in **Project layout** or in a heading are frozen, and
+so is everything under it until a ☀️ thaws it. Never edit, rename, or delete
 a frozen file, even to fix it: when the work needs different content, add a new
 file where the contract admits one, such as the next migration. A \`frozen\`
 export is part of the espalier, so changing one is governed like any other
 change to it.`;
 
-const SEALED = `Collections marked 📦 are sealed: no file joins or leaves a sealed directory,
+const SEALED = `Collections marked 📪 are sealed, and so is everything under them until a 📬
+opens it again: no file joins or leaves a sealed directory,
 rule, or declared group, and no group joins or leaves a sealed grouping. Their
 files stay editable unless frozen. When the work needs a file added to a sealed
 collection, or one removed or renamed, report the path it needs and wait for
@@ -642,17 +645,64 @@ function nodeSealed(espalier: Espalier, node: TrieNode, authored: string): boole
   return directorySealed(espalier.nodes, node.rule === null ? authored : cut === -1 ? "" : authored.slice(0, cut)).locked;
 }
 
+/** Whether a node, or the directory a map is drawn from, is locked, frozen and sealed. */
+export interface Closures {
+  locked: boolean;
+  frozen: boolean;
+  sealed: boolean;
+}
+
+const OPEN: Closures = { locked: false, frozen: false, sealed: false };
+
+/** Each closure's mark when it closes and when it reopens. docs/cli/build/README.MD "Marks". */
+const CLOSURE_MARKS = [
+  ["locked", "🔒", "🔓"],
+  ["frozen", "❄️", "☀️"],
+  ["sealed", "📪", "📬"],
+] as const;
+
 /**
- * The compact marks that follow a name: 🔒 locked, ❄️ frozen, 📦 sealed, 📋 abstract, ❗ required,
- * and for a pattern the fewest matches that must exist. The legend under the
- * map explains the ones a document uses. docs/cli/build/README.MD "Marks".
+ * The marks for where a node's state differs from the state it sits in: a
+ * closing mark where it closes, an opening one where it reopens, and none
+ * where it continues what is above it, so a fully locked espalier carries one
+ * 🔒, on the map's first line.
  */
-export function entryMarks(entry: MapEntry): string {
+export function changeMarks(own: Closures, parent: Closures): string[] {
+  return CLOSURE_MARKS.flatMap(([key, closed, open]) => own[key] === parent[key] ? [] : [own[key] ? closed : open]);
+}
+
+/** A directory's closures, by the nearest module above it that says each. */
+function directoryClosures(espalier: Espalier, at: string): Closures {
+  return {
+    locked: directoryLock(espalier.nodes, at).locked,
+    frozen: directoryFrozen(espalier.nodes, at).locked,
+    sealed: directorySealed(espalier.nodes, at).locked,
+  };
+}
+
+const above = (at: string): string => at.includes("/") ? at.slice(0, at.lastIndexOf("/")) : "";
+
+const entryClosures = (entry: MapEntry): Closures => ({ locked: entry.locked === true, frozen: entry.frozen === true, sealed: entry.sealed === true });
+
+/** Each map entry's closure marks, against its parent entry or, at the top, the map's own directory. */
+function closureMarks(entries: readonly MapEntry[], root: Closures): Map<MapEntry, string[]> {
+  const byPath = new Map(entries.map((entry) => [entry.path, entry]));
+  return new Map(entries.map((entry) => {
+    const parent = byPath.get(`${parentOf(entry.path)}/`);
+    return [entry, changeMarks(entryClosures(entry), parent === undefined ? root : entryClosures(parent))];
+  }));
+}
+
+/**
+ * The compact marks that follow a name: a lock, freeze or seal that begins or
+ * ends there, 📋 abstract, ❗ required, and for a pattern the fewest matches
+ * that must exist. The legend under the map explains the ones a document
+ * uses. docs/cli/build/README.MD "Marks".
+ */
+export function entryMarks(entry: MapEntry, closures: readonly string[] = []): string {
   const { dynamic } = entry.segment;
   const symbols = [
-    ...(entry.locked === true ? ["🔒"] : []),
-    ...(entry.frozen === true ? ["❄️"] : []),
-    ...(entry.sealed === true ? ["📦"] : []),
+    ...closures,
     ...(entry.abstract === true ? ["📋"] : []),
     ...(!dynamic && entry.required === true ? ["❗"] : []),
   ].join("");
@@ -713,7 +763,8 @@ const padTo = (text: string, width: number): string => text + " ".repeat(Math.ma
 /** The narrowest description column worth sharing a line with its name. */
 const MIN_DESCRIPTION = 30;
 
-export function drawMap(entries: MapEntry[], width: number): string[] {
+export function drawMap(entries: MapEntry[], width: number, root: Closures = OPEN): string[] {
+  const closures = closureMarks(entries, root);
   if (entries.length === 0) return [];
 
   const seen = new Set<string>();
@@ -761,7 +812,7 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
       .filter((piece) => piece !== null)
       .join(" ");
 
-    const compact = entryMarks(entry);
+    const compact = entryMarks(entry, closures.get(entry));
     rows.push({
       line: bars + (last[index] ? "└─ " : "├─ ") + name.slice(name.lastIndexOf("/") + 1) + (entry.path.endsWith("/") ? "/" : "") + (compact === "" ? "" : ` ${compact}`),
       under: beneath,
@@ -807,11 +858,13 @@ export function drawMap(entries: MapEntry[], width: number): string[] {
 
 function renderMap(espalier: Espalier, point: Placement, entries: MapEntry[]): string | null {
   if (point.node === null) return null;
-  const lines = drawMap(entries, WIDTH - 4);
+  const lines = drawMap(entries, WIDTH - 4, directoryClosures(espalier, point.at));
   // A map without its root is a forest. The espalier root has no authored
   // directory name, so `./` names it without confusing the config's project
   // name for a path; every deeper point can name its repository-relative path.
-  const root = (point.at === "" ? "./" : `${point.at}/`) + (directoryLock(espalier.nodes, point.at).locked ? " 🔒" : "");
+  // The first line states the directory's own closures, which every line below continues.
+  const marks = changeMarks(directoryClosures(espalier, point.at), OPEN).join("");
+  const root = (point.at === "" ? "./" : `${point.at}/`) + (marks === "" ? "" : ` ${marks}`);
   return [root, ...lines].map((line) => `    ${line}`.trimEnd()).join("\n");
 }
 /**
@@ -1084,10 +1137,11 @@ export function constraintGroups(espalier: Espalier): ConstraintGroup[] {
 export { isDirectory, subtree };
 
 /** A structural path as seen from the document section that introduces it. */
-function constraintHeading(group: ConstraintGroup, level: number, shown: Shown): string[] {
+function constraintHeading(group: ConstraintGroup, level: number, shown: Shown, directory: Closures): string[] {
   const description = group.members[0]!.module.description;
   const heading = description === null ? "" : ` — ${description}`;
-  return [`${"#".repeat(level)} ${group.name}${lockMark(shown, group.members[0]!.module.locked)}${heading}`];
+  // A constraint owns no files, so only its lock can differ from its directory's.
+  return [`${"#".repeat(level)} ${group.name}${lockMark(shown, { ...directory, locked: group.members[0]!.module.locked }, directory)}${heading}`];
 }
 
 function constraintBody(group: ConstraintGroup): string[] {
@@ -1136,12 +1190,10 @@ function parentOfSection(point: Placement, at: string): TrieNode | null {
 const HELP_INSTANCES = `See ${codeSpan("espalier help instances")}.`;
 
 /** The lock, freeze and seal marks a section heading carries after its name. */
-function lockMark(shown: Shown, locked: boolean, frozen = false, sealed = false): string {
-  if (locked) shown.marks.add("locked");
-  if (frozen) shown.marks.add("frozen");
-  if (sealed) shown.marks.add("sealed");
-  const marks = `${locked ? "🔒" : ""}${frozen ? "❄️" : ""}${sealed ? "📦" : ""}`;
-  return marks === "" ? "" : ` ${marks}`;
+function lockMark(shown: Shown, own: Closures, parent: Closures): string {
+  const marks = changeMarks(own, parent);
+  for (const mark of marks) shown.marks.add(mark);
+  return marks.length === 0 ? "" : ` ${marks.join("")}`;
 }
 
 /**
@@ -1151,7 +1203,8 @@ function lockMark(shown: Shown, locked: boolean, frozen = false, sealed = false)
  */
 interface Shown {
   names: Segment[];
-  marks: Set<"locked" | "frozen" | "sealed">;
+  /** The closure marks its headings carry, such as 🔒 or ☀️. */
+  marks: Set<string>;
 }
 
 /**
@@ -1204,13 +1257,19 @@ function ruleBody(module: LoadedModule): string[] {
 const groupingTitle = (by: string[]): string => by.length === 0 ? "all files in a directory" : `by ${listing(by.map((name) => codeSpan(name)))}`;
 
 /** A declared group's heading and its own guidance. */
-function groupInstanceBlocks(instance: GroupInstance, directory: string, captures: Record<string, CaptureValue>, level: number, shown: Shown): string[] {
+function groupInstanceBlocks(instance: GroupInstance, directory: string, captures: Record<string, CaptureValue>, level: number, shown: Shown, rule: Closures): string[] {
   const segment = bindSegment(instance.segment, captures);
   const name = segment.source;
   const described = instance.module.description === null ? "" : ` — ${instance.module.description}`;
   shown.names.push(segment);
   return [
-    `${"#".repeat(level)} ${codeSpan(`${directory}${name}`)}${lockMark(shown, instance.module.locked, instance.module.frozenExport === true, instance.module.sealed === true)}${described}`,
+    // A group is frozen or thawed by its own statement before its rule's, and
+    // its seal adds a collection of its own to its rule's.
+    `${"#".repeat(level)} ${codeSpan(`${directory}${name}`)}${lockMark(shown, {
+      locked: instance.module.locked,
+      frozen: instance.module.frozenExport ?? rule.frozen,
+      sealed: rule.sealed || instance.module.sealed === true,
+    }, rule)}${described}`,
     ...(instance.module.guidance.trim() === "" ? [] : [instance.module.guidance.trim()]),
   ];
 }
@@ -1225,7 +1284,7 @@ const declaresGroupsHere = (rule: StructuralRule, directory: string): boolean =>
  * own files, so they are stated here, under the rule, rather than beside the
  * contract that defines the grouping.
  */
-function declaredHereSections(rule: StructuralRule, at: string, title: { text: string; captures: Record<string, CaptureValue> }, level: number, shown: Shown): string[] {
+function declaredHereSections(rule: StructuralRule, at: string, title: { text: string; captures: Record<string, CaptureValue> }, level: number, shown: Shown, closures: Closures): string[] {
   const here = at.slice(0, Math.max(at.lastIndexOf("/"), 0));
   const directory = title.text.slice(0, title.text.lastIndexOf("/") + 1);
   return [...(rule.inherited ?? []), rule].flatMap((source) => source.module.groups.flatMap((grouping) => {
@@ -1234,7 +1293,7 @@ function declaredHereSections(rule: StructuralRule, at: string, title: { text: s
     return [
       `${"#".repeat(level)} Together, ${groupingTitle(grouping.by)}, declared here`,
       `Groups of the inherited ${codeSpan(grouping.name)} grouping, each bound by it and by its own section:`,
-      ...instances.flatMap((instance) => groupInstanceBlocks(instance, directory, title.captures, level + 1, shown)),
+      ...instances.flatMap((instance) => groupInstanceBlocks(instance, directory, title.captures, level + 1, shown, closures)),
     ];
   }));
 }
@@ -1245,7 +1304,7 @@ function declaredHereSections(rule: StructuralRule, at: string, title: { text: s
  * under it as a contract's instances nest under the contract, named by the
  * rule's name with their values written in. docs/cli/build/README.MD "Groupings".
  */
-function groupingSections(module: LoadedModule, title: { text: string; captures: Record<string, CaptureValue> }, level: number, shown: Shown): string[] {
+function groupingSections(module: LoadedModule, title: { text: string; captures: Record<string, CaptureValue> }, level: number, shown: Shown, rule: Closures): string[] {
   const directory = title.text.slice(0, title.text.lastIndexOf("/") + 1);
   return module.groups.flatMap((grouping) => {
     // Groups a named instance declares are stated in its own document.
@@ -1256,7 +1315,7 @@ function groupingSections(module: LoadedModule, title: { text: string; captures:
     // rule section is. docs/cli/build/README.MD "Rendering".
     if (!grouping.extends && description === null && grouping.guidance.trim() === "" && instances.length === 0 && !abstract && !grouping.sealed) return [];
     const blocks = [
-      `${"#".repeat(level)} Together, ${groupingTitle(grouping.by)}${lockMark(shown, false, false, grouping.sealed)}${description === null ? "" : ` — ${description}`}`,
+      `${"#".repeat(level)} Together, ${groupingTitle(grouping.by)}${lockMark(shown, { ...rule, sealed: rule.sealed || grouping.sealed }, rule)}${description === null ? "" : ` — ${description}`}`,
       ...(grouping.extends ? [`Adds to the inherited ${codeSpan(grouping.name)} grouping.`] : []),
       ...(grouping.guidance.trim() === "" ? [] : [grouping.guidance.trim()]),
     ];
@@ -1270,7 +1329,7 @@ function groupingSections(module: LoadedModule, title: { text: string; captures:
       : instances.length === 0
         ? "No groups are declared yet."
         : "Declared groups, each bound by this grouping and by its own section:");
-    for (const instance of instances) blocks.push(...groupInstanceBlocks(instance, directory, title.captures, level + 1, shown));
+    for (const instance of instances) blocks.push(...groupInstanceBlocks(instance, directory, title.captures, level + 1, shown, rule));
     blocks.push(
       `${"#".repeat(level + 1)} Adding new groups`,
       abstract
@@ -1347,7 +1406,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
       const heading = section.doc.description === null ? "" : ` — ${section.doc.description}`;
       const title = shownAt(espalier, point, section.at);
       documents.shown.names.push(...title.segments);
-      blocks.push(`${hashes} ${codeSpan(`${title.text}/`)}${lockMark(documents.shown, directoryLock(espalier.nodes, section.at).locked, directoryFrozen(espalier.nodes, section.at).locked, directorySealed(espalier.nodes, section.at).locked)}${heading}`);
+      blocks.push(`${hashes} ${codeSpan(`${title.text}/`)}${lockMark(documents.shown, directoryClosures(espalier, section.at), directoryClosures(espalier, above(section.at)))}${heading}`);
       if (section.doc.body !== "") blocks.push(section.doc.body);
       if (instances.length > 0 || abstract) {
         const prefix = section.at.includes("/") ? section.at.slice(0, section.at.lastIndexOf("/") + 1) : "";
@@ -1385,15 +1444,20 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
     // guidance as a TODO, so a freshly adopted project hits this on every node.
     // Its groupings count only when they have something to say themselves.
     const title = shownAt(espalier, point, section.at);
+    const closures: Closures = {
+      locked: module.locked,
+      frozen: node !== null && nodeFrozen(espalier, node, section.at),
+      sealed: node !== null ? nodeSealed(espalier, node, section.at) : module.sealed === true,
+    };
     const groupings = [
-      ...(inherited ? [] : groupingSections(module, title, level + 1, documents.shown)),
-      ...declaredHereSections(section.rule, section.at, title, level + 1, documents.shown),
+      ...(inherited ? [] : groupingSections(module, title, level + 1, documents.shown, closures)),
+      ...declaredHereSections(section.rule, section.at, title, level + 1, documents.shown, closures),
     ];
     if (body.length === 0 && groupings.length === 0 && instances.length === 0 && !module.abstract) continue;
 
     const heading = module.description === null ? "" : ` — ${module.description}`;
     documents.shown.names.push(...title.segments);
-    blocks.push(`${hashes} ${codeSpan(title.text)}${lockMark(documents.shown, module.locked, node !== null && nodeFrozen(espalier, node, section.at), node !== null ? nodeSealed(espalier, node, section.at) : module.sealed === true)}${heading}`, ...body);
+    blocks.push(`${hashes} ${codeSpan(title.text)}${lockMark(documents.shown, closures, directoryClosures(espalier, above(section.at)))}${heading}`, ...body);
     // Instances first: a paragraph after a grouping's heading would read as
     // part of that grouping.
     if (instances.length > 0 || module.abstract) {
@@ -1407,8 +1471,13 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
         const instanceNode = nodeAt(point, instance.at);
         const named = shownAt(espalier, point, instance.at);
         documents.shown.names.push(...named.segments);
-        blocks.push(`${hashes}# ${codeSpan(named.text)}${lockMark(documents.shown, instance.rule.module.locked, instanceNode !== null && nodeFrozen(espalier, instanceNode, instance.at), instanceNode !== null ? nodeSealed(espalier, instanceNode, instance.at) : instance.rule.module.sealed === true)}${described}`, ...own);
-        blocks.push(...groupingSections(instance.rule.module, named, level + 2, documents.shown));
+        const state: Closures = {
+          locked: instance.rule.module.locked,
+          frozen: instanceNode !== null && nodeFrozen(espalier, instanceNode, instance.at),
+          sealed: instanceNode !== null ? nodeSealed(espalier, instanceNode, instance.at) : instance.rule.module.sealed === true,
+        };
+        blocks.push(`${hashes}# ${codeSpan(named.text)}${lockMark(documents.shown, state, directoryClosures(espalier, above(instance.at)))}${described}`, ...own);
+        blocks.push(...groupingSections(instance.rule.module, named, level + 2, documents.shown, state));
       }
       blocks.push(...addingInstances(node!.display, false, module.abstract, level + 1));
     }
@@ -1421,7 +1490,7 @@ function renderSections(espalier: Espalier, point: Placement, level: number, doc
     blocks.push(`${hashes} Constraints`);
     for (const group of groups) {
       blocks.push(
-        ...constraintHeading(group, level + 1, documents.shown),
+        ...constraintHeading(group, level + 1, documents.shown, directoryClosures(espalier, above(group.members[0]!.modulePath))),
         ...constraintSelection(group),
         ...constraintBody(group),
       );
@@ -1534,16 +1603,18 @@ export function maskLegend(names: readonly Segment[]): string | null {
  * The marks a map and its document's headings carry, each explained once.
  * Explain's map has no headings. docs/cli/build/README.MD "Marks".
  */
-export function marksLegend(entries: readonly MapEntry[], headings: ReadonlySet<"locked" | "frozen" | "sealed"> = new Set()): string | null {
+export function marksLegend(entries: readonly MapEntry[], root: Closures = OPEN, headings: ReadonlySet<string> = new Set()): string | null {
+  const used = new Set([...headings, ...[...closureMarks(entries, root).values()].flat()]);
   const sentences: string[] = [];
-  if (headings.has("locked") || entries.some((entry) => entry.locked === true)) {
-    sentences.push(`🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (${codeSpan("espalier help locks")}).`);
+  const help = codeSpan("espalier help locks");
+  if (used.has("🔒") || used.has("🔓")) {
+    sentences.push(`🔒 marks where a lock begins: what it follows is locked, and so is everything under it${used.has("🔓") ? " until a 🔓 reopens it" : ""}; changing what a locked module declares in the espalier needs explicit authorization (${help}).`);
   }
-  if (headings.has("frozen") || entries.some((entry) => entry.frozen === true)) {
-    sentences.push(`❄️ marks frozen files: an existing file keeps its content and is never removed; add a new one instead where the contract admits it (${codeSpan("espalier help locks")}).`);
+  if (used.has("❄️") || used.has("☀️")) {
+    sentences.push(`❄️ marks where a freeze begins: the files it follows are frozen, and so is everything under it${used.has("☀️") ? " until a ☀️ thaws it" : ""}; an existing file keeps its content and is never removed, so add a new one instead where the contract admits it (${help}).`);
   }
-  if (headings.has("sealed") || entries.some((entry) => entry.sealed === true)) {
-    sentences.push(`📦 marks a sealed collection: no file, or for a grouping no group, joins or leaves it (${codeSpan("espalier help locks")}).`);
+  if (used.has("📪") || used.has("📬")) {
+    sentences.push(`📪 marks where a seal begins: no file, or for a grouping no group, joins or leaves the collection there or under it${used.has("📬") ? " until a 📬 opens it again" : ""} (${help}).`);
   }
   if (entries.some((entry) => entry.abstract === true)) {
     sentences.push("📋 marks an abstract contract: every match must be declared in the espalier, and an undeclared one is reported.");
@@ -1630,14 +1701,14 @@ ${architectureGuidance(espalier)}`);
     const description = folded.doc?.description == null ? "" : ` — ${folded.doc.description}`;
     const title = shownAt(espalier, point, folded.at);
     documents.shown.names.push(...title.segments);
-    blocks.push(`${"#".repeat(level)} ${codeSpan(`${title.text}/`)}${lockMark(documents.shown, directoryLock(espalier.nodes, folded.at).locked, directoryFrozen(espalier.nodes, folded.at).locked, directorySealed(espalier.nodes, folded.at).locked)}${description}`, ...body);
+    blocks.push(`${"#".repeat(level)} ${codeSpan(`${title.text}/`)}${lockMark(documents.shown, directoryClosures(espalier, folded.at), directoryClosures(espalier, above(folded.at)))}${description}`, ...body);
   }
   blocks.push(...renderOutside(outside, level));
   if (closed !== null) blocks.push(closed);
   // The map's root line carries the document's own directory's lock.
-  if (directoryLock(espalier.nodes, point.at).locked) documents.shown.marks.add("locked");
+  for (const mark of changeMarks(directoryClosures(espalier, point.at), OPEN)) documents.shown.marks.add(mark);
   const legends = [
-    marksLegend(entries, documents.shown.marks),
+    marksLegend(entries, directoryClosures(espalier, point.at), documents.shown.marks),
     maskLegend([...entries.map((entry) => entry.segment), ...documents.shown.names]),
   ].filter((legend): legend is string => legend !== null);
   blocks.splice(legendAt, 0, ...legends);

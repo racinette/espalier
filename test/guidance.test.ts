@@ -56,7 +56,10 @@ test("a root lock produces drift without writes, and a locked espalier permits n
     assert.equal(run(root, ["build"]).status, 0);
     const locked = readFileSync(doc, "utf8");
     assert.match(locked, /needs explicit authorization naming that change/);
-    assert.match(locked, /main\.ts 🔒❗/);
+    // Stated once where it begins: everything under the root continues it.
+    assert.match(locked, /^    \.\/ 🔒$/m);
+    assert.match(locked, /main\.ts ❗/);
+    assert.doesNotMatch(locked, /main\.ts 🔒/);
     assert.match(locked, /Authored policy stays here/);
     assert.equal(run(root, ["create", "main.ts"]).status, 0);
     assert.equal(run(root, ["lint"]).status, 0);
@@ -114,11 +117,11 @@ test("migration turns a fixed mode into a root lock through legacy folding, idem
     assert.doesNotMatch(next, /inline:/);
     const rootModule = readFileSync(path.join(root, "espalier/ESPALIER.mjs"), "utf8");
     assert.match(rootModule, /fold = true/);
-    assert.match(rootModule, /export const locked = true;/);
+    assert.match(rootModule, /\S\n\nexport const locked = true;\n$/, "set apart from what the module says");
     assert.equal(run(root, ["migrate"]).status, 0);
     assert.equal(readFileSync(path.join(root, "espalier.config.yaml"), "utf8"), next);
     assert.equal(run(root, ["build"]).status, 0);
-    assert.match(readFileSync(path.join(root, "AGENTS.MD"), "utf8"), /Modules marked 🔒 in \*\*Project layout\*\* are locked/);
+    assert.match(readFileSync(path.join(root, "AGENTS.MD"), "utf8"), /A module marked 🔒 in \*\*Project layout\*\* or in a heading is locked/);
   });
 });
 

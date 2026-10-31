@@ -7,7 +7,7 @@
     themes/
     └─ [theme=a+]_[part=a+].css 0+  one part of a theme
 
-📦 marks a sealed collection: no file, or for a grouping no group, joins or leaves it (`espalier help locks`). A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+📪 marks where a seal begins: no file, or for a grouping no group, joins or leaves the collection there or under it (`espalier help locks`). A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 In `[theme=a+]`, the text after `=` is a mask: each character matches one character of the name. `a` matches a lowercase letter. `+` repeats the element before it one or more times. `espalier help matching` has the full grammar.
 
@@ -15,7 +15,7 @@ In `[theme=a+]`, the text after `=` is a mask: each character matches one charac
 
 Colors come from the palette.
 
-### Together, by `theme` 📦 — a theme the product ships
+### Together, by `theme` 📪 — a theme the product ships
 
 Every theme styles the same parts.
 

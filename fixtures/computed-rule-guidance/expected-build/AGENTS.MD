@@ -3,18 +3,17 @@
 ## Project layout
 
     ./ 🔒
-    ├─ flights/ 🔒❗         flight operations (locked) (instance of [group]/)
+    ├─ flights/ ❗         flight operations (locked) (instance of [group]/)
     │
-    └─ [group]/ 🔒 0+        operation group (locked)
+    └─ [group]/ 0+         operation group (locked)
        │
-       ├─ {group}.json 🔒❗  group manifest ({group} repeats what [group]
-       │                     matched)
+       ├─ {group}.json ❗  group manifest ({group} repeats what [group] matched)
        │
-       └─ [module].ts 🔒 0+  shared operation (locked)
+       └─ [module].ts 0+   shared operation (locked)
 
-🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+🔒 marks where a lock begins: what it follows is locked, and so is everything under it; changing what a locked module declares in the espalier needs explicit authorization (`espalier help locks`). ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
-## `[group]/` 🔒 — operation group (locked)
+## `[group]/` — operation group (locked)
 
 Concrete instances:
 - `flights/` — flight operations (locked), in `flights/AGENTS.MD`
@@ -23,17 +22,17 @@ Concrete instances:
 
 A `[group]/` directory needs no declaration. Declaring one gives it its own guidance; see `espalier help instances`.
 
-## `[group]/{group}.json` 🔒 — group manifest
+## `[group]/{group}.json` — group manifest
 
 Manifest [group]/{group}.json; path=null; captures={}.
 
-## `[group]/[module].ts` 🔒 — shared operation (locked)
+## `[group]/[module].ts` — shared operation (locked)
 
 Base [group]/[module].ts; path=null; captures={}; locked.
 
 ## Constraints
 
-### collection 🔒 — collection (locked)
+### collection — collection (locked)
 
 Together, files with exactly `.ts` or `.json` as their extension in this project
 must follow this rule.

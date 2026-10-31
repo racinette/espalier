@@ -11,7 +11,7 @@
        │
        └─ client.ts 🔒❗  the client
 
-🔒 marks a locked module: changing what it declares in the espalier needs explicit authorization (`espalier help locks`). 📋 marks an abstract contract: every match must be declared in the espalier, and an undeclared one is reported. ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
+🔒 marks where a lock begins: what it follows is locked, and so is everything under it; changing what a locked module declares in the espalier needs explicit authorization (`espalier help locks`). 📋 marks an abstract contract: every match must be declared in the espalier, and an undeclared one is reported. ❗ marks a named file or directory that must exist; one without it may be absent. A count after a pattern, such as `0+` or `1+`, is the fewest matching names that must exist.
 
 ## `[provider]/` — a provider
 

@@ -37,8 +37,8 @@ changes: its guidance, its checks, and for an abstract contract its member
 list. A directory module locks its subtree until a deeper module says `locked =
 false`, and a declaration inherits from its directory, not its contract.
 Unlocked modules take the changes a task clearly implies; open designs are
-still proposed first. Generated guidance marks locked modules with 🔒 and
-states both behaviours. `espalier help locks` is the specification.
+still proposed first. Generated guidance marks where a lock begins with 🔒
+and where one ends with 🔓, and states both behaviours. `espalier help locks` is the specification.
 
 `build.guidanceMode` is removed. A project that set it to `fixed` meant the
 whole espalier was locked, and `espalier migrate` writes exactly that:
@@ -72,8 +72,8 @@ export const sealed = true;
   can leave room for one piece of work.
 
 Both together make a snapshot, such as vendored code. Generated guidance marks
-frozen nodes with ❄️ and sealed ones with 📦, and `explain` reports `frozen`,
-`frozenBy` and `sealedBy`.
+where a freeze begins with ❄️ and where one ends with ☀️, and a seal with 📪 and
+📬, and `explain` reports `frozen`, `frozenBy` and `sealedBy`.
 
 ## Checking a change against a base
 
@@ -207,7 +207,10 @@ rejected with a pointer to `l` and `w`.
 
 - Maps use marks after each name instead of parenthesized words: ❗ for a file
   or directory that must exist, a count such as `0+` or `1+` on a pattern, 📋
-  for an abstract contract, and 🔒, ❄️ and 📦. Each document's legend explains
+  for an abstract contract, and 🔒, ❄️ and 📪 where a lock, freeze or seal
+  begins, with 🔓, ☀️ and 📬 where one ends. A state is marked only where it
+  changes, so a fully locked espalier carries one 🔒 per document. Each
+  document's legend explains
   the marks it uses. `(instance of …)` and `(literal name)` remain.
 - Guidance an author writes is rendered once. An instance directory's document
   names where its contract's guidance is stated instead of repeating it, and a
